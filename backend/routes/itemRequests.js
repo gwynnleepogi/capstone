@@ -3,13 +3,14 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
+const { requireRole } = require('../middleware/auth')
 
 
 // GET ITEM REQUESTS
 
 router.get('/', async (req, res) => {
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('item_requests')
     .select(`
       *,
@@ -21,6 +22,13 @@ router.get('/', async (req, res) => {
       )
     `)
     .order('created_at', { ascending: false })
+
+  if (req.role === 'Teacher' || req.role === 'Non-Teaching Staff') {
+    query = query.eq('requested_by', req.profile.id)
+  }
+
+  const { data, error } = await query
+
 
   if (error) {
     console.log(error)
@@ -48,11 +56,16 @@ router.post('/', async (req, res) => {
     status
   } = req.body
 
+  const requestOwner =
+    req.role === 'Teacher' || req.role === 'Non-Teaching Staff'
+      ? req.profile.id
+      : requested_by
+
   const { data, error } = await supabase
     .from('item_requests')
     .insert([{
       request_number,
-      requested_by,
+      requested_by: requestOwner,
       office_id,
       item_description,
       quantity,
@@ -84,7 +97,7 @@ router.post('/', async (req, res) => {
 
 // UPDATE ITEM REQUEST
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireRole('Administrator', 'Personnel'), async (req, res) => {
 
   const {
     request_number,
@@ -152,7 +165,7 @@ router.put('/:id', async (req, res) => {
 
 // DELETE ITEM REQUEST
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole('Administrator', 'Personnel'), async (req, res) => {
 
   const { data: oldData, error: oldError } = await supabase
     .from('item_requests')

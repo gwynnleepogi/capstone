@@ -757,4 +757,23 @@ h1 {
   vertical-align: middle;
 }
 
+@media (max-width: 576px) {
+  .table {
+    min-width: 0 !important;
+    table-layout: fixed;
+  }
+
+  .table th,
+  .table td {
+    padding: 9px 5px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .modal-dialog {
+    max-width: calc(100% - 1rem);
+    margin: .5rem auto;
+  }
+}
+
 </style>

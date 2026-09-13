@@ -332,6 +332,19 @@
 </template>
 
 <script>
+
+async function apiRequest(url, options = {}) {
+  const token = localStorage.getItem('accessToken')
+
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      Authorization: `Bearer ${token}`
+    }
+  })
+}
+
 export default {
   name: 'Items',
 
@@ -422,7 +435,7 @@ export default {
       this.loading = true
 
       try {
-        const response = await fetch('http://localhost:5000/api/items')
+        const response = await apiRequest('http://localhost:5000/api/items')
 
         if (!response.ok) {
           throw new Error('Failed to get items')
@@ -446,7 +459,7 @@ export default {
       this.saving = true
 
       try {
-        const response = await fetch(
+        const response = await apiRequest(
           'http://localhost:5000/api/items',
           {
             method: 'POST',
@@ -511,7 +524,7 @@ export default {
       this.updating = true
 
       try {
-        const response = await fetch(
+        const response = await apiRequest(
           'http://localhost:5000/api/items/' +
           this.editingItem.id,
           {
@@ -569,7 +582,7 @@ export default {
       }
 
       try {
-        const response = await fetch(
+        const response = await apiRequest(
           'http://localhost:5000/api/items/' + item.id,
           {
             method: 'DELETE'
@@ -676,6 +689,8 @@ export default {
       }, 3000)
     }
   }
+
+  
 }
 </script>
 
@@ -786,6 +801,26 @@ h1 {
 @media (max-width: 576px) {
   .edit-sidebar {
     width: 100%;
+  }
+
+  .table {
+    min-width: 0 !important;
+    table-layout: fixed;
+  }
+
+  .table th,
+  .table td {
+    padding: 9px 5px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .edit-sidebar-footer {
+    flex-wrap: wrap;
+  }
+
+  .edit-sidebar-footer .btn {
+    flex: 1 1 130px;
   }
 }
 </style>

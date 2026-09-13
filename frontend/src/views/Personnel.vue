@@ -227,20 +227,20 @@
                   required
                 >
 
-                  <option value="Staff">
-                    Staff
+                  <option value="Administrator">
+                    Administrator
                   </option>
 
-                  <option value="Admin">
-                    Admin
+                  <option value="Personnel">
+                    Personnel
                   </option>
 
-                  <option value="Property Custodian">
-                    Property Custodian
+                  <option value="Teacher">
+                    Teacher
                   </option>
 
-                  <option value="Officer">
-                    Officer
+                  <option value="Non-Teaching Staff">
+                    Non-Teaching Staff
                   </option>
 
                 </select>
@@ -347,7 +347,7 @@ export default {
 
         email: '',
 
-        role: 'Staff',
+        role: 'Personnel',
 
         office_id: ''
 
@@ -450,7 +450,7 @@ export default {
 
         email: '',
 
-        role: 'Staff',
+        role: 'Personnel',
 
         office_id: ''
 
@@ -692,6 +692,20 @@ h1 {
 .table td {
   white-space: nowrap;
   vertical-align: middle;
+}
+
+@media (max-width: 576px) {
+  .table {
+    min-width: 0 !important;
+    table-layout: fixed;
+  }
+
+  .table th,
+  .table td {
+    padding: 9px 5px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 </style>

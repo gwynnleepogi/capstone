@@ -11,12 +11,14 @@ const receiptsRoutes = require('./routes/receipts')
 const returnsRoutes = require('./routes/returns')
 const incidentsRoutes = require('./routes/incidents')
 const auditLogsRoutes = require('./routes/auditLogs')
-
+const { requireAuth, requireRole } = require('./middleware/auth')
+const authRoutes = require('./routes/auth')
 
 const app = express()
 
 app.use(cors())
 app.use(express.json())
+app.use('/api/auth', authRoutes)
 
 app.get('/', (req, res) => {
   res.json({
@@ -24,15 +26,15 @@ app.get('/', (req, res) => {
   })
 })
 
-app.use('/api/items', itemsRoutes)
-app.use('/api/offices', officesRoutes)
-app.use('/api/personnel', personnelRoutes)
-app.use('/api/suppliers', suppliersRoutes)
-app.use('/api/item-requests', itemRequestsRoutes)
-app.use('/api/receipts', receiptsRoutes)
-app.use('/api/returns', returnsRoutes)
-app.use('/api/incidents', incidentsRoutes)
-app.use('/api/audit-logs', auditLogsRoutes)
+app.use('/api/offices', requireAuth, requireRole('Administrator', 'Personnel'), officesRoutes)
+app.use('/api/personnel', requireAuth, requireRole('Administrator'), personnelRoutes)
+app.use('/api/suppliers', requireAuth, requireRole('Administrator', 'Personnel'), suppliersRoutes)
+app.use('/api/item-requests', requireAuth, requireRole('Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'), itemRequestsRoutes)
+app.use('/api/receipts', requireAuth, requireRole('Administrator', 'Personnel'), receiptsRoutes)
+app.use('/api/returns', requireAuth, requireRole('Administrator', 'Personnel'), returnsRoutes)
+app.use('/api/incidents', requireAuth, requireRole('Administrator', 'Personnel'), incidentsRoutes)
+app.use('/api/audit-logs', requireAuth, requireRole('Administrator'), auditLogsRoutes)
+app.use('/api/items', requireAuth, requireRole('Administrator', 'Personnel'), itemsRoutes)
 
 const PORT = 5000
 

@@ -1,212 +1,132 @@
 <template>
-  <div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h2>Audit Logs</h2>
-        <p class="text-muted">System activity records</p>
-      </div>
+  <div class="login-page">
+    <div class="login-box">
+      <h1>Property Inventory</h1>
+      <p>Sign in to continue</p>
 
-      <button
-        class="btn btn-success"
-        @click="getLogs"
-      >
-        Refresh
-      </button>
+      <form @submit.prevent="login">
+        <label>Email</label>
+
+        <input
+          v-model="email"
+          type="email"
+          required
+        >
+
+        <label>Password</label>
+
+        <input
+          v-model="password"
+          type="password"
+          required
+        >
+
+        <p v-if="error" class="text-danger">
+          {{ error }}
+        </p>
+
+        <button type="submit">
+          {{ loading ? 'Logging in...' : 'Login' }}
+        </button>
+      </form>
     </div>
-
-    <div class="card">
-      <div class="card-body p-0">
-
-        <div class="table-responsive">
-
-          <table class="table table-hover mb-0">
-
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Action</th>
-                <th>Item ID</th>
-                <th>Record ID</th>
-                <th>Description</th>
-              </tr>
-            </thead>
-
-            <tbody>
-
-              <tr
-                v-for="log in logs"
-                :key="log.id"
-              >
-
-                <td>
-                  {{ formatDate(log.created_at) }}
-                </td>
-
-                <td>
-                  <span
-                    class="badge"
-                    :class="getActionClass(log.action)"
-                  >
-                    {{ log.action }}
-                  </span>
-                </td>
-
-                <td>
-                  {{ log.item_id || '-' }}
-                </td>
-
-                <td>
-                  {{ log.record_id || log.item_id || '-' }}
-                </td>
-
-                <td>
-                  {{ log.description || '-' }}
-                </td>
-
-              </tr>
-
-              <tr v-if="logs.length === 0">
-
-                <td
-                  colspan="5"
-                  class="text-center py-4"
-                >
-                  No audit logs found.
-                </td>
-
-              </tr>
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </div>
-    </div>
-
   </div>
 </template>
 
-
 <script>
-
 export default {
-
-  name: 'AuditLogs',
-
   data() {
-
     return {
-      logs: []
+      email: '',
+      password: '',
+      loading: false,
+      error: ''
     }
-
   },
-
-
-  mounted() {
-
-    this.getLogs()
-
-  },
-
 
   methods: {
+    async login() {
+      this.loading = true
+      this.error = ''
 
-    async getLogs() {
+      const response = await fetch(
+        'http://localhost:5000/api/auth/login',
+        {
+          method: 'POST',
 
-      try {
+          headers: {
+            'Content-Type': 'application/json'
+          },
 
-        const response = await fetch(
-          'http://localhost:5000/api/audit-logs'
-        )
-
-        const data = await response.json()
-
-        console.log('AUDIT LOG DATA:', data)
-
-        if (!response.ok) {
-
-          throw new Error(
-            data.error ||
-            'Failed to get audit logs'
-          )
-
+          body: JSON.stringify({
+            email: this.email,
+            password: this.password
+          })
         }
+      )
 
-        this.logs = data
+      const result = await response.json()
 
-      } catch (error) {
-
-        console.error(
-          'AUDIT LOG ERROR:',
-          error
-        )
-
-        console.log(
-          'Could not fetch audit logs:',
-          error.message
-        )
-
+      if (!response.ok) {
+        this.error = result.error
+        this.loading = false
+        return
       }
 
-    },
+      localStorage.setItem(
+        'accessToken',
+        result.access_token
+      )
 
+      localStorage.setItem(
+        'user',
+        JSON.stringify(result.user)
+      )
 
-    formatDate(date) {
+      this.$router.push('/')
 
-      if (!date) {
-        return '-'
-      }
-
-      return new Date(date).toLocaleString()
-
-    },
-
-
-    getActionClass(action) {
-
-      if (action === 'Created') {
-        return 'text-bg-success'
-      }
-
-      if (action === 'Updated') {
-        return 'text-bg-primary'
-      }
-
-      if (action === 'Deleted') {
-        return 'text-bg-danger'
-      }
-
-      return 'text-bg-secondary'
-
+      this.loading = false
     }
-
   }
-
 }
-
 </script>
 
-
 <style scoped>
-
-.card {
-  border-radius: 8px;
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: #f7f5e8;
 }
 
-table {
-  min-width: 1000px;
+.login-box {
+  width: min(100%, 400px);
+  padding: 30px;
+  background: white;
+  border-radius: 10px;
 }
 
-th {
-  background: #2F5D3A;
+.login-box label {
+  display: block;
+  margin-top: 15px;
+  margin-bottom: 5px;
+}
+
+.login-box input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.login-box button {
+  width: 100%;
+  margin-top: 20px;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  background: #2f5d3a;
   color: white;
 }
-
-td,
-th {
-  padding: 12px 15px;
-}
-
 </style>

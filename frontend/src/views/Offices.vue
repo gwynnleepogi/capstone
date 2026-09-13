@@ -527,4 +527,18 @@ h1 {
   background-color: #dc3545;
   color: white;
 }
+
+@media (max-width: 576px) {
+  .table {
+    min-width: 0 !important;
+    table-layout: fixed;
+  }
+
+  .table th,
+  .table td {
+    padding: 9px 5px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
 </style>

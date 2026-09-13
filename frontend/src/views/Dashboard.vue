@@ -225,41 +225,35 @@ export default {
 
   methods: {
 
-    async getItems() {
+  async getItems() {
+  try {
+    const token = localStorage.getItem('accessToken')
 
-      try {
-
-        const response = await fetch(
-          'http://localhost:5000/api/items'
-        )
-
-        if (!response.ok) {
-
-          throw new Error(
-            'Failed to load dashboard data'
-          )
-
+    const response = await fetch(
+      'http://localhost:5000/api/items',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-
-        this.items = await response.json()
-
       }
+    )
 
-      catch (error) {
+    const data = await response.json()
 
-        console.log(error)
+    if (!response.ok) {
+      throw new Error(
+        data.error || 'Failed to load dashboard data'
+      )
+    }
 
-        this.error = error.message
-
-      }
-
-      finally {
-
-        this.loading = false
-
-      }
-
-    },
+    this.items = data
+  } catch (error) {
+    console.log(error)
+    this.error = error.message
+  } finally {
+    this.loading = false
+  }
+},
 
 
     countClassification(classification) {
@@ -336,6 +330,24 @@ h1 {
 .table td {
   white-space: nowrap;
   vertical-align: middle;
+}
+
+@media (max-width: 576px) {
+  .summary-card .card-body {
+    padding: 14px;
+  }
+
+  .table {
+    min-width: 0 !important;
+    table-layout: fixed;
+  }
+
+  .table th,
+  .table td {
+    padding: 9px 5px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 </style>
