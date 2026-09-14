@@ -38,6 +38,8 @@ router.get('/', async (req, res) => {
     })
   }
 
+
+
   res.json(data)
 })
 
@@ -88,7 +90,8 @@ router.post('/', async (req, res) => {
     data.id,
     null,
     JSON.stringify(data),
-    'Added item request: ' + data.request_number
+    'Added item request: ' + data.request_number,
+    req.profile.id
   )
 
   res.status(201).json(data)
@@ -156,7 +159,8 @@ router.put('/:id', requireRole('Administrator', 'Personnel'), async (req, res) =
     data.id,
     JSON.stringify(oldData),
     JSON.stringify(data),
-    'Updated item request: ' + data.request_number
+    'Updated item request: ' + data.request_number,
+    req.profile.id
   )
 
   res.json(data)
@@ -203,7 +207,8 @@ router.delete('/:id', requireRole('Administrator', 'Personnel'), async (req, res
     req.params.id,
     JSON.stringify(oldData),
     null,
-    'Deleted item request: ' + oldData.request_number
+    'Deleted item request: ' + oldData.request_number,
+    req.profile.id
   )
 
   res.json({

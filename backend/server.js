@@ -33,7 +33,7 @@ app.use('/api/item-requests', requireAuth, requireRole('Administrator', 'Personn
 app.use('/api/receipts', requireAuth, requireRole('Administrator', 'Personnel'), receiptsRoutes)
 app.use('/api/returns', requireAuth, requireRole('Administrator', 'Personnel'), returnsRoutes)
 app.use('/api/incidents', requireAuth, requireRole('Administrator', 'Personnel'), incidentsRoutes)
-app.use('/api/audit-logs', requireAuth, requireRole('Administrator'), auditLogsRoutes)
+app.use('/api/audit-logs', requireAuth, requireRole('Administrator', 'Personnel'), auditLogsRoutes)
 app.use('/api/items', requireAuth, requireRole('Administrator', 'Personnel'), itemsRoutes)
 
 const PORT = 5000

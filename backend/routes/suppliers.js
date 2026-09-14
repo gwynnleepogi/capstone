@@ -63,7 +63,8 @@ router.post('/', async (req, res) => {
     data.id,
     null,
     JSON.stringify(data),
-    'Added supplier: ' + data.supplier_name
+    'Added supplier: ' + data.supplier_name,
+    req.profile.id
   )
 
   res.status(201).json(data)
@@ -127,7 +128,8 @@ router.put('/:id', async (req, res) => {
     data.id,
     JSON.stringify(oldData),
     JSON.stringify(data),
-    'Updated supplier: ' + data.supplier_name
+    'Updated supplier: ' + data.supplier_name,
+    req.profile.id
   )
 
   res.json(data)
@@ -174,7 +176,8 @@ router.delete('/:id', async (req, res) => {
     req.params.id,
     JSON.stringify(oldData),
     null,
-    'Deleted supplier: ' + oldData.supplier_name
+    'Deleted supplier: ' + oldData.supplier_name,
+    req.profile.id
   )
 
   res.json({

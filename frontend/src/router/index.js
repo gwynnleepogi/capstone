@@ -26,61 +26,61 @@ const router = createRouter({
     path: '/',
     name: 'Dashboard',
     component: Dashboard,
-    meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator', 'Personnel'] }
   },
   {
     path: '/items',
     name: 'Items',
     component: Items,
-    meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator', 'Personnel'] }
   },
   {
     path: '/offices',
     name: 'Offices',
     component: Offices,
-    meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator', 'Personnel'] }
   },
   {
     path: '/suppliers',
     name: 'Suppliers',
     component: Suppliers,
-    meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator', 'Personnel'] }
   },
   {
     path: '/personnel',
     name: 'Personnel',
     component: Personnel,
-    meta: { roles: ['Administrator'] }
+      meta: { roles: ['Administrator'] }
   },
   {
     path: '/request',
     name: 'ItemRequest',
     component: ItemRequests,
-    meta: { roles: ['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'] }
+      meta: { roles: ['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'] }
   },
     {
     path: '/receipts',
     name: 'PropertyReceipts',
     component: PropertyReceipts,
-    meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator', 'Personnel'] }
   },
   {
     path: '/returns',
     name: 'Returns',
     component: Returns,
-    meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator', 'Personnel'] }
   },
   {
     path: '/incidents',
     name: 'Incidents',
     component: Incidents,
-    meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator', 'Personnel'] }
   },
   {
     path: '/audit-logs',
     name: 'AuditSLogs',
     component: AuditLogs,
-    meta: { roles: ['Administrator'] }
+      meta: { roles: ['Administrator', 'Personnel'] }
   }
 ]
 })

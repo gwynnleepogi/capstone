@@ -5,7 +5,9 @@
     <div class="row align-items-center mb-4">
       <div class="col">
         <h1 class="h3 mb-1">Item Requests</h1>
-        <p class="text-secondary mb-0">Manage item requests</p>
+        <p class="text-secondary mb-0">
+          {{ canManageRequests ? 'Manage item requests' : 'Submit and track your item requests' }}
+        </p>
       </div>
 
       <div class="col-auto">
@@ -39,7 +41,7 @@
               <th>Requested By</th>
               <th>Office</th>
               <th>Status</th>
-              <th>Actions</th>
+              <th v-if="canManageRequests">Actions</th>
             </tr>
           </thead>
 
@@ -50,7 +52,7 @@
               :key="request.id"
             >
 
-              <td>
+              <td v-if="canManageRequests">
                 {{ request.request_number || '-' }}
               </td>
 
@@ -105,7 +107,7 @@
             <tr v-if="requests.length === 0">
 
               <td
-                colspan="7"
+                :colspan="canManageRequests ? 7 : 6"
                 class="text-center text-secondary py-5"
               >
                 No item requests found.
@@ -208,11 +210,12 @@
               <!-- REQUESTED BY -->
               <div class="mb-3">
 
-                <label class="form-label">
+                <label v-if="canManageRequests" class="form-label">
                   Requested By
                 </label>
 
                 <select
+                  v-if="canManageRequests"
                   class="form-select"
                   v-model="form.requested_by"
                 >
@@ -237,11 +240,12 @@
               <!-- OFFICE -->
               <div class="mb-3">
 
-                <label class="form-label">
+                <label v-if="canManageRequests" class="form-label">
                   Office
                 </label>
 
                 <select
+                  v-if="canManageRequests"
                   class="form-select"
                   v-model="form.office_id"
                 >
@@ -280,7 +284,7 @@
 
 
               <!-- STATUS -->
-              <div class="mb-3">
+              <div v-if="canManageRequests" class="mb-3">
 
                 <label class="form-label">
                   Status
@@ -397,12 +401,26 @@ export default {
 
   },
 
+  computed: {
+
+    currentUser() {
+      return JSON.parse(localStorage.getItem('user') || 'null')
+    },
+
+    canManageRequests() {
+      return ['Administrator', 'Personnel'].includes(this.currentUser?.role)
+    }
+
+  },
+
 
   mounted() {
 
     this.getRequests()
-    this.getPersonnel()
-    this.getOffices()
+    if (this.canManageRequests) {
+      this.getPersonnel()
+      this.getOffices()
+    }
 
   },
 
@@ -599,7 +617,7 @@ export default {
               this.form.purpose,
 
             status:
-              this.form.status
+              this.canManageRequests ? this.form.status : 'Pending'
 
           })
 

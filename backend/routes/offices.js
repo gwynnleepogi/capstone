@@ -57,7 +57,8 @@ router.post('/', async (req, res) => {
     data.id,
     null,
     JSON.stringify(data),
-    'Added office: ' + data.office_name
+    'Added office: ' + data.office_name,
+    req.profile.id
   )
 
   res.status(201).json(data)
@@ -115,7 +116,8 @@ router.put('/:id', async (req, res) => {
     data.id,
     JSON.stringify(oldData),
     JSON.stringify(data),
-    'Updated office: ' + data.office_name
+    'Updated office: ' + data.office_name,
+    req.profile.id
   )
 
   res.json(data)
@@ -162,7 +164,8 @@ router.delete('/:id', async (req, res) => {
     req.params.id,
     JSON.stringify(oldData),
     null,
-    'Deleted office: ' + oldData.office_name
+    'Deleted office: ' + oldData.office_name,
+    req.profile.id
   )
 
   res.json({
