@@ -2,6 +2,49 @@ const express = require('express')
 const router = express.Router()
 const supabase = require('../supabase')
 
+router.post('/signup', async (req, res) => {
+  const { full_name, username, email, password, role } = req.body
+
+  if (!full_name || !username || !email || !password || !role) {
+    return res.status(400).json({ error: 'All signup fields are required' })
+  }
+
+  const allowedRoles = ['Personnel', 'Teacher', 'Non-Teaching Staff']
+
+  if (!allowedRoles.includes(role)) {
+    return res.status(400).json({ error: 'Invalid role' })
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password
+  })
+
+  if (error || !data.user) {
+    return res.status(400).json({
+      error: error?.message || 'Unable to create account'
+    })
+  }
+
+  const { error: profileError } = await supabase
+    .from('users')
+    .insert([{
+      auth_user_id: data.user.id,
+      full_name,
+      username,
+      email,
+      role
+    }])
+
+  if (profileError) {
+    return res.status(400).json({ error: profileError.message })
+  }
+
+  res.status(201).json({
+    message: '<p style="color: green;">Account created successfully. You can now sign in.</p>'
+  })
+})
+
 router.post('/login', async (req, res) => {
   const { email, password, preferred_role } = req.body
 
@@ -40,52 +83,6 @@ router.post('/login', async (req, res) => {
     expires_at: data.session.expires_at,
     user: profile,
     role: profile.role
-  })
-})
-
-router.post('/signup', async (req, res) => {
-  const { full_name, username, email, password, role } = req.body
-  const allowedRoles = ['Personnel', 'Teacher', 'Non-Teaching Staff']
-
-  if (!full_name || !username || !email || !password || !role) {
-    return res.status(400).json({
-      error: 'Full name, username, email, password, and role are required'
-    })
-  }
-
-  if (!allowedRoles.includes(role)) {
-    return res.status(400).json({
-      error: 'Administrator accounts must be created by an administrator'
-    })
-  }
-
-  const { data: authData, error: authError } =
-    await supabase.auth.signUp({ email, password })
-
-  if (authError || !authData.user) {
-    return res.status(400).json({
-      error: authError?.message || 'Failed to create account'
-    })
-  }
-
-  const { error: profileError } = await supabase
-    .from('users')
-    .insert([{
-      full_name,
-      username,
-      email,
-      role,
-      auth_user_id: authData.user.id
-    }])
-
-  if (profileError) {
-    return res.status(400).json({ error: profileError.message })
-  }
-
-  res.status(201).json({
-    message: authData.session
-      ? 'Account created. You can sign in now.'
-      : 'Account created. Check your email to confirm it before signing in.'
   })
 })
 

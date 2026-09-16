@@ -37,8 +37,7 @@
 
               <tr>
                 <th>Full Name</th>
-                <th>Username</th>
-                <th>Email</th>
+                <th>Gmail Account</th>
                 <th>Role</th>
                 <th>Office</th>
                 <th>Actions</th>
@@ -56,10 +55,6 @@
 
                 <td>
                   {{ person.full_name }}
-                </td>
-
-                <td>
-                  {{ person.username }}
                 </td>
 
                 <td>
@@ -104,7 +99,7 @@
               <tr v-if="personnel.length === 0">
 
                 <td
-                  colspan="6"
+                  colspan="5"
                   class="text-center text-secondary py-4"
                 >
                   No personnel found.
@@ -178,6 +173,22 @@
               </div>
 
 
+              <!-- EMAIL -->
+
+              <div class="mb-3">
+
+                <label class="form-label">
+                  Email
+                </label>
+
+                <input
+                  type="email"
+                  class="form-control"
+                  v-model="form.email"
+                >
+
+              </div>
+
               <!-- USERNAME -->
 
               <div class="mb-3">
@@ -191,23 +202,6 @@
                   class="form-control"
                   v-model="form.username"
                   required
-                >
-
-              </div>
-
-
-              <!-- EMAIL -->
-
-              <div class="mb-3">
-
-                <label class="form-label">
-                  Email
-                </label>
-
-                <input
-                  type="email"
-                  class="form-control"
-                  v-model="form.email"
                 >
 
               </div>
@@ -482,7 +476,7 @@ export default {
 
         full_name: person.full_name,
 
-        username: person.username,
+        username: person.username || '',
 
         email: person.email || '',
 
@@ -579,6 +573,13 @@ export default {
 
 
         modal.hide()
+
+        const currentUser = JSON.parse(localStorage.getItem('user') || 'null')
+
+        if (this.editing && currentUser?.id === data.id) {
+          localStorage.setItem('user', JSON.stringify(data))
+          window.dispatchEvent(new CustomEvent('user-updated', { detail: data }))
+        }
 
 
         await this.getPersonnel()

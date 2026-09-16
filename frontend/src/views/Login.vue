@@ -13,6 +13,10 @@
         </button>
       </div>
 
+      <div v-if="logoutMessage" class="logout-alert" role="status">
+        {{ logoutMessage }}
+      </div>
+
       <form @submit.prevent="login">
         <template v-if="signingUp">
           <label>Full Name</label>
@@ -72,8 +76,14 @@ export default {
       signingUp: false,
       preferredRole: '',
       loading: false,
-      error: ''
+      error: '',
+      logoutMessage: ''
     }
+  },
+
+  mounted() {
+    this.logoutMessage = sessionStorage.getItem('logoutMessage') || ''
+    sessionStorage.removeItem('logoutMessage')
   },
 
   methods: {
@@ -114,6 +124,7 @@ export default {
 
         localStorage.setItem('accessToken', result.access_token)
         localStorage.setItem('user', JSON.stringify(result.user))
+        window.dispatchEvent(new CustomEvent('user-updated', { detail: result.user }))
         await this.$router.push('/')
       } catch (error) {
         this.error = error.message
@@ -177,5 +188,17 @@ export default {
 .mode-switch button.active {
   background: #2f5d3a;
   color: white;
+}
+
+.logout-alert {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 10;
+  padding: 12px 16px;
+  border: 1px solid #badbcc;
+  border-radius: 6px;
+  background: #d1e7dd;
+  color: #0f5132;
 }
 </style>

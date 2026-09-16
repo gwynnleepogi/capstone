@@ -18,7 +18,7 @@
 
       <div class="sidebar-title">
         <h2>Property Inventory</h2>
-        <small class="text-white-50">{{ currentUser?.full_name }}</small>
+        <small class="text-white-50">{{ currentUser?.email }}</small>
         <small class="d-block text-white-50">{{ currentUser?.role }}</small>
       </div>
 
@@ -75,7 +75,7 @@
 
     <!-- Main Content -->
     <main class="content">
-      <router-view/>
+      <router-view :key="`${$route.fullPath}:${currentUser?.auth_user_id || currentUser?.id || 'guest'}`" />
     </main>
 
   </div>
@@ -89,17 +89,40 @@ export default {
 
   data() {
     return {
-      menuOpen: false
+      menuOpen: false,
+      currentUser: JSON.parse(localStorage.getItem('user') || 'null')
     }
   },
 
-  computed: {
-    currentUser() {
-      return JSON.parse(localStorage.getItem('user') || 'null')
-    }
+  mounted() {
+    window.addEventListener('user-updated', this.handleUserUpdated)
+    window.addEventListener('storage', this.handleStorageChange)
+  },
+
+  beforeUnmount() {
+    window.removeEventListener('user-updated', this.handleUserUpdated)
+    window.removeEventListener('storage', this.handleStorageChange)
   },
 
   methods: {
+    handleUserUpdated(event) {
+      this.currentUser = event.detail
+
+      if (this.$route.meta.roles && !this.$route.meta.roles.includes(event.detail?.role)) {
+        const destination = event.detail?.role === 'Teacher' || event.detail?.role === 'Non-Teaching Staff'
+          ? '/request'
+          : '/'
+
+        this.$router.push(destination)
+      }
+    },
+
+    handleStorageChange(event) {
+      if (event.key === 'user') {
+        this.currentUser = JSON.parse(event.newValue || 'null')
+      }
+    },
+
     canAccess(roles) {
       return roles.includes(this.currentUser?.role)
     },
@@ -107,6 +130,9 @@ export default {
     logout() {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('user')
+      sessionStorage.setItem('logoutMessage', 'Successfully logged out.')
+      this.currentUser = null
+      this.menuOpen = false
       this.$router.push('/login')
     }
   }

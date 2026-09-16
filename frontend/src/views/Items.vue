@@ -87,39 +87,44 @@
         <div class="card-body">
           <div class="row g-3">
             <div class="col-12 col-md-6">
-              <label class="form-label">Property Number</label>
-              <input v-model="newItem.property_number" type="text" class="form-control">
+              <label class="form-label">Accountable Employee</label>
+              <input v-model="newItem.accountable_employee" type="text" class="form-control">
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Product Number</label>
-              <input v-model="newItem.product_number" type="text" class="form-control">
+              <label class="form-label">Responsibility Center</label>
+              <input v-model="newItem.responsibility_center" type="text" class="form-control">
             </div>
             <div class="col-12">
               <label class="form-label">Description</label>
               <input v-model="newItem.description" type="text" class="form-control" required>
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Brand</label>
-              <input v-model="newItem.brand" type="text" class="form-control">
+              <label class="form-label">Serial No.</label>
+              <input v-model="newItem.serial_number" type="text" class="form-control">
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Model</label>
-              <input v-model="newItem.model" type="text" class="form-control">
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Date of Purchase</label>
-              <input v-model="newItem.date_of_purchase" type="date" class="form-control">
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Purchase Order Number</label>
-              <input v-model="newItem.purchase_order_number" type="text" class="form-control">
+              <label class="form-label">Supplier</label>
+              <select v-model="newItem.supplier_id" class="form-select">
+                <option value="">Choose supplier</option>
+                <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
+                  {{ supplier.supplier_name }}
+                </option>
+              </select>
             </div>
             <div class="col-12 col-md-4">
-              <label class="form-label">Price</label>
+              <label class="form-label">Property Number</label>
+              <input v-model="newItem.property_number" type="text" class="form-control">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Cost</label>
               <div class="input-group">
                 <span class="input-group-text">₱</span>
-                <input v-model="newItem.price" type="number" min="0" step="0.01" class="form-control" required>
+                <input v-model="newItem.cost" type="number" min="0" step="0.01" class="form-control" required>
               </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Acquisition Date</label>
+              <input v-model="newItem.acquisition_date" type="date" class="form-control">
             </div>
             <div class="col-12 col-md-4">
               <label class="form-label">Classification</label>
@@ -168,14 +173,14 @@
         <table class="table table-hover mb-0">
           <thead>
             <tr>
-              <th>Property No.</th>
+              <th>Accountable Employee</th>
+              <th>Responsibility Center</th>
               <th>Description</th>
-              <th>Brand</th>
-              <th>Model</th>
-              <th>Price</th>
-              <th>Classification</th>
-              <th>Condition</th>
-              <th>Status</th>
+              <th>Serial No.</th>
+              <th>Supplier</th>
+              <th>Property No.</th>
+              <th>Cost</th>
+              <th>Acquisition Date</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -190,22 +195,14 @@
               <td colspan="9" class="text-center text-secondary py-5">No items found.</td>
             </tr>
             <tr v-for="item in filteredItems" :key="item.id">
-              <td>{{ item.property_number || '-' }}</td>
+              <td>{{ item.accountable_employee || '-' }}</td>
+              <td>{{ item.responsibility_center || '-' }}</td>
               <td>{{ item.description || '-' }}</td>
-              <td>{{ item.brand || '-' }}</td>
-              <td>{{ item.model || '-' }}</td>
-              <td>₱{{ item.price || 0 }}</td>
-              <td>
-                <span class="badge bg-success">
-                  {{ item.classification || '-' }}
-                </span>
-              </td>
-              <td>{{ item.condition || '-' }}</td>
-              <td>
-                <span class="badge" :class="getStatusClass(item.status)">
-                  {{ item.status || '-' }}
-                </span>
-              </td>
+              <td>{{ item.serial_number || '-' }}</td>
+              <td>{{ supplierName(item.supplier_id) }}</td>
+              <td>{{ item.property_number || '-' }}</td>
+              <td>₱{{ item.cost ?? item.price ?? 0 }}</td>
+              <td>{{ item.acquisition_date || '-' }}</td>
               <td>
                 <button class="btn btn-sm btn-outline-success me-1" @click="startEdit(item)">
                   <i class="bi bi-pencil"></i>
@@ -233,13 +230,13 @@
         <form @submit.prevent="updateItem" class="edit-sidebar-form">
           <div class="edit-sidebar-body">
             <div class="mb-3">
-              <label class="form-label">Property Number</label>
-              <input v-model="editForm.property_number" type="text" class="form-control">
+              <label class="form-label">Accountable Employee</label>
+              <input v-model="editForm.accountable_employee" type="text" class="form-control">
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Product Number</label>
-              <input v-model="editForm.product_number" type="text" class="form-control">
+              <label class="form-label">Responsibility Center</label>
+              <input v-model="editForm.responsibility_center" type="text" class="form-control">
             </div>
 
             <div class="mb-3">
@@ -248,31 +245,36 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Brand</label>
-              <input v-model="editForm.brand" type="text" class="form-control">
+              <label class="form-label">Serial No.</label>
+              <input v-model="editForm.serial_number" type="text" class="form-control">
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Model</label>
-              <input v-model="editForm.model" type="text" class="form-control">
+              <label class="form-label">Supplier</label>
+              <select v-model="editForm.supplier_id" class="form-select">
+                <option value="">Choose supplier</option>
+                <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
+                  {{ supplier.supplier_name }}
+                </option>
+              </select>
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Date of Purchase</label>
-              <input v-model="editForm.date_of_purchase" type="date" class="form-control">
+              <label class="form-label">Property Number</label>
+              <input v-model="editForm.property_number" type="text" class="form-control">
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Purchase Order Number</label>
-              <input v-model="editForm.purchase_order_number" type="text" class="form-control">
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Price</label>
+              <label class="form-label">Cost</label>
               <div class="input-group">
                 <span class="input-group-text">₱</span>
-                <input v-model="editForm.price" type="number" min="0" step="0.01" class="form-control" required>
+                <input v-model="editForm.cost" type="number" min="0" step="0.01" class="form-control" required>
               </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Acquisition Date</label>
+              <input v-model="editForm.acquisition_date" type="date" class="form-control">
             </div>
 
             <div class="mb-3">
@@ -351,6 +353,7 @@ export default {
   data() {
     return {
       items: [],
+      suppliers: [],
       search: '',
       selectedClassification: '',
       selectedStatus: '',
@@ -368,28 +371,28 @@ export default {
       },
 
       newItem: {
+        accountable_employee: '',
+        responsibility_center: '',
         property_number: '',
-        product_number: '',
         description: '',
-        brand: '',
-        model: '',
-        date_of_purchase: '',
-        purchase_order_number: '',
-        price: 0,
+        serial_number: '',
+        supplier_id: '',
+        cost: 0,
+        acquisition_date: '',
         classification: 'PAR',
         condition: 'Serviceable',
         status: 'Available'
       },
 
       editForm: {
+        accountable_employee: '',
+        responsibility_center: '',
         property_number: '',
-        product_number: '',
         description: '',
-        brand: '',
-        model: '',
-        date_of_purchase: '',
-        purchase_order_number: '',
-        price: 0,
+        serial_number: '',
+        supplier_id: '',
+        cost: 0,
+        acquisition_date: '',
         classification: 'PAR',
         condition: 'Serviceable',
         status: 'Available'
@@ -405,10 +408,11 @@ export default {
         const matchesSearch =
           !search ||
           String(item.property_number || '').toLowerCase().includes(search) ||
-          String(item.product_number || '').toLowerCase().includes(search) ||
           String(item.description || '').toLowerCase().includes(search) ||
-          String(item.brand || '').toLowerCase().includes(search) ||
-          String(item.model || '').toLowerCase().includes(search) ||
+          String(item.accountable_employee || '').toLowerCase().includes(search) ||
+          String(item.responsibility_center || '').toLowerCase().includes(search) ||
+          String(item.serial_number || '').toLowerCase().includes(search) ||
+          String(item.property_number || '').toLowerCase().includes(search) ||
           String(item.condition || '').toLowerCase().includes(search) ||
           String(item.status || '').toLowerCase().includes(search) ||
           String(item.classification || '').toLowerCase().includes(search)
@@ -427,7 +431,10 @@ export default {
   },
 
   async mounted() {
-    await this.getItems()
+    await Promise.all([
+      this.getItems(),
+      this.getSuppliers()
+    ])
   },
 
   methods: {
@@ -447,6 +454,26 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+
+    async getSuppliers() {
+      try {
+        const response = await apiRequest('http://localhost:5000/api/suppliers')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to get suppliers')
+        }
+
+        this.suppliers = data
+      } catch (error) {
+        this.error = error.message
+      }
+    },
+
+    supplierName(supplierId) {
+      const supplier = this.suppliers.find(item => item.id === supplierId)
+      return supplier?.supplier_name || '-'
     },
 
     countClassification(classification) {
@@ -502,14 +529,14 @@ export default {
       this.editingItem = item
 
       this.editForm = {
+        accountable_employee: item.accountable_employee || '',
+        responsibility_center: item.responsibility_center || '',
         property_number: item.property_number || '',
-        product_number: item.product_number || '',
         description: item.description || '',
-        brand: item.brand || '',
-        model: item.model || '',
-        date_of_purchase: item.date_of_purchase || '',
-        purchase_order_number: item.purchase_order_number || '',
-        price: item.price || 0,
+        serial_number: item.serial_number || '',
+        supplier_id: item.supplier_id || '',
+        cost: item.cost ?? item.price ?? 0,
+        acquisition_date: item.acquisition_date || '',
         classification: item.classification || 'PAR',
         condition: item.condition || 'Serviceable',
         status: item.status || 'Available'
@@ -633,14 +660,14 @@ export default {
 
     resetForm() {
       this.newItem = {
+        accountable_employee: '',
+        responsibility_center: '',
         property_number: '',
-        product_number: '',
         description: '',
-        brand: '',
-        model: '',
-        date_of_purchase: '',
-        purchase_order_number: '',
-        price: 0,
+        serial_number: '',
+        supplier_id: '',
+        cost: 0,
+        acquisition_date: '',
         classification: 'PAR',
         condition: 'Serviceable',
         status: 'Available'

@@ -3,6 +3,7 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
+const { requireFields } = require('../middleware/auth')
 
 
 // GET RETURNS
@@ -41,6 +42,10 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
 
+  if (!requireFields(req, res, ['item_id', 'returned_by', 'office_id', 'return_date', 'condition_after_return'])) {
+    return
+  }
+
   const {
     item_id,
     returned_by,
@@ -78,8 +83,7 @@ router.post('/', async (req, res) => {
     data.id,
     null,
     JSON.stringify(data),
-    'Added item return',
-    req.profile.id
+    'Added item return'
   )
 
   res.status(201).json(data)

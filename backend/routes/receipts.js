@@ -3,6 +3,7 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
+const { requireFields } = require('../middleware/auth')
 
 
 // GET RECEIPTS
@@ -14,7 +15,18 @@ router.get('/', async (req, res) => {
     .select(`
       *,
       items (
-        description
+        description,
+        property_number,
+        serial_number,
+        accountable_employee,
+        responsibility_center,
+        cost,
+        price,
+        acquisition_date,
+        date_of_purchase,
+        suppliers (
+          supplier_name
+        )
       ),
       users (
         full_name
@@ -38,6 +50,10 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
 
+  if (!requireFields(req, res, ['item_id', 'receipt_type', 'receipt_number'])) {
+    return
+  }
+
   const {
     item_id,
     receipt_type,
@@ -46,6 +62,18 @@ router.post('/', async (req, res) => {
     date_issued,
     remarks
   } = req.body
+
+  const { data: item, error: itemError } = await supabase
+    .from('items')
+    .select('id')
+    .eq('id', item_id)
+    .single()
+
+  if (itemError || !item) {
+    return res.status(400).json({
+      error: 'Please select an item that exists in the Items list'
+    })
+  }
 
   const { data, error } = await supabase
     .from('property_receipts')
@@ -68,14 +96,15 @@ router.post('/', async (req, res) => {
     })
   }
 
-  await createAuditLog(
+  createAuditLog(
     'Created',
-    data.id,
+    data.item_id,
     null,
     JSON.stringify(data),
-    'Added receipt: ' + data.receipt_number,
-    req.profile.id
-  )
+    'Added receipt: ' + data.receipt_number
+  ).catch(error => {
+    console.log('Audit log error:', error)
+  })
 
   res.status(201).json(data)
 })
@@ -94,7 +123,6 @@ router.put('/:id', async (req, res) => {
     remarks
   } = req.body
 
-
   const { data: oldData, error: oldError } = await supabase
     .from('property_receipts')
     .select('*')
@@ -102,7 +130,6 @@ router.put('/:id', async (req, res) => {
     .single()
 
   if (oldError) {
-
     console.log(oldError)
 
     return res.status(404).json({
@@ -110,6 +137,17 @@ router.put('/:id', async (req, res) => {
     })
   }
 
+  const { data: item, error: itemError } = await supabase
+    .from('items')
+    .select('id')
+    .eq('id', item_id)
+    .single()
+
+  if (itemError || !item) {
+    return res.status(400).json({
+      error: 'Please select an item that exists in the Items list'
+    })
+  }
 
   const { data, error } = await supabase
     .from('property_receipts')
@@ -126,7 +164,6 @@ router.put('/:id', async (req, res) => {
     .single()
 
   if (error) {
-
     console.log(error)
 
     return res.status(500).json({
@@ -134,17 +171,17 @@ router.put('/:id', async (req, res) => {
     })
   }
 
+  res.json(data)
 
-  await createAuditLog(
+  createAuditLog(
     'Updated',
-    data.id,
+    data.item_id,
     JSON.stringify(oldData),
     JSON.stringify(data),
-    'Updated receipt: ' + data.receipt_number,
-    req.profile.id
-  )
-
-  res.json(data)
+    'Updated receipt: ' + data.receipt_number
+  ).catch(error => {
+    console.log('Audit log error:', error)
+  })
 })
 
 
@@ -159,7 +196,6 @@ router.delete('/:id', async (req, res) => {
     .single()
 
   if (oldError) {
-
     console.log(oldError)
 
     return res.status(404).json({
@@ -167,14 +203,12 @@ router.delete('/:id', async (req, res) => {
     })
   }
 
-
   const { error } = await supabase
     .from('property_receipts')
     .delete()
     .eq('id', req.params.id)
 
   if (error) {
-
     console.log(error)
 
     return res.status(500).json({
@@ -182,15 +216,15 @@ router.delete('/:id', async (req, res) => {
     })
   }
 
-
-  await createAuditLog(
+  createAuditLog(
     'Deleted',
-    req.params.id,
+    oldData.item_id,
     JSON.stringify(oldData),
     null,
-    'Deleted receipt: ' + oldData.receipt_number,
-    req.profile.id
-  )
+    'Deleted receipt: ' + oldData.receipt_number
+  ).catch(error => {
+    console.log('Audit log error:', error)
+  })
 
   res.json({
     message: 'Receipt deleted successfully'
@@ -199,3 +233,4 @@ router.delete('/:id', async (req, res) => {
 
 
 module.exports = router
+

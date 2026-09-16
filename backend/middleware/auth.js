@@ -29,11 +29,11 @@ async function requireAuth(req, res, next) {
         })
     }
 
-    req.user = result.data.user
-    req.profile = profileResult.data
-    req.role = profileResult.data.role
+    req.user = result.data.user//this saves the login account in supabase
+    req.profile = profileResult.data//saves the user's information from the table user sa database
+    req.role = profileResult.data.role//save the role for permission checking
 
-    next()
+    next()//if passed the authentication, it can continue to route
 }
 
 function requireRole(...allowedRoles) {
@@ -48,9 +48,26 @@ function requireRole(...allowedRoles) {
     }
 }
 
+function requireFields(req, res, fields) {
+    const missingFields = fields.filter(field => {
+        const value = req.body[field]
+        return value === undefined || value === null || value === ''
+    })
+
+    if (missingFields.length > 0) {
+        res.status(400).json({
+            error: `Required field(s) missing: ${missingFields.join(', ')}`
+        })
+        return false
+    }
+
+    return true
+}
+
 module.exports = {
     requireAuth,
-    requireRole
+    requireRole,
+    requireFields
 }
 
 

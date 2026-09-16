@@ -3,6 +3,7 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
+const { requireFields } = require('../middleware/auth')
 
 
 // GET PERSONNEL
@@ -34,6 +35,10 @@ router.get('/', async (req, res) => {
 // ADD PERSONNEL
 
 router.post('/', async (req, res) => {
+
+  if (!requireFields(req, res, ['full_name', 'username', 'email', 'role'])) {
+    return
+  }
 
   const {
     full_name,

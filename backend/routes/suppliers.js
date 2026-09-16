@@ -3,6 +3,7 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
+const { requireFields } = require('../middleware/auth')
 
 
 // GET SUPPLIERS
@@ -29,6 +30,10 @@ router.get('/', async (req, res) => {
 // ADD SUPPLIER
 
 router.post('/', async (req, res) => {
+
+  if (!requireFields(req, res, ['supplier_name'])) {
+    return
+  }
 
   const {
     supplier_name,

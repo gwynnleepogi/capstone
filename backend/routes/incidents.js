@@ -3,6 +3,7 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
+const { requireFields } = require('../middleware/auth')
 
 
 // GET INCIDENTS
@@ -38,6 +39,10 @@ router.get('/', async (req, res) => {
 // ADD INCIDENT
 
 router.post('/', async (req, res) => {
+
+  if (!requireFields(req, res, ['item_id', 'reported_by', 'incident_type', 'incident_date', 'status', 'description'])) {
+    return
+  }
 
   const {
     item_id,
@@ -78,8 +83,7 @@ router.post('/', async (req, res) => {
     data.id,
     null,
     JSON.stringify(data),
-    'Added incident: ' + data.description,
-    req.profile.id
+    'Added incident: ' + data.description
   )
 
   res.status(201).json(data)
@@ -149,8 +153,7 @@ router.put('/:id', async (req, res) => {
     data.id,
     JSON.stringify(oldData),
     JSON.stringify(data),
-    'Updated incident: ' + data.description,
-    req.profile.id
+    'Updated incident: ' + data.description
   )
 
   res.json(data)
@@ -197,8 +200,7 @@ router.delete('/:id', async (req, res) => {
     req.params.id,
     JSON.stringify(oldData),
     null,
-    'Deleted incident: ' + oldData.description,
-    req.profile.id
+    'Deleted incident: ' + oldData.description
   )
 
   res.json({

@@ -3,6 +3,7 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
+const { requireFields } = require('../middleware/auth')
 
 
 // GET OFFICES
@@ -29,6 +30,10 @@ router.get('/', async (req, res) => {
 // ADD OFFICE
 
 router.post('/', async (req, res) => {
+
+  if (!requireFields(req, res, ['office_name', 'office_code'])) {
+    return
+  }
 
   const {
     office_name,
@@ -57,8 +62,7 @@ router.post('/', async (req, res) => {
     data.id,
     null,
     JSON.stringify(data),
-    'Added office: ' + data.office_name,
-    req.profile.id
+    'Added office: ' + data.office_name
   )
 
   res.status(201).json(data)
@@ -116,8 +120,7 @@ router.put('/:id', async (req, res) => {
     data.id,
     JSON.stringify(oldData),
     JSON.stringify(data),
-    'Updated office: ' + data.office_name,
-    req.profile.id
+    'Updated office: ' + data.office_name
   )
 
   res.json(data)
@@ -164,8 +167,7 @@ router.delete('/:id', async (req, res) => {
     req.params.id,
     JSON.stringify(oldData),
     null,
-    'Deleted office: ' + oldData.office_name,
-    req.profile.id
+    'Deleted office: ' + oldData.office_name
   )
 
   res.json({

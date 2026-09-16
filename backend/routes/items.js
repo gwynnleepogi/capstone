@@ -3,6 +3,7 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
+const { requireFields } = require('../middleware/auth')
 
 
 // GET ITEMS
@@ -33,32 +34,41 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
 
+  if (!requireFields(req, res, ['description', 'cost'])) {
+    return
+  }
+
   const {
+    accountable_employee,
+    responsibility_center,
     property_number,
-    product_number,
     description,
-    brand,
-    model,
-    date_of_purchase,
-    purchase_order_number,
-    price,
+    serial_number,
+    supplier_id,
+    cost,
+    acquisition_date,
+    classification,
     condition,
     status
   } = req.body
+
+  const itemCost = cost ?? req.body.price ?? 0
 
 
   const { data, error } = await supabase
     .from('items')
     .insert([{
 
+      accountable_employee,
+      responsibility_center,
       property_number,
-      product_number,
       description,
-      brand,
-      model,
-      date_of_purchase,
-      purchase_order_number,
-      price,
+      serial_number,
+      supplier_id: supplier_id || null,
+      cost: itemCost,
+      price: itemCost,
+      acquisition_date,
+      classification,
       condition,
       status: status || 'Available'
 
@@ -83,8 +93,7 @@ router.post('/', async (req, res) => {
     data.id,
     null,
     JSON.stringify(data),
-    'Added item: ' + data.description,
-    req.profile.id
+    'Added item: ' + data.description
   )
 
 
@@ -98,17 +107,20 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
 
   const {
+    accountable_employee,
+    responsibility_center,
     property_number,
-    product_number,
     description,
-    brand,
-    model,
-    date_of_purchase,
-    purchase_order_number,
-    price,
+    serial_number,
+    supplier_id,
+    cost,
+    acquisition_date,
+    classification,
     condition,
     status
   } = req.body
+
+  const itemCost = cost ?? req.body.price ?? 0
 
 
   // GET OLD ITEM FIRST
@@ -137,14 +149,16 @@ router.put('/:id', async (req, res) => {
     .from('items')
     .update({
 
+      accountable_employee,
+      responsibility_center,
       property_number,
-      product_number,
       description,
-      brand,
-      model,
-      date_of_purchase,
-      purchase_order_number,
-      price,
+      serial_number,
+      supplier_id: supplier_id || null,
+      cost: itemCost,
+      price: itemCost,
+      acquisition_date,
+      classification,
       condition,
       status
 
@@ -172,8 +186,7 @@ router.put('/:id', async (req, res) => {
     data.id,
     JSON.stringify(oldData),
     JSON.stringify(data),
-    'Updated item: ' + data.description,
-    req.profile.id
+    'Updated item: ' + data.description
   )
 
 
@@ -233,8 +246,7 @@ router.delete('/:id', async (req, res) => {
     req.params.id,
     JSON.stringify(oldData),
     null,
-    'Deleted item: ' + oldData.description,
-    req.profile.id
+    'Deleted item: ' + oldData.description
   )
 
 
