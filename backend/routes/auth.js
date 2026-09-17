@@ -3,9 +3,9 @@ const router = express.Router()
 const supabase = require('../supabase')
 
 router.post('/signup', async (req, res) => {
-  const { full_name, username, email, password, role } = req.body
+  const { full_name, email, password, role } = req.body
 
-  if (!full_name || !username || !email || !password || !role) {
+  if (!full_name || !email || !password || !role) {
     return res.status(400).json({ error: 'All signup fields are required' })
   }
 
@@ -31,7 +31,6 @@ router.post('/signup', async (req, res) => {
     .insert([{
       auth_user_id: data.user.id,
       full_name,
-      username,
       email,
       role
     }])
@@ -41,7 +40,7 @@ router.post('/signup', async (req, res) => {
   }
 
   res.status(201).json({
-    message: '<p style="color: green;">Account created successfully. You can now sign in.</p>'
+    message: 'Account created successfully. You can now sign in.'
   })
 })
 

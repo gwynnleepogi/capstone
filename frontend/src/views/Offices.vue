@@ -13,7 +13,6 @@
       </div>
     </div>
 
-    <!-- ADD OFFICE FORM -->
     <div v-if="showAddForm" class="card mb-4">
       <div class="card-header bg-white">
         <strong>Add New Office</strong>
@@ -63,7 +62,6 @@
       </form>
     </div>
 
-    <!-- EDIT OFFICE FORM -->
     <div v-if="editingOffice" class="card mb-4 border-success">
       <div class="card-header bg-success text-white">
         <strong>Edit Office</strong>
@@ -113,7 +111,6 @@
       </form>
     </div>
 
-    <!-- OFFICES TABLE -->
     <div class="card">
       <div class="card-header bg-white">
         <strong>Office Records</strong>
@@ -175,30 +172,6 @@
         </table>
       </div>
     </div>
-
-    <!-- TOAST -->
-    <div
-      v-if="toast.show"
-      class="toast-container position-fixed bottom-0 end-0 p-3"
-    >
-      <div
-        class="toast show"
-        :class="'toast-' + toast.type"
-        role="alert"
-      >
-        <div class="toast-body">
-          <i
-            v-if="toast.type === 'success'"
-            class="bi bi-check-circle me-2"
-          ></i>
-          <i
-            v-else
-            class="bi bi-exclamation-circle me-2"
-          ></i>
-          {{ toast.message }}
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -215,12 +188,6 @@ export default {
       error: '',
       showAddForm: false,
       editingOffice: null,
-
-      toast: {
-        show: false,
-        message: '',
-        type: 'success'
-      },
 
       form: {
         office_name: '',
@@ -256,9 +223,16 @@ export default {
         }
 
         this.offices = data
+        this.error = ''
       } catch (error) {
         console.log(error)
         this.error = error.message
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       } finally {
         this.loading = false
       }
@@ -321,16 +295,18 @@ export default {
         this.showAddForm = false
         this.resetForm()
 
-        this.showToast(
-          'Office added successfully.',
-          'success'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Office added successfully'
+          })
         )
       } catch (error) {
         console.log(error)
 
-        this.showToast(
-          error.message,
-          'danger'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
         )
       } finally {
         this.saving = false
@@ -375,16 +351,18 @@ export default {
 
         this.editingOffice = null
 
-        this.showToast(
-          'Office updated successfully.',
-          'success'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Office updated successfully'
+          })
         )
       } catch (error) {
         console.log(error)
 
-        this.showToast(
-          error.message,
-          'danger'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
         )
       } finally {
         this.updating = false
@@ -431,16 +409,18 @@ export default {
           this.editingOffice = null
         }
 
-        this.showToast(
-          'Office deleted successfully.',
-          'success'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Office deleted successfully'
+          })
         )
       } catch (error) {
         console.log(error)
 
-        this.showToast(
-          error.message,
-          'danger'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
         )
       }
     },
@@ -467,16 +447,6 @@ export default {
       }
 
       return new Date(date).toLocaleDateString()
-    },
-
-    showToast(message, type) {
-      this.toast.message = message
-      this.toast.type = type
-      this.toast.show = true
-
-      setTimeout(() => {
-        this.toast.show = false
-      }, 3000)
     }
   }
 }
@@ -506,26 +476,6 @@ h1 {
 
 .table td {
   white-space: nowrap;
-}
-
-.toast-container {
-  z-index: 9999;
-}
-
-.toast {
-  min-width: 300px;
-  border: none;
-  border-radius: 8px;
-}
-
-.toast-success {
-  background-color: #2F5D3A;
-  color: white;
-}
-
-.toast-danger {
-  background-color: #dc3545;
-  color: white;
 }
 
 @media (max-width: 576px) {

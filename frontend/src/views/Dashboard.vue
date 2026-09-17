@@ -225,41 +225,62 @@ export default {
 
   methods: {
 
-  async getItems() {
-  try {
-    const token = localStorage.getItem('accessToken')
+    async getItems() {
 
-    const response = await fetch(
-      'http://localhost:5000/api/items',
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
+      try {
+
+        const token =
+          localStorage.getItem('accessToken')
+
+        const response = await fetch(
+          'http://localhost:5000/api/items',
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        )
+
+        const data =
+          await response.json()
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.error ||
+            'Failed to load dashboard data'
+          )
+
         }
+
+        this.items = data
+
+      } catch (error) {
+
+        console.log(error)
+
+        this.error = error.message
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
+
+      } finally {
+
+        this.loading = false
+
       }
-    )
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(
-        data.error || 'Failed to load dashboard data'
-      )
-    }
-
-    this.items = data
-  } catch (error) {
-    console.log(error)
-    this.error = error.message
-  } finally {
-    this.loading = false
-  }
-},
+    },
 
 
     countClassification(classification) {
 
       return this.items.filter(
-        item => item.classification === classification
+        item =>
+          item.classification === classification
       ).length
 
     }
@@ -332,7 +353,9 @@ h1 {
   vertical-align: middle;
 }
 
+
 @media (max-width: 576px) {
+
   .summary-card .card-body {
     padding: 14px;
   }
@@ -348,6 +371,7 @@ h1 {
     white-space: normal;
     overflow-wrap: anywhere;
   }
+
 }
 
 </style>

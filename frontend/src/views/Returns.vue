@@ -424,7 +424,6 @@ export default {
 
   name: 'Returns',
 
-
   data() {
 
     return {
@@ -440,7 +439,6 @@ export default {
       editing: false,
 
       saving: false,
-
 
       form: {
 
@@ -482,9 +480,6 @@ export default {
 
   methods: {
 
-
-    // GET RETURNS
-
     async getReturns() {
 
       try {
@@ -493,9 +488,7 @@ export default {
           'http://localhost:5000/api/returns'
         )
 
-
         const data = await response.json()
-
 
         if (!response.ok) {
 
@@ -505,21 +498,22 @@ export default {
 
         }
 
-
         this.returns = data
 
       } catch (error) {
 
         console.log(error)
 
-        alert(error.message)
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
 
       }
 
     },
 
-
-    // GET ITEMS
 
     async getItems() {
 
@@ -529,9 +523,7 @@ export default {
           'http://localhost:5000/api/items'
         )
 
-
         const data = await response.json()
-
 
         if (response.ok) {
 
@@ -548,8 +540,6 @@ export default {
     },
 
 
-    // GET PERSONNEL
-
     async getPersonnel() {
 
       try {
@@ -558,9 +548,7 @@ export default {
           'http://localhost:5000/api/personnel'
         )
 
-
         const data = await response.json()
-
 
         if (response.ok) {
 
@@ -577,8 +565,6 @@ export default {
     },
 
 
-    // GET OFFICES
-
     async getOffices() {
 
       try {
@@ -587,9 +573,7 @@ export default {
           'http://localhost:5000/api/offices'
         )
 
-
         const data = await response.json()
-
 
         if (response.ok) {
 
@@ -606,12 +590,9 @@ export default {
     },
 
 
-    // OPEN ADD MODAL
-
     openAddModal() {
 
       this.editing = false
-
 
       this.form = {
 
@@ -635,26 +616,20 @@ export default {
 
       }
 
-
       const modalElement =
         document.getElementById('returnModal')
 
-
       const modal =
         Modal.getOrCreateInstance(modalElement)
-
 
       modal.show()
 
     },
 
 
-    // EDIT RETURN
-
     editReturn(itemReturn) {
 
       this.editing = true
-
 
       this.form = {
 
@@ -683,35 +658,27 @@ export default {
 
       }
 
-
       const modalElement =
         document.getElementById('returnModal')
 
-
       const modal =
         Modal.getOrCreateInstance(modalElement)
-
 
       modal.show()
 
     },
 
 
-    // SAVE RETURN
-
     async saveReturn() {
 
       this.saving = true
-
 
       try {
 
         let url =
           'http://localhost:5000/api/returns'
 
-
         let method = 'POST'
-
 
         if (this.editing) {
 
@@ -722,11 +689,9 @@ export default {
 
         }
 
-
         const response = await fetch(url, {
 
           method: method,
-
 
           headers: {
 
@@ -734,7 +699,6 @@ export default {
               'application/json'
 
           },
-
 
           body: JSON.stringify({
 
@@ -763,10 +727,8 @@ export default {
 
         })
 
-
         const data =
           await response.json()
-
 
         if (!response.ok) {
 
@@ -776,26 +738,33 @@ export default {
 
         }
 
-
         const modalElement =
           document.getElementById('returnModal')
-
 
         const modal =
           Modal.getOrCreateInstance(modalElement)
 
-
         modal.hide()
-
 
         await this.getReturns()
 
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: this.editing
+              ? 'Return updated successfully'
+              : 'Return added successfully'
+          })
+        )
 
       } catch (error) {
 
         console.log(error)
 
-        alert(error.message)
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
 
       } finally {
 
@@ -805,8 +774,6 @@ export default {
 
     },
 
-
-    // DELETE RETURN
 
     async deleteReturn(id) {
 
@@ -819,7 +786,6 @@ export default {
         return
 
       }
-
 
       try {
 
@@ -835,10 +801,8 @@ export default {
 
         )
 
-
         const data =
           await response.json()
-
 
         if (!response.ok) {
 
@@ -848,15 +812,23 @@ export default {
 
         }
 
-
         await this.getReturns()
 
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Return deleted successfully'
+          })
+        )
 
       } catch (error) {
 
         console.log(error)
 
-        alert(error.message)
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
 
       }
 
@@ -867,6 +839,7 @@ export default {
 }
 
 </script>
+
 
 <style scoped>
 @media (max-width: 576px) {

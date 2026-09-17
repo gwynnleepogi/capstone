@@ -3,7 +3,6 @@
 
   <div v-else class="layout">
 
-    <!-- Mobile Header -->
     <div class="mobile-header">
       <h2>Property Inventory</h2>
 
@@ -12,8 +11,6 @@
       </button>
     </div>
 
-
-    <!-- Sidebar -->
     <aside class="sidebar" :class="{ 'show-menu': menuOpen }">
 
       <div class="sidebar-title">
@@ -32,38 +29,47 @@
           <i class="bi bi-grid"></i>
           Dashboard
         </router-link>
+
         <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/items" class="nav-link" @click="menuOpen = false">
           <i class="bi bi-box"></i>
           Items
         </router-link>
+
         <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/offices" class="nav-link" @click="menuOpen = false">
           <i class="bi bi-building"></i>
           Offices
         </router-link>
+
         <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/suppliers" class="nav-link" @click="menuOpen = false">
           <i class="bi bi-truck"></i>
           Suppliers
         </router-link>
+
         <router-link v-if="canAccess(['Administrator'])" to="/personnel" class="nav-link" @click="menuOpen = false">
           <i class="bi bi-people"></i>
           Personnel
         </router-link>
-        <router-link v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])" to="/request" class="nav-link" @click="menuOpen = false">
+
+        <router-link v-if="canAccess(['Administrator', 'Teacher', 'Non-Teaching Staff'])" to="/request" class="nav-link" @click="menuOpen = false">
           <i class="bi bi-file-earmark-text"></i>
           Item Requests
         </router-link>
+
         <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/receipts" class="nav-link" @click="menuOpen = false">
           <i class="bi bi-receipt"></i>
           Receipts
         </router-link>
+
         <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/returns" class="nav-link" @click="menuOpen = false">
           <i class="bi bi-arrow-return-left"></i>
           Returns
         </router-link>
+
         <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/incidents" class="nav-link" @click="menuOpen = false">
           <i class="bi bi-exclamation-triangle"></i>
           Incidents
         </router-link>
+
         <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/audit-logs" class="nav-link" @click="menuOpen = false">
           <i class="bi bi-clock-history"></i>
           Audit Logs
@@ -72,13 +78,18 @@
 
     </aside>
 
-
-    <!-- Main Content -->
     <main class="content">
       <router-view :key="`${$route.fullPath}:${currentUser?.auth_user_id || currentUser?.id || 'guest'}`" />
     </main>
 
   </div>
+
+  <Transition name="toast">
+    <div v-if="toast.show" class="toast-notification">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>{{ toast.message }}</span>
+    </div>
+  </Transition>
 </template>
 
 
@@ -90,17 +101,24 @@ export default {
   data() {
     return {
       menuOpen: false,
-      currentUser: JSON.parse(localStorage.getItem('user') || 'null')
+      currentUser: JSON.parse(localStorage.getItem('user') || 'null'),
+      toast: {
+        show: false,
+        message: ''
+      },
+      toastTimer: null
     }
   },
 
   mounted() {
     window.addEventListener('user-updated', this.handleUserUpdated)
+    window.addEventListener('show-toast', this.handleToast)
     window.addEventListener('storage', this.handleStorageChange)
   },
 
   beforeUnmount() {
     window.removeEventListener('user-updated', this.handleUserUpdated)
+    window.removeEventListener('show-toast', this.handleToast)
     window.removeEventListener('storage', this.handleStorageChange)
   },
 
@@ -108,13 +126,35 @@ export default {
     handleUserUpdated(event) {
       this.currentUser = event.detail
 
-      if (this.$route.meta.roles && !this.$route.meta.roles.includes(event.detail?.role)) {
-        const destination = event.detail?.role === 'Teacher' || event.detail?.role === 'Non-Teaching Staff'
-          ? '/request'
-          : '/'
+      this.showToast('Welcome back, ' + event.detail.role + '!')
+
+      if (
+        this.$route.meta.roles &&
+        !this.$route.meta.roles.includes(event.detail?.role)
+      ) {
+        const destination =
+          event.detail?.role === 'Teacher' ||
+          event.detail?.role === 'Non-Teaching Staff'
+            ? '/request'
+            : '/'
 
         this.$router.push(destination)
       }
+    },
+
+    handleToast(event) {
+      this.showToast(event.detail)
+    },
+
+    showToast(message) {
+      clearTimeout(this.toastTimer)
+
+      this.toast.message = message
+      this.toast.show = true
+
+      this.toastTimer = setTimeout(() => {
+        this.toast.show = false
+      }, 3000)
     },
 
     handleStorageChange(event) {
@@ -128,11 +168,14 @@ export default {
     },
 
     logout() {
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('user')
-      sessionStorage.setItem('logoutMessage', 'Successfully logged out.')
       this.currentUser = null
       this.menuOpen = false
+
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('user')
+
+      this.showToast('Logged out successfully')
+
       this.$router.push('/login')
     }
   }
@@ -217,6 +260,55 @@ body{
 }
 
 
+/* Toast */
+
+.toast-notification{
+  position: fixed;
+  right: 25px;
+  bottom: 25px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: #2F5D3A;
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, .2);
+  font-size: 14px;
+}
+
+.toast-notification i{
+  color: #E8C547;
+  font-size: 18px;
+}
+
+.toast-enter-active,
+.toast-leave-active{
+  transition: opacity .35s ease, transform .35s ease;
+}
+
+.toast-enter-from{
+  opacity: 0;
+  transform: translateY(15px);
+}
+
+.toast-enter-to{
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-leave-from{
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-leave-to{
+  opacity: 0;
+  transform: translateY(15px);
+}
+
+
 /* Mobile */
 
 @media (max-width: 768px){
@@ -273,6 +365,12 @@ body{
   .content{
     width: 100%;
     padding: 15px;
+  }
+
+  .toast-notification{
+    right: 15px;
+    bottom: 15px;
+    left: 15px;
   }
 
 }

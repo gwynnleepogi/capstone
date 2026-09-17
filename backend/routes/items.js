@@ -3,7 +3,6 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
-const { requireFields } = require('../middleware/auth')
 
 
 // GET ITEMS
@@ -34,13 +33,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
 
-  if (!requireFields(req, res, ['description', 'cost'])) {
-    return
-  }
-
   const {
-    accountable_employee,
-    responsibility_center,
     property_number,
     description,
     serial_number,
@@ -49,33 +42,27 @@ router.post('/', async (req, res) => {
     acquisition_date,
     classification,
     condition,
-    status
+    status,
+    accountable_employee,
+    responsibility_center
   } = req.body
-
-  const itemCost = cost ?? req.body.price ?? 0
 
 
   const { data, error } = await supabase
     .from('items')
     .insert([{
-
-      accountable_employee,
-      responsibility_center,
-      property_number,
-      description,
-      serial_number,
-      supplier_id: supplier_id || null,
-      cost: itemCost,
-      price: itemCost,
-      acquisition_date,
-      classification,
-      condition,
-      status: status || 'Available'
-
-    }])
-    .select()
-    .single()
-
+    property_number,
+    description,
+    serial_number,
+    supplier_id,
+    cost,
+    acquisition_date,
+    classification,
+    condition,
+    accountable_employee,
+    responsibility_center,
+    status: status || 'Available'
+    }]).select().single()
 
   if (error) {
 
@@ -84,16 +71,15 @@ router.post('/', async (req, res) => {
     return res.status(500).json({
       error: error.message
     })
-
   }
-
 
   await createAuditLog(
     'Created',
     data.id,
     null,
     JSON.stringify(data),
-    'Added item: ' + data.description
+    'Added item: ' + data.description,
+    req.profile.id
   )
 
 
@@ -107,8 +93,6 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
 
   const {
-    accountable_employee,
-    responsibility_center,
     property_number,
     description,
     serial_number,
@@ -117,13 +101,11 @@ router.put('/:id', async (req, res) => {
     acquisition_date,
     classification,
     condition,
-    status
+    status,
+    accountable_employee,
+    responsibility_center
   } = req.body
 
-  const itemCost = cost ?? req.body.price ?? 0
-
-
-  // GET OLD ITEM FIRST
 
   const { data: oldData, error: oldError } = await supabase
     .from('items')
@@ -143,30 +125,25 @@ router.put('/:id', async (req, res) => {
   }
 
 
-  // UPDATE ITEM
-
   const { data, error } = await supabase
     .from('items')
     .update({
-
-      accountable_employee,
-      responsibility_center,
-      property_number,
-      description,
-      serial_number,
-      supplier_id: supplier_id || null,
-      cost: itemCost,
-      price: itemCost,
-      acquisition_date,
-      classification,
-      condition,
-      status
+    property_number,
+    description,
+    serial_number,
+    supplier_id,
+    cost,
+    acquisition_date,
+    classification,
+    condition,
+    status,
+    accountable_employee,
+    responsibility_center
 
     })
     .eq('id', req.params.id)
     .select()
     .single()
-
 
   if (error) {
 
@@ -179,28 +156,19 @@ router.put('/:id', async (req, res) => {
   }
 
 
-  // CREATE AUDIT LOG
-
   await createAuditLog(
     'Updated',
     data.id,
     JSON.stringify(oldData),
     JSON.stringify(data),
-    'Updated item: ' + data.description
+    'Updated item: ' + data.description,
+    req.profile.id
   )
-
-
   res.json(data)
-
 })
 
-
 // DELETE ITEM
-
 router.delete('/:id', async (req, res) => {
-
-
-  // GET OLD ITEM BEFORE DELETE
 
   const { data: oldData, error: oldError } = await supabase
     .from('items')
@@ -208,9 +176,7 @@ router.delete('/:id', async (req, res) => {
     .eq('id', req.params.id)
     .single()
 
-
   if (oldError) {
-
     console.log(oldError)
 
     return res.status(404).json({
@@ -219,8 +185,6 @@ router.delete('/:id', async (req, res) => {
 
   }
 
-
-  // DELETE ITEM
 
   const { error } = await supabase
     .from('items')
@@ -239,14 +203,13 @@ router.delete('/:id', async (req, res) => {
   }
 
 
-  // CREATE AUDIT LOG
-
   await createAuditLog(
     'Deleted',
     req.params.id,
     JSON.stringify(oldData),
     null,
-    'Deleted item: ' + oldData.description
+    'Deleted item: ' + oldData.description,
+    req.profile.id
   )
 
 

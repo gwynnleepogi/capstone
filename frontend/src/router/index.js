@@ -56,7 +56,7 @@ const router = createRouter({
     path: '/request',
     name: 'ItemRequest',
     component: ItemRequests,
-      meta: { roles: ['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'] }
+      meta: { roles: ['Administrator', 'Teacher', 'Non-Teaching Staff'] }
   },
     {
     path: '/receipts',

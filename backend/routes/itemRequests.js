@@ -3,7 +3,7 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
-const { requireRole, requireFields } = require('../middleware/auth')
+const { requireRole } = require('../middleware/auth')
 
 
 // GET ITEM REQUESTS
@@ -52,10 +52,6 @@ router.post('/', async (req, res) => {
     return res.status(403).json({
       error: 'Administrators can view and manage requests but cannot create them'
     })
-  }
-
-  if (!requireFields(req, res, ['request_number', 'item_description', 'quantity', 'purpose'])) {
-    return
   }
 
   const {

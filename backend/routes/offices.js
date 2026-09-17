@@ -3,7 +3,6 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
-const { requireFields } = require('../middleware/auth')
 
 
 // GET OFFICES
@@ -30,10 +29,6 @@ router.get('/', async (req, res) => {
 // ADD OFFICE
 
 router.post('/', async (req, res) => {
-
-  if (!requireFields(req, res, ['office_name', 'office_code'])) {
-    return
-  }
 
   const {
     office_name,

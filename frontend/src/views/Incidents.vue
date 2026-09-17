@@ -1,6 +1,5 @@
 <template>
   <div>
-
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2>Incidents</h2>
@@ -14,11 +13,8 @@
 
     <div class="card">
       <div class="card-body">
-
         <div class="table-responsive">
-
           <table class="table table-hover align-middle">
-
             <thead>
               <tr>
                 <th>Item</th>
@@ -32,12 +28,10 @@
             </thead>
 
             <tbody>
-
               <tr
                 v-for="incident in incidents"
                 :key="incident.id"
               >
-
                 <td>
                   {{ incident.items?.description || '-' }}
                 </td>
@@ -65,7 +59,6 @@
                 </td>
 
                 <td>
-
                   <button
                     class="btn btn-sm btn-outline-primary me-2"
                     @click="editIncident(incident)"
@@ -79,46 +72,31 @@
                   >
                     Delete
                   </button>
-
                 </td>
-
               </tr>
 
               <tr v-if="incidents.length === 0">
-
                 <td
                   colspan="7"
                   class="text-center text-muted py-4"
                 >
                   No incidents found.
                 </td>
-
               </tr>
-
             </tbody>
-
           </table>
-
         </div>
-
       </div>
     </div>
-
-
-    <!-- MODAL -->
 
     <div
       class="modal fade"
       id="incidentModal"
       tabindex="-1"
     >
-
       <div class="modal-dialog modal-lg">
-
         <div class="modal-content">
-
           <div class="modal-header">
-
             <h5 class="modal-title">
               {{ editing ? 'Edit Incident' : 'Add Incident' }}
             </h5>
@@ -128,16 +106,11 @@
               class="btn-close"
               data-bs-dismiss="modal"
             ></button>
-
           </div>
 
-
           <form @submit.prevent="saveIncident">
-
             <div class="modal-body">
-
               <div class="mb-3">
-
                 <label class="form-label">
                   Item
                 </label>
@@ -147,7 +120,6 @@
                   v-model="form.item_id"
                   required
                 >
-
                   <option value="">
                     Select Item
                   </option>
@@ -159,14 +131,10 @@
                   >
                     {{ item.description }}
                   </option>
-
                 </select>
-
               </div>
 
-
               <div class="mb-3">
-
                 <label class="form-label">
                   Reported By
                 </label>
@@ -175,7 +143,6 @@
                   class="form-select"
                   v-model="form.reported_by"
                 >
-
                   <option value="">
                     Select Personnel
                   </option>
@@ -187,14 +154,10 @@
                   >
                     {{ person.full_name }}
                   </option>
-
                 </select>
-
               </div>
 
-
               <div class="mb-3">
-
                 <label class="form-label">
                   Incident Type
                 </label>
@@ -204,7 +167,6 @@
                   v-model="form.incident_type"
                   required
                 >
-
                   <option value="Lost">
                     Lost
                   </option>
@@ -224,14 +186,10 @@
                   <option value="Other">
                     Other
                   </option>
-
                 </select>
-
               </div>
 
-
               <div class="mb-3">
-
                 <label class="form-label">
                   Incident Date
                 </label>
@@ -242,12 +200,9 @@
                   v-model="form.incident_date"
                   required
                 >
-
               </div>
 
-
               <div class="mb-3">
-
                 <label class="form-label">
                   Status
                 </label>
@@ -257,7 +212,6 @@
                   v-model="form.status"
                   required
                 >
-
                   <option value="Open">
                     Open
                   </option>
@@ -273,14 +227,10 @@
                   <option value="Closed">
                     Closed
                   </option>
-
                 </select>
-
               </div>
 
-
               <div class="mb-3">
-
                 <label class="form-label">
                   Description
                 </label>
@@ -291,12 +241,9 @@
                   v-model="form.description"
                   required
                 ></textarea>
-
               </div>
 
-
               <div class="mb-3">
-
                 <label class="form-label">
                   Action Taken
                 </label>
@@ -306,12 +253,9 @@
                   rows="3"
                   v-model="form.action_taken"
                 ></textarea>
-
               </div>
 
-
               <div class="mb-3">
-
                 <label class="form-label">
                   Remarks
                 </label>
@@ -321,14 +265,10 @@
                   rows="3"
                   v-model="form.remarks"
                 ></textarea>
-
               </div>
-
             </div>
 
-
             <div class="modal-footer">
-
               <button
                 type="button"
                 class="btn btn-secondary"
@@ -344,85 +284,51 @@
               >
                 {{ saving ? 'Saving...' : 'Save Incident' }}
               </button>
-
             </div>
-
           </form>
-
         </div>
-
       </div>
-
     </div>
-
   </div>
 </template>
 
-
 <script>
-
 import { Modal } from 'bootstrap'
 
 export default {
-
   name: 'Incidents',
 
   data() {
-
     return {
-
       incidents: [],
-
       items: [],
-
       personnel: [],
-
       editing: false,
-
       saving: false,
 
       form: {
-
         id: null,
-
         item_id: '',
-
         reported_by: '',
-
         incident_type: 'Lost',
-
         incident_date: '',
-
         status: 'Open',
-
         description: '',
-
         action_taken: '',
-
         remarks: ''
-
       }
-
     }
-
   },
 
-
   mounted() {
-
     this.getIncidents()
     this.getItems()
     this.getPersonnel()
-
   },
 
-
   methods: {
-
     async getIncidents() {
-
       try {
-
         const response = await fetch(
           'http://localhost:5000/api/incidents'
         )
@@ -430,29 +336,25 @@ export default {
         const data = await response.json()
 
         if (!response.ok) {
-
           throw new Error(
             data.error || 'Failed to load incidents'
           )
-
         }
 
         this.incidents = data
-
       } catch (error) {
-
         console.log(error)
-        alert(error.message)
 
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       }
-
     },
 
-
     async getItems() {
-
       try {
-
         const response = await fetch(
           'http://localhost:5000/api/items'
         )
@@ -460,24 +362,25 @@ export default {
         const data = await response.json()
 
         if (response.ok) {
-
           this.items = data
-
+        } else {
+          throw new Error(
+            data.error || 'Failed to load items'
+          )
         }
-
       } catch (error) {
-
         console.log(error)
 
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       }
-
     },
 
-
     async getPersonnel() {
-
       try {
-
         const response = await fetch(
           'http://localhost:5000/api/personnel'
         )
@@ -485,45 +388,37 @@ export default {
         const data = await response.json()
 
         if (response.ok) {
-
           this.personnel = data
-
+        } else {
+          throw new Error(
+            data.error || 'Failed to load personnel'
+          )
         }
-
       } catch (error) {
-
         console.log(error)
 
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       }
-
     },
 
-
     openAddModal() {
-
       this.editing = false
 
       this.form = {
-
         id: null,
-
         item_id: '',
-
         reported_by: '',
-
         incident_type: 'Lost',
-
         incident_date:
           new Date().toISOString().split('T')[0],
-
         status: 'Open',
-
         description: '',
-
         action_taken: '',
-
         remarks: ''
-
       }
 
       const modal =
@@ -532,42 +427,28 @@ export default {
         )
 
       modal.show()
-
     },
 
-
     editIncident(incident) {
-
       this.editing = true
 
       this.form = {
-
         id: incident.id,
-
-        item_id:
-          incident.item_id,
-
+        item_id: incident.item_id,
         reported_by:
           incident.reported_by || '',
-
         incident_type:
           incident.incident_type,
-
         incident_date:
           incident.incident_date || '',
-
         status:
           incident.status,
-
         description:
           incident.description || '',
-
         action_taken:
           incident.action_taken || '',
-
         remarks:
           incident.remarks || ''
-
       }
 
       const modal =
@@ -576,43 +457,32 @@ export default {
         )
 
       modal.show()
-
     },
 
-
     async saveIncident() {
-
       this.saving = true
 
       try {
-
         let url =
           'http://localhost:5000/api/incidents'
 
         let method = 'POST'
 
         if (this.editing) {
-
           url =
             `http://localhost:5000/api/incidents/${this.form.id}`
 
           method = 'PUT'
-
         }
 
         const response = await fetch(url, {
-
           method: method,
 
           headers: {
-
-            'Content-Type':
-              'application/json'
-
+            'Content-Type': 'application/json'
           },
 
           body: JSON.stringify({
-
             item_id:
               this.form.item_id,
 
@@ -636,20 +506,16 @@ export default {
 
             remarks:
               this.form.remarks
-
           })
-
         })
 
         const data =
           await response.json()
 
         if (!response.ok) {
-
           throw new Error(
             data.error || 'Failed to save incident'
           )
-
         }
 
         const modal =
@@ -661,34 +527,36 @@ export default {
 
         await this.getIncidents()
 
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: this.editing
+              ? 'Incident updated successfully'
+              : 'Incident added successfully'
+          })
+        )
       } catch (error) {
-
         console.log(error)
-        alert(error.message)
 
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       } finally {
-
         this.saving = false
-
       }
-
     },
 
-
     async deleteIncident(id) {
-
       if (
         !confirm(
           'Are you sure you want to delete this incident?'
         )
       ) {
-
         return
-
       }
 
       try {
-
         const response = await fetch(
           `http://localhost:5000/api/incidents/${id}`,
           {
@@ -700,28 +568,30 @@ export default {
           await response.json()
 
         if (!response.ok) {
-
           throw new Error(
             data.error || 'Failed to delete incident'
           )
-
         }
 
         await this.getIncidents()
 
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Incident deleted successfully'
+          })
+        )
       } catch (error) {
-
         console.log(error)
-        alert(error.message)
 
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       }
-
     }
-
   }
-
 }
-
 </script>
 
 <style scoped>

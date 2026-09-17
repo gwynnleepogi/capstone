@@ -5,7 +5,8 @@ async function createAuditLog(
   item_id,
   old_value,
   new_value,
-  description
+  description,
+  user_id
 ) {
 
   const { error } = await supabase
@@ -16,7 +17,8 @@ async function createAuditLog(
         item_id: item_id || null,
         old_value: old_value || null,
         new_value: new_value || null,
-        description: description || null
+        description: description || null,
+        user_id: user_id || null
       }
     ])
 

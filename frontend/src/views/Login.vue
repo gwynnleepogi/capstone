@@ -5,45 +5,68 @@
       <p>{{ signingUp ? 'Create an account' : 'Sign in to continue' }}</p>
 
       <div class="mode-switch">
-        <button type="button" :class="{ active: !signingUp }" @click="signingUp = false">
+        <button
+          type="button"
+          :class="{ active: !signingUp }"
+          @click="signingUp = false"
+        >
           Sign In
         </button>
-        <button type="button" :class="{ active: signingUp }" @click="signingUp = true">
+
+        <button
+          type="button"
+          :class="{ active: signingUp }"
+          @click="signingUp = true"
+        >
           Sign Up
         </button>
-      </div>
-
-      <div v-if="logoutMessage" class="logout-alert" role="status">
-        {{ logoutMessage }}
       </div>
 
       <form @submit.prevent="login">
         <template v-if="signingUp">
           <label>Full Name</label>
-          <input v-model="fullName" type="text" required>
-
-          <label>Username</label>
-          <input v-model="username" type="text" required>
+          <input
+            v-model="fullName"
+            type="text"
+            required
+          >
         </template>
 
         <label>Email</label>
-        <input v-model="email" type="email" required>
+        <input
+          v-model="email"
+          type="email"
+          required
+        >
 
         <label>Password</label>
-        <input v-model="password" type="password" required>
+        <input
+          v-model="password"
+          type="password"
+          required
+        >
 
         <template v-if="signingUp">
           <label>Role</label>
-          <select v-model="role" required>
+
+          <select
+            v-model="role"
+            required
+          >
             <option value="">Choose role</option>
             <option value="Personnel">Personnel</option>
             <option value="Teacher">Teacher</option>
             <option value="Non-Teaching Staff">Non-Teaching Staff</option>
           </select>
         </template>
+
         <template v-else>
           <label>Preferred access</label>
-          <select v-model="preferredRole" required>
+
+          <select
+            v-model="preferredRole"
+            required
+          >
             <option value="">Choose access</option>
             <option value="Administrator">Administrator</option>
             <option value="Personnel">Personnel</option>
@@ -52,9 +75,10 @@
           </select>
         </template>
 
-        <p v-if="error" class="text-danger">{{ error }}</p>
-
-        <button type="submit" :disabled="loading">
+        <button
+          type="submit"
+          :disabled="loading"
+        >
           {{ loading ? 'Please wait...' : (signingUp ? 'Create Account' : 'Login') }}
         </button>
       </form>
@@ -71,19 +95,12 @@ export default {
       email: '',
       password: '',
       fullName: '',
-      username: '',
       role: '',
       signingUp: false,
       preferredRole: '',
       loading: false,
-      error: '',
-      logoutMessage: ''
+      error: ''
     }
-  },
-
-  mounted() {
-    this.logoutMessage = sessionStorage.getItem('logoutMessage') || ''
-    sessionStorage.removeItem('logoutMessage')
   },
 
   methods: {
@@ -92,42 +109,76 @@ export default {
       this.error = ''
 
       try {
-        const response = await fetch(`http://localhost:5000/api/auth/${this.signingUp ? 'signup' : 'login'}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(this.signingUp
-            ? {
-                full_name: this.fullName,
-                username: this.username,
-                email: this.email,
-                password: this.password,
-                role: this.role
-              }
-            : {
-                email: this.email,
-                password: this.password,
-                preferred_role: this.preferredRole
-              })
-        })
+        const response = await fetch(
+          `http://localhost:5000/api/auth/${this.signingUp ? 'signup' : 'login'}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(
+              this.signingUp
+                ? {
+                    full_name: this.fullName,
+                    email: this.email,
+                    password: this.password,
+                    role: this.role
+                  }
+                : {
+                    email: this.email,
+                    password: this.password,
+                    preferred_role: this.preferredRole
+                  }
+            )
+          }
+        )
 
         const result = await response.json()
 
         if (!response.ok) {
-          throw new Error(result.error || 'Login failed')
+          throw new Error(
+            result.error || 'Login failed'
+          )
         }
 
         if (this.signingUp) {
-          this.error = result.message
+          window.dispatchEvent(
+            new CustomEvent('show-toast', {
+              detail: result.message || 'Account created successfully'
+            })
+          )
+
           this.signingUp = false
+          this.password = ''
+          this.role = ''
           return
         }
 
-        localStorage.setItem('accessToken', result.access_token)
-        localStorage.setItem('user', JSON.stringify(result.user))
-        window.dispatchEvent(new CustomEvent('user-updated', { detail: result.user }))
+        localStorage.setItem(
+          'accessToken',
+          result.access_token
+        )
+
+        localStorage.setItem(
+          'user',
+          JSON.stringify(result.user)
+        )
+
+        window.dispatchEvent(
+          new CustomEvent('user-updated', {
+            detail: result.user
+          })
+        )
+
         await this.$router.push('/')
       } catch (error) {
-        this.error = error.message
+        console.log(error)
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       } finally {
         this.loading = false
       }
@@ -188,17 +239,5 @@ export default {
 .mode-switch button.active {
   background: #2f5d3a;
   color: white;
-}
-
-.logout-alert {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 10;
-  padding: 12px 16px;
-  border: 1px solid #badbcc;
-  border-radius: 6px;
-  background: #d1e7dd;
-  color: #0f5132;
 }
 </style>

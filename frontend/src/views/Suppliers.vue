@@ -206,7 +206,12 @@ export default {
         this.suppliers = data
       } catch (error) {
         console.log(error)
-        alert(error.message)
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       }
     },
 
@@ -291,9 +296,22 @@ export default {
         modal.hide()
 
         await this.getSuppliers()
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: this.editing
+              ? 'Supplier updated successfully'
+              : 'Supplier added successfully'
+          })
+        )
       } catch (error) {
         console.log(error)
-        alert(error.message)
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       } finally {
         this.saving = false
       }
@@ -323,9 +341,20 @@ export default {
         }
 
         await this.getSuppliers()
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Supplier deleted successfully'
+          })
+        )
       } catch (error) {
         console.log(error)
-        alert(error.message)
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       }
     }
   }

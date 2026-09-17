@@ -3,7 +3,6 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
-const { requireFields } = require('../middleware/auth')
 
 
 // GET INCIDENTS
@@ -39,10 +38,6 @@ router.get('/', async (req, res) => {
 // ADD INCIDENT
 
 router.post('/', async (req, res) => {
-
-  if (!requireFields(req, res, ['item_id', 'reported_by', 'incident_type', 'incident_date', 'status', 'description'])) {
-    return
-  }
 
   const {
     item_id,

@@ -1,6 +1,5 @@
 <template>
   <div class="container-fluid">
-    <!-- HEADER -->
     <div class="row align-items-center mb-4">
       <div class="col">
         <h1 class="h3 mb-1">Items</h1>
@@ -14,7 +13,6 @@
       </div>
     </div>
 
-    <!-- SEARCH AND FILTERS -->
     <div class="card mb-3">
       <div class="card-body">
         <div class="row g-2">
@@ -23,19 +21,32 @@
               <span class="input-group-text">
                 <i class="bi bi-search"></i>
               </span>
-              <input v-model="search" type="text" class="form-control" placeholder="Search property number or description">
+              <input
+                v-model="search"
+                type="text"
+                class="form-control"
+                placeholder="Search property number or description"
+              >
             </div>
           </div>
+
           <div class="col-12 col-md-3">
-            <select v-model="selectedClassification" class="form-select">
+            <select
+              v-model="selectedClassification"
+              class="form-select"
+            >
               <option value="">All Classification</option>
               <option value="PAR">PAR</option>
               <option value="ICS High">ICS High</option>
               <option value="ICS Low">ICS Low</option>
             </select>
           </div>
+
           <div class="col-12 col-md-3">
-            <select v-model="selectedStatus" class="form-select">
+            <select
+              v-model="selectedStatus"
+              class="form-select"
+            >
               <option value="">All Status</option>
               <option value="Available">Available</option>
               <option value="Issued">Issued</option>
@@ -50,7 +61,6 @@
       </div>
     </div>
 
-    <!-- SUMMARY -->
     <div class="row g-3 mb-3">
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
@@ -58,92 +68,157 @@
           <h4 class="mb-0 mt-1">{{ items.length }}</h4>
         </div>
       </div>
+
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
           <small class="text-secondary">PAR</small>
-          <h4 class="mb-0 mt-1">{{ countClassification('PAR') }}</h4>
+          <h4 class="mb-0 mt-1">
+            {{ countClassification('PAR') }}
+          </h4>
         </div>
       </div>
+
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
           <small class="text-secondary">ICS High</small>
-          <h4 class="mb-0 mt-1">{{ countClassification('ICS High') }}</h4>
+          <h4 class="mb-0 mt-1">
+            {{ countClassification('ICS High') }}
+          </h4>
         </div>
       </div>
+
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
           <small class="text-secondary">ICS Low</small>
-          <h4 class="mb-0 mt-1">{{ countClassification('ICS Low') }}</h4>
+          <h4 class="mb-0 mt-1">
+            {{ countClassification('ICS Low') }}
+          </h4>
         </div>
       </div>
     </div>
 
-    <!-- ADD ITEM FORM -->
     <div v-if="showAddForm" class="card mb-4">
       <div class="card-header bg-white">
         <strong>Add New Item</strong>
       </div>
+
       <form @submit.prevent="addItem">
         <div class="card-body">
           <div class="row g-3">
             <div class="col-12 col-md-6">
-              <label class="form-label">Accountable Employee</label>
-              <input v-model="newItem.accountable_employee" type="text" class="form-control">
+              <label class="form-label">Property Number</label>
+              <input
+                v-model="newItem.property_number"
+                type="text"
+                class="form-control"
+              >
             </div>
+
             <div class="col-12 col-md-6">
-              <label class="form-label">Responsibility Center</label>
-              <input v-model="newItem.responsibility_center" type="text" class="form-control">
+              <label class="form-label">Serial Number</label>
+              <input
+                v-model="newItem.serial_number"
+                type="text"
+                class="form-control"
+              >
             </div>
+
             <div class="col-12">
               <label class="form-label">Description</label>
-              <input v-model="newItem.description" type="text" class="form-control" required>
+              <input
+                v-model="newItem.description"
+                type="text"
+                class="form-control"
+              >
             </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Serial No.</label>
-              <input v-model="newItem.serial_number" type="text" class="form-control">
-            </div>
+
             <div class="col-12 col-md-6">
               <label class="form-label">Supplier</label>
-              <select v-model="newItem.supplier_id" class="form-select">
-                <option value="">Choose supplier</option>
-                <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
+              <select
+                v-model="newItem.supplier_id"
+                class="form-select"
+              >
+                <option value="">Select Supplier</option>
+                <option
+                  v-for="supplier in suppliers"
+                  :key="supplier.id"
+                  :value="supplier.id"
+                >
                   {{ supplier.supplier_name }}
                 </option>
               </select>
             </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">Property Number</label>
-              <input v-model="newItem.property_number" type="text" class="form-control">
-            </div>
-            <div class="col-12 col-md-4">
+
+            <div class="col-12 col-md-6">
               <label class="form-label">Cost</label>
               <div class="input-group">
                 <span class="input-group-text">₱</span>
-                <input v-model="newItem.cost" type="number" min="0" step="0.01" class="form-control" required>
+                <input
+                  v-model="newItem.cost"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="form-control"
+                >
               </div>
             </div>
-            <div class="col-12 col-md-4">
+
+            <div class="col-12 col-md-6">
               <label class="form-label">Acquisition Date</label>
-              <input v-model="newItem.acquisition_date" type="date" class="form-control">
+              <input
+                v-model="newItem.acquisition_date"
+                type="date"
+                class="form-control"
+              >
             </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Accountable Employee</label>
+              <input
+                v-model="newItem.accountable_employee"
+                type="text"
+                class="form-control"
+              >
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Responsibility Center</label>
+              <input
+                v-model="newItem.responsibility_center"
+                type="text"
+                class="form-control"
+              >
+            </div>
+
             <div class="col-12 col-md-4">
               <label class="form-label">Classification</label>
-              <select v-model="newItem.classification" class="form-select">
+              <select
+                v-model="newItem.classification"
+                class="form-select"
+              >
                 <option value="PAR">PAR</option>
                 <option value="ICS High">ICS High</option>
                 <option value="ICS Low">ICS Low</option>
               </select>
             </div>
+
             <div class="col-12 col-md-4">
               <label class="form-label">Condition</label>
-              <select v-model="newItem.condition" class="form-select">
+              <select
+                v-model="newItem.condition"
+                class="form-select"
+              >
                 <option value="Serviceable">Serviceable</option>
                 <option value="Unserviceable">Unserviceable</option>
               </select>
             </div>
+
             <div class="col-12 col-md-4">
               <label class="form-label">Status</label>
-              <select v-model="newItem.status" class="form-select">
+              <select
+                v-model="newItem.status"
+                class="form-select"
+              >
                 <option value="Available">Available</option>
                 <option value="Issued">Issued</option>
                 <option value="Returned">Returned</option>
@@ -155,60 +230,112 @@
             </div>
           </div>
         </div>
+
         <div class="card-footer bg-white">
-          <button type="button" class="btn btn-secondary me-2" @click="cancelAdd">Cancel</button>
-          <button type="submit" class="btn btn-success" :disabled="saving">
+          <button
+            type="button"
+            class="btn btn-secondary me-2"
+            @click="cancelAdd"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-success"
+            :disabled="saving"
+          >
             {{ saving ? 'Saving...' : 'Save Item' }}
           </button>
         </div>
       </form>
     </div>
 
-    <!-- ITEMS TABLE -->
     <div class="card">
       <div class="card-header bg-white">
         <strong>Inventory Items</strong>
       </div>
+
       <div class="table-responsive">
         <table class="table table-hover mb-0">
           <thead>
             <tr>
-              <th>Accountable Employee</th>
-              <th>Responsibility Center</th>
+              <th>Property No.</th>
               <th>Description</th>
               <th>Serial No.</th>
-              <th>Supplier</th>
-              <th>Property No.</th>
               <th>Cost</th>
               <th>Acquisition Date</th>
+              <th>Classification</th>
+              <th>Condition</th>
+              <th>Status</th>
+              <th>Accountable Employee</th>
+              <th>Responsibility Center</th>
               <th>Actions</th>
             </tr>
           </thead>
+
           <tbody>
             <tr v-if="loading">
-              <td colspan="9" class="text-center py-5">Loading items...</td>
+              <td colspan="12" class="text-center py-5">
+                Loading items...
+              </td>
             </tr>
+
             <tr v-else-if="error">
-              <td colspan="9" class="text-center text-danger py-5">{{ error }}</td>
+              <td colspan="12" class="text-center text-danger py-5">
+                {{ error }}
+              </td>
             </tr>
+
             <tr v-else-if="filteredItems.length === 0">
-              <td colspan="9" class="text-center text-secondary py-5">No items found.</td>
+              <td colspan="12" class="text-center text-secondary py-5">
+                No items found.
+              </td>
             </tr>
-            <tr v-for="item in filteredItems" :key="item.id">
-              <td>{{ item.accountable_employee || '-' }}</td>
-              <td>{{ item.responsibility_center || '-' }}</td>
+
+            <tr
+              v-for="item in filteredItems"
+              :key="item.id"
+            >
+              <td>{{ item.property_number || '-' }}</td>
               <td>{{ item.description || '-' }}</td>
               <td>{{ item.serial_number || '-' }}</td>
-              <td>{{ supplierName(item.supplier_id) }}</td>
-              <td>{{ item.property_number || '-' }}</td>
-              <td>₱{{ item.cost ?? item.price ?? 0 }}</td>
+              <td>₱{{ item.cost || 0 }}</td>
               <td>{{ item.acquisition_date || '-' }}</td>
+
               <td>
-                <button class="btn btn-sm btn-outline-success me-1" @click="startEdit(item)">
+                <span class="badge bg-success">
+                  {{ item.classification || '-' }}
+                </span>
+              </td>
+
+              <td>{{ item.condition || '-' }}</td>
+
+              <td>
+                <span
+                  class="badge"
+                  :class="getStatusClass(item.status)"
+                >
+                  {{ item.status || '-' }}
+                </span>
+              </td>
+
+              <td>{{ item.accountable_employee || '-' }}</td>
+              <td>{{ item.responsibility_center || '-' }}</td>
+
+              <td>
+                <button
+                  class="btn btn-sm btn-outline-success me-1"
+                  @click="startEdit(item)"
+                >
                   <i class="bi bi-pencil"></i>
                   Edit
                 </button>
-                <button class="btn btn-sm btn-outline-danger" @click="deleteItem(item)">
+
+                <button
+                  class="btn btn-sm btn-outline-danger"
+                  @click="deleteItem(item)"
+                >
                   <i class="bi bi-trash"></i>
                   Delete
                 </button>
@@ -219,67 +346,121 @@
       </div>
     </div>
 
-    <!-- EDIT SIDEBAR -->
-    <div v-if="editingItem" class="edit-overlay" @click="cancelEdit">
-      <div class="edit-sidebar" @click.stop>
+    <div
+      v-if="editingItem"
+      class="edit-overlay"
+      @click="cancelEdit"
+    >
+      <div
+        class="edit-sidebar"
+        @click.stop
+      >
         <div class="edit-sidebar-header">
           <h5 class="mb-0">Edit Item</h5>
-          <button type="button" class="btn-close" @click="cancelEdit"></button>
+
+          <button
+            type="button"
+            class="btn-close"
+            @click="cancelEdit"
+          ></button>
         </div>
 
-        <form @submit.prevent="updateItem" class="edit-sidebar-form">
+        <form
+          @submit.prevent="updateItem"
+          class="edit-sidebar-form"
+        >
           <div class="edit-sidebar-body">
             <div class="mb-3">
-              <label class="form-label">Accountable Employee</label>
-              <input v-model="editForm.accountable_employee" type="text" class="form-control">
+              <label class="form-label">Property Number</label>
+              <input
+                v-model="editForm.property_number"
+                type="text"
+                class="form-control"
+              >
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Responsibility Center</label>
-              <input v-model="editForm.responsibility_center" type="text" class="form-control">
+              <label class="form-label">Serial Number</label>
+              <input
+                v-model="editForm.serial_number"
+                type="text"
+                class="form-control"
+              >
             </div>
 
             <div class="mb-3">
               <label class="form-label">Description</label>
-              <input v-model="editForm.description" type="text" class="form-control" required>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Serial No.</label>
-              <input v-model="editForm.serial_number" type="text" class="form-control">
+              <input
+                v-model="editForm.description"
+                type="text"
+                class="form-control"
+              >
             </div>
 
             <div class="mb-3">
               <label class="form-label">Supplier</label>
-              <select v-model="editForm.supplier_id" class="form-select">
-                <option value="">Choose supplier</option>
-                <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
+              <select
+                v-model="editForm.supplier_id"
+                class="form-select"
+              >
+                <option value="">Select Supplier</option>
+                <option
+                  v-for="supplier in suppliers"
+                  :key="supplier.id"
+                  :value="supplier.id"
+                >
                   {{ supplier.supplier_name }}
                 </option>
               </select>
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Property Number</label>
-              <input v-model="editForm.property_number" type="text" class="form-control">
-            </div>
-
-            <div class="mb-3">
               <label class="form-label">Cost</label>
               <div class="input-group">
                 <span class="input-group-text">₱</span>
-                <input v-model="editForm.cost" type="number" min="0" step="0.01" class="form-control" required>
+                <input
+                  v-model="editForm.cost"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="form-control"
+                >
               </div>
             </div>
 
             <div class="mb-3">
               <label class="form-label">Acquisition Date</label>
-              <input v-model="editForm.acquisition_date" type="date" class="form-control">
+              <input
+                v-model="editForm.acquisition_date"
+                type="date"
+                class="form-control"
+              >
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Accountable Employee</label>
+              <input
+                v-model="editForm.accountable_employee"
+                type="text"
+                class="form-control"
+              >
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Responsibility Center</label>
+              <input
+                v-model="editForm.responsibility_center"
+                type="text"
+                class="form-control"
+              >
             </div>
 
             <div class="mb-3">
               <label class="form-label">Classification</label>
-              <select v-model="editForm.classification" class="form-select">
+              <select
+                v-model="editForm.classification"
+                class="form-select"
+              >
                 <option value="PAR">PAR</option>
                 <option value="ICS High">ICS High</option>
                 <option value="ICS Low">ICS Low</option>
@@ -288,7 +469,10 @@
 
             <div class="mb-3">
               <label class="form-label">Condition</label>
-              <select v-model="editForm.condition" class="form-select">
+              <select
+                v-model="editForm.condition"
+                class="form-select"
+              >
                 <option value="Serviceable">Serviceable</option>
                 <option value="Unserviceable">Unserviceable</option>
               </select>
@@ -296,7 +480,10 @@
 
             <div class="mb-3">
               <label class="form-label">Status</label>
-              <select v-model="editForm.status" class="form-select">
+              <select
+                v-model="editForm.status"
+                class="form-select"
+              >
                 <option value="Available">Available</option>
                 <option value="Issued">Issued</option>
                 <option value="Returned">Returned</option>
@@ -309,32 +496,29 @@
           </div>
 
           <div class="edit-sidebar-footer">
-            <button type="button" class="btn btn-secondary" @click="cancelEdit">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              @click="cancelEdit"
+            >
               Cancel
             </button>
-            <button type="submit" class="btn btn-success" :disabled="updating">
+
+            <button
+              type="submit"
+              class="btn btn-success"
+              :disabled="updating"
+            >
               {{ updating ? 'Updating...' : 'Update Item' }}
             </button>
           </div>
         </form>
       </div>
     </div>
-
-    <!-- TOAST -->
-    <div v-if="toast.show" class="toast-container position-fixed bottom-0 end-0 p-3">
-      <div class="toast show" :class="'toast-' + toast.type" role="alert">
-        <div class="toast-body">
-          <i v-if="toast.type === 'success'" class="bi bi-check-circle me-2"></i>
-          <i v-else class="bi bi-exclamation-circle me-2"></i>
-          {{ toast.message }}
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script>
-
 async function apiRequest(url, options = {}) {
   const token = localStorage.getItem('accessToken')
 
@@ -364,15 +548,7 @@ export default {
       showAddForm: false,
       editingItem: null,
 
-      toast: {
-        show: false,
-        message: '',
-        type: 'success'
-      },
-
       newItem: {
-        accountable_employee: '',
-        responsibility_center: '',
         property_number: '',
         description: '',
         serial_number: '',
@@ -381,12 +557,12 @@ export default {
         acquisition_date: '',
         classification: 'PAR',
         condition: 'Serviceable',
-        status: 'Available'
+        status: 'Available',
+        accountable_employee: '',
+        responsibility_center: ''
       },
 
       editForm: {
-        accountable_employee: '',
-        responsibility_center: '',
         property_number: '',
         description: '',
         serial_number: '',
@@ -395,7 +571,9 @@ export default {
         acquisition_date: '',
         classification: 'PAR',
         condition: 'Serviceable',
-        status: 'Available'
+        status: 'Available',
+        accountable_employee: '',
+        responsibility_center: ''
       }
     }
   },
@@ -409,10 +587,9 @@ export default {
           !search ||
           String(item.property_number || '').toLowerCase().includes(search) ||
           String(item.description || '').toLowerCase().includes(search) ||
+          String(item.serial_number || '').toLowerCase().includes(search) ||
           String(item.accountable_employee || '').toLowerCase().includes(search) ||
           String(item.responsibility_center || '').toLowerCase().includes(search) ||
-          String(item.serial_number || '').toLowerCase().includes(search) ||
-          String(item.property_number || '').toLowerCase().includes(search) ||
           String(item.condition || '').toLowerCase().includes(search) ||
           String(item.status || '').toLowerCase().includes(search) ||
           String(item.classification || '').toLowerCase().includes(search)
@@ -425,16 +602,16 @@ export default {
           !this.selectedStatus ||
           item.status === this.selectedStatus
 
-        return matchesSearch && matchesClassification && matchesStatus
+        return matchesSearch &&
+          matchesClassification &&
+          matchesStatus
       })
     }
   },
 
   async mounted() {
-    await Promise.all([
-      this.getItems(),
-      this.getSuppliers()
-    ])
+    await this.getItems()
+    await this.getSuppliers()
   },
 
   methods: {
@@ -442,15 +619,25 @@ export default {
       this.loading = true
 
       try {
-        const response = await apiRequest('http://localhost:5000/api/items')
+        const response = await apiRequest(
+          'http://localhost:5000/api/items'
+        )
 
         if (!response.ok) {
           throw new Error('Failed to get items')
         }
 
         this.items = await response.json()
+        this.error = ''
       } catch (error) {
+        console.log(error)
         this.error = error.message
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       } finally {
         this.loading = false
       }
@@ -458,22 +645,24 @@ export default {
 
     async getSuppliers() {
       try {
-        const response = await apiRequest('http://localhost:5000/api/suppliers')
-        const data = await response.json()
+        const response = await apiRequest(
+          'http://localhost:5000/api/suppliers'
+        )
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to get suppliers')
+          throw new Error('Failed to get suppliers')
         }
 
-        this.suppliers = data
+        this.suppliers = await response.json()
       } catch (error) {
-        this.error = error.message
-      }
-    },
+        console.log(error)
 
-    supplierName(supplierId) {
-      const supplier = this.suppliers.find(item => item.id === supplierId)
-      return supplier?.supplier_name || '-'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
+      }
     },
 
     countClassification(classification) {
@@ -509,16 +698,18 @@ export default {
         this.resetForm()
         this.showAddForm = false
 
-        this.showToast(
-          'Item added successfully.',
-          'success'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Item added successfully'
+          })
         )
       } catch (error) {
         console.log(error)
 
-        this.showToast(
-          error.message,
-          'danger'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
         )
       } finally {
         this.saving = false
@@ -529,17 +720,17 @@ export default {
       this.editingItem = item
 
       this.editForm = {
-        accountable_employee: item.accountable_employee || '',
-        responsibility_center: item.responsibility_center || '',
         property_number: item.property_number || '',
         description: item.description || '',
         serial_number: item.serial_number || '',
         supplier_id: item.supplier_id || '',
-        cost: item.cost ?? item.price ?? 0,
+        cost: item.cost || 0,
         acquisition_date: item.acquisition_date || '',
         classification: item.classification || 'PAR',
         condition: item.condition || 'Serviceable',
-        status: item.status || 'Available'
+        status: item.status || 'Available',
+        accountable_employee: item.accountable_employee || '',
+        responsibility_center: item.responsibility_center || ''
       }
     },
 
@@ -581,16 +772,18 @@ export default {
 
         this.editingItem = null
 
-        this.showToast(
-          'Item updated successfully.',
-          'success'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Item updated successfully'
+          })
         )
       } catch (error) {
         console.log(error)
 
-        this.showToast(
-          error.message,
-          'danger'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
         )
       } finally {
         this.updating = false
@@ -610,7 +803,8 @@ export default {
 
       try {
         const response = await apiRequest(
-          'http://localhost:5000/api/items/' + item.id,
+          'http://localhost:5000/api/items/' +
+          item.id,
           {
             method: 'DELETE'
           }
@@ -635,16 +829,18 @@ export default {
           this.editingItem = null
         }
 
-        this.showToast(
-          'Item deleted successfully.',
-          'success'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Item deleted successfully'
+          })
         )
       } catch (error) {
         console.log(error)
 
-        this.showToast(
-          error.message,
-          'danger'
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
         )
       }
     },
@@ -660,8 +856,6 @@ export default {
 
     resetForm() {
       this.newItem = {
-        accountable_employee: '',
-        responsibility_center: '',
         property_number: '',
         description: '',
         serial_number: '',
@@ -670,7 +864,9 @@ export default {
         acquisition_date: '',
         classification: 'PAR',
         condition: 'Serviceable',
-        status: 'Available'
+        status: 'Available',
+        accountable_employee: '',
+        responsibility_center: ''
       }
     },
 
@@ -704,20 +900,8 @@ export default {
       }
 
       return 'bg-secondary'
-    },
-
-    showToast(message, type) {
-      this.toast.message = message
-      this.toast.type = type
-      this.toast.show = true
-
-      setTimeout(() => {
-        this.toast.show = false
-      }, 3000)
     }
   }
-
-  
 }
 </script>
 
@@ -803,26 +987,6 @@ h1 {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-}
-
-.toast-container {
-  z-index: 9999;
-}
-
-.toast {
-  min-width: 300px;
-  border: none;
-  border-radius: 8px;
-}
-
-.toast-success {
-  background-color: #2F5D3A;
-  color: white;
-}
-
-.toast-danger {
-  background-color: #dc3545;
-  color: white;
 }
 
 @media (max-width: 576px) {

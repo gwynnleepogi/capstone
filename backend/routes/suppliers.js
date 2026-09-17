@@ -3,7 +3,6 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
-const { requireFields } = require('../middleware/auth')
 
 
 // GET SUPPLIERS
@@ -30,10 +29,6 @@ router.get('/', async (req, res) => {
 // ADD SUPPLIER
 
 router.post('/', async (req, res) => {
-
-  if (!requireFields(req, res, ['supplier_name'])) {
-    return
-  }
 
   const {
     supplier_name,
@@ -140,7 +135,6 @@ router.put('/:id', async (req, res) => {
   res.json(data)
 })
 
-
 // DELETE SUPPLIER
 
 router.delete('/:id', async (req, res) => {
@@ -157,6 +151,29 @@ router.delete('/:id', async (req, res) => {
 
     return res.status(404).json({
       error: 'Supplier not found'
+    })
+  }
+
+
+  const { data: usedItems, error: itemsError } = await supabase
+    .from('items')
+    .select('id')
+    .eq('supplier_id', req.params.id)
+
+  if (itemsError) {
+
+    console.log(itemsError)
+
+    return res.status(500).json({
+      error: itemsError.message
+    })
+  }
+
+
+  if (usedItems.length > 0) {
+
+    return res.status(400).json({
+      error: 'This supplier cannot be deleted because it is assigned to one or more items.'
     })
   }
 
@@ -178,12 +195,13 @@ router.delete('/:id', async (req, res) => {
 
   await createAuditLog(
     'Deleted',
-    req.params.id,
+    null,
     JSON.stringify(oldData),
     null,
     'Deleted supplier: ' + oldData.supplier_name,
     req.profile.id
   )
+
 
   res.json({
     message: 'Supplier deleted successfully'

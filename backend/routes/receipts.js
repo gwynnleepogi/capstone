@@ -3,13 +3,9 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
-const { requireFields } = require('../middleware/auth')
-
 
 // GET RECEIPTS
-
 router.get('/', async (req, res) => {
-
   const { data, error } = await supabase
     .from('property_receipts')
     .select(`
@@ -18,18 +14,16 @@ router.get('/', async (req, res) => {
         description,
         property_number,
         serial_number,
-        accountable_employee,
-        responsibility_center,
-        cost,
-        price,
         acquisition_date,
-        date_of_purchase,
-        suppliers (
-          supplier_name
-        )
+        cost
       ),
       users (
         full_name
+      ),
+      item_requests (
+        request_number,
+        item_description,
+        status
       )
     `)
     .order('created_at', { ascending: false })
@@ -45,17 +39,11 @@ router.get('/', async (req, res) => {
   res.json(data)
 })
 
-
 // ADD RECEIPT
-
 router.post('/', async (req, res) => {
-
-  if (!requireFields(req, res, ['item_id', 'receipt_type', 'receipt_number'])) {
-    return
-  }
-
   const {
     item_id,
+    item_request_id,
     receipt_type,
     receipt_number,
     issued_to,
@@ -63,15 +51,42 @@ router.post('/', async (req, res) => {
     remarks
   } = req.body
 
-  const { data: item, error: itemError } = await supabase
-    .from('items')
-    .select('id')
-    .eq('id', item_id)
+  if (!item_request_id) {
+    return res.status(400).json({
+      error: 'An approved or delivered item request is required'
+    })
+  }
+
+  const { data: request, error: requestError } = await supabase
+    .from('item_requests')
+    .select('*')
+    .eq('id', item_request_id)
     .single()
 
-  if (itemError || !item) {
+  if (requestError || !request) {
+    return res.status(404).json({
+      error: 'Item request not found'
+    })
+  }
+
+  if (
+    request.status !== 'Approved' &&
+    request.status !== 'Delivered'
+  ) {
     return res.status(400).json({
-      error: 'Please select an item that exists in the Items list'
+      error: 'Only approved or delivered item requests can have a receipt'
+    })
+  }
+
+  const { data: existingReceipt } = await supabase
+    .from('property_receipts')
+    .select('id')
+    .eq('item_request_id', item_request_id)
+    .maybeSingle()
+
+  if (existingReceipt) {
+    return res.status(400).json({
+      error: 'This item request already has a receipt'
     })
   }
 
@@ -79,6 +94,7 @@ router.post('/', async (req, res) => {
     .from('property_receipts')
     .insert([{
       item_id,
+      item_request_id,
       receipt_type,
       receipt_number,
       issued_to,
@@ -96,26 +112,22 @@ router.post('/', async (req, res) => {
     })
   }
 
-  createAuditLog(
+  await createAuditLog(
     'Created',
-    data.item_id,
+    data.id,
     null,
     JSON.stringify(data),
     'Added receipt: ' + data.receipt_number
-  ).catch(error => {
-    console.log('Audit log error:', error)
-  })
+  )
 
   res.status(201).json(data)
 })
 
-
 // UPDATE RECEIPT
-
 router.put('/:id', async (req, res) => {
-
   const {
     item_id,
+    item_request_id,
     receipt_type,
     receipt_number,
     issued_to,
@@ -137,22 +149,47 @@ router.put('/:id', async (req, res) => {
     })
   }
 
-  const { data: item, error: itemError } = await supabase
-    .from('items')
-    .select('id')
-    .eq('id', item_id)
-    .single()
+  if (item_request_id) {
+    const { data: request, error: requestError } = await supabase
+      .from('item_requests')
+      .select('*')
+      .eq('id', item_request_id)
+      .single()
 
-  if (itemError || !item) {
-    return res.status(400).json({
-      error: 'Please select an item that exists in the Items list'
-    })
+    if (requestError || !request) {
+      return res.status(404).json({
+        error: 'Item request not found'
+      })
+    }
+
+    if (
+      request.status !== 'Approved' &&
+      request.status !== 'Delivered'
+    ) {
+      return res.status(400).json({
+        error: 'Only approved or delivered item requests can have a receipt'
+      })
+    }
+
+    const { data: existingReceipt } = await supabase
+      .from('property_receipts')
+      .select('id')
+      .eq('item_request_id', item_request_id)
+      .neq('id', req.params.id)
+      .maybeSingle()
+
+    if (existingReceipt) {
+      return res.status(400).json({
+        error: 'This item request already has a receipt'
+      })
+    }
   }
 
   const { data, error } = await supabase
     .from('property_receipts')
     .update({
       item_id,
+      item_request_id: item_request_id || null,
       receipt_type,
       receipt_number,
       issued_to,
@@ -171,24 +208,19 @@ router.put('/:id', async (req, res) => {
     })
   }
 
-  res.json(data)
-
-  createAuditLog(
+  await createAuditLog(
     'Updated',
-    data.item_id,
+    data.id,
     JSON.stringify(oldData),
     JSON.stringify(data),
     'Updated receipt: ' + data.receipt_number
-  ).catch(error => {
-    console.log('Audit log error:', error)
-  })
+  )
+
+  res.json(data)
 })
 
-
 // DELETE RECEIPT
-
 router.delete('/:id', async (req, res) => {
-
   const { data: oldData, error: oldError } = await supabase
     .from('property_receipts')
     .select('*')
@@ -216,21 +248,17 @@ router.delete('/:id', async (req, res) => {
     })
   }
 
-  createAuditLog(
+  await createAuditLog(
     'Deleted',
-    oldData.item_id,
+    req.params.id,
     JSON.stringify(oldData),
     null,
     'Deleted receipt: ' + oldData.receipt_number
-  ).catch(error => {
-    console.log('Audit log error:', error)
-  })
+  )
 
   res.json({
     message: 'Receipt deleted successfully'
   })
 })
 
-
 module.exports = router
-
