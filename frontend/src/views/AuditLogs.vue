@@ -12,109 +12,230 @@
         Loading audit logs...
       </div>
 
-      <div v-else-if="logs.length === 0" class="empty">
-        No audit logs found.
-      </div>
+      <div v-else class="audit-content">
+        <div class="table-toolbar">
+          <input
+            v-model="search"
+            type="text"
+            class="form-control search-input"
+            placeholder="Search audit logs..."
+          />
 
-      <div v-else class="table-responsive">
-        <table class="table audit-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Action</th>
-              <th>Item</th>
-              <th>Details</th>
-            </tr>
-          </thead>
+          <select
+            v-model="actionFilter"
+            class="form-select filter-select"
+          >
+            <option value="">All Actions</option>
+            <option value="Created">Created</option>
+            <option value="Updated">Updated</option>
+            <option value="Deleted">Deleted</option>
+          </select>
 
-          <tbody>
-            <tr v-for="log in logs" :key="log.id">
-              <td>{{ formatDate(log.created_at) }}</td>
+          <select
+            v-model.number="itemsPerPage"
+            class="form-select page-size-select"
+          >
+            <option :value="5">5 per page</option>
+            <option :value="10">10 per page</option>
+            <option :value="25">25 per page</option>
+            <option :value="50">50 per page</option>
+          </select>
+        </div>
 
-              <td>
-                <span
-                  class="action-badge"
-                  :class="getActionClass(log.action)"
+        <div v-if="filteredLogs.length === 0" class="empty">
+          No audit logs found.
+        </div>
+
+        <div v-else class="table-responsive">
+          <table class="table audit-table">
+            <thead>
+              <tr>
+                <th
+                  class="sortable text-start"
+                  @click="sortBy('created_at')"
                 >
-                  {{ log.action }}
-                </span>
-              </td>
+                  Date
+                  <i :class="getSortIcon('created_at')"></i>
+                </th>
 
-              <td>
-                {{ getItemName(log) }}
-              </td>
-
-              <td>
-                <div
-                  v-if="isItemLog(log) && (log.old_value || log.new_value)"
-                  class="details-dropdown"
+                <th
+                  class="sortable text-start"
+                  @click="sortBy('action')"
                 >
-                  <button
-                    type="button"
-                    class="details-button"
-                    @click="toggleDetails(log.id)"
+                  Action
+                  <i :class="getSortIcon('action')"></i>
+                </th>
+
+                <th
+                  class="sortable text-start"
+                  @click="sortBy('item')"
+                >
+                  Item
+                  <i :class="getSortIcon('item')"></i>
+                </th>
+
+                <th class="text-start">
+                  Details
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr
+                v-for="log in paginatedLogs"
+                :key="log.id"
+              >
+                <td>
+                  {{ formatDate(log.created_at) }}
+                </td>
+
+                <td>
+                  <span
+                    class="action-badge"
+                    :class="getActionClass(log.action)"
                   >
-                    <span>View item details</span>
+                    {{ log.action }}
+                  </span>
+                </td>
 
-                    <i
-                      class="bi bi-chevron-down"
-                      :class="{ rotated: openedLog === log.id }"
-                    ></i>
-                  </button>
+                <td>
+                  {{ getItemName(log) }}
+                </td>
 
+                <td>
                   <div
-                    class="details-wrapper"
-                    :class="{ open: openedLog === log.id }"
+                    v-if="isItemLog(log) && (log.old_value || log.new_value)"
+                    class="details-dropdown"
                   >
-                    <div class="details-content">
-                      <div v-if="log.old_value">
-                        <strong>
-                          {{ log.action === 'Deleted' ? 'Deleted item' : 'Before' }}
-                        </strong>
+                    <button
+                      type="button"
+                      class="details-button"
+                      @click="toggleDetails(log.id)"
+                    >
+                      <span>View item details</span>
 
-                        <div class="detail-grid">
-                          <div
-                            v-for="entry in detailEntries(log.old_value)"
-                            :key="entry.key"
-                            class="detail-field"
-                          >
-                            <span>{{ formatLabel(entry.key) }}</span>
-                            <strong>{{ entry.value }}</strong>
+                      <i
+                        class="bi bi-chevron-down"
+                        :class="{ rotated: openedLog === log.id }"
+                      ></i>
+                    </button>
+
+                    <div
+                      class="details-wrapper"
+                      :class="{ open: openedLog === log.id }"
+                    >
+                      <div class="details-content">
+                        <div v-if="log.old_value">
+                          <strong>
+                            {{
+                              log.action === 'Deleted'
+                                ? 'Deleted item'
+                                : 'Before'
+                            }}
+                          </strong>
+
+                          <div class="detail-grid">
+                            <div
+                              v-for="entry in detailEntries(log.old_value)"
+                              :key="entry.key"
+                              class="detail-field"
+                            >
+                              <span>
+                                {{ formatLabel(entry.key) }}
+                              </span>
+
+                              <strong>
+                                {{ entry.value }}
+                              </strong>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div v-if="log.new_value">
-                        <strong>
-                          {{ log.action === 'Created' ? 'Added item' : 'After' }}
-                        </strong>
+                        <div v-if="log.new_value">
+                          <strong>
+                            {{
+                              log.action === 'Created'
+                                ? 'Added item'
+                                : 'After'
+                            }}
+                          </strong>
 
-                        <div class="detail-grid">
-                          <div
-                            v-for="entry in detailEntries(log.new_value)"
-                            :key="entry.key"
-                            class="detail-field"
-                          >
-                            <span>{{ formatLabel(entry.key) }}</span>
-                            <strong>{{ entry.value }}</strong>
+                          <div class="detail-grid">
+                            <div
+                              v-for="entry in detailEntries(log.new_value)"
+                              :key="entry.key"
+                              class="detail-field"
+                            >
+                              <span>
+                                {{ formatLabel(entry.key) }}
+                              </span>
+
+                              <strong>
+                                {{ entry.value }}
+                              </strong>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <span v-else class="no-details">
-                  {{ log.description || '-' }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  <span
+                    v-else
+                    class="no-details"
+                  >
+                    {{ log.description || '-' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div
+          v-if="filteredLogs.length > 0"
+          class="table-footer"
+        >
+          <span>
+            Showing {{ firstLogNumber }} to {{ lastLogNumber }}
+            of {{ filteredLogs.length }} logs
+          </span>
+
+          <div class="pagination-controls">
+            <button
+              class="page-button"
+              :disabled="currentPage === 1"
+              @click="previousPage"
+            >
+              Previous
+            </button>
+
+            <button
+              v-for="page in totalPages"
+              :key="page"
+              class="page-button"
+              :class="{ active: currentPage === page }"
+              @click="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+
+            <button
+              class="page-button"
+              :disabled="currentPage === totalPages"
+              @click="nextPage"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div v-if="toast.show" class="toast-message">
+    <div
+      v-if="toast.show"
+      class="toast-message"
+    >
       {{ toast.message }}
     </div>
   </div>
@@ -130,6 +251,13 @@ export default {
       loading: false,
       openedLog: null,
 
+      search: '',
+      actionFilter: '',
+      currentPage: 1,
+      itemsPerPage: 10,
+      sortColumn: 'created_at',
+      sortDirection: 'desc',
+
       toast: {
         show: false,
         message: ''
@@ -139,6 +267,112 @@ export default {
 
   mounted() {
     this.getLogs()
+  },
+
+  watch: {
+    search() {
+      this.currentPage = 1
+    },
+
+    actionFilter() {
+      this.currentPage = 1
+    },
+
+    itemsPerPage() {
+      this.currentPage = 1
+    }
+  },
+
+  computed: {
+    filteredLogs() {
+      const searchText = this.search.toLowerCase().trim()
+
+      const filtered = this.logs.filter(log => {
+        const actionMatch =
+          !this.actionFilter ||
+          log.action === this.actionFilter
+
+        const searchableText = [
+          this.formatDate(log.created_at),
+          log.action,
+          this.getItemName(log),
+          log.description
+        ]
+          .join(' ')
+          .toLowerCase()
+
+        return (
+          actionMatch &&
+          (
+            !searchText ||
+            searchableText.includes(searchText)
+          )
+        )
+      })
+
+      return [...filtered].sort((firstLog, secondLog) => {
+        let firstValue = this.getSortValue(
+          firstLog,
+          this.sortColumn
+        )
+
+        let secondValue = this.getSortValue(
+          secondLog,
+          this.sortColumn
+        )
+
+        if (this.sortColumn === 'created_at') {
+          firstValue = new Date(firstValue).getTime() || 0
+          secondValue = new Date(secondValue).getTime() || 0
+        } else {
+          firstValue = String(firstValue || '').toLowerCase()
+          secondValue = String(secondValue || '').toLowerCase()
+        }
+
+        if (firstValue < secondValue) {
+          return this.sortDirection === 'asc' ? -1 : 1
+        }
+
+        if (firstValue > secondValue) {
+          return this.sortDirection === 'asc' ? 1 : -1
+        }
+
+        return 0
+      })
+    },
+
+    totalPages() {
+      return Math.ceil(
+        this.filteredLogs.length / this.itemsPerPage
+      ) || 1
+    },
+
+    paginatedLogs() {
+      const start =
+        (this.currentPage - 1) * this.itemsPerPage
+
+      return this.filteredLogs.slice(
+        start,
+        start + this.itemsPerPage
+      )
+    },
+
+    firstLogNumber() {
+      if (this.filteredLogs.length === 0) {
+        return 0
+      }
+
+      return (
+        (this.currentPage - 1) * this.itemsPerPage
+      ) + 1
+    },
+
+    lastLogNumber() {
+      return Math.min(
+        this.currentPage * this.itemsPerPage,
+        this.filteredLogs.length
+      )
+    }
   },
 
   methods: {
@@ -160,21 +394,84 @@ export default {
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to load audit logs')
+          throw new Error(
+            data.error || 'Failed to load audit logs'
+          )
         }
 
         this.logs = data
       } catch (error) {
         console.error(error)
-
         this.showToast(error.message)
       } finally {
         this.loading = false
       }
     },
 
+    getSortValue(log, column) {
+      if (column === 'created_at') {
+        return log.created_at
+      }
+
+      if (column === 'action') {
+        return log.action
+      }
+
+      if (column === 'item') {
+        return this.getItemName(log)
+      }
+
+      return ''
+    },
+
+    sortBy(column) {
+      if (this.sortColumn === column) {
+        this.sortDirection =
+          this.sortDirection === 'asc'
+            ? 'desc'
+            : 'asc'
+      } else {
+        this.sortColumn = column
+        this.sortDirection = 'asc'
+      }
+
+      this.currentPage = 1
+    },
+
+    getSortIcon(column) {
+      if (this.sortColumn !== column) {
+        return 'bi bi-arrow-down-up sort-icon'
+      }
+
+      return this.sortDirection === 'asc'
+        ? 'bi bi-arrow-up sort-icon'
+        : 'bi bi-arrow-down sort-icon'
+    },
+
+    goToPage(page) {
+      if (
+        page >= 1 &&
+        page <= this.totalPages
+      ) {
+        this.currentPage = page
+      }
+    },
+
+    previousPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--
+      }
+    },
+
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++
+      }
+    },
+
     isItemLog(log) {
-      const description = (log.description || '').toLowerCase()
+      const description =
+        (log.description || '').toLowerCase()
 
       return description.includes('item')
     },
@@ -191,8 +488,14 @@ export default {
       if (log.description) {
         const description = log.description
 
-        if (description.toLowerCase().includes('item:')) {
-          return description.split(':')[1]?.trim() || '-'
+        if (
+          description
+            .toLowerCase()
+            .includes('item:')
+        ) {
+          return (
+            description.split(':')[1]?.trim() || '-'
+          )
         }
       }
 
@@ -219,7 +522,7 @@ export default {
         'property_number',
         'description',
         'serial_number',
-        'supplier_id',
+        // 'supplier_id',
         'cost',
         'acquisition_date',
         'classification',
@@ -247,7 +550,7 @@ export default {
         property_number: 'Property No.',
         description: 'Description',
         serial_number: 'Serial Number',
-        supplier_id: 'Supplier',
+        // supplier_id: 'Supplier',
         cost: 'Cost',
         acquisition_date: 'Acquisition Date',
         classification: 'Classification',
@@ -337,6 +640,27 @@ export default {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+.table-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.filter-select {
+  width: 180px;
+}
+
+.page-size-select {
+  width: 150px;
+}
+
 .audit-table {
   width: 100%;
   margin: 0;
@@ -351,8 +675,24 @@ export default {
 }
 
 .audit-table td {
-  vertical-align: top;
+  text-align: left;
+  vertical-align: middle;
   padding: 14px 10px;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable:hover {
+  background: #f3f4f6;
+}
+
+.sort-icon {
+  margin-left: 5px;
+  font-size: 12px;
 }
 
 .action-badge {
@@ -480,6 +820,44 @@ export default {
   color: #6c757d;
 }
 
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding-top: 18px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.page-button {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.page-button:hover:not(:disabled),
+.page-button.active {
+  background: #198754;
+  border-color: #198754;
+  color: #ffffff;
+}
+
+.page-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .toast-message {
   position: fixed;
   right: 24px;
@@ -502,12 +880,28 @@ export default {
     padding: 12px;
   }
 
+  .table-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search-input,
+  .filter-select,
+  .page-size-select {
+    width: 100%;
+  }
+
   .detail-grid {
     grid-template-columns: 1fr;
   }
 
   .details-content {
     min-width: 500px;
+  }
+
+  .table-footer {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

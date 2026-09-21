@@ -1,3 +1,4 @@
+
 <template>
   <div class="container-fluid">
     <div class="row align-items-center mb-4">
@@ -5,6 +6,7 @@
         <h1 class="h3 mb-1">Items</h1>
         <p class="text-secondary mb-0">Property and inventory records</p>
       </div>
+
       <div class="col-auto">
         <button class="btn btn-warning" @click="showAddForm = true">
           <i class="bi bi-plus-lg me-1"></i>
@@ -21,6 +23,7 @@
               <span class="input-group-text">
                 <i class="bi bi-search"></i>
               </span>
+
               <input
                 v-model="search"
                 type="text"
@@ -36,9 +39,11 @@
               class="form-select"
             >
               <option value="">All Classification</option>
-              <option value="PAR">PAR</option>
-              <option value="ICS High">ICS High</option>
-              <option value="ICS Low">ICS Low</option>
+              <option value="PAR">
+                Property Acknowledgement Receipt
+              </option>
+              <option value="ICS High">Inventory Custodian Slip - High Value</option>
+              <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
             </select>
           </div>
 
@@ -71,7 +76,10 @@
 
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
-          <small class="text-secondary">PAR</small>
+          <small class="text-secondary">
+            Property Acknowledgement Receipt
+          </small>
+
           <h4 class="mb-0 mt-1">
             {{ countClassification('PAR') }}
           </h4>
@@ -81,6 +89,7 @@
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
           <small class="text-secondary">ICS High</small>
+
           <h4 class="mb-0 mt-1">
             {{ countClassification('ICS High') }}
           </h4>
@@ -90,6 +99,7 @@
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
           <small class="text-secondary">ICS Low</small>
+
           <h4 class="mb-0 mt-1">
             {{ countClassification('ICS Low') }}
           </h4>
@@ -107,15 +117,18 @@
           <div class="row g-3">
             <div class="col-12 col-md-6">
               <label class="form-label">Property Number</label>
+
               <input
                 v-model="newItem.property_number"
                 type="text"
                 class="form-control"
+                required
               >
             </div>
 
             <div class="col-12 col-md-6">
               <label class="form-label">Serial Number</label>
+
               <input
                 v-model="newItem.serial_number"
                 type="text"
@@ -125,46 +138,45 @@
 
             <div class="col-12">
               <label class="form-label">Description</label>
+
               <input
                 v-model="newItem.description"
+                type="text"
+                class="form-control"
+                required
+              >
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Supplier</label>
+
+              <input
+                v-model="newItem.supplier_id"
                 type="text"
                 class="form-control"
               >
             </div>
 
             <div class="col-12 col-md-6">
-              <label class="form-label">Supplier</label>
-              <select
-                v-model="newItem.supplier_id"
-                class="form-select"
-              >
-                <option value="">Select Supplier</option>
-                <option
-                  v-for="supplier in suppliers"
-                  :key="supplier.id"
-                  :value="supplier.id"
-                >
-                  {{ supplier.supplier_name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="col-12 col-md-6">
               <label class="form-label">Cost</label>
+
               <div class="input-group">
                 <span class="input-group-text">₱</span>
+
                 <input
                   v-model="newItem.cost"
                   type="number"
                   min="0"
                   step="0.01"
                   class="form-control"
+                  required
                 >
               </div>
             </div>
 
             <div class="col-12 col-md-6">
               <label class="form-label">Acquisition Date</label>
+
               <input
                 v-model="newItem.acquisition_date"
                 type="date"
@@ -174,29 +186,38 @@
 
             <div class="col-12 col-md-6">
               <label class="form-label">Accountable Employee</label>
+
               <input
                 v-model="newItem.accountable_employee"
                 type="text"
                 class="form-control"
+                required
               >
             </div>
 
             <div class="col-12">
               <label class="form-label">Responsibility Center</label>
+
               <input
                 v-model="newItem.responsibility_center"
                 type="text"
                 class="form-control"
+                required
               >
             </div>
 
             <div class="col-12 col-md-4">
               <label class="form-label">Classification</label>
+
               <select
                 v-model="newItem.classification"
                 class="form-select"
+                required
               >
-                <option value="PAR">PAR</option>
+                <option value="PAR">
+                  Property Acknowledgement Receipt
+                </option>
+
                 <option value="ICS High">ICS High</option>
                 <option value="ICS Low">ICS Low</option>
               </select>
@@ -204,9 +225,11 @@
 
             <div class="col-12 col-md-4">
               <label class="form-label">Condition</label>
+
               <select
                 v-model="newItem.condition"
                 class="form-select"
+                required
               >
                 <option value="Serviceable">Serviceable</option>
                 <option value="Unserviceable">Unserviceable</option>
@@ -215,9 +238,11 @@
 
             <div class="col-12 col-md-4">
               <label class="form-label">Status</label>
+
               <select
                 v-model="newItem.status"
                 class="form-select"
+                required
               >
                 <option value="Available">Available</option>
                 <option value="Issued">Issued</option>
@@ -263,6 +288,7 @@
               <th>Property No.</th>
               <th>Description</th>
               <th>Serial No.</th>
+              <th>Supplier</th>
               <th>Cost</th>
               <th>Acquisition Date</th>
               <th>Classification</th>
@@ -300,12 +326,16 @@
               <td>{{ item.property_number || '-' }}</td>
               <td>{{ item.description || '-' }}</td>
               <td>{{ item.serial_number || '-' }}</td>
+              <td>{{ item.supplier_id || '-' }}</td>
               <td>₱{{ item.cost || 0 }}</td>
               <td>{{ item.acquisition_date || '-' }}</td>
 
               <td>
-                <span class="badge bg-success">
-                  {{ item.classification || '-' }}
+                <span
+                  class="badge"
+                  :class="getClassificationClass(item.classification)"
+                >
+                  {{ displayClassification(item.classification) }}
                 </span>
               </td>
 
@@ -325,18 +355,18 @@
 
               <td>
                 <button
+                  type="button"
                   class="btn btn-sm btn-outline-success me-1"
                   @click="startEdit(item)"
                 >
-                  <i class="bi bi-pencil"></i>
                   Edit
                 </button>
 
                 <button
+                  type="button"
                   class="btn btn-sm btn-outline-danger"
                   @click="deleteItem(item)"
                 >
-                  <i class="bi bi-trash"></i>
                   Delete
                 </button>
               </td>
@@ -372,15 +402,18 @@
           <div class="edit-sidebar-body">
             <div class="mb-3">
               <label class="form-label">Property Number</label>
+
               <input
                 v-model="editForm.property_number"
                 type="text"
                 class="form-control"
+                required
               >
             </div>
 
             <div class="mb-3">
               <label class="form-label">Serial Number</label>
+
               <input
                 v-model="editForm.serial_number"
                 type="text"
@@ -390,46 +423,45 @@
 
             <div class="mb-3">
               <label class="form-label">Description</label>
+
               <input
                 v-model="editForm.description"
+                type="text"
+                class="form-control"
+                required
+              >
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Supplier</label>
+
+              <input
+                v-model="editForm.supplier_id"
                 type="text"
                 class="form-control"
               >
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Supplier</label>
-              <select
-                v-model="editForm.supplier_id"
-                class="form-select"
-              >
-                <option value="">Select Supplier</option>
-                <option
-                  v-for="supplier in suppliers"
-                  :key="supplier.id"
-                  :value="supplier.id"
-                >
-                  {{ supplier.supplier_name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="mb-3">
               <label class="form-label">Cost</label>
+
               <div class="input-group">
                 <span class="input-group-text">₱</span>
+
                 <input
                   v-model="editForm.cost"
                   type="number"
                   min="0"
                   step="0.01"
                   class="form-control"
+                  required
                 >
               </div>
             </div>
 
             <div class="mb-3">
               <label class="form-label">Acquisition Date</label>
+
               <input
                 v-model="editForm.acquisition_date"
                 type="date"
@@ -439,29 +471,38 @@
 
             <div class="mb-3">
               <label class="form-label">Accountable Employee</label>
+
               <input
                 v-model="editForm.accountable_employee"
                 type="text"
                 class="form-control"
+                required
               >
             </div>
 
             <div class="mb-3">
               <label class="form-label">Responsibility Center</label>
+
               <input
                 v-model="editForm.responsibility_center"
                 type="text"
                 class="form-control"
+                required
               >
             </div>
 
             <div class="mb-3">
               <label class="form-label">Classification</label>
+
               <select
                 v-model="editForm.classification"
                 class="form-select"
+                required
               >
-                <option value="PAR">PAR</option>
+                <option value="PAR">
+                  Property Acknowledgement Receipt
+                </option>
+
                 <option value="ICS High">ICS High</option>
                 <option value="ICS Low">ICS Low</option>
               </select>
@@ -469,9 +510,11 @@
 
             <div class="mb-3">
               <label class="form-label">Condition</label>
+
               <select
                 v-model="editForm.condition"
                 class="form-select"
+                required
               >
                 <option value="Serviceable">Serviceable</option>
                 <option value="Unserviceable">Unserviceable</option>
@@ -480,9 +523,11 @@
 
             <div class="mb-3">
               <label class="form-label">Status</label>
+
               <select
                 v-model="editForm.status"
                 class="form-select"
+                required
               >
                 <option value="Available">Available</option>
                 <option value="Issued">Issued</option>
@@ -526,7 +571,8 @@ async function apiRequest(url, options = {}) {
     ...options,
     headers: {
       ...options.headers,
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
     }
   })
 }
@@ -537,7 +583,6 @@ export default {
   data() {
     return {
       items: [],
-      suppliers: [],
       search: '',
       selectedClassification: '',
       selectedStatus: '',
@@ -611,7 +656,6 @@ export default {
 
   async mounted() {
     await this.getItems()
-    await this.getSuppliers()
   },
 
   methods: {
@@ -643,32 +687,42 @@ export default {
       }
     },
 
-    async getSuppliers() {
-      try {
-        const response = await apiRequest(
-          'http://localhost:5000/api/suppliers'
-        )
-
-        if (!response.ok) {
-          throw new Error('Failed to get suppliers')
-        }
-
-        this.suppliers = await response.json()
-      } catch (error) {
-        console.log(error)
-
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: error.message
-          })
-        )
-      }
-    },
-
     countClassification(classification) {
       return this.items.filter(
         item => item.classification === classification
       ).length
+    },
+
+    displayClassification(classification) {
+      if (classification === 'PAR') {
+        return 'Property Acknowledgement Receipt'
+      }
+
+      if (classification === 'ICS High') {
+        return 'Inventory Custodian Slip - High Value'
+      }
+
+      if (classification === 'ICS Low') {
+        return 'Inventory Custodian Slip - Low Value'
+      }
+
+      return classification || '-'
+    },
+
+    getClassificationClass(classification) {
+      if (classification === 'PAR') {
+        return 'classification-par'
+      }
+
+      if (classification === 'ICS High') {
+        return 'classification-high'
+      }
+
+      if (classification === 'ICS Low') {
+        return 'classification-low'
+      }
+
+      return 'classification-default'
     },
 
     async addItem() {
@@ -679,9 +733,6 @@ export default {
           'http://localhost:5000/api/items',
           {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
             body: JSON.stringify(this.newItem)
           }
         )
@@ -747,9 +798,6 @@ export default {
           this.editingItem.id,
           {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json'
-            },
             body: JSON.stringify(this.editForm)
           }
         )
@@ -932,7 +980,26 @@ h1 {
   vertical-align: middle;
 }
 
-/* EDIT SIDEBAR */
+.classification-par {
+  background-color: #2F5D3A;
+  color: white;
+}
+
+.classification-high {
+  background-color: #E8C547;
+  color: #2F5D3A;
+}
+
+.classification-low {
+  background-color: #DCEBDC;
+  color: #2F5D3A;
+}
+
+.classification-default {
+  background-color: #6c757d;
+  color: white;
+}
+
 .edit-overlay {
   position: fixed;
   inset: 0;

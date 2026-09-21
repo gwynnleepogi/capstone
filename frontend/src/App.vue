@@ -40,10 +40,10 @@
           Offices
         </router-link>
 
-        <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/suppliers" class="nav-link" @click="menuOpen = false">
+        <!-- <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/suppliers" class="nav-link" @click="menuOpen = false">
           <i class="bi bi-truck"></i>
           Suppliers
-        </router-link>
+        </router-link> -->
 
         <router-link v-if="canAccess(['Administrator'])" to="/personnel" class="nav-link" @click="menuOpen = false">
           <i class="bi bi-people"></i>
@@ -183,7 +183,10 @@ export default {
 </script>
 
 
+
 <style>
+
+/* Global */
 
 *{
   margin: 0;
@@ -191,24 +194,44 @@ export default {
   box-sizing: border-box;
 }
 
+html{
+  min-height: 100%;
+}
+
 body{
   font-family: Arial, sans-serif;
+  min-height: 100%;
 }
+
+
+/* Layout */
 
 .layout{
   display: flex;
   min-height: 100vh;
+  align-items: flex-start;
 }
 
 
 /* Sidebar */
 
 .sidebar{
+  position: sticky;
+  top: 0;
+  left: 0;
+
   width: 250px;
+  height: 100vh;
   min-height: 100vh;
+
   padding: 25px 15px;
+
   background: #2F5D3A;
+
   flex-shrink: 0;
+
+  overflow-y: auto;
+  z-index: 1000;
 }
 
 .sidebar-title{
@@ -248,7 +271,10 @@ body{
 .content{
   flex: 1;
   min-width: 0;
+  min-height: 100vh;
+
   padding: 30px;
+
   background: #F7F5E8;
 }
 
@@ -266,15 +292,22 @@ body{
   position: fixed;
   right: 25px;
   bottom: 25px;
+
   z-index: 9999;
+
   display: flex;
   align-items: center;
   gap: 10px;
+
   padding: 14px 18px;
+
   background: #2F5D3A;
   color: white;
+
   border-radius: 8px;
+
   box-shadow: 0 4px 15px rgba(0, 0, 0, .2);
+
   font-size: 14px;
 }
 
@@ -315,14 +348,22 @@ body{
 
   .layout{
     display: block;
+    min-height: 100vh;
   }
 
   .mobile-header{
+    position: sticky;
+    top: 0;
+
     display: flex;
     align-items: center;
     justify-content: space-between;
+
     background: #2F5D3A;
+
     padding: 12px 15px;
+
+    z-index: 1100;
   }
 
   .mobile-header h2{
@@ -340,10 +381,22 @@ body{
   }
 
   .sidebar{
+    position: sticky;
+    top: 57px;
+
     display: none;
+
     width: 100%;
+    height: auto;
     min-height: auto;
+
+    max-height: calc(100vh - 57px);
+
     padding: 15px;
+
+    overflow-y: auto;
+
+    z-index: 1000;
   }
 
   .sidebar.show-menu{
@@ -364,6 +417,8 @@ body{
 
   .content{
     width: 100%;
+    min-height: calc(100vh - 57px);
+
     padding: 15px;
   }
 
@@ -379,6 +434,23 @@ body{
 /* Small phone */
 
 @media (max-width: 480px){
+
+  .mobile-header{
+    padding: 10px 12px;
+  }
+
+  .mobile-header h2{
+    font-size: 16px;
+  }
+
+  .hamburger{
+    font-size: 26px;
+  }
+
+  .sidebar{
+    top: 49px;
+    max-height: calc(100vh - 49px);
+  }
 
   .content{
     padding: 12px;

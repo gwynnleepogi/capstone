@@ -3,257 +3,277 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h1>Personnel</h1>
-        <p class="text-muted">Manage system personnel and accounts</p>
+        <p class="text-muted">
+          Manage system personnel and accounts
+        </p>
       </div>
-
-      <!--
-      <button
-        class="btn btn-warning"
-        @click="openAddModal"
-      >
-        + Add Personnel
-      </button>
-      -->
     </div>
 
     <div class="card">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover align-middle">
-            <thead>
-              <tr>
-                <th>Full Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Office</th>
-                <th>Date Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr v-if="personnel.length === 0">
-                <td colspan="6" class="text-center text-muted py-4">
-                  No personnel found.
-                </td>
-              </tr>
-
-              <tr
-                v-for="person in personnel"
-                :key="person.id"
-              >
-                <td>
-                  {{ person.full_name }}
-                </td>
-
-                <td>
-                  {{ person.email }}
-                </td>
-
-                <td>
-                  <span class="badge bg-secondary">
-                    {{ person.role }}
-                  </span>
-                </td>
-
-                <td>
-                  {{ person.offices?.office_name || '-' }}
-                </td>
-
-                <td>
-                  {{ formatDate(person.created_at) }}
-                </td>
-
-                <td>
-                  <!--
-                  <button
-                    class="btn btn-sm btn-outline-primary me-2"
-                    @click="editPersonnel(person)"
-                  >
-                    Edit
-                  </button>
-                  -->
-
-                  <button
-                    class="btn btn-sm btn-outline-danger"
-                    @click="deletePersonnel(person.id)"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!--
-    <div
-      class="modal fade"
-      id="personnelModal"
-      tabindex="-1"
-    >
-      <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-
-          <div class="modal-header">
-            <h5 class="modal-title">
-              {{ editing ? 'Edit Personnel' : 'Add Personnel' }}
-            </h5>
-
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
+      <div class="card-header bg-white">
+        <div class="row g-3 align-items-center">
+          <div class="col-12 col-md">
+            <strong>Personnel Records</strong>
           </div>
 
-          <form @submit.prevent="savePersonnel">
-            <div class="modal-body">
-              <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <input
+              v-model="search"
+              type="text"
+              class="form-control"
+              placeholder="Search personnel..."
+            >
+          </div>
 
-                <div class="col-12">
-                  <label class="form-label">
-                    Full Name
-                  </label>
+          <div class="col-12 col-md-auto">
+            <select
+              v-model="itemsPerPage"
+              class="form-select"
+            >
+              <option value="5">5 per page</option>
+              <option value="10">10 per page</option>
+              <option value="25">25 per page</option>
+              <option value="50">50 per page</option>
+              <option value="100">100 per page</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
-                  <input
-                    type="text"
-                    class="form-control"
-                    v-model="form.full_name"
-                    placeholder="Enter full name"
-                    required
-                  >
-                </div>
+      <div class="card-body border-bottom">
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <label class="form-label mb-1">
+              Filter by Role
+            </label>
 
-                <div class="col-md-6">
-                  <label class="form-label">
-                    Email
-                  </label>
+            <select
+              v-model="roleFilter"
+              class="form-select"
+            >
+              <option value="">All Roles</option>
 
-                  <input
-                    type="email"
-                    class="form-control"
-                    v-model="form.email"
-                    placeholder="Enter email"
-                    required
-                  >
-                </div>
-
-                <div
-                  class="col-md-6"
-                  v-if="!editing"
-                >
-                  <label class="form-label">
-                    Password
-                  </label>
-
-                  <input
-                    type="password"
-                    class="form-control"
-                    v-model="form.password"
-                    placeholder="Enter password"
-                    minlength="6"
-                    required
-                  >
-                </div>
-
-                <div
-                  class="col-md-6"
-                  v-if="editing"
-                >
-                  <label class="form-label">
-                    Password
-                  </label>
-
-                  <input
-                    type="password"
-                    class="form-control"
-                    placeholder="Password cannot be changed here"
-                    disabled
-                  >
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">
-                    Role
-                  </label>
-
-                  <select
-                    class="form-select"
-                    v-model="form.role"
-                    required
-                  >
-                    <option value="Personnel">
-                      Personnel
-                    </option>
-
-                    <option value="Teacher">
-                      Teacher
-                    </option>
-
-                    <option value="Non-Teaching Staff">
-                      Non-Teaching Staff
-                    </option>
-                  </select>
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">
-                    Office
-                  </label>
-
-                  <select
-                    class="form-select"
-                    v-model="form.office_id"
-                  >
-                    <option value="">
-                      Select Office
-                    </option>
-
-                    <option
-                      v-for="office in offices"
-                      :key="office.id"
-                      :value="office.id"
-                    >
-                      {{ office.office_name }}
-                    </option>
-                  </select>
-                </div>
-
-              </div>
-            </div>
-
-            <div class="modal-footer">
-              <button
-                type="button"
-                class="btn btn-secondary"
-                data-bs-dismiss="modal"
+              <option
+                v-for="role in roles"
+                :key="role"
+                :value="role"
               >
-                Cancel
-              </button>
+                {{ role }}
+              </option>
+            </select>
+          </div>
 
-              <button
-                type="submit"
-                class="btn btn-warning"
-                :disabled="saving"
+          <div class="col-12 col-md-4">
+            <label class="form-label mb-1">
+              Filter by Office
+            </label>
+
+            <select
+              v-model="officeFilter"
+              class="form-select"
+            >
+              <option value="">All Offices</option>
+
+              <option
+                v-for="office in officeNames"
+                :key="office"
+                :value="office"
               >
-                {{ saving ? 'Saving...' : (editing ? 'Update Personnel' : 'Create Account') }}
-              </button>
-            </div>
-          </form>
+                {{ office }}
+              </option>
+            </select>
+          </div>
 
+          <div class="col-12 col-md-4 d-flex align-items-end">
+            <button
+              class="btn btn-outline-secondary w-100"
+              @click="clearFilters"
+            >
+              <i class="bi bi-arrow-counterclockwise me-1"></i>
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th
+                class="sortable"
+                @click="sortBy('full_name')"
+              >
+                Full Name
+                <i :class="getSortIcon('full_name')"></i>
+              </th>
+
+              <th
+                class="sortable"
+                @click="sortBy('email')"
+              >
+                Email
+                <i :class="getSortIcon('email')"></i>
+              </th>
+
+              <th
+                class="sortable"
+                @click="sortBy('role')"
+              >
+                Role
+                <i :class="getSortIcon('role')"></i>
+              </th>
+
+              <th
+                class="sortable"
+                @click="sortBy('office')"
+              >
+                Office
+                <i :class="getSortIcon('office')"></i>
+              </th>
+
+              <th
+                class="sortable text-end"
+                @click="sortBy('created_at')"
+              >
+                Date Created
+                <i :class="getSortIcon('created_at')"></i>
+              </th>
+
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-if="loading">
+              <td colspan="6" class="text-center py-5">
+                Loading personnel...
+              </td>
+            </tr>
+
+            <tr v-else-if="error">
+              <td colspan="6" class="text-center text-danger py-5">
+                {{ error }}
+              </td>
+            </tr>
+
+            <tr v-else-if="filteredPersonnel.length === 0">
+              <td colspan="6" class="text-center text-muted py-5">
+                No personnel found.
+              </td>
+            </tr>
+
+            <tr
+              v-for="person in paginatedPersonnel"
+              :key="person.id"
+            >
+              <td>
+                {{ person.full_name }}
+              </td>
+
+              <td>
+                {{ person.email }}
+              </td>
+
+              <td>
+                <span class="badge bg-secondary">
+                  {{ person.role }}
+                </span>
+              </td>
+
+              <td>
+                {{ person.offices?.office_name || '-' }}
+              </td>
+
+              <td class="text-end">
+                {{ formatDate(person.created_at) }}
+              </td>
+
+              <td>
+                <button
+                  class="btn btn-sm btn-outline-danger"
+                  @click="deletePersonnel(person.id)"
+                >
+                  <i class="bi bi-trash"></i>
+                  Delete
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div
+        v-if="
+          !loading &&
+          !error &&
+          filteredPersonnel.length > 0
+        "
+        class="card-footer bg-white"
+      >
+        <div class="row align-items-center g-3">
+          <div class="col-12 col-md">
+            <small class="text-secondary">
+              Showing {{ firstPersonnelNumber }} to
+              {{ lastPersonnelNumber }} of
+              {{ filteredPersonnel.length }} personnel
+            </small>
+          </div>
+
+          <div class="col-12 col-md-auto">
+            <nav>
+              <ul class="pagination mb-0">
+                <li
+                  class="page-item"
+                  :class="{ disabled: currentPage === 1 }"
+                >
+                  <button
+                    class="page-link"
+                    @click="previousPage"
+                    :disabled="currentPage === 1"
+                  >
+                    Previous
+                  </button>
+                </li>
+
+                <li
+                  v-for="page in totalPages"
+                  :key="page"
+                  class="page-item"
+                  :class="{ active: currentPage === page }"
+                >
+                  <button
+                    class="page-link"
+                    @click="goToPage(page)"
+                  >
+                    {{ page }}
+                  </button>
+                </li>
+
+                <li
+                  class="page-item"
+                  :class="{
+                    disabled: currentPage === totalPages
+                  }"
+                >
+                  <button
+                    class="page-link"
+                    @click="nextPage"
+                    :disabled="currentPage === totalPages"
+                  >
+                    Next
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </div>
         </div>
       </div>
     </div>
-    -->
   </div>
 </template>
 
 <script>
-import { Modal } from 'bootstrap'
-
 async function apiRequest(url, options = {}) {
   const token = localStorage.getItem('accessToken')
 
@@ -273,27 +293,183 @@ export default {
     return {
       personnel: [],
       offices: [],
-      editing: false,
-      saving: false,
+      loading: true,
+      error: '',
 
-      form: {
-        id: null,
-        full_name: '',
-        email: '',
-        password: '',
-        role: 'Personnel',
-        office_id: ''
+      search: '',
+      roleFilter: '',
+      officeFilter: '',
+
+      currentPage: 1,
+      itemsPerPage: 10,
+
+      sortColumn: 'full_name',
+      sortDirection: 'asc'
+    }
+  },
+
+  computed: {
+    roles() {
+      const roleList = this.personnel
+        .map(person => person.role)
+        .filter(role => role)
+
+      return [...new Set(roleList)].sort()
+    },
+
+    officeNames() {
+      const officeList = this.personnel
+        .map(person => person.offices?.office_name)
+        .filter(office => office)
+
+      return [...new Set(officeList)].sort()
+    },
+
+    filteredPersonnel() {
+      const searchText = this.search.toLowerCase().trim()
+
+      const filtered = this.personnel.filter(person => {
+        const fullName = (
+          person.full_name || ''
+        ).toLowerCase()
+
+        const email = (
+          person.email || ''
+        ).toLowerCase()
+
+        const role = (
+          person.role || ''
+        ).toLowerCase()
+
+        const office = (
+          person.offices?.office_name || ''
+        ).toLowerCase()
+
+        const matchesSearch =
+          !searchText ||
+          fullName.includes(searchText) ||
+          email.includes(searchText) ||
+          role.includes(searchText) ||
+          office.includes(searchText)
+
+        const matchesRole =
+          !this.roleFilter ||
+          person.role === this.roleFilter
+
+        const matchesOffice =
+          !this.officeFilter ||
+          person.offices?.office_name === this.officeFilter
+
+        return (
+          matchesSearch &&
+          matchesRole &&
+          matchesOffice
+        )
+      })
+
+      return filtered.sort((firstPerson, secondPerson) => {
+        const firstValue = this.getSortValue(
+          firstPerson,
+          this.sortColumn
+        )
+
+        const secondValue = this.getSortValue(
+          secondPerson,
+          this.sortColumn
+        )
+
+        if (firstValue < secondValue) {
+          return this.sortDirection === 'asc' ? -1 : 1
+        }
+
+        if (firstValue > secondValue) {
+          return this.sortDirection === 'asc' ? 1 : -1
+        }
+
+        return 0
+      })
+    },
+
+    totalPages() {
+      return Math.max(
+        1,
+        Math.ceil(
+          this.filteredPersonnel.length /
+          Number(this.itemsPerPage)
+        )
+      )
+    },
+
+    paginatedPersonnel() {
+      const start =
+        (this.currentPage - 1) *
+        Number(this.itemsPerPage)
+
+      const end =
+        start + Number(this.itemsPerPage)
+
+      return this.filteredPersonnel.slice(start, end)
+    },
+
+    firstPersonnelNumber() {
+      if (this.filteredPersonnel.length === 0) {
+        return 0
+      }
+
+      return (
+        (this.currentPage - 1) *
+        Number(this.itemsPerPage) +
+        1
+      )
+    },
+
+    lastPersonnelNumber() {
+      const lastNumber =
+        this.currentPage *
+        Number(this.itemsPerPage)
+
+      return Math.min(
+        lastNumber,
+        this.filteredPersonnel.length
+      )
+    }
+  },
+
+  watch: {
+    search() {
+      this.currentPage = 1
+    },
+
+    roleFilter() {
+      this.currentPage = 1
+    },
+
+    officeFilter() {
+      this.currentPage = 1
+    },
+
+    itemsPerPage() {
+      this.currentPage = 1
+    },
+
+    totalPages(newTotalPages) {
+      if (this.currentPage > newTotalPages) {
+        this.currentPage = newTotalPages
       }
     }
   },
 
-  mounted() {
-    this.getPersonnel()
-    this.getOffices()
+  async mounted() {
+    await Promise.all([
+      this.getPersonnel(),
+      this.getOffices()
+    ])
   },
 
   methods: {
     async getPersonnel() {
+      this.loading = true
+
       try {
         const response = await apiRequest(
           'http://localhost:5000/api/personnel'
@@ -308,14 +484,18 @@ export default {
         }
 
         this.personnel = data
+        this.error = ''
       } catch (error) {
         console.log(error)
+        this.error = error.message
 
         window.dispatchEvent(
           new CustomEvent('show-toast', {
             detail: error.message
           })
         )
+      } finally {
+        this.loading = false
       }
     },
 
@@ -345,127 +525,79 @@ export default {
       }
     },
 
-    openAddModal() {
-      this.editing = false
+    getSortValue(person, column) {
+      let value = person[column]
 
-      this.form = {
-        id: null,
-        full_name: '',
-        email: '',
-        password: '',
-        role: 'Personnel',
-        office_id: ''
+      if (column === 'office') {
+        value = person.offices?.office_name || ''
       }
 
-      const modalElement =
-        document.getElementById('personnelModal')
+      if (!value) {
+        return ''
+      }
 
-      const modal =
-        Modal.getOrCreateInstance(modalElement)
+      if (column === 'created_at') {
+        return new Date(value).getTime()
+      }
 
-      modal.show()
+      return String(value).toLowerCase()
     },
 
-    editPersonnel(person) {
-      this.editing = true
-
-      this.form = {
-        id: person.id,
-        full_name: person.full_name,
-        email: person.email || '',
-        password: '',
-        role: person.role,
-        office_id: person.office_id || ''
+    sortBy(column) {
+      if (this.sortColumn === column) {
+        this.sortDirection =
+          this.sortDirection === 'asc'
+            ? 'desc'
+            : 'asc'
+      } else {
+        this.sortColumn = column
+        this.sortDirection = 'asc'
       }
-
-      const modalElement =
-        document.getElementById('personnelModal')
-
-      const modal =
-        Modal.getOrCreateInstance(modalElement)
-
-      modal.show()
     },
 
-    async savePersonnel() {
-      this.saving = true
-
-      try {
-        let url =
-          'http://localhost:5000/api/personnel'
-
-        let method = 'POST'
-
-        if (this.editing) {
-          url =
-            'http://localhost:5000/api/personnel/' +
-            this.form.id
-
-          method = 'PUT'
-        }
-
-        const body = {
-          full_name: this.form.full_name,
-          email: this.form.email,
-          role: this.form.role,
-          office_id: this.form.office_id || null
-        }
-
-        if (!this.editing) {
-          body.password = this.form.password
-        }
-
-        const response = await apiRequest(url, {
-          method: method,
-
-          headers: {
-            'Content-Type': 'application/json'
-          },
-
-          body: JSON.stringify(body)
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(
-            data.error || 'Failed to save personnel'
-          )
-        }
-
-        const modalElement =
-          document.getElementById('personnelModal')
-
-        const modal =
-          Modal.getOrCreateInstance(modalElement)
-
-        modal.hide()
-
-        await this.getPersonnel()
-
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: this.editing
-              ? 'Personnel updated successfully'
-              : 'Personnel account created successfully'
-          })
-        )
-      } catch (error) {
-        console.log(error)
-
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: error.message
-          })
-        )
-      } finally {
-        this.saving = false
+    getSortIcon(column) {
+      if (this.sortColumn !== column) {
+        return 'bi bi-arrow-down-up ms-1'
       }
+
+      if (this.sortDirection === 'asc') {
+        return 'bi bi-arrow-up ms-1'
+      }
+
+      return 'bi bi-arrow-down ms-1'
+    },
+
+    goToPage(page) {
+      if (
+        page >= 1 &&
+        page <= this.totalPages
+      ) {
+        this.currentPage = page
+      }
+    },
+
+    previousPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--
+      }
+    },
+
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++
+      }
+    },
+
+    clearFilters() {
+      this.search = ''
+      this.roleFilter = ''
+      this.officeFilter = ''
+      this.currentPage = 1
     },
 
     async deletePersonnel(id) {
       if (
-        !confirm(
+        !window.confirm(
           'Are you sure you want to delete this personnel?'
         )
       ) {
@@ -544,6 +676,29 @@ h1 {
   vertical-align: middle;
 }
 
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  background-color: #244a2e;
+}
+
+.page-link {
+  color: #2F5D3A;
+}
+
+.page-item.active .page-link {
+  background-color: #2F5D3A;
+  border-color: #2F5D3A;
+  color: white;
+}
+
+.page-link:focus {
+  box-shadow: none;
+}
+
 @media (max-width: 576px) {
   .table {
     min-width: 0 !important;
@@ -555,6 +710,10 @@ h1 {
     padding: 9px 5px;
     white-space: normal;
     overflow-wrap: anywhere;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
   }
 }
 </style>

@@ -63,7 +63,7 @@
 
                 <td>
                   <button
-                    class="btn btn-sm btn-outline-primary me-2"
+                    class="btn btn-sm btn-outline-success me-2"
                     @click="editReceipt(receipt)"
                     title="Edit"
                   >
@@ -79,9 +79,9 @@
                   </button>
 
                   <button
-                    class="btn btn-sm btn-outline-secondary"
+                    class="btn btn-sm btn-outline-orange"
                     @click="printReceipt(receipt)"
-                    title="Print Receipt"
+                    title="Print"
                   >
                     Print
                   </button>
@@ -166,11 +166,11 @@
                   required
                 >
                   <option value="PAR">
-                    PAR
+                    Property Acknowledgement Receipt
                   </option>
 
                   <option value="ICS">
-                    ICS
+                    Inventory Custodian Slip
                   </option>
                 </select>
               </div>
@@ -434,7 +434,7 @@ export default {
         id: null,
         item_id: '',
         item_request_id: '',
-        receipt_type: 'PAR',
+        receipt_type: 'Property Acknowledgement Receipt',
         receipt_number: '',
         issued_to: '',
         date_issued: new Date().toISOString().split('T')[0],
@@ -1250,6 +1250,19 @@ export default {
 </script>
 
 <style scoped>
+
+.btn-outline-orange {
+  color: #fd7e14;
+  border: 1px solid #fd7e14;
+  background-color: transparent;
+}
+
+.btn-outline-orange:hover {
+  color: white;
+  background-color: #fd7e14;
+  border-color: #fd7e14;
+}
+
 @media (max-width: 576px) {
   .table {
     min-width: 0 !important;

@@ -13,15 +13,68 @@
 
     <div class="card">
       <div class="card-body">
+        <div class="table-toolbar">
+          <input
+            v-model="search"
+            type="text"
+            class="form-control search-input"
+            placeholder="Search incidents..."
+          />
+
+          <select v-model="incidentTypeFilter" class="form-select filter-select">
+            <option value="">All Incident Types</option>
+            <option value="Lost">Lost</option>
+            <option value="Damaged">Damaged</option>
+            <option value="Missing">Missing</option>
+            <option value="Stolen">Stolen</option>
+            <option value="Other">Other</option>
+          </select>
+
+          <select v-model="statusFilter" class="form-select filter-select">
+            <option value="">All Statuses</option>
+            <option value="Open">Open</option>
+            <option value="Under Investigation">Under Investigation</option>
+            <option value="Resolved">Resolved</option>
+            <option value="Closed">Closed</option>
+          </select>
+
+          <select v-model.number="itemsPerPage" class="form-select page-size-select">
+            <option :value="5">5 per page</option>
+            <option :value="10">10 per page</option>
+            <option :value="25">25 per page</option>
+            <option :value="50">50 per page</option>
+          </select>
+        </div>
+
         <div class="table-responsive">
           <table class="table table-hover align-middle">
             <thead>
               <tr>
-                <th>Item</th>
-                <th>Reported By</th>
-                <th>Incident Type</th>
-                <th>Date</th>
-                <th>Status</th>
+                <th class="sortable" @click="sortBy('item')">
+                  Item
+                  <i :class="getSortIcon('item')"></i>
+                </th>
+
+                <th class="sortable" @click="sortBy('reported_by')">
+                  Reported By
+                  <i :class="getSortIcon('reported_by')"></i>
+                </th>
+
+                <th class="sortable" @click="sortBy('incident_type')">
+                  Incident Type
+                  <i :class="getSortIcon('incident_type')"></i>
+                </th>
+
+                <th class="sortable" @click="sortBy('incident_date')">
+                  Date
+                  <i :class="getSortIcon('incident_date')"></i>
+                </th>
+
+                <th class="sortable" @click="sortBy('status')">
+                  Status
+                  <i :class="getSortIcon('status')"></i>
+                </th>
+
                 <th>Description</th>
                 <th>Actions</th>
               </tr>
@@ -29,7 +82,7 @@
 
             <tbody>
               <tr
-                v-for="incident in incidents"
+                v-for="incident in paginatedIncidents"
                 :key="incident.id"
               >
                 <td>
@@ -75,16 +128,48 @@
                 </td>
               </tr>
 
-              <tr v-if="incidents.length === 0">
-                <td
-                  colspan="7"
-                  class="text-center text-muted py-4"
-                >
+              <tr v-if="filteredIncidents.length === 0">
+                <td colspan="7" class="text-center text-muted py-4">
                   No incidents found.
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div v-if="filteredIncidents.length > 0" class="table-footer">
+          <span>
+            Showing {{ firstIncidentNumber }} to {{ lastIncidentNumber }}
+            of {{ filteredIncidents.length }} incidents
+          </span>
+
+          <div class="pagination-controls">
+            <button
+              class="page-button"
+              :disabled="currentPage === 1"
+              @click="previousPage"
+            >
+              Previous
+            </button>
+
+            <button
+              v-for="page in totalPages"
+              :key="page"
+              class="page-button"
+              :class="{ active: currentPage === page }"
+              @click="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+
+            <button
+              class="page-button"
+              :disabled="currentPage === totalPages"
+              @click="nextPage"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -167,25 +252,11 @@
                   v-model="form.incident_type"
                   required
                 >
-                  <option value="Lost">
-                    Lost
-                  </option>
-
-                  <option value="Damaged">
-                    Damaged
-                  </option>
-
-                  <option value="Missing">
-                    Missing
-                  </option>
-
-                  <option value="Stolen">
-                    Stolen
-                  </option>
-
-                  <option value="Other">
-                    Other
-                  </option>
+                  <option value="Lost">Lost</option>
+                  <option value="Damaged">Damaged</option>
+                  <option value="Missing">Missing</option>
+                  <option value="Stolen">Stolen</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
 
@@ -212,21 +283,12 @@
                   v-model="form.status"
                   required
                 >
-                  <option value="Open">
-                    Open
-                  </option>
-
+                  <option value="Open">Open</option>
                   <option value="Under Investigation">
                     Under Investigation
                   </option>
-
-                  <option value="Resolved">
-                    Resolved
-                  </option>
-
-                  <option value="Closed">
-                    Closed
-                  </option>
+                  <option value="Resolved">Resolved</option>
+                  <option value="Closed">Closed</option>
                 </select>
               </div>
 
@@ -305,6 +367,13 @@ export default {
       personnel: [],
       editing: false,
       saving: false,
+      search: '',
+      incidentTypeFilter: '',
+      statusFilter: '',
+      currentPage: 1,
+      itemsPerPage: 10,
+      sortColumn: 'incident_date',
+      sortDirection: 'desc',
 
       form: {
         id: null,
@@ -326,7 +395,178 @@ export default {
     this.getPersonnel()
   },
 
+  watch: {
+    search() {
+      this.currentPage = 1
+    },
+
+    incidentTypeFilter() {
+      this.currentPage = 1
+    },
+
+    statusFilter() {
+      this.currentPage = 1
+    },
+
+    itemsPerPage() {
+      this.currentPage = 1
+    }
+  },
+
+  computed: {
+    filteredIncidents() {
+      const searchText = this.search.toLowerCase().trim()
+
+      const filtered = this.incidents.filter(incident => {
+        const typeMatch =
+          !this.incidentTypeFilter ||
+          incident.incident_type === this.incidentTypeFilter
+
+        const statusMatch =
+          !this.statusFilter ||
+          incident.status === this.statusFilter
+
+        const searchableText = [
+          incident.items?.description,
+          incident.personnel?.full_name,
+          incident.users?.full_name,
+          incident.incident_type,
+          incident.incident_date,
+          incident.status,
+          incident.description,
+          incident.action_taken,
+          incident.remarks
+        ].join(' ').toLowerCase()
+
+        return (
+          typeMatch &&
+          statusMatch &&
+          (!searchText || searchableText.includes(searchText))
+        )
+      })
+
+      return [...filtered].sort((firstIncident, secondIncident) => {
+        let firstValue = this.getSortValue(
+          firstIncident,
+          this.sortColumn
+        )
+
+        let secondValue = this.getSortValue(
+          secondIncident,
+          this.sortColumn
+        )
+
+        if (this.sortColumn === 'incident_date') {
+          firstValue = new Date(firstValue).getTime() || 0
+          secondValue = new Date(secondValue).getTime() || 0
+        } else {
+          firstValue = String(firstValue || '').toLowerCase()
+          secondValue = String(secondValue || '').toLowerCase()
+        }
+
+        if (firstValue < secondValue) {
+          return this.sortDirection === 'asc' ? -1 : 1
+        }
+
+        if (firstValue > secondValue) {
+          return this.sortDirection === 'asc' ? 1 : -1
+        }
+
+        return 0
+      })
+    },
+
+    totalPages() {
+      return Math.ceil(
+        this.filteredIncidents.length / this.itemsPerPage
+      ) || 1
+    },
+
+    paginatedIncidents() {
+      const start =
+        (this.currentPage - 1) * this.itemsPerPage
+
+      return this.filteredIncidents.slice(
+        start,
+        start + this.itemsPerPage
+      )
+    },
+
+    firstIncidentNumber() {
+      if (this.filteredIncidents.length === 0) {
+        return 0
+      }
+
+      return (
+        (this.currentPage - 1) * this.itemsPerPage + 1
+      )
+    },
+
+    lastIncidentNumber() {
+      return Math.min(
+        this.currentPage * this.itemsPerPage,
+        this.filteredIncidents.length
+      )
+    }
+  },
+
   methods: {
+    getSortValue(incident, column) {
+      if (column === 'item') {
+        return incident.items?.description || ''
+      }
+
+      if (column === 'reported_by') {
+        return (
+          incident.personnel?.full_name ||
+          incident.users?.full_name ||
+          ''
+        )
+      }
+
+      return incident[column] || ''
+    },
+
+    sortBy(column) {
+      if (this.sortColumn === column) {
+        this.sortDirection =
+          this.sortDirection === 'asc' ? 'desc' : 'asc'
+      } else {
+        this.sortColumn = column
+        this.sortDirection = 'asc'
+      }
+
+      this.currentPage = 1
+    },
+
+    getSortIcon(column) {
+      if (this.sortColumn !== column) {
+        return 'bi bi-arrow-down-up sort-icon'
+      }
+
+      return this.sortDirection === 'asc'
+        ? 'bi bi-arrow-up sort-icon'
+        : 'bi bi-arrow-down sort-icon'
+    },
+
+    goToPage(page) {
+      if (page >= 1 && page <= this.totalPages) {
+        this.currentPage = page
+      }
+    },
+
+    previousPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--
+      }
+    },
+
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++
+      }
+    },
+
     async getIncidents() {
       try {
         const response = await fetch(
@@ -595,6 +835,80 @@ export default {
 </script>
 
 <style scoped>
+.table-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.filter-select {
+  width: 190px;
+}
+
+.page-size-select {
+  width: 150px;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable:hover {
+  background: #f8f9fa;
+}
+
+.sort-icon {
+  margin-left: 5px;
+  font-size: 12px;
+}
+
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding-top: 18px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.page-button {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.page-button:hover:not(:disabled),
+.page-button.active {
+  background: #198754;
+  border-color: #198754;
+  color: #ffffff;
+}
+
+.page-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 576px) {
   .table {
     min-width: 0 !important;
