@@ -88,7 +88,7 @@
 
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
-          <small class="text-secondary">ICS High</small>
+          <small class="text-secondary">Inventory Custodian Slip - High Value</small>
 
           <h4 class="mb-0 mt-1">
             {{ countClassification('ICS High') }}
@@ -98,7 +98,7 @@
 
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
-          <small class="text-secondary">ICS Low</small>
+          <small class="text-secondary">Inventory Custodian Slip - Low Value</small>
 
           <h4 class="mb-0 mt-1">
             {{ countClassification('ICS Low') }}
@@ -147,7 +147,7 @@
               >
             </div>
 
-            <div class="col-12 col-md-6">
+            <!-- <div class="col-12 col-md-6">
               <label class="form-label">Supplier</label>
 
               <input
@@ -155,7 +155,7 @@
                 type="text"
                 class="form-control"
               >
-            </div>
+            </div> -->
 
             <div class="col-12 col-md-6">
               <label class="form-label">Cost</label>
@@ -218,8 +218,8 @@
                   Property Acknowledgement Receipt
                 </option>
 
-                <option value="ICS High">ICS High</option>
-                <option value="ICS Low">ICS Low</option>
+                <option value="ICS High">Inventory Custodian Slip - High Value</option>
+                <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
               </select>
             </div>
 
@@ -288,7 +288,6 @@
               <th>Property No.</th>
               <th>Description</th>
               <th>Serial No.</th>
-              <th>Supplier</th>
               <th>Cost</th>
               <th>Acquisition Date</th>
               <th>Classification</th>
@@ -326,7 +325,6 @@
               <td>{{ item.property_number || '-' }}</td>
               <td>{{ item.description || '-' }}</td>
               <td>{{ item.serial_number || '-' }}</td>
-              <td>{{ item.supplier_id || '-' }}</td>
               <td>₱{{ item.cost || 0 }}</td>
               <td>{{ item.acquisition_date || '-' }}</td>
 

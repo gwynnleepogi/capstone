@@ -25,61 +25,122 @@
       </button>
 
       <nav class="d-flex flex-column gap-2">
-        <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/" class="nav-link" @click="menuOpen = false">
+
+        <router-link
+          v-if="canAccess(['Administrator', 'Personnel'])"
+          to="/"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
           <i class="bi bi-grid"></i>
           Dashboard
         </router-link>
 
-        <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/items" class="nav-link" @click="menuOpen = false">
+        <router-link
+          v-if="canAccess(['Administrator', 'Personnel'])"
+          to="/items"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
           <i class="bi bi-box"></i>
           Items
         </router-link>
 
-        <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/offices" class="nav-link" @click="menuOpen = false">
+        <router-link
+          v-if="canAccess(['Administrator', 'Personnel'])"
+          to="/offices"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
           <i class="bi bi-building"></i>
           Offices
         </router-link>
 
-        <!-- <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/suppliers" class="nav-link" @click="menuOpen = false">
+        <!--
+        <router-link
+          v-if="canAccess(['Administrator', 'Personnel'])"
+          to="/suppliers"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
           <i class="bi bi-truck"></i>
           Suppliers
-        </router-link> -->
+        </router-link>
+        -->
 
-        <router-link v-if="canAccess(['Administrator'])" to="/personnel" class="nav-link" @click="menuOpen = false">
+        <router-link
+          v-if="canAccess(['Administrator'])"
+          to="/personnel"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
           <i class="bi bi-people"></i>
           Personnel
         </router-link>
 
-        <router-link v-if="canAccess(['Administrator', 'Teacher', 'Non-Teaching Staff'])" to="/request" class="nav-link" @click="menuOpen = false">
+        <router-link
+          v-if="canAccess(['Administrator', 'Teacher', 'Non-Teaching Staff'])"
+          to="/request"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
           <i class="bi bi-file-earmark-text"></i>
           Item Requests
         </router-link>
 
-        <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/receipts" class="nav-link" @click="menuOpen = false">
+        <router-link
+          v-if="canAccess(['Administrator', 'Personnel'])"
+          to="/receipts"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
           <i class="bi bi-receipt"></i>
           Receipts
         </router-link>
 
-        <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/returns" class="nav-link" @click="menuOpen = false">
+        <router-link
+          v-if="canAccess(['Administrator', 'Personnel'])"
+          to="/returns"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
           <i class="bi bi-arrow-return-left"></i>
           Returns
         </router-link>
 
-        <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/incidents" class="nav-link" @click="menuOpen = false">
+        <router-link
+          v-if="canAccess(['Administrator', 'Personnel'])"
+          to="/incidents"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
           <i class="bi bi-exclamation-triangle"></i>
           Incidents
         </router-link>
 
-        <router-link v-if="canAccess(['Administrator', 'Personnel'])" to="/audit-logs" class="nav-link" @click="menuOpen = false">
+        <router-link
+          v-if="canAccess(['Administrator', 'Personnel'])"
+          to="/audit-logs"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
           <i class="bi bi-clock-history"></i>
           Audit Logs
         </router-link>
+
       </nav>
 
     </aside>
 
     <main class="content">
-      <router-view :key="`${$route.fullPath}:${currentUser?.auth_user_id || currentUser?.id || 'guest'}`" />
+      <router-view v-slot="{ Component }">
+        <Transition name="dashboard-fade" mode="out-in">
+          <component
+            :is="Component"
+            :key="`${$route.fullPath}:${currentUser?.auth_user_id || currentUser?.id || 'guest'}`"
+          />
+        </Transition>
+      </router-view>
     </main>
 
   </div>
@@ -123,6 +184,7 @@ export default {
   },
 
   methods: {
+
     handleUserUpdated(event) {
       this.currentUser = event.detail
 
@@ -178,27 +240,28 @@ export default {
 
       this.$router.push('/login')
     }
+
   }
+
 }
 </script>
-
 
 
 <style>
 
 /* Global */
 
-*{
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-html{
+html {
   min-height: 100%;
 }
 
-body{
+body {
   font-family: Arial, sans-serif;
   min-height: 100%;
 }
@@ -206,7 +269,7 @@ body{
 
 /* Layout */
 
-.layout{
+.layout {
   display: flex;
   min-height: 100vh;
   align-items: flex-start;
@@ -215,7 +278,7 @@ body{
 
 /* Sidebar */
 
-.sidebar{
+.sidebar {
   position: sticky;
   top: 0;
   left: 0;
@@ -234,17 +297,17 @@ body{
   z-index: 1000;
 }
 
-.sidebar-title{
+.sidebar-title {
   text-align: center;
   margin-bottom: 30px;
 }
 
-.sidebar-title h2{
+.sidebar-title h2 {
   color: white;
   font-size: 20px;
 }
 
-.sidebar .nav-link{
+.sidebar .nav-link {
   color: white;
   text-decoration: none;
   padding: 11px 15px;
@@ -252,15 +315,15 @@ body{
   transition: .25s ease;
 }
 
-.sidebar .nav-link i{
+.sidebar .nav-link i {
   margin-right: 10px;
 }
 
-.sidebar .nav-link:hover{
+.sidebar .nav-link:hover {
   background: #4F7F52;
 }
 
-.sidebar .nav-link.router-link-active{
+.sidebar .nav-link.router-link-active {
   background: #E8C547;
   color: #2F5D3A;
 }
@@ -268,7 +331,7 @@ body{
 
 /* Content */
 
-.content{
+.content {
   flex: 1;
   min-width: 0;
   min-height: 100vh;
@@ -279,16 +342,34 @@ body{
 }
 
 
+/* Page Transition */
+
+.dashboard-fade-enter-active,
+.dashboard-fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.dashboard-fade-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.dashboard-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+
 /* Mobile Header */
 
-.mobile-header{
+.mobile-header {
   display: none;
 }
 
 
 /* Toast */
 
-.toast-notification{
+.toast-notification {
   position: fixed;
   right: 25px;
   bottom: 25px;
@@ -311,32 +392,32 @@ body{
   font-size: 14px;
 }
 
-.toast-notification i{
+.toast-notification i {
   color: #E8C547;
   font-size: 18px;
 }
 
 .toast-enter-active,
-.toast-leave-active{
+.toast-leave-active {
   transition: opacity .35s ease, transform .35s ease;
 }
 
-.toast-enter-from{
+.toast-enter-from {
   opacity: 0;
   transform: translateY(15px);
 }
 
-.toast-enter-to{
+.toast-enter-to {
   opacity: 1;
   transform: translateY(0);
 }
 
-.toast-leave-from{
+.toast-leave-from {
   opacity: 1;
   transform: translateY(0);
 }
 
-.toast-leave-to{
+.toast-leave-to {
   opacity: 0;
   transform: translateY(15px);
 }
@@ -344,14 +425,14 @@ body{
 
 /* Mobile */
 
-@media (max-width: 768px){
+@media (max-width: 768px) {
 
-  .layout{
+  .layout {
     display: block;
     min-height: 100vh;
   }
 
-  .mobile-header{
+  .mobile-header {
     position: sticky;
     top: 0;
 
@@ -366,13 +447,13 @@ body{
     z-index: 1100;
   }
 
-  .mobile-header h2{
+  .mobile-header h2 {
     color: white;
     font-size: 18px;
     margin: 0;
   }
 
-  .hamburger{
+  .hamburger {
     background: none;
     border: none;
     color: white;
@@ -380,7 +461,7 @@ body{
     cursor: pointer;
   }
 
-  .sidebar{
+  .sidebar {
     position: sticky;
     top: 57px;
 
@@ -399,30 +480,30 @@ body{
     z-index: 1000;
   }
 
-  .sidebar.show-menu{
+  .sidebar.show-menu {
     display: block;
   }
 
-  .sidebar-title{
+  .sidebar-title {
     display: none;
   }
 
-  .sidebar nav{
+  .sidebar nav {
     gap: 5px !important;
   }
 
-  .sidebar .nav-link{
+  .sidebar .nav-link {
     padding: 10px 12px;
   }
 
-  .content{
+  .content {
     width: 100%;
     min-height: calc(100vh - 57px);
 
     padding: 15px;
   }
 
-  .toast-notification{
+  .toast-notification {
     right: 15px;
     bottom: 15px;
     left: 15px;
@@ -431,28 +512,28 @@ body{
 }
 
 
-/* Small phone */
+/* Small Phone */
 
-@media (max-width: 480px){
+@media (max-width: 480px) {
 
-  .mobile-header{
+  .mobile-header {
     padding: 10px 12px;
   }
 
-  .mobile-header h2{
+  .mobile-header h2 {
     font-size: 16px;
   }
 
-  .hamburger{
+  .hamburger {
     font-size: 26px;
   }
 
-  .sidebar{
+  .sidebar {
     top: 49px;
     max-height: calc(100vh - 49px);
   }
 
-  .content{
+  .content {
     padding: 12px;
   }
 

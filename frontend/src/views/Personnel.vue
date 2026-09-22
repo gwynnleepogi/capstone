@@ -176,7 +176,10 @@
               </td>
 
               <td>
-                <span class="badge bg-secondary">
+                <span
+                  class="badge"
+                  :class="getRoleClass(person.role)"
+                >
                   {{ person.role }}
                 </span>
               </td>
@@ -638,6 +641,37 @@ export default {
       }
     },
 
+    getRoleClass(role) {
+      const normalizedRole = String(role || '')
+        .trim()
+        .toLowerCase()
+        .replace(/-/g, ' ')
+
+      if (
+        normalizedRole === 'admin' ||
+        normalizedRole === 'administrator'
+      ) {
+        return 'role-admin'
+      }
+
+      if (normalizedRole === 'personnel') {
+        return 'role-personnel'
+      }
+
+      if (
+        normalizedRole === 'teacher' ||
+        normalizedRole === 'teaching' ||
+        normalizedRole === 'teaching staff' ||
+        normalizedRole === 'non teaching' ||
+        normalizedRole === 'non teaching staff' ||
+        normalizedRole === 'non teaching staff'
+      ) {
+        return 'role-teaching'
+      }
+
+      return 'role-default'
+    },
+
     formatDate(date) {
       if (!date) {
         return '-'
@@ -652,6 +686,26 @@ export default {
 <style scoped>
 h1 {
   color: #2F5D3A;
+}
+
+.role-admin {
+  background-color: #00ff1e;
+  color: rgb(12, 79, 23);
+}
+
+.role-personnel {
+  background-color: #cff95c;
+  color: rgb(28, 100, 40);
+}
+
+.role-teaching {
+  background-color: #aac8f0;
+  color: #2a3f4e;
+}
+
+.role-default {
+  background-color: #6c757d;
+  color: white;
 }
 
 .btn-warning {

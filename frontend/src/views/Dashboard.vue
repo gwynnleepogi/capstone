@@ -1,4 +1,3 @@
-
 <template>
   <div class="container-fluid">
 
@@ -124,7 +123,7 @@
                 </div>
               </div>
 
-              <div class="chart-legend">
+              <div class="chart-legend classification-legend">
 
                 <div class="legend-item">
                   <span class="legend-color par-color"></span>
@@ -199,7 +198,7 @@
                 </div>
               </div>
 
-              <div class="chart-legend">
+              <div class="chart-legend status-legend">
 
                 <div class="legend-item">
                   <span class="legend-color available-color"></span>
@@ -211,10 +210,10 @@
                 </div>
 
                 <div class="legend-item">
-                  <span class="legend-color delivered-color"></span>
+                  <span class="legend-color issued-color"></span>
 
                   <div>
-                    <p class="mb-0">Delivered</p>
+                    <p class="mb-0">Issued</p>
                     <strong>{{ countStatus('Issued') }}</strong>
                   </div>
                 </div>
@@ -229,20 +228,20 @@
                 </div>
 
                 <div class="legend-item">
-                  <span class="legend-color damaged-color"></span>
-
-                  <div>
-                    <p class="mb-0">Damaged</p>
-                    <strong>{{ countStatus('Damaged') }}</strong>
-                  </div>
-                </div>
-
-                <div class="legend-item">
                   <span class="legend-color lost-color"></span>
 
                   <div>
                     <p class="mb-0">Lost</p>
                     <strong>{{ countStatus('Lost') }}</strong>
+                  </div>
+                </div>
+
+                <div class="legend-item">
+                  <span class="legend-color damaged-color"></span>
+
+                  <div>
+                    <p class="mb-0">Damaged</p>
+                    <strong>{{ countStatus('Damaged') }}</strong>
                   </div>
                 </div>
 
@@ -423,33 +422,33 @@ export default {
       const available = this.countStatus('Available')
       const issued = this.countStatus('Issued')
       const returned = this.countStatus('Returned')
-      const damaged = this.countStatus('Damaged')
       const lost = this.countStatus('Lost')
+      const damaged = this.countStatus('Damaged')
       const stolen = this.countStatus('Stolen')
       const disposed = this.countStatus('Disposed')
 
       const availableDegree = (available / total) * 360
       const issuedDegree = (issued / total) * 360
       const returnedDegree = (returned / total) * 360
-      const damagedDegree = (damaged / total) * 360
       const lostDegree = (lost / total) * 360
+      const damagedDegree = (damaged / total) * 360
       const stolenDegree = (stolen / total) * 360
 
       const firstEnd = availableDegree
       const secondEnd = firstEnd + issuedDegree
       const thirdEnd = secondEnd + returnedDegree
-      const fourthEnd = thirdEnd + damagedDegree
-      const fifthEnd = fourthEnd + lostDegree
+      const fourthEnd = thirdEnd + lostDegree
+      const fifthEnd = fourthEnd + damagedDegree
       const sixthEnd = fifthEnd + stolenDegree
 
       return `conic-gradient(
-        #2F5D3A 0deg ${firstEnd}deg,
-        #E8C547 ${firstEnd}deg ${secondEnd}deg,
+        green 0deg ${firstEnd}deg,
+        blue ${firstEnd}deg ${secondEnd}deg,
         #70A4ED ${secondEnd}deg ${thirdEnd}deg,
-        #DC3545 ${thirdEnd}deg ${fourthEnd}deg,
-        #6C757D ${fourthEnd}deg ${fifthEnd}deg,
-        #343A40 ${fifthEnd}deg ${sixthEnd}deg,
-        #9B59B6 ${sixthEnd}deg 360deg
+        red ${thirdEnd}deg ${fourthEnd}deg,
+        orange ${fourthEnd}deg ${fifthEnd}deg,
+        red ${fifthEnd}deg ${sixthEnd}deg,
+        gray ${sixthEnd}deg 360deg
       )`
 
     }
@@ -577,10 +576,6 @@ export default {
 
     displayStatus(status) {
 
-      if (status === 'Issued') {
-        return 'Delivered'
-      }
-
       return status || '-'
 
     }
@@ -645,10 +640,10 @@ h1 {
 
 .chart-layout {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 35px;
-  flex-wrap: wrap;
+  gap: 25px;
 }
 
 .doughnut-chart {
@@ -701,15 +696,27 @@ h1 {
 }
 
 .chart-legend {
-  flex: 1;
-  min-width: 180px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px 12px;
+  align-items: start;
+}
+
+.classification-legend {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.status-legend {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .legend-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 0;
 }
 
 .legend-color {
@@ -718,14 +725,20 @@ h1 {
 
   border-radius: 3px;
 
-  margin-top: 4px;
   flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.legend-item div {
+  min-width: 0;
 }
 
 .legend-item p {
   font-size: 13px;
   color: #6C757D;
   line-height: 1.4;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .legend-item strong {
@@ -748,20 +761,20 @@ h1 {
   background-color: green;
 }
 
-.delivered-color {
+.issued-color {
   background-color: blue;
 }
 
 .returned-color {
-  background-color: yellow;
-}
-
-.damaged-color {
-  background-color: orange;
+  background-color: #70A4ED;
 }
 
 .lost-color {
   background-color: red;
+}
+
+.damaged-color {
+  background-color: orange;
 }
 
 .stolen-color {
@@ -783,6 +796,30 @@ h1 {
   vertical-align: middle;
 }
 
+@media (max-width: 1200px) {
+
+  .status-legend {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+}
+
+@media (max-width: 992px) {
+
+  .chart-legend {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .classification-legend {
+    grid-template-columns: 1fr;
+  }
+
+  .status-legend {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+}
+
 @media (max-width: 576px) {
 
   .summary-card .card-body {
@@ -793,10 +830,17 @@ h1 {
     gap: 20px;
   }
 
-  .doughnut-chart {
-    width: 190px;
-    height: 190px;
-  }
+.doughnut-chart {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: chartAppear 0.8s ease-out;
+}
+
 
   .doughnut-chart::before {
     width: 115px;
@@ -809,6 +853,24 @@ h1 {
 
   .chart-legend {
     width: 100%;
+  }
+
+  .status-legend {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 8px;
+  }
+
+  .classification-legend {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .legend-item {
+    gap: 5px;
+  }
+
+  .legend-item p {
+    font-size: 12px;
   }
 
   .table {
