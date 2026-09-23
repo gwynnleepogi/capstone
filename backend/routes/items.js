@@ -1,3 +1,4 @@
+
 const express = require('express')
 const router = express.Router()
 
@@ -12,6 +13,33 @@ router.get('/', async (req, res) => {
   const { data, error } = await supabase
     .from('items')
     .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+
+    console.log(error)
+
+    return res.status(500).json({
+      error: error.message
+    })
+
+  }
+
+  res.json(data)
+
+})
+
+
+// GET ITEMS ASSIGNED TO AN EMPLOYEE
+
+router.get('/assigned/:employeeName', async (req, res) => {
+
+  const employeeName = decodeURIComponent(req.params.employeeName)
+
+  const { data, error } = await supabase
+    .from('items')
+    .select('*')
+    .ilike('accountable_employee', employeeName)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -51,18 +79,21 @@ router.post('/', async (req, res) => {
   const { data, error } = await supabase
     .from('items')
     .insert([{
-    property_number,
-    description,
-    serial_number,
-    // supplier_id,
-    cost,
-    acquisition_date,
-    classification,
-    condition,
-    accountable_employee,
-    responsibility_center,
-    status: status || 'Available'
-    }]).select().single()
+      property_number,
+      description,
+      serial_number,
+      // supplier_id,
+      cost,
+      acquisition_date,
+      classification,
+      condition,
+      accountable_employee,
+      responsibility_center,
+      status: status || 'Available'
+    }])
+    .select()
+    .single()
+
 
   if (error) {
 
@@ -71,7 +102,9 @@ router.post('/', async (req, res) => {
     return res.status(500).json({
       error: error.message
     })
+
   }
+
 
   await createAuditLog(
     'Created',
@@ -128,22 +161,22 @@ router.put('/:id', async (req, res) => {
   const { data, error } = await supabase
     .from('items')
     .update({
-    property_number,
-    description,
-    serial_number,
-    // supplier_id,
-    cost,
-    acquisition_date,
-    classification,
-    condition,
-    status,
-    accountable_employee,
-    responsibility_center
-
+      property_number,
+      description,
+      serial_number,
+      // supplier_id,
+      cost,
+      acquisition_date,
+      classification,
+      condition,
+      status,
+      accountable_employee,
+      responsibility_center
     })
     .eq('id', req.params.id)
     .select()
     .single()
+
 
   if (error) {
 
@@ -164,10 +197,15 @@ router.put('/:id', async (req, res) => {
     'Updated item: ' + data.description,
     req.profile.id
   )
+
+
   res.json(data)
+
 })
 
+
 // DELETE ITEM
+
 router.delete('/:id', async (req, res) => {
 
   const { data: oldData, error: oldError } = await supabase
@@ -176,7 +214,9 @@ router.delete('/:id', async (req, res) => {
     .eq('id', req.params.id)
     .single()
 
+
   if (oldError) {
+
     console.log(oldError)
 
     return res.status(404).json({

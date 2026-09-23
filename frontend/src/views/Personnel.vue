@@ -1,3 +1,4 @@
+
 <template>
   <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -140,25 +141,27 @@
                 <i :class="getSortIcon('created_at')"></i>
               </th>
 
+              <th>Assigned Items</th>
+
               <th>Actions</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="loading">
-              <td colspan="6" class="text-center py-5">
+              <td colspan="7" class="text-center py-5">
                 Loading personnel...
               </td>
             </tr>
 
             <tr v-else-if="error">
-              <td colspan="6" class="text-center text-danger py-5">
+              <td colspan="7" class="text-center text-danger py-5">
                 {{ error }}
               </td>
             </tr>
 
             <tr v-else-if="filteredPersonnel.length === 0">
-              <td colspan="6" class="text-center text-muted py-5">
+              <td colspan="7" class="text-center text-muted py-5">
                 No personnel found.
               </td>
             </tr>
@@ -190,6 +193,16 @@
 
               <td class="text-end">
                 {{ formatDate(person.created_at) }}
+              </td>
+
+              <td>
+                <button
+                  class="btn btn-sm btn-outline-primary"
+                  @click="viewItems(person)"
+                >
+                  <i class="bi bi-box-seam me-1"></i>
+                  View Items
+                </button>
               </td>
 
               <td>
@@ -273,6 +286,131 @@
         </div>
       </div>
     </div>
+
+    <!-- ASSIGNED ITEMS MODAL -->
+
+    <div
+      v-if="showItemsModal"
+      class="modal fade show d-block"
+      tabindex="-1"
+      style="background-color: rgba(0, 0, 0, 0.5);"
+    >
+      <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+
+          <div class="modal-header">
+            <h5 class="modal-title">
+              Assigned Items -
+              {{ selectedPersonnel.full_name }}
+            </h5>
+
+            <button
+              type="button"
+              class="btn-close"
+              @click="closeItemsModal"
+            ></button>
+          </div>
+
+          <div class="modal-body">
+
+            <div
+              v-if="itemsLoading"
+              class="text-center py-4"
+            >
+              <div class="spinner-border text-primary"></div>
+
+              <p class="mt-2">
+                Loading assigned items...
+              </p>
+            </div>
+
+            <div
+              v-else-if="assignedItems.length === 0"
+              class="text-center py-4"
+            >
+              <i class="bi bi-box-seam fs-1 text-muted"></i>
+
+              <p class="mt-2 text-muted">
+                No assigned items found for this personnel.
+              </p>
+            </div>
+
+            <div
+              v-else
+              class="table-responsive"
+            >
+              <table
+                class="table table-bordered table-hover align-middle"
+              >
+                <thead class="table-light">
+                  <tr>
+                    <th>Property Number</th>
+                    <th>Description</th>
+                    <th>Serial Number</th>
+                    <th>Classification</th>
+                    <th>Condition</th>
+                    <th>Status</th>
+                    <th>Cost</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr
+                    v-for="item in assignedItems"
+                    :key="item.id"
+                  >
+                    <td>
+                      {{ item.property_number || '-' }}
+                    </td>
+
+                    <td>
+                      {{ item.description || '-' }}
+                    </td>
+
+                    <td>
+                      {{ item.serial_number || '-' }}
+                    </td>
+
+                    <td>
+                      {{ item.classification || '-' }}
+                    </td>
+
+                    <td>
+                      {{ item.condition || '-' }}
+                    </td>
+
+                    <td>
+                      <span
+                        class="badge"
+                        :class="getStatusClass(item.status)"
+                      >
+                        {{ item.status || '-' }}
+                      </span>
+                    </td>
+
+                    <td>
+                      ₱{{ Number(item.cost || 0).toLocaleString() }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              @click="closeItemsModal"
+            >
+              Close
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -296,6 +434,7 @@ export default {
     return {
       personnel: [],
       offices: [],
+
       loading: true,
       error: '',
 
@@ -307,7 +446,12 @@ export default {
       itemsPerPage: 10,
 
       sortColumn: 'full_name',
-      sortDirection: 'asc'
+      sortDirection: 'asc',
+
+      showItemsModal: false,
+      selectedPersonnel: {},
+      assignedItems: [],
+      itemsLoading: false
     }
   },
 
@@ -490,6 +634,7 @@ export default {
         this.error = ''
       } catch (error) {
         console.log(error)
+
         this.error = error.message
 
         window.dispatchEvent(
@@ -526,6 +671,50 @@ export default {
           })
         )
       }
+    },
+
+    async viewItems(person) {
+      this.selectedPersonnel = person
+      this.assignedItems = []
+      this.showItemsModal = true
+      this.itemsLoading = true
+
+      try {
+        const employeeName = encodeURIComponent(
+          person.full_name
+        )
+
+        const response = await apiRequest(
+          'http://localhost:5000/api/items/assigned/' +
+          employeeName
+        )
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || 'Failed to load assigned items'
+          )
+        }
+
+        this.assignedItems = data
+      } catch (error) {
+        console.log(error)
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
+      } finally {
+        this.itemsLoading = false
+      }
+    },
+
+    closeItemsModal() {
+      this.showItemsModal = false
+      this.selectedPersonnel = {}
+      this.assignedItems = []
     },
 
     getSortValue(person, column) {
@@ -663,13 +852,48 @@ export default {
         normalizedRole === 'teaching' ||
         normalizedRole === 'teaching staff' ||
         normalizedRole === 'non teaching' ||
-        normalizedRole === 'non teaching staff' ||
         normalizedRole === 'non teaching staff'
       ) {
         return 'role-teaching'
       }
 
       return 'role-default'
+    },
+
+    getStatusClass(status) {
+      const normalizedStatus = String(status || '')
+        .trim()
+        .toLowerCase()
+
+      if (normalizedStatus === 'available') {
+        return 'status-available'
+      }
+
+      if (normalizedStatus === 'issued') {
+        return 'status-issued'
+      }
+
+      if (normalizedStatus === 'returned') {
+        return 'status-returned'
+      }
+
+      if (normalizedStatus === 'lost') {
+        return 'status-lost'
+      }
+
+      if (normalizedStatus === 'damaged') {
+        return 'status-damaged'
+      }
+
+      if (normalizedStatus === 'stolen') {
+        return 'status-stolen'
+      }
+
+      if (normalizedStatus === 'disposed') {
+        return 'status-disposed'
+      }
+
+      return 'status-default'
     },
 
     formatDate(date) {
@@ -704,6 +928,46 @@ h1 {
 }
 
 .role-default {
+  background-color: #6c757d;
+  color: white;
+}
+
+.status-available {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+.status-issued {
+  background-color: #cfe2ff;
+  color: #084298;
+}
+
+.status-returned {
+  background-color: #cff4fc;
+  color: #055160;
+}
+
+.status-lost {
+  background-color: #fff3cd;
+  color: #664d03;
+}
+
+.status-damaged {
+  background-color: #f8d7da;
+  color: #842029;
+}
+
+.status-stolen {
+  background-color: #f5c2c7;
+  color: #842029;
+}
+
+.status-disposed {
+  background-color: #e2e3e5;
+  color: #41464b;
+}
+
+.status-default {
   background-color: #6c757d;
   color: white;
 }
@@ -753,6 +1017,42 @@ h1 {
   box-shadow: none;
 }
 
+.modal {
+  z-index: 1055;
+}
+
+.modal-backdrop {
+  z-index: 1050;
+}
+
+.modal-content {
+  border: none;
+  border-radius: 12px;
+}
+
+.modal-header {
+  background-color: #2F5D3A;
+  color: white;
+}
+
+.modal-header .btn-close {
+  filter: brightness(0) invert(1);
+}
+
+.modal-title {
+  font-weight: 600;
+}
+
+.modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.modal .table thead th {
+  background-color: #2F5D3A;
+  color: white;
+}
+
 @media (max-width: 576px) {
   .table {
     min-width: 0 !important;
@@ -768,6 +1068,14 @@ h1 {
 
   .pagination {
     flex-wrap: wrap;
+  }
+
+  .modal-dialog {
+    margin: 10px;
+  }
+
+  .modal-body {
+    padding: 10px;
   }
 }
 </style>

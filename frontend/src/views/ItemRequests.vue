@@ -34,11 +34,8 @@
             <option value="">All Statuses</option>
             <option value="Pending">Pending</option>
             <option value="Approved">Approved</option>
-            <option value="Procurement">Procurement</option>
-            <option value="Ordered">Ordered</option>
             <option value="Delivered">Delivered</option>
             <option value="Rejected">Rejected</option>
-            <option value="Cancelled">Cancelled</option>
           </select>
 
           <select v-model.number="itemsPerPage" class="form-select page-size-select">
@@ -364,14 +361,6 @@
                     Approved
                   </option>
 
-                  <option value="Procurement">
-                    Procurement
-                  </option>
-
-                  <option value="Ordered">
-                    Ordered
-                  </option>
-
                   <option value="Delivered">
                     Delivered
                   </option>
@@ -380,9 +369,6 @@
                     Rejected
                   </option>
 
-                  <option value="Cancelled">
-                    Cancelled
-                  </option>
                 </select>
               </div>
             </div>
