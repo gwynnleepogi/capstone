@@ -1,15 +1,24 @@
+
 <template>
   <div class="container-fluid">
     <div class="row align-items-center mb-4">
       <div class="col">
         <h1 class="h3 mb-1">Item Requests</h1>
+
         <p class="text-secondary mb-0">
-          {{ canManageRequests ? 'Manage item requests' : 'Submit and track your item requests' }}
+          {{
+            canManageRequests
+              ? 'Manage item requests'
+              : 'Submit and track your item requests'
+          }}
         </p>
       </div>
 
       <div class="col-auto">
-        <button class="btn btn-warning" @click="openAddModal">
+        <button
+          class="btn btn-warning"
+          @click="openAddModal"
+        >
           <i class="bi bi-plus-lg me-1"></i>
           Add Request
         </button>
@@ -30,15 +39,22 @@
             placeholder="Search item requests..."
           />
 
-          <select v-model="statusFilter" class="form-select filter-select">
+          <select
+            v-model="statusFilter"
+            class="form-select filter-select"
+          >
             <option value="">All Statuses</option>
             <option value="Pending">Pending</option>
             <option value="Approved">Approved</option>
             <option value="Delivered">Delivered</option>
             <option value="Rejected">Rejected</option>
+            <option value="Cancelled">Cancelled</option>
           </select>
 
-          <select v-model.number="itemsPerPage" class="form-select page-size-select">
+          <select
+            v-model.number="itemsPerPage"
+            class="form-select page-size-select"
+          >
             <option :value="5">5 per page</option>
             <option :value="10">10 per page</option>
             <option :value="25">25 per page</option>
@@ -179,8 +195,9 @@
           class="table-footer"
         >
           <span>
-            Showing {{ firstRequestNumber }} to {{ lastRequestNumber }}
-            of {{ filteredRequests.length }} requests
+            Showing {{ firstRequestNumber }} to
+            {{ lastRequestNumber }} of
+            {{ filteredRequests.length }} requests
           </span>
 
           <div class="pagination-controls">
@@ -244,8 +261,9 @@
                   type="text"
                   class="form-control"
                   v-model="form.request_number"
+                  placeholder="Enter request number"
                   required
-                >
+                />
               </div>
 
               <div class="mb-3">
@@ -253,12 +271,33 @@
                   Item Description
                 </label>
 
-                <input
-                  type="text"
-                  class="form-control"
+                <select
+                  class="form-select"
                   v-model="form.item_description"
                   required
                 >
+                  <option value="">
+                    Select Inventory Item
+                  </option>
+
+                  <option
+                    v-for="item in items"
+                    :key="item.id"
+                    :value="item.description"
+                  >
+                    {{ item.description }}
+                    <span v-if="item.property_number">
+                      - {{ item.property_number }}
+                    </span>
+                  </option>
+                </select>
+
+                <small
+                  v-if="items.length === 0"
+                  class="text-danger"
+                >
+                  No available inventory items found.
+                </small>
               </div>
 
               <div class="mb-3">
@@ -269,22 +308,21 @@
                 <input
                   type="number"
                   class="form-control"
-                  v-model="form.quantity"
+                  v-model.number="form.quantity"
                   min="1"
                   required
-                >
+                />
               </div>
 
-              <div class="mb-3">
-                <label
-                  v-if="canManageRequests"
-                  class="form-label"
-                >
+              <div
+                v-if="canManageRequests"
+                class="mb-3"
+              >
+                <label class="form-label">
                   Requested By
                 </label>
 
                 <select
-                  v-if="canManageRequests"
                   class="form-select"
                   v-model="form.requested_by"
                 >
@@ -302,16 +340,15 @@
                 </select>
               </div>
 
-              <div class="mb-3">
-                <label
-                  v-if="canManageRequests"
-                  class="form-label"
-                >
+              <div
+                v-if="canManageRequests"
+                class="mb-3"
+              >
+                <label class="form-label">
                   Office
                 </label>
 
                 <select
-                  v-if="canManageRequests"
                   class="form-select"
                   v-model="form.office_id"
                 >
@@ -338,6 +375,8 @@
                   class="form-control"
                   rows="3"
                   v-model="form.purpose"
+                  placeholder="Enter the purpose of the request"
+                  required
                 ></textarea>
               </div>
 
@@ -369,6 +408,9 @@
                     Rejected
                   </option>
 
+                  <option value="Cancelled">
+                    Cancelled
+                  </option>
                 </select>
               </div>
             </div>
@@ -385,7 +427,7 @@
               <button
                 type="submit"
                 class="btn btn-warning"
-                :disabled="saving"
+                :disabled="saving || items.length === 0"
               >
                 {{ saving ? 'Saving...' : 'Save Request' }}
               </button>
@@ -408,12 +450,16 @@ export default {
       requests: [],
       personnel: [],
       offices: [],
+      items: [],
+
       editing: false,
       saving: false,
+
       search: '',
       statusFilter: '',
       currentPage: 1,
       itemsPerPage: 10,
+
       sortColumn: 'request_number',
       sortDirection: 'asc',
 
@@ -475,7 +521,9 @@ export default {
           request.offices?.office_name,
           request.status,
           request.purpose
-        ].join(' ').toLowerCase()
+        ]
+          .join(' ')
+          .toLowerCase()
 
         return (
           statusMatch &&
@@ -486,46 +534,59 @@ export default {
         )
       })
 
-      return [...filtered].sort((firstRequest, secondRequest) => {
-        let firstValue = this.getSortValue(
-          firstRequest,
-          this.sortColumn
-        )
+      return [...filtered].sort(
+        (firstRequest, secondRequest) => {
+          let firstValue = this.getSortValue(
+            firstRequest,
+            this.sortColumn
+          )
 
-        let secondValue = this.getSortValue(
-          secondRequest,
-          this.sortColumn
-        )
+          let secondValue = this.getSortValue(
+            secondRequest,
+            this.sortColumn
+          )
 
-        if (this.sortColumn === 'quantity') {
-          firstValue = Number(firstValue) || 0
-          secondValue = Number(secondValue) || 0
-        } else {
-          firstValue = String(firstValue || '').toLowerCase()
-          secondValue = String(secondValue || '').toLowerCase()
+          if (this.sortColumn === 'quantity') {
+            firstValue = Number(firstValue) || 0
+            secondValue = Number(secondValue) || 0
+          } else {
+            firstValue = String(
+              firstValue || ''
+            ).toLowerCase()
+
+            secondValue = String(
+              secondValue || ''
+            ).toLowerCase()
+          }
+
+          if (firstValue < secondValue) {
+            return this.sortDirection === 'asc'
+              ? -1
+              : 1
+          }
+
+          if (firstValue > secondValue) {
+            return this.sortDirection === 'asc'
+              ? 1
+              : -1
+          }
+
+          return 0
         }
-
-        if (firstValue < secondValue) {
-          return this.sortDirection === 'asc' ? -1 : 1
-        }
-
-        if (firstValue > secondValue) {
-          return this.sortDirection === 'asc' ? 1 : -1
-        }
-
-        return 0
-      })
+      )
     },
 
     totalPages() {
       return Math.ceil(
-        this.filteredRequests.length / this.itemsPerPage
+        this.filteredRequests.length /
+        this.itemsPerPage
       ) || 1
     },
 
     paginatedRequests() {
       const start =
-        (this.currentPage - 1) * this.itemsPerPage
+        (this.currentPage - 1) *
+        this.itemsPerPage
 
       return this.filteredRequests.slice(
         start,
@@ -539,7 +600,8 @@ export default {
       }
 
       return (
-        (this.currentPage - 1) * this.itemsPerPage + 1
+        (this.currentPage - 1) *
+        this.itemsPerPage + 1
       )
     },
 
@@ -551,12 +613,13 @@ export default {
     }
   },
 
-  mounted() {
-    this.getRequests()
+  async mounted() {
+    await this.getRequests()
+    await this.getItems()
 
     if (this.canManageRequests) {
-      this.getPersonnel()
-      this.getOffices()
+      await this.getPersonnel()
+      await this.getOffices()
     }
   },
 
@@ -636,15 +699,47 @@ export default {
           )
         }
 
-        this.requests = data
+        this.requests = Array.isArray(data)
+          ? data
+          : []
       } catch (error) {
-        console.log(error)
+        console.log('Requests error:', error)
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: error.message
-          })
+        this.showToast(error.message)
+      }
+    },
+
+    async getItems() {
+      try {
+        const response = await fetch(
+          'http://localhost:5000/api/items'
         )
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || 'Failed to load inventory items'
+          )
+        }
+
+        if (!Array.isArray(data)) {
+          this.items = []
+          return
+        }
+
+        this.items = data.filter(item => {
+          return (
+            item.status === 'Available' ||
+            !item.status
+          )
+        })
+      } catch (error) {
+        console.log('Inventory items error:', error)
+
+        this.items = []
+
+        this.showToast(error.message)
       }
     },
 
@@ -662,15 +757,13 @@ export default {
           )
         }
 
-        this.personnel = data
+        this.personnel = Array.isArray(data)
+          ? data
+          : []
       } catch (error) {
-        console.log(error)
+        console.log('Personnel error:', error)
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: error.message
-          })
-        )
+        this.showToast(error.message)
       }
     },
 
@@ -688,15 +781,13 @@ export default {
           )
         }
 
-        this.offices = data
+        this.offices = Array.isArray(data)
+          ? data
+          : []
       } catch (error) {
-        console.log(error)
+        console.log('Offices error:', error)
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: error.message
-          })
-        )
+        this.showToast(error.message)
       }
     },
 
@@ -714,10 +805,9 @@ export default {
         status: 'Pending'
       }
 
-      const modal =
-        Modal.getOrCreateInstance(
-          document.getElementById('requestModal')
-        )
+      const modal = Modal.getOrCreateInstance(
+        document.getElementById('requestModal')
+      )
 
       modal.show()
     },
@@ -743,10 +833,9 @@ export default {
           request.status || 'Pending'
       }
 
-      const modal =
-        Modal.getOrCreateInstance(
-          document.getElementById('requestModal')
-        )
+      const modal = Modal.getOrCreateInstance(
+        document.getElementById('requestModal')
+      )
 
       modal.show()
     },
@@ -808,30 +897,23 @@ export default {
           )
         }
 
-        const modal =
-          Modal.getOrCreateInstance(
-            document.getElementById('requestModal')
-          )
+        const modal = Modal.getOrCreateInstance(
+          document.getElementById('requestModal')
+        )
 
         modal.hide()
 
         await this.getRequests()
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: this.editing
-              ? 'Request updated successfully'
-              : 'Request added successfully'
-          })
+        this.showToast(
+          this.editing
+            ? 'Request updated successfully'
+            : 'Request added successfully'
         )
       } catch (error) {
-        console.log(error)
+        console.log('Save request error:', error)
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: error.message
-          })
-        )
+        this.showToast(error.message)
       } finally {
         this.saving = false
       }
@@ -864,20 +946,22 @@ export default {
 
         await this.getRequests()
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: 'Request deleted successfully'
-          })
+        this.showToast(
+          'Request deleted successfully'
         )
       } catch (error) {
-        console.log(error)
+        console.log('Delete request error:', error)
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: error.message
-          })
-        )
+        this.showToast(error.message)
       }
+    },
+
+    showToast(message) {
+      window.dispatchEvent(
+        new CustomEvent('show-toast', {
+          detail: message
+        })
+      )
     },
 
     getStatusClass(status) {
@@ -887,14 +971,6 @@ export default {
 
       if (status === 'Approved') {
         return 'bg-success'
-      }
-
-      if (status === 'Procurement') {
-        return 'bg-primary'
-      }
-
-      if (status === 'Ordered') {
-        return 'bg-info'
       }
 
       if (status === 'Delivered') {
@@ -980,8 +1056,8 @@ export default {
 
 .page-button:hover:not(:disabled),
 .page-button.active {
-  background: #2F5D3A;
-  border-color: #2F5D3A;
+  background: #2f5d3a;
+  border-color: #2f5d3a;
   color: #ffffff;
 }
 
@@ -991,47 +1067,25 @@ export default {
 }
 
 h1 {
-  color: #2F5D3A;
+  color: #2f5d3a;
 }
 
 .btn-warning {
-  background-color: #E8C547;
-  border-color: #E8C547;
-  color: #2F5D3A;
+  background-color: #e8c547;
+  border-color: #e8c547;
+  color: #2f5d3a;
 }
 
-.btn-warning:hover {
-  background-color: #d8b638;
-  border-color: #d8b638;
+.form-label {
+  font-weight: 500;
 }
 
-.table thead th {
-  background-color: #2F5D3A;
-  color: white;
-  white-space: nowrap;
+.modal-content {
+  border-radius: 10px;
 }
 
-.table td {
-  white-space: nowrap;
-  vertical-align: middle;
-}
-
-@media (max-width: 576px) {
-  .table {
-    min-width: 0 !important;
-    table-layout: fixed;
-  }
-
-  .table th,
-  .table td {
-    padding: 9px 5px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .modal-dialog {
-    max-width: calc(100% - 1rem);
-    margin: .5rem auto;
-  }
+.card {
+  border-radius: 10px;
+  overflow: hidden;
 }
 </style>

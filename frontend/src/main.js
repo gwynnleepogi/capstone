@@ -9,12 +9,21 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 const originalFetch = window.fetch.bind(window)
 
 window.fetch = (url, options = {}) => {
-  const token = localStorage.getItem('accessToken')
+  const token =
+    localStorage.getItem('accessToken') ||
+    localStorage.getItem('access_token') ||
+    localStorage.getItem('token')
+
   const headers = new Headers(options.headers || {})
 
-  if (token) headers.set('Authorization', `Bearer ${token}`)
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
 
-  return originalFetch(url, { ...options, headers })
+  return originalFetch(url, {
+    ...options,
+    headers: headers
+  })
 }
 
 createApp(App)

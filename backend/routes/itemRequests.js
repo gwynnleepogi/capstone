@@ -1,10 +1,15 @@
-
 const express = require('express')
 const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
-const { requireRole } = require('../middleware/auth')
+
+const {
+  requireAuth,
+  requireRole
+} = require('../middleware/auth')
+
+router.use(requireAuth)
 
 const allowedStatuses = [
   'Pending',
@@ -24,25 +29,45 @@ const allowedStatusChanges = {
 // GET ITEM REQUESTS
 
 router.get('/', async (req, res) => {
-
   let query = supabase
     .from('item_requests')
     .select(`
       *,
       users (
-        full_name
+        id,
+        full_name,
+        email
       ),
       offices (
+        id,
         office_name
+      ),
+      items (
+        id,
+        property_number,
+        description,
+        serial_number,
+        classification,
+        condition,
+        status,
+        cost,
+        acquisition_date,
+        accountable_employee,
+        responsibility_center
       )
     `)
-    .order('created_at', { ascending: false })
+    .order('created_at', {
+      ascending: false
+    })
 
   if (
     req.role === 'Teacher' ||
     req.role === 'Non-Teaching Staff'
   ) {
-    query = query.eq('requested_by', req.profile.id)
+    query = query.eq(
+      'requested_by',
+      req.profile.id
+    )
   }
 
   const { data, error } = await query
@@ -59,34 +84,122 @@ router.get('/', async (req, res) => {
 })
 
 
-// ADD ITEM REQUEST
+// GET AVAILABLE INVENTORY ITEMS
 
-router.post('/', async (req, res) => {
+router.get(
+  '/available-items',
+  async (req, res) => {
+    const { data, error } = await supabase
+      .from('items')
+      .select(`
+        id,
+        property_number,
+        description,
+        serial_number,
+        classification,
+        condition,
+        status,
+        cost,
+        acquisition_date,
+        accountable_employee,
+        responsibility_center
+      `)
+      .in('status', [
+        'Available',
+        'Returned'
+      ])
+      .order('description', {
+        ascending: true
+      })
 
-  if (req.role === 'Administrator') {
-    return res.status(403).json({
-      error: 'Administrators can view and manage requests but cannot create them'
-    })
+    if (error) {
+      console.log(error)
+
+      return res.status(500).json({
+        error: error.message
+      })
+    }
+
+    res.json(data)
+  }
+)
+
+
+// GET SELECTED INVENTORY ITEM
+
+async function getSelectedItem(itemId) {
+  const { data, error } = await supabase
+    .from('items')
+    .select(`
+      id,
+      description,
+      status
+    `)
+    .eq('id', itemId)
+    .single()
+
+  if (error || !data) {
+    return {
+      item: null,
+      error: 'Selected inventory item was not found'
+    }
   }
 
+  if (
+    data.status !== 'Available' &&
+    data.status !== 'Returned'
+  ) {
+    return {
+      item: null,
+      error: 'The selected inventory item is not available'
+    }
+  }
+
+  return {
+    item: data,
+    error: null
+  }
+}
+
+
+// ADD ITEM REQUEST
+// ALL LOGGED-IN ROLES CAN CREATE REQUESTS
+
+router.post('/', async (req, res) => {
   const {
     request_number,
     requested_by,
     office_id,
-    item_description,
     quantity,
-    purpose
+    purpose,
+    item_id
   } = req.body
 
-  const requestOwner =
-    req.role === 'Teacher' ||
-    req.role === 'Non-Teaching Staff'
-      ? req.profile.id
-      : requested_by
+  if (!req.profile) {
+    return res.status(401).json({
+      error: 'Please log in'
+    })
+  }
 
-  if (!item_description || !quantity) {
+  let requestOwner = req.profile.id
+
+  if (
+    req.role === 'Administrator' ||
+    req.role === 'Personnel'
+  ) {
+    requestOwner =
+      requested_by || req.profile.id
+  }
+
+  if (!item_id) {
     return res.status(400).json({
-      error: 'Item description and quantity are required'
+      error: 'Please select an inventory item'
+    })
+  }
+
+  if (!quantity) {
+    return res.status(400).json({
+      error: 'Quantity is required'
     })
   }
 
@@ -96,17 +209,31 @@ router.post('/', async (req, res) => {
     })
   }
 
+  const {
+    item: selectedItem,
+    error: selectedItemError
+  } = await getSelectedItem(item_id)
+
+  if (selectedItemError) {
+    return res.status(400).json({
+      error: selectedItemError
+    })
+  }
+
   const { data, error } = await supabase
     .from('item_requests')
-    .insert([{
-      request_number,
-      requested_by: requestOwner,
-      office_id,
-      item_description,
-      quantity: Number(quantity),
-      purpose,
-      status: 'Pending'
-    }])
+    .insert([
+      {
+        request_number,
+        requested_by: requestOwner,
+        office_id: office_id || null,
+        item_id,
+        item_description: selectedItem.description,
+        quantity: Number(quantity),
+        purpose,
+        status: 'Pending'
+      }
+    ])
     .select()
     .single()
 
@@ -123,7 +250,8 @@ router.post('/', async (req, res) => {
     data.id,
     null,
     JSON.stringify(data),
-    'Added item request: ' + data.request_number,
+    'Added item request: ' +
+      data.request_number,
     req.profile.id
   )
 
@@ -137,15 +265,14 @@ router.put(
   '/:id',
   requireRole('Administrator', 'Personnel'),
   async (req, res) => {
-
     const {
       request_number,
       requested_by,
       office_id,
-      item_description,
       quantity,
       purpose,
-      status
+      status,
+      item_id
     } = req.body
 
     if (!allowedStatuses.includes(status)) {
@@ -154,9 +281,15 @@ router.put(
       })
     }
 
-    if (!item_description || !quantity) {
+    if (!item_id) {
       return res.status(400).json({
-        error: 'Item description and quantity are required'
+        error: 'Please select an inventory item'
+      })
+    }
+
+    if (!quantity) {
+      return res.status(400).json({
+        error: 'Quantity is required'
       })
     }
 
@@ -166,7 +299,10 @@ router.put(
       })
     }
 
-    const { data: oldData, error: oldError } = await supabase
+    const {
+      data: oldData,
+      error: oldError
+    } = await supabase
       .from('item_requests')
       .select('*')
       .eq('id', req.params.id)
@@ -180,8 +316,17 @@ router.put(
       })
     }
 
-    if (oldData.status !== status) {
+    if (
+      oldData.status === 'Delivered' &&
+      status !== 'Delivered'
+    ) {
+      return res.status(400).json({
+        error:
+          'Delivered requests cannot be changed'
+      })
+    }
 
+    if (oldData.status !== status) {
       const allowedNextStatuses =
         allowedStatusChanges[oldData.status] || []
 
@@ -196,15 +341,37 @@ router.put(
       }
     }
 
+    const {
+      item: selectedItem,
+      error: selectedItemError
+    } = await getSelectedItem(item_id)
+
+    if (
+      selectedItemError &&
+      item_id !== oldData.item_id
+    ) {
+      return res.status(400).json({
+        error: selectedItemError
+      })
+    }
+
+    let itemDescription =
+      oldData.item_description
+
+    if (selectedItem) {
+      itemDescription = selectedItem.description
+    }
+
     const { data, error } = await supabase
       .from('item_requests')
       .update({
         request_number,
         requested_by,
-        office_id,
-        item_description,
+        office_id: office_id || null,
+        item_description: itemDescription,
         quantity: Number(quantity),
         purpose,
+        item_id,
         status
       })
       .eq('id', req.params.id)
@@ -224,7 +391,8 @@ router.put(
       data.id,
       JSON.stringify(oldData),
       JSON.stringify(data),
-      'Updated item request: ' + data.request_number,
+      'Updated item request: ' +
+        data.request_number,
       req.profile.id
     )
 
@@ -239,8 +407,10 @@ router.delete(
   '/:id',
   requireRole('Administrator', 'Personnel'),
   async (req, res) => {
-
-    const { data: oldData, error: oldError } = await supabase
+    const {
+      data: oldData,
+      error: oldError
+    } = await supabase
       .from('item_requests')
       .select('*')
       .eq('id', req.params.id)
@@ -256,7 +426,8 @@ router.delete(
 
     if (oldData.status === 'Delivered') {
       return res.status(400).json({
-        error: 'Delivered requests cannot be deleted'
+        error:
+          'Delivered requests cannot be deleted'
       })
     }
 
@@ -278,7 +449,8 @@ router.delete(
       req.params.id,
       JSON.stringify(oldData),
       null,
-      'Deleted item request: ' + oldData.request_number,
+      'Deleted item request: ' +
+        oldData.request_number,
       req.profile.id
     )
 

@@ -1,24 +1,26 @@
 
 <template>
   <div>
-    <!-- HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2>Receipts</h2>
         <p class="text-muted">Manage property receipts</p>
       </div>
 
-      <button class="btn btn-warning" @click="openAddModal">
-        + Add Receipt
+      <button
+        class="btn btn-warning"
+        @click="openAddModal"
+      >
+        <i class="bi bi-plus-lg"></i>
+        Add Receipt
       </button>
     </div>
 
-    <!-- RECEIPTS TABLE -->
-    <div class="card">
+    <div class="card shadow-sm">
       <div class="card-body">
         <div class="table-responsive">
           <table class="table table-hover align-middle">
-            <thead>
+            <thead class="table-dark">
               <tr>
                 <th>Receipt Number</th>
                 <th>Type</th>
@@ -47,11 +49,11 @@
                 </td>
 
                 <td>
-                  {{ getItem(receipt).description || '-' }}
+                  {{ getReceiptItem(receipt).description || '-' }}
                 </td>
 
                 <td>
-                  {{ receipt.users?.full_name || getPersonnelName(receipt.issued_to) }}
+                  {{ getIssuedToName(receipt) }}
                 </td>
 
                 <td>
@@ -67,7 +69,7 @@
                         : 'bg-warning text-dark'
                     "
                   >
-                    {{ receipt.status || 'Ready to Deliver' }}
+                    {{ receipt.status || 'Delivered' }}
                   </span>
                 </td>
 
@@ -80,21 +82,21 @@
                     class="btn btn-sm btn-outline-primary me-1"
                     @click="editReceipt(receipt)"
                   >
-                    Edit
+                    <i class="bi bi-pencil"></i>
                   </button>
 
                   <button
                     class="btn btn-sm btn-outline-danger me-1"
                     @click="deleteReceipt(receipt.id)"
                   >
-                    Delete
+                    <i class="bi bi-trash"></i>
                   </button>
 
                   <button
-                    class="btn btn-sm btn-outline-secondary"
+                    class="btn btn-sm btn-outline-success"
                     @click="printReceipt(receipt)"
                   >
-                    Print
+                    <i class="bi bi-printer"></i>
                   </button>
                 </td>
               </tr>
@@ -122,14 +124,14 @@
     >
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
-          <div class="modal-header">
+          <div class="modal-header bg-success text-white">
             <h5 class="modal-title">
               {{ editing ? 'Edit Receipt' : 'Add Receipt' }}
             </h5>
 
             <button
               type="button"
-              class="btn-close"
+              class="btn-close btn-close-white"
               data-bs-dismiss="modal"
             ></button>
           </div>
@@ -147,13 +149,8 @@
                   v-model="form.receipt_type"
                   required
                 >
-                  <option value="PAR">
-                    PAR
-                  </option>
-
-                  <option value="ICS">
-                    ICS
-                  </option>
+                  <option value="PAR">PAR</option>
+                  <option value="ICS">ICS</option>
                 </select>
               </div>
 
@@ -171,55 +168,111 @@
                 >
               </div>
 
-              <!-- ITEM -->
-              <div class="mb-3">
+              <!-- ITEM REQUEST -->
+              <div
+                class="mb-3"
+                v-if="!editing"
+              >
                 <label class="form-label">
-                  Item
+                  Approved Item Request
                 </label>
 
                 <select
                   class="form-select"
-                  v-model="form.item_id"
+                  v-model="form.item_request_id"
                   required
                 >
                   <option value="">
-                    Select Item
+                    Select Approved Item Request
                   </option>
 
                   <option
-                    v-for="item in items"
-                    :key="item.id"
-                    :value="item.id"
+                    v-for="request in itemRequests"
+                    :key="request.id"
+                    :value="request.id"
                   >
-                    {{ item.description }}
-                    -
-                    {{ item.property_number || 'No Property Number' }}
+                    {{ request.request_number }} -
+                    {{ request.item_description }}
                   </option>
                 </select>
               </div>
 
-              <!-- ISSUED TO -->
-              <div class="mb-3">
-                <label class="form-label">
-                  Issued To
-                </label>
+              <!-- SELECTED ITEM DETAILS -->
+              <div
+                v-if="selectedRequest && !editing"
+                class="alert alert-light border"
+              >
+                <h6 class="fw-bold text-success">
+                  Selected Item Details
+                </h6>
 
-                <select
-                  class="form-select"
-                  v-model="form.issued_to"
-                >
-                  <option value="">
-                    Select Personnel
-                  </option>
+                <p class="mb-1">
+                  <strong>Item:</strong>
+                  {{
+                    getRequestItem(selectedRequest).description ||
+                    selectedRequest.item_description ||
+                    '-'
+                  }}
+                </p>
 
-                  <option
-                    v-for="person in personnel"
-                    :key="person.id"
-                    :value="person.id"
-                  >
-                    {{ person.full_name }}
-                  </option>
-                </select>
+                <p class="mb-1">
+                  <strong>Property Number:</strong>
+                  {{
+                    getRequestItem(selectedRequest).property_number ||
+                    '-'
+                  }}
+                </p>
+
+                <p class="mb-1">
+                  <strong>Serial Number:</strong>
+                  {{
+                    getRequestItem(selectedRequest).serial_number ||
+                    '-'
+                  }}
+                </p>
+
+                <p class="mb-1">
+                  <strong>Requested By:</strong>
+                  {{
+                    selectedRequest.users?.full_name ||
+                    selectedRequest.requested_by_name ||
+                    '-'
+                  }}
+                </p>
+
+                <p class="mb-0">
+                  <strong>Cost:</strong>
+                  ₱{{
+                    formatAmount(
+                      getRequestItem(selectedRequest).cost
+                    )
+                  }}
+                </p>
+              </div>
+
+              <!-- EDIT ITEM DETAILS -->
+              <div
+                v-if="editing"
+                class="alert alert-light border"
+              >
+                <h6 class="fw-bold text-success">
+                  Receipt Item
+                </h6>
+
+                <p class="mb-1">
+                  <strong>Item:</strong>
+                  {{ editingItem.description || '-' }}
+                </p>
+
+                <p class="mb-1">
+                  <strong>Property Number:</strong>
+                  {{ editingItem.property_number || '-' }}
+                </p>
+
+                <p class="mb-0">
+                  <strong>Issued To:</strong>
+                  {{ editingIssuedTo || '-' }}
+                </p>
               </div>
 
               <!-- DATE ISSUED -->
@@ -233,27 +286,6 @@
                   class="form-control"
                   v-model="form.date_issued"
                 >
-              </div>
-
-              <!-- STATUS -->
-              <div class="mb-3">
-                <label class="form-label">
-                  Receipt Status
-                </label>
-
-                <select
-                  class="form-select"
-                  v-model="form.status"
-                  required
-                >
-                  <option value="Ready to Deliver">
-                    Ready to Deliver
-                  </option>
-
-                  <option value="Delivered">
-                    Delivered
-                  </option>
-                </select>
               </div>
 
               <!-- REMARKS -->
@@ -281,7 +313,7 @@
 
               <button
                 type="submit"
-                class="btn btn-warning"
+                class="btn btn-success"
                 :disabled="saving"
               >
                 {{ saving ? 'Saving...' : 'Save Receipt' }}
@@ -298,27 +330,53 @@
 import { Modal } from 'bootstrap'
 
 export default {
-  name: 'Receipts',
+  name: 'PropertyReceipts',
 
   data() {
     return {
       receipts: [],
       items: [],
       personnel: [],
+      itemRequests: [],
 
       editing: false,
       saving: false,
 
       form: {
         id: null,
-        item_id: '',
+        item_request_id: '',
         receipt_type: 'PAR',
         receipt_number: '',
-        issued_to: '',
         date_issued: '',
-        status: 'Ready to Deliver',
         remarks: ''
       }
+    }
+  },
+
+  computed: {
+    selectedRequest() {
+      return this.itemRequests.find(
+        request =>
+          request.id === this.form.item_request_id
+      ) || null
+    },
+
+    editingItem() {
+      const receipt = this.receipts.find(
+        receipt =>
+          receipt.id === this.form.id
+      )
+
+      return this.getReceiptItem(receipt || {})
+    },
+
+    editingIssuedTo() {
+      const receipt = this.receipts.find(
+        receipt =>
+          receipt.id === this.form.id
+      )
+
+      return this.getIssuedToName(receipt || {})
     }
   },
 
@@ -326,6 +384,7 @@ export default {
     this.getReceipts()
     this.getItems()
     this.getPersonnel()
+    this.getItemRequests()
   },
 
   methods: {
@@ -343,10 +402,12 @@ export default {
           )
         }
 
-        this.receipts = data
+        this.receipts = Array.isArray(data)
+          ? data
+          : data.receipts || []
       } catch (error) {
         console.log(error)
-        alert(error.message)
+        this.showToast(error.message)
       }
     },
 
@@ -364,7 +425,9 @@ export default {
           )
         }
 
-        this.items = data
+        this.items = Array.isArray(data)
+          ? data
+          : data.items || []
       } catch (error) {
         console.log(error)
       }
@@ -384,30 +447,43 @@ export default {
           )
         }
 
-        this.personnel = data
+        this.personnel = Array.isArray(data)
+          ? data
+          : data.personnel || []
       } catch (error) {
         console.log(error)
       }
     },
 
-    getItem(receipt) {
-      if (receipt.items) {
-        return receipt.items
+    async getItemRequests() {
+      try {
+        const response = await fetch(
+          'http://localhost:5000/api/item-requests'
+        )
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || 'Failed to load item requests'
+          )
+        }
+
+        const requests = Array.isArray(data)
+          ? data
+          : data.itemRequests ||
+            data.requests ||
+            []
+
+        this.itemRequests = requests.filter(
+          request =>
+            request.status === 'Approved' &&
+            request.item_id
+        )
+      } catch (error) {
+        console.log(error)
+        this.showToast(error.message)
       }
-
-      const item = this.items.find(
-        item => item.id === receipt.item_id
-      )
-
-      return item || {}
-    },
-
-    getPersonnelName(personnelId) {
-      const person = this.personnel.find(
-        person => person.id === personnelId
-      )
-
-      return person?.full_name || '-'
     },
 
     openAddModal() {
@@ -415,20 +491,18 @@ export default {
 
       this.form = {
         id: null,
-        item_id: '',
+        item_request_id: '',
         receipt_type: 'PAR',
         receipt_number: '',
-        issued_to: '',
-        date_issued: new Date()
-          .toISOString()
-          .split('T')[0],
-        status: 'Ready to Deliver',
+        date_issued:
+          new Date().toISOString().split('T')[0],
         remarks: ''
       }
 
-      const modal = Modal.getOrCreateInstance(
-        document.getElementById('receiptModal')
-      )
+      const modal =
+        Modal.getOrCreateInstance(
+          document.getElementById('receiptModal')
+        )
 
       modal.show()
     },
@@ -438,34 +512,21 @@ export default {
 
       this.form = {
         id: receipt.id,
-
-        item_id:
-          receipt.item_id ||
-          receipt.items?.id ||
-          '',
-
+        item_request_id: '',
         receipt_type:
           receipt.receipt_type || 'PAR',
-
         receipt_number:
           receipt.receipt_number || '',
-
-        issued_to:
-          receipt.issued_to || '',
-
         date_issued:
           receipt.date_issued || '',
-
-        status:
-          receipt.status || 'Ready to Deliver',
-
         remarks:
           receipt.remarks || ''
       }
 
-      const modal = Modal.getOrCreateInstance(
-        document.getElementById('receiptModal')
-      )
+      const modal =
+        Modal.getOrCreateInstance(
+          document.getElementById('receiptModal')
+        )
 
       modal.show()
     },
@@ -479,11 +540,28 @@ export default {
 
         let method = 'POST'
 
+        const body = {
+          receipt_type:
+            this.form.receipt_type,
+
+          receipt_number:
+            this.form.receipt_number,
+
+          date_issued:
+            this.form.date_issued || null,
+
+          remarks:
+            this.form.remarks || null
+        }
+
         if (this.editing) {
           url =
             `http://localhost:5000/api/receipts/${this.form.id}`
 
           method = 'PUT'
+        } else {
+          body.item_request_id =
+            this.form.item_request_id
         }
 
         const response = await fetch(url, {
@@ -493,27 +571,7 @@ export default {
             'Content-Type': 'application/json'
           },
 
-          body: JSON.stringify({
-            item_id: this.form.item_id,
-
-            receipt_type:
-              this.form.receipt_type,
-
-            receipt_number:
-              this.form.receipt_number,
-
-            issued_to:
-              this.form.issued_to || null,
-
-            date_issued:
-              this.form.date_issued || null,
-
-            status:
-              this.form.status,
-
-            remarks:
-              this.form.remarks || null
-          })
+          body: JSON.stringify(body)
         })
 
         const data = await response.json()
@@ -524,27 +582,36 @@ export default {
           )
         }
 
-        const modal = Modal.getOrCreateInstance(
-          document.getElementById('receiptModal')
-        )
+        const modal =
+          Modal.getOrCreateInstance(
+            document.getElementById('receiptModal')
+          )
 
         modal.hide()
 
         await this.getReceipts()
+        await this.getItems()
+        await this.getItemRequests()
+
+        this.showToast(
+          this.editing
+            ? 'Receipt updated successfully'
+            : 'Receipt created successfully'
+        )
       } catch (error) {
         console.log(error)
-        alert(error.message)
+        this.showToast(error.message)
       } finally {
         this.saving = false
       }
     },
 
     async deleteReceipt(id) {
-      if (
-        !confirm(
-          'Are you sure you want to delete this receipt?'
-        )
-      ) {
+      const confirmed = confirm(
+        'Are you sure you want to delete this receipt?'
+      )
+
+      if (!confirmed) {
         return
       }
 
@@ -565,124 +632,217 @@ export default {
         }
 
         await this.getReceipts()
+        await this.getItems()
+        await this.getItemRequests()
+
+        this.showToast(
+          'Receipt deleted successfully'
+        )
       } catch (error) {
         console.log(error)
-        alert(error.message)
+        this.showToast(error.message)
       }
     },
 
+    getReceiptItem(receipt) {
+      if (!receipt) {
+        return {}
+      }
+
+      if (receipt.items) {
+        return Array.isArray(receipt.items)
+          ? receipt.items[0] || {}
+          : receipt.items
+      }
+
+      if (receipt.item) {
+        return receipt.item
+      }
+
+      if (receipt.item_requests?.items) {
+        return Array.isArray(
+          receipt.item_requests.items
+        )
+          ? receipt.item_requests.items[0] || {}
+          : receipt.item_requests.items
+      }
+
+      if (receipt.item_id) {
+        return this.items.find(
+          item =>
+            item.id === receipt.item_id
+        ) || {}
+      }
+
+      return {}
+    },
+
+    getRequestItem(request) {
+      if (!request) {
+        return {}
+      }
+
+      if (request.items) {
+        return Array.isArray(request.items)
+          ? request.items[0] || {}
+          : request.items
+      }
+
+      if (request.item) {
+        return request.item
+      }
+
+      return this.items.find(
+        item =>
+          item.id === request.item_id
+      ) || {}
+    },
+
+    getIssuedToName(receipt) {
+      if (!receipt) {
+        return '-'
+      }
+
+      if (receipt.users?.full_name) {
+        return receipt.users.full_name
+      }
+
+      if (
+        receipt.item_requests?.users?.full_name
+      ) {
+        return receipt.item_requests.users.full_name
+      }
+
+      if (receipt.issued_to) {
+        const person = this.personnel.find(
+          person =>
+            person.id === receipt.issued_to
+        )
+
+        return person?.full_name || '-'
+      }
+
+      return '-'
+    },
+
+    formatAmount(value) {
+      const amount = Number(value)
+
+      if (!Number.isFinite(amount)) {
+        return '0.00'
+      }
+
+      return amount.toLocaleString('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })
+    },
+
+    escapeHtml(value) {
+      return String(value ?? '-').replace(
+        /[&<>"']/g,
+        character => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        })[character]
+      )
+    },
+
+    showToast(message) {
+      window.dispatchEvent(
+        new CustomEvent('show-toast', {
+          detail: message
+        })
+      )
+    },
+
     printReceipt(receipt) {
-      const item = this.getItem(receipt)
+      const item = this.getReceiptItem(receipt)
 
-      const person =
-        receipt.users ||
-        this.personnel.find(
-          person => person.id === receipt.issued_to
-        ) ||
-        {}
-
-      const escapeHtml = value => {
-        return String(value ?? '-').replace(
-          /[&<>"']/g,
-          character => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;'
-          })[character]
+      const receiptType =
+        this.escapeHtml(
+          receipt.receipt_type || 'PAR'
         )
-      }
 
-      const formatAmount = value => {
-        const amount = Number(value)
-
-        if (!Number.isFinite(amount)) {
-          return '-'
-        }
-
-        return amount.toLocaleString(
-          'en-PH',
-          {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          }
+      const receiptNumber =
+        this.escapeHtml(
+          receipt.receipt_number || '-'
         )
-      }
 
-      const receiptType = escapeHtml(
-        receipt.receipt_type || 'PAR'
-      )
+      const personnelName =
+        this.escapeHtml(
+          this.getIssuedToName(receipt)
+        )
 
-      const receiptNumber = escapeHtml(
-        receipt.receipt_number || '-'
-      )
+      const description =
+        this.escapeHtml(
+          item.description || '-'
+        )
 
-      const description = escapeHtml(
-        item.description ||
-        receipt.item_description ||
-        'No description'
-      )
+      const propertyNumber =
+        this.escapeHtml(
+          item.property_number || '-'
+        )
 
-      const propertyNumber = escapeHtml(
-        item.property_number ||
-        '-'
-      )
+      const serialNumber =
+        this.escapeHtml(
+          item.serial_number || '-'
+        )
 
-      const serialNumber = escapeHtml(
-        item.serial_number ||
-        '-'
-      )
+      const dateAcquired =
+        this.escapeHtml(
+          item.acquisition_date ||
+          item.date_acquired ||
+          '-'
+        )
 
-      const dateAcquired = escapeHtml(
-        item.acquisition_date ||
-        item.date_of_purchase ||
-        '-'
-      )
+      const dateIssued =
+        this.escapeHtml(
+          receipt.date_issued || '-'
+        )
 
-      const quantity = escapeHtml(
-        item.quantity || 1
-      )
+      const classification =
+        this.escapeHtml(
+          item.classification ||
+          receipt.receipt_type ||
+          '-'
+        )
 
-      const unit = escapeHtml(
-        item.unit || 'unit'
-      )
+      const condition =
+        this.escapeHtml(
+          item.condition || '-'
+        )
 
-      const cost = Number(
-        item.cost ??
-        item.price ??
-        0
-      )
+      const responsibilityCenter =
+        this.escapeHtml(
+          item.responsibility_center || '-'
+        )
 
-      const amount = formatAmount(cost)
+      const cost =
+        Number(item.cost || 0)
 
-      const total = formatAmount(cost)
+      const amount =
+        this.formatAmount(cost)
 
-      const personnelName = escapeHtml(
-        person.full_name ||
-        '-'
-      )
+      const remarks =
+        this.escapeHtml(
+          receipt.remarks || '-'
+        )
 
-      const dateIssued = escapeHtml(
-        receipt.date_issued ||
-        '-'
-      )
+      const receiptStatus =
+        this.escapeHtml(
+          receipt.status || 'Delivered'
+        )
 
-      const receiptStatus = escapeHtml(
-        receipt.status ||
-        'Ready to Deliver'
-      )
-
-      const purpose = escapeHtml(
-        receipt.remarks ||
-        'PROPERTY INVENTORY ACCOUNTABILITY'
-      )
-
-      const office = escapeHtml(
-        receipt.offices?.office_name ||
-        item.office_name ||
-        '________________________'
-      )
+      const officeName =
+        this.escapeHtml(
+          receipt.item_requests?.offices?.office_name ||
+          receipt.offices?.office_name ||
+          '-'
+        )
 
       const printWindow = window.open(
         '',
@@ -690,8 +850,8 @@ export default {
       )
 
       if (!printWindow) {
-        alert(
-          'Please allow pop-ups to print the receipt.'
+        this.showToast(
+          'Please allow pop-ups to print the receipt'
         )
 
         return
@@ -701,12 +861,14 @@ export default {
         <!DOCTYPE html>
         <html>
         <head>
-          <title>${receiptType} - ${receiptNumber}</title>
+          <title>
+            ${receiptType} - ${receiptNumber}
+          </title>
 
           <style>
             @page {
               size: A4;
-              margin: 12mm 14mm;
+              margin: 10mm 12mm;
             }
 
             * {
@@ -714,9 +876,9 @@ export default {
             }
 
             body {
-              font-family: Arial, sans-serif;
-              color: #000;
               margin: 0;
+              color: #000;
+              font-family: Arial, sans-serif;
               font-size: 10px;
             }
 
@@ -728,112 +890,150 @@ export default {
               display: flex;
               align-items: center;
               justify-content: center;
-              gap: 12px;
+              gap: 14px;
               text-align: center;
+              border-bottom: 5px solid #198754;
+              padding-bottom: 8px;
             }
 
             .seal {
-              width: 54px;
-              height: 54px;
-              border: 1px solid #777;
+              width: 72px;
+              height: 72px;
+              border: 3px solid #198754;
               border-radius: 50%;
-              display: grid;
-              place-items: center;
-              font-size: 7px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
               text-align: center;
+              font-size: 10px;
+              font-weight: bold;
+              color: #198754;
+              background: #fff200;
             }
 
             .header h1 {
               margin: 0;
-              font-size: 15px;
+              font-size: 19px;
+              color: #198754;
+              font-weight: bold;
+            }
+
+            .header h2 {
+              margin: 3px 0;
+              font-size: 13px;
+              color: #000;
             }
 
             .header p {
               margin: 2px 0;
-              font-size: 10px;
+              font-size: 11px;
             }
 
             .appendix {
-              position: absolute;
-              right: 14mm;
-              top: 10mm;
+              text-align: right;
+              margin-top: 5px;
+              font-size: 10px;
               font-weight: bold;
-              font-size: 9px;
             }
 
-            .title {
-              margin: 17px 0 12px;
+            .receipt-title {
               text-align: center;
-              font-size: 13px;
+              background: #198754;
+              color: white;
+              font-size: 15px;
               font-weight: bold;
-              text-decoration: underline;
+              padding: 9px;
+              margin: 8px 0 10px;
+              border: 2px solid #198754;
             }
 
-            .meta {
+            .receipt-title span {
+              color: #fff200;
+            }
+
+            /* FUND CLUSTER AND PAR NUMBER */
+            .receipt-info {
               display: flex;
               justify-content: space-between;
-              margin-bottom: 5px;
+              align-items: center;
+              margin: 8px 0 5px;
+              font-size: 12px;
+              font-weight: bold;
             }
 
-            .meta span {
+            .fund-cluster,
+            .par-number {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+
+            .fund-cluster span,
+            .par-number span {
               display: inline-block;
-              min-width: 145px;
+              min-width: 155px;
               border-bottom: 1px solid #000;
+              padding: 2px 5px;
+              font-weight: normal;
             }
 
-            .meta strong {
-              margin-right: 4px;
+            .par-number span {
+              min-width: 120px;
             }
 
-            table {
+            .main-table {
               width: 100%;
               border-collapse: collapse;
               table-layout: fixed;
+              margin-top: 5px;
             }
 
-            th,
-            td {
+            .main-table th,
+            .main-table td {
               border: 1px solid #000;
               padding: 5px 4px;
               vertical-align: middle;
-              overflow-wrap: anywhere;
+              word-wrap: break-word;
             }
 
-            th {
-              font-size: 9px;
+            .main-table th {
+              background: #198754;
+              color: white;
               text-align: center;
+              font-size: 9px;
             }
 
-            td {
-              min-height: 42px;
+            .main-table td {
+              height: 46px;
+              font-size: 9px;
             }
 
             .sn {
-              width: 8%;
-              text-align: center;
-            }
-
-            .qty {
               width: 7%;
               text-align: center;
             }
 
+            .qty {
+              width: 6%;
+              text-align: center;
+            }
+
             .unit {
-              width: 8%;
+              width: 7%;
               text-align: center;
             }
 
             .article {
-              width: 27%;
+              width: 23%;
             }
 
             .property {
-              width: 15%;
+              width: 14%;
               text-align: center;
             }
 
             .serial {
-              width: 15%;
+              width: 13%;
               text-align: center;
             }
 
@@ -843,57 +1043,80 @@ export default {
             }
 
             .amount {
-              width: 15%;
+              width: 17%;
               text-align: right;
             }
 
-            .total td {
+            .total-row td {
               height: 28px;
               font-weight: bold;
             }
 
             .total-label {
               text-align: right;
-            }
-
-            .highlight {
               background: #fff200;
             }
 
-            .details {
+            .total-amount {
+              background: #fff200;
+              text-align: right;
+            }
+
+            .lower-details {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              min-height: 110px;
-            }
-
-            .details > div {
-              padding: 10px 7px;
               border: 1px solid #000;
-              border-top: 0;
+              border-top: none;
             }
 
-            .details > div + div {
-              border-left: 0;
+            .lower-left,
+            .lower-right {
+              padding: 9px;
+              min-height: 155px;
             }
 
-            .details p {
-              margin: 0 0 7px;
+            .lower-left {
+              border-right: 1px solid #000;
             }
 
-            .label {
+            .lower-details p {
+              margin: 0 0 9px;
+              line-height: 1.25;
+            }
+
+            .lower-details strong {
+              color: #198754;
+            }
+
+            .line {
               display: inline-block;
-              min-width: 105px;
+              border-bottom: 1px solid #000;
+              width: 150px;
+              height: 12px;
+            }
+
+            .acknowledgement {
+              margin-top: 12px;
+              border: 1px solid #000;
+              padding: 8px;
+              font-size: 10px;
+              line-height: 1.5;
+            }
+
+            .acknowledgement strong {
+              color: #198754;
             }
 
             .signature {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 55px;
+              gap: 45px;
               margin-top: 65px;
             }
 
             .signature-box {
               text-align: center;
+              font-size: 10px;
             }
 
             .signature-line {
@@ -901,27 +1124,30 @@ export default {
               padding-top: 5px;
             }
 
-            .signature-box small {
-              display: block;
+            .signature-name {
+              margin-top: 5px;
+              font-weight: bold;
+            }
+
+            .signature-label {
               margin-top: 3px;
             }
 
-            .page-number {
-              position: fixed;
-              bottom: 0;
-              right: 0;
+            .footer {
+              margin-top: 18px;
+              padding-top: 5px;
+              border-top: 3px solid #198754;
+              text-align: center;
               font-size: 9px;
+              color: #198754;
+              font-weight: bold;
             }
           </style>
         </head>
 
         <body>
-          <main class="page">
-            <div class="appendix">
-              APPENDIX 71
-            </div>
-
-            <header class="header">
+          <div class="page">
+            <div class="header">
               <div class="seal">
                 NVSU<br>
                 SEAL
@@ -932,38 +1158,45 @@ export default {
                   NUEVA VIZCAYA STATE UNIVERSITY
                 </h1>
 
-                <p>
+                <h2>
                   Bambang Campus
-                </p>
+                </h2>
 
                 <p>
                   Bambang, Nueva Vizcaya
                 </p>
               </div>
-            </header>
-
-            <div class="title">
-              PROPERTY ACKNOWLEDGEMENT RECEIPT
             </div>
 
-            <div class="meta">
-              <div>
+            <div class="appendix">
+              APPENDIX 71
+            </div>
+
+            <div class="receipt-title">
+              <span>
+                ${
+                  receipt.receipt_type === 'ICS'
+                    ? 'INVENTORY CUSTODIAN SLIP'
+                    : 'PROPERTY ACKNOWLEDGEMENT RECEIPT'
+                }
+              </span>
+            </div>
+
+            <!-- FUND CLUSTER AND PAR NUMBER -->
+            <div class="receipt-info">
+              <div class="fund-cluster">
                 <strong>FUND CLUSTER:</strong>
                 <span>TF-2</span>
               </div>
 
-              <div>
-                <strong>
-                  ${receiptType === 'ICS' ? 'ICS No:' : 'PAR No:'}
-                </strong>
-
-                <span>
-                  ${receiptNumber}
-                </span>
+              <div class="par-number">
+                <strong>${receiptType} No.</strong>
+                <span>${receiptNumber}</span>
               </div>
             </div>
 
-            <table>
+            <!-- MAIN PROPERTY TABLE -->
+            <table class="main-table">
               <thead>
                 <tr>
                   <th class="sn">
@@ -1003,15 +1236,15 @@ export default {
               <tbody>
                 <tr>
                   <td class="sn">
-                    30000
+                    1
                   </td>
 
                   <td class="qty">
-                    ${quantity}
+                    1
                   </td>
 
                   <td class="unit">
-                    ${unit}
+                    unit
                   </td>
 
                   <td class="article">
@@ -1035,7 +1268,7 @@ export default {
                   </td>
                 </tr>
 
-                <tr class="total">
+                <tr class="total-row">
                   <td
                     colspan="7"
                     class="total-label"
@@ -1043,93 +1276,80 @@ export default {
                     Total
                   </td>
 
-                  <td class="amount highlight">
-                    ${total}
+                  <td class="total-amount">
+                    ${amount}
                   </td>
                 </tr>
               </tbody>
             </table>
 
-            <div class="details">
-              <div>
+            <!-- DETAILS BELOW THE MAIN TABLE -->
+            <div class="lower-details">
+              <div class="lower-left">
                 <p>
-                  <span class="label">
-                    UNIT/OFFICE:
-                  </span>
-
-                  ${office}
+                  <strong>UNIT/OFFICE:</strong>
+                  <span class="line"></span>
                 </p>
 
                 <p>
-                  <span class="label">
-                    PO NO.:
-                  </span>
-
-                  ________________________
+                  <strong>PO NO.:</strong>
+                  <span class="line"></span>
                 </p>
 
                 <p>
-                  <span class="label">
-                    UACS:
-                  </span>
-
-                  __________________________
+                  <strong>UACS:</strong>
+                  <span class="line"></span>
                 </p>
 
                 <p>
-                  <span class="label">
-                    BUR NO.:
-                  </span>
-
-                  ________________________
+                  <strong>BUR NO.:</strong>
+                  <span class="line"></span>
                 </p>
 
                 <p>
-                  <span class="label">
-                    SUPPLIER:
-                  </span>
-
-                  _______________________
+                  <strong>SUPPLIER:</strong>
+                  <span class="line"></span>
                 </p>
 
                 <p>
-                  <span class="label">
-                    IAR NO.:
-                  </span>
-
-                  ________________________
+                  <strong>IAR NO.:</strong>
+                  <span class="line"></span>
                 </p>
               </div>
 
-              <div>
+              <div class="lower-right">
                 <p>
-                  <strong>
-                    PURPOSE:
-                  </strong>
+                  <strong>PURPOSE:</strong>
                 </p>
 
                 <p>
-                  ${purpose}
+                  ${remarks}
                 </p>
 
                 <p>
-                  <strong>
-                    DATE ISSUED:
-                  </strong>
-
+                  <strong>DATE ISSUED:</strong>
                   ${dateIssued}
                 </p>
 
                 <p>
-                  <strong>
-                    STATUS:
-                  </strong>
-
+                  <strong>STATUS:</strong>
                   ${receiptStatus}
                 </p>
               </div>
             </div>
 
+            <!-- ACKNOWLEDGEMENT -->
+            <div class="acknowledgement">
+              <strong>
+                ACKNOWLEDGEMENT:
+              </strong>
+
+              I hereby acknowledge receipt of the
+              property/item described above and agree
+              to take proper care of the assigned property.
+            </div>
+
+            <!-- SIGNATURES -->
             <div class="signature">
               <div class="signature-box">
                 <div class="signature-line">
@@ -1138,13 +1358,13 @@ export default {
                   </strong>
                 </div>
 
-                <small>
+                <div class="signature-name">
                   ${personnelName}
-                </small>
+                </div>
 
-                <small>
+                <div class="signature-label">
                   Signature over Printed Name
-                </small>
+                </div>
               </div>
 
               <div class="signature-box">
@@ -1154,20 +1374,21 @@ export default {
                   </strong>
                 </div>
 
-                <small>
+                <div class="signature-name">
                   Administrative Officer V
-                </small>
+                </div>
 
-                <small>
+                <div class="signature-label">
                   Signature over Printed Name
-                </small>
+                </div>
               </div>
             </div>
 
-            <div class="page-number">
-              Page 1 of 1
+            <div class="footer">
+              NUEVA VIZCAYA STATE UNIVERSITY
+              PROPERTY MANAGEMENT SYSTEM
             </div>
-          </main>
+          </div>
 
           <script>
             window.onload = function () {
@@ -1185,6 +1406,14 @@ export default {
 </script>
 
 <style scoped>
+.table th {
+  white-space: nowrap;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
 @media (max-width: 576px) {
   .table {
     min-width: 0 !important;
@@ -1200,7 +1429,7 @@ export default {
 
   .modal-dialog {
     max-width: calc(100% - 1rem);
-    margin: .5rem auto;
+    margin: 0.5rem auto;
   }
 }
 </style>
