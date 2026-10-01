@@ -48,7 +48,6 @@
             <option value="Approved">Approved</option>
             <option value="Delivered">Delivered</option>
             <option value="Rejected">Rejected</option>
-            <option value="Cancelled">Cancelled</option>
           </select>
 
           <select
@@ -180,7 +179,7 @@
 
               <tr v-if="filteredRequests.length === 0">
                 <td
-                  :colspan="canManageRequests ? 7 : 6"
+                  :colspan="canManageRequests ? 7 : 5"
                   class="text-center text-secondary py-5"
                 >
                   No item requests found.
@@ -268,12 +267,12 @@
 
               <div class="mb-3">
                 <label class="form-label">
-                  Item Description
+                  Item (from Inventory)
                 </label>
 
                 <select
                   class="form-select"
-                  v-model="form.item_description"
+                  v-model="form.item_id"
                   required
                 >
                   <option value="">
@@ -283,12 +282,9 @@
                   <option
                     v-for="item in items"
                     :key="item.id"
-                    :value="item.description"
+                    :value="item.id"
                   >
-                    {{ item.description }}
-                    <span v-if="item.property_number">
-                      - {{ item.property_number }}
-                    </span>
+                    {{ formatItem(item) }}
                   </option>
                 </select>
 
@@ -298,6 +294,17 @@
                 >
                   No available inventory items found.
                 </small>
+
+                <div
+                  v-if="selectedItem"
+                  class="border rounded p-2 mt-2 small bg-light"
+                >
+                  <div><strong>{{ selectedItem.description }}</strong></div>
+                  <div>Property No.: {{ selectedItem.property_number || '-' }}</div>
+                  <div>Serial No.: {{ selectedItem.serial_number || '-' }}</div>
+                  <div>Classification: {{ selectedItem.classification || '-' }}</div>
+                  <div>Condition: {{ selectedItem.condition || '-' }}</div>
+                </div>
               </div>
 
               <div class="mb-3">
@@ -407,10 +414,6 @@
                   <option value="Rejected">
                     Rejected
                   </option>
-
-                  <option value="Cancelled">
-                    Cancelled
-                  </option>
                 </select>
               </div>
             </div>
@@ -468,7 +471,7 @@ export default {
         request_number: '',
         requested_by: '',
         office_id: '',
-        item_description: '',
+        item_id: '',
         quantity: 1,
         purpose: '',
         status: 'Pending'
@@ -494,6 +497,14 @@ export default {
     currentUser() {
       return JSON.parse(
         localStorage.getItem('user') || 'null'
+      )
+    },
+
+    selectedItem() {
+      return (
+        this.items.find(
+          item => item.id === this.form.item_id
+        ) || null
       )
     },
 
@@ -624,6 +635,25 @@ export default {
   },
 
   methods: {
+    formatItem(item) {
+      let text = item.description || 'Unnamed item'
+
+      if (item.property_number) {
+        text += ' - ' + item.property_number
+      }
+
+      const details = [
+        item.classification,
+        item.condition
+      ].filter(Boolean)
+
+      if (details.length) {
+        text += ' (' + details.join(', ') + ')'
+      }
+
+      return text
+    },
+
     getSortValue(request, column) {
       if (column === 'requested_by') {
         return (
@@ -712,7 +742,7 @@ export default {
     async getItems() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/items'
+          'http://localhost:5000/api/item-requests/available-items'
         )
 
         const data = await response.json()
@@ -723,17 +753,7 @@ export default {
           )
         }
 
-        if (!Array.isArray(data)) {
-          this.items = []
-          return
-        }
-
-        this.items = data.filter(item => {
-          return (
-            item.status === 'Available' ||
-            !item.status
-          )
-        })
+        this.items = Array.isArray(data) ? data : []
       } catch (error) {
         console.log('Inventory items error:', error)
 
@@ -799,7 +819,7 @@ export default {
         request_number: '',
         requested_by: '',
         office_id: '',
-        item_description: '',
+        item_id: '',
         quantity: 1,
         purpose: '',
         status: 'Pending'
@@ -823,14 +843,21 @@ export default {
           request.requested_by || '',
         office_id:
           request.office_id || '',
-        item_description:
-          request.item_description || '',
+        item_id:
+          request.item_id || '',
         quantity:
           request.quantity || 1,
         purpose:
           request.purpose || '',
         status:
           request.status || 'Pending'
+      }
+
+      if (
+        request.items &&
+        !this.items.some(item => item.id === request.items.id)
+      ) {
+        this.items.push(request.items)
       }
 
       const modal = Modal.getOrCreateInstance(
@@ -873,8 +900,8 @@ export default {
             office_id:
               this.form.office_id || null,
 
-            item_description:
-              this.form.item_description,
+            item_id:
+              this.form.item_id,
 
             quantity:
               Number(this.form.quantity),
@@ -904,6 +931,7 @@ export default {
         modal.hide()
 
         await this.getRequests()
+        await this.getItems()
 
         this.showToast(
           this.editing
@@ -945,6 +973,7 @@ export default {
         }
 
         await this.getRequests()
+        await this.getItems()
 
         this.showToast(
           'Request deleted successfully'
@@ -979,10 +1008,6 @@ export default {
 
       if (status === 'Rejected') {
         return 'bg-danger'
-      }
-
-      if (status === 'Cancelled') {
-        return 'bg-secondary'
       }
 
       return 'bg-secondary'

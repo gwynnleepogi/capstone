@@ -84,6 +84,31 @@ router.get('/', async (req, res) => {
 })
 
 
+// ITEMS THAT ALREADY HAVE AN OPEN REQUEST (Pending or Approved)
+
+async function getActiveRequestedItemIds() {
+  const { data, error } = await supabase
+    .from('item_requests')
+    .select('item_id')
+    .in('status', ['Pending', 'Approved'])
+    .not('item_id', 'is', null)
+
+  if (error) {
+    console.log(error)
+
+    return {
+      ids: new Set(),
+      error: error.message
+    }
+  }
+
+  return {
+    ids: new Set(data.map(row => row.item_id)),
+    error: null
+  }
+}
+
+
 // GET AVAILABLE INVENTORY ITEMS
 
 router.get(
@@ -120,14 +145,29 @@ router.get(
       })
     }
 
-    res.json(data)
+    const {
+      ids: requestedItemIds,
+      error: requestedError
+    } = await getActiveRequestedItemIds()
+
+    if (requestedError) {
+      return res.status(500).json({
+        error: requestedError
+      })
+    }
+
+    const freeItems = data.filter(
+      item => !requestedItemIds.has(item.id)
+    )
+
+    res.json(freeItems)
   }
 )
 
 
 // GET SELECTED INVENTORY ITEM
 
-async function getSelectedItem(itemId) {
+async function getSelectedItem(itemId, excludeRequestId) {
   const { data, error } = await supabase
     .from('items')
     .select(`
@@ -152,6 +192,35 @@ async function getSelectedItem(itemId) {
     return {
       item: null,
       error: 'The selected inventory item is not available'
+    }
+  }
+
+  let activeQuery = supabase
+    .from('item_requests')
+    .select('id')
+    .eq('item_id', itemId)
+    .in('status', ['Pending', 'Approved'])
+
+  if (excludeRequestId) {
+    activeQuery = activeQuery.neq('id', excludeRequestId)
+  }
+
+  const {
+    data: activeRequests,
+    error: activeError
+  } = await activeQuery
+
+  if (activeError) {
+    return {
+      item: null,
+      error: activeError.message
+    }
+  }
+
+  if (activeRequests && activeRequests.length > 0) {
+    return {
+      item: null,
+      error: 'This item has already been requested by someone else'
     }
   }
 
@@ -344,7 +413,7 @@ router.put(
     const {
       item: selectedItem,
       error: selectedItemError
-    } = await getSelectedItem(item_id)
+    } = await getSelectedItem(item_id, req.params.id)
 
     if (
       selectedItemError &&

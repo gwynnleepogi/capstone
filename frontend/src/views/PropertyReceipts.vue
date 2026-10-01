@@ -190,11 +190,29 @@
                     v-for="request in itemRequests"
                     :key="request.id"
                     :value="request.id"
+                    :disabled="!request.item_id || !request.requested_by"
                   >
                     {{ request.request_number }} -
                     {{ request.item_description }}
+                    {{ getRequestProblem(request) }}
                   </option>
                 </select>
+
+                <small
+                  v-if="itemRequests.length === 0"
+                  class="text-danger"
+                >
+                  No approved item requests found. Approve a request
+                  in Item Requests first.
+                </small>
+
+                <small
+                  v-else-if="itemRequests.some(request => !request.item_id || !request.requested_by)"
+                  class="text-secondary"
+                >
+                  Greyed out requests are missing an inventory item
+                  or requester. Edit them in Item Requests first.
+                </small>
               </div>
 
               <!-- SELECTED ITEM DETAILS -->
@@ -455,6 +473,18 @@ export default {
       }
     },
 
+    getRequestProblem(request) {
+      if (!request.item_id) {
+        return '(no inventory item - edit the request first)'
+      }
+
+      if (!request.requested_by) {
+        return '(no requester - edit the request first)'
+      }
+
+      return ''
+    },
+
     async getItemRequests() {
       try {
         const response = await fetch(
@@ -476,9 +506,7 @@ export default {
             []
 
         this.itemRequests = requests.filter(
-          request =>
-            request.status === 'Approved' &&
-            request.item_id
+          request => request.status === 'Approved'
         )
       } catch (error) {
         console.log(error)
@@ -1404,32 +1432,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.table th {
-  white-space: nowrap;
-}
-
-.table td {
-  vertical-align: middle;
-}
-
-@media (max-width: 576px) {
-  .table {
-    min-width: 0 !important;
-    table-layout: fixed;
-  }
-
-  .table th,
-  .table td {
-    padding: 9px 5px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .modal-dialog {
-    max-width: calc(100% - 1rem);
-    margin: 0.5rem auto;
-  }
-}
-</style>
