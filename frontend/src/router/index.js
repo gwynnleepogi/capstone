@@ -8,8 +8,7 @@ import Suppliers from '@/views/Suppliers.vue'
 import Personnel from '@/views/Personnel.vue'
 import ItemRequests from '@/views/ItemRequests.vue'
 import PropertyReceipts from '@/views/PropertyReceipts.vue'
-import Returns from '@/views/Returns.vue'
-import Incidents from '@/views/Incidents.vue'
+import ReturnIncidents from '@/views/ReturnIncidents.vue'
 import AuditLogs from '@/views/AuditLogs.vue'
 
 
@@ -50,7 +49,7 @@ const router = createRouter({
     path: '/personnel',
     name: 'Personnel',
     component: Personnel,
-      meta: { roles: ['Administrator'] }
+      meta: { roles: ['Administrator', 'Personnel'] }
   },
   {
     path: '/request',
@@ -65,17 +64,14 @@ const router = createRouter({
       meta: { roles: ['Administrator', 'Personnel'] }
   },
   {
-    path: '/returns',
-    name: 'Returns',
-    component: Returns,
+    path: '/returns-incidents',
+    name: 'ReturnsIncidents',
+    component: ReturnIncidents,
       meta: { roles: ['Administrator', 'Personnel'] }
   },
-  {
-    path: '/incidents',
-    name: 'Incidents',
-    component: Incidents,
-      meta: { roles: ['Administrator', 'Personnel'] }
-  },
+  // old pages now live in the combined page
+  { path: '/returns', redirect: '/returns-incidents' },
+  { path: '/incidents', redirect: '/returns-incidents' },
   {
     path: '/audit-logs',
     name: 'AuditSLogs',

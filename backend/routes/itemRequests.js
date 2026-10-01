@@ -133,6 +133,7 @@ router.get(
         'Available',
         'Returned'
       ])
+      .eq('condition', 'Serviceable')
       .order('description', {
         ascending: true
       })
@@ -173,7 +174,8 @@ async function getSelectedItem(itemId, excludeRequestId) {
     .select(`
       id,
       description,
-      status
+      status,
+      condition
     `)
     .eq('id', itemId)
     .single()
@@ -192,6 +194,13 @@ async function getSelectedItem(itemId, excludeRequestId) {
     return {
       item: null,
       error: 'The selected inventory item is not available'
+    }
+  }
+
+  if (data.condition !== 'Serviceable') {
+    return {
+      item: null,
+      error: 'This item is Unserviceable and cannot be assigned until it is marked Serviceable again'
     }
   }
 

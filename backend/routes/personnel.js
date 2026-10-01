@@ -5,7 +5,7 @@ const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
 const { requireAuth, requireRole } = require('../middleware/auth')
 
-router.get('/', requireAuth, requireRole('Administrator'), async (req, res) => {
+router.get('/', requireAuth, requireRole('Administrator', 'Personnel'), async (req, res) => {
   const { data, error } = await supabase
     .from('users')
     .select(`

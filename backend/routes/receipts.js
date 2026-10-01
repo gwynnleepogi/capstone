@@ -255,6 +255,7 @@ router.post('/', async (req, res) => {
         id,
         description,
         status,
+        condition,
         accountable_employee
       `)
       .eq('id', request.item_id)
@@ -272,6 +273,15 @@ router.post('/', async (req, res) => {
     if (item.status !== 'Available') {
       return res.status(400).json({
         error: `This item is not available. Current status: ${item.status}`
+      })
+    }
+
+
+    // CHECK ITEM CONDITION
+
+    if (item.condition !== 'Serviceable') {
+      return res.status(400).json({
+        error: 'This item is Unserviceable and cannot be issued until it is marked Serviceable again'
       })
     }
 

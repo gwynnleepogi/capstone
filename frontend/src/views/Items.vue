@@ -1,4 +1,3 @@
-
 <template>
   <div class="container-fluid">
     <div class="row align-items-center mb-4">
@@ -187,23 +186,42 @@
             <div class="col-12 col-md-6">
               <label class="form-label">Accountable Employee</label>
 
-              <input
+              <select
                 v-model="newItem.accountable_employee"
-                type="text"
-                class="form-control"
+                class="form-select"
                 required
+                @change="autoFillOffice(newItem)"
               >
+                <option value="" disabled>Select personnel</option>
+
+                <option
+                  v-for="person in personnelOptions"
+                  :key="person.id"
+                  :value="person.full_name"
+                >
+                  {{ person.full_name }}
+                </option>
+              </select>
             </div>
 
-            <div class="col-12">
+            <div class="col-12 col-md-6">
               <label class="form-label">Responsibility Center</label>
 
-              <input
+              <select
                 v-model="newItem.responsibility_center"
-                type="text"
-                class="form-control"
+                class="form-select"
                 required
               >
+                <option value="" disabled>Select office</option>
+
+                <option
+                  v-for="office in officeOptions"
+                  :key="office.id"
+                  :value="office.office_name"
+                >
+                  {{ office.office_name }}
+                </option>
+              </select>
             </div>
 
             <div class="col-12 col-md-4">
@@ -470,23 +488,42 @@
             <div class="mb-3">
               <label class="form-label">Accountable Employee</label>
 
-              <input
+              <select
                 v-model="editForm.accountable_employee"
-                type="text"
-                class="form-control"
+                class="form-select"
                 required
+                @change="autoFillOffice(editForm)"
               >
+                <option value="" disabled>Select personnel</option>
+
+                <option
+                  v-for="person in editPersonnelOptions"
+                  :key="person.id"
+                  :value="person.full_name"
+                >
+                  {{ person.full_name }}
+                </option>
+              </select>
             </div>
 
             <div class="mb-3">
               <label class="form-label">Responsibility Center</label>
 
-              <input
+              <select
                 v-model="editForm.responsibility_center"
-                type="text"
-                class="form-control"
+                class="form-select"
                 required
               >
+                <option value="" disabled>Select office</option>
+
+                <option
+                  v-for="office in editOfficeOptions"
+                  :key="office.id"
+                  :value="office.office_name"
+                >
+                  {{ office.office_name }}
+                </option>
+              </select>
             </div>
 
             <div class="mb-3">
@@ -581,6 +618,8 @@ export default {
   data() {
     return {
       items: [],
+      personnel: [],
+      offices: [],
       search: '',
       selectedClassification: '',
       selectedStatus: '',
@@ -622,6 +661,48 @@ export default {
   },
 
   computed: {
+    personnelOptions() {
+      return this.personnel
+    },
+
+    officeOptions() {
+      return this.offices
+    },
+
+    // keep the item's current value selectable in Edit even if it is
+    // an older free-text value that is not in the lists
+    editPersonnelOptions() {
+      const current = this.editForm.accountable_employee
+
+      if (
+        current &&
+        !this.personnel.some(person => person.full_name === current)
+      ) {
+        return [
+          ...this.personnel,
+          { id: 'current', full_name: current }
+        ]
+      }
+
+      return this.personnel
+    },
+
+    editOfficeOptions() {
+      const current = this.editForm.responsibility_center
+
+      if (
+        current &&
+        !this.offices.some(office => office.office_name === current)
+      ) {
+        return [
+          ...this.offices,
+          { id: 'current', office_name: current }
+        ]
+      }
+
+      return this.offices
+    },
+
     filteredItems() {
       const search = this.search.toLowerCase().trim()
 
@@ -653,10 +734,108 @@ export default {
   },
 
   async mounted() {
-    await this.getItems()
+    await Promise.all([
+      this.getItems(),
+      this.getOptions()
+    ])
   },
 
   methods: {
+    async fetchJson(url) {
+      const response = await apiRequest(url)
+      const text = await response.text()
+
+      let data
+
+      try {
+        data = JSON.parse(text)
+      } catch (parseError) {
+        throw new Error('Server did not return JSON for ' + url)
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Request failed: ' + url)
+      }
+
+      return data
+    },
+
+    async getOptions() {
+      const base = 'http://localhost:5000/api'
+
+      try {
+        // preferred: one call that works for Administrator and Personnel
+        const data = await this.fetchJson(base + '/items/options')
+
+        this.personnel = Array.isArray(data.personnel)
+          ? data.personnel
+          : []
+
+        this.offices = Array.isArray(data.offices)
+          ? data.offices
+          : []
+
+        return
+      } catch (error) {
+        console.log('Options route failed, using fallback:', error)
+      }
+
+      // fallback: the existing endpoints (personnel list is admin-only)
+      const [personnelResult, officesResult] =
+        await Promise.allSettled([
+          this.fetchJson(base + '/personnel'),
+          this.fetchJson(base + '/offices')
+        ])
+
+      if (personnelResult.status === 'fulfilled') {
+        this.personnel = Array.isArray(personnelResult.value)
+          ? personnelResult.value
+          : []
+      }
+
+      if (officesResult.status === 'fulfilled') {
+        this.offices = Array.isArray(officesResult.value)
+          ? officesResult.value
+          : []
+      }
+
+      if (
+        personnelResult.status === 'rejected' ||
+        officesResult.status === 'rejected'
+      ) {
+        const reason =
+          personnelResult.reason?.message ||
+          officesResult.reason?.message ||
+          'Failed to load personnel and offices'
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: reason
+          })
+        )
+      }
+    },
+
+    // when a person is picked, default the responsibility center
+    // to that person's office (can still be changed afterwards)
+    autoFillOffice(form) {
+      const person = this.personnel.find(
+        p => p.full_name === form.accountable_employee
+      )
+
+      if (!person || !person.office_id) {
+        return
+      }
+
+      const office = this.offices.find(
+        o => o.id === person.office_id
+      )
+
+      if (office) {
+        form.responsibility_center = office.office_name
+      }
+    },
+
     async getItems() {
       this.loading = true
 

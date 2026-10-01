@@ -1,4 +1,3 @@
-
 const express = require('express')
 const router = express.Router()
 
@@ -26,6 +25,45 @@ router.get('/', async (req, res) => {
   }
 
   res.json(data)
+
+})
+
+
+// GET DROPDOWN OPTIONS (personnel + offices) FOR ITEM FORMS
+
+router.get('/options', async (req, res) => {
+
+  const { data: personnel, error: personnelError } = await supabase
+    .from('users')
+    .select('id, full_name, role, office_id')
+    .order('full_name', { ascending: true })
+
+  if (personnelError) {
+
+    console.log(personnelError)
+
+    return res.status(500).json({
+      error: personnelError.message
+    })
+
+  }
+
+  const { data: offices, error: officesError } = await supabase
+    .from('offices')
+    .select('id, office_name, office_code')
+    .order('office_name', { ascending: true })
+
+  if (officesError) {
+
+    console.log(officesError)
+
+    return res.status(500).json({
+      error: officesError.message
+    })
+
+  }
+
+  res.json({ personnel, offices })
 
 })
 

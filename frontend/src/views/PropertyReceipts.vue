@@ -1,19 +1,32 @@
 
 <template>
   <div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
       <div>
         <h2>Receipts</h2>
         <p class="text-muted">Manage property receipts</p>
       </div>
 
-      <button
-        class="btn btn-warning"
-        @click="openAddModal"
-      >
-        <i class="bi bi-plus-lg"></i>
-        Add Receipt
-      </button>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <label class="visually-hidden" for="receipt-print-size">Print paper size</label>
+        <select
+          id="receipt-print-size"
+          v-model="printPaperSize"
+          class="form-select form-select-sm w-auto"
+        >
+          <option value="short">Short Bond (8.5 x 11 in)</option>
+          <option value="a4">A4 (210 x 297 mm)</option>
+          <option value="long">Long Bond (8.5 x 13 in)</option>
+        </select>
+
+        <button
+          class="btn btn-warning"
+          @click="openAddModal"
+        >
+          <i class="bi bi-plus-lg"></i>
+          Add Receipt
+        </button>
+      </div>
     </div>
 
     <div class="card shadow-sm">
@@ -346,12 +359,14 @@
 
 <script>
 import { Modal } from 'bootstrap'
+import nvsuSeal from '@/assets/nvsu-seal.png'
 
 export default {
   name: 'PropertyReceipts',
 
   data() {
     return {
+      printPaperSize: 'a4',
       receipts: [],
       items: [],
       personnel: [],
@@ -788,6 +803,12 @@ export default {
     },
 
     printReceipt(receipt) {
+      const paperSizes = {
+        short: { size: '8.5in 11in', height: '11in' },
+        a4: { size: '210mm 297mm', height: '297mm' },
+        long: { size: '8.5in 13in', height: '13in' }
+      }
+      const paper = paperSizes[this.printPaperSize] || paperSizes.a4
       const item = this.getReceiptItem(receipt)
 
       const receiptType =
@@ -895,8 +916,18 @@ export default {
 
           <style>
             @page {
-              size: A4;
+              size: ${paper.size};
               margin: 10mm 12mm;
+            }
+
+            html,
+            body {
+              min-height: 100%;
+            }
+
+            html {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
             }
 
             * {
@@ -912,6 +943,9 @@ export default {
 
             .page {
               width: 100%;
+              min-height: calc(${paper.height} - 20mm);
+              display: flex;
+              flex-direction: column;
             }
 
             .header {
@@ -927,16 +961,9 @@ export default {
             .seal {
               width: 72px;
               height: 72px;
-              border: 3px solid #198754;
-              border-radius: 50%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              text-align: center;
-              font-size: 10px;
-              font-weight: bold;
-              color: #198754;
-              background: #fff200;
+              object-fit: contain;
+              flex: 0 0 auto;
+              background: white;
             }
 
             .header h1 {
@@ -1029,11 +1056,14 @@ export default {
               color: white;
               text-align: center;
               font-size: 9px;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
             }
 
             .main-table td {
               height: 46px;
               font-size: 9px;
+              background: white;
             }
 
             .sn {
@@ -1082,11 +1112,11 @@ export default {
 
             .total-label {
               text-align: right;
-              background: #fff200;
+              background: white;
             }
 
             .total-amount {
-              background: #fff200;
+              background: white;
               text-align: right;
             }
 
@@ -1139,7 +1169,8 @@ export default {
               display: grid;
               grid-template-columns: 1fr 1fr;
               gap: 45px;
-              margin-top: 65px;
+              margin-top: auto;
+              padding-top: 24mm;
             }
 
             .signature-box {
@@ -1162,7 +1193,7 @@ export default {
             }
 
             .footer {
-              margin-top: 18px;
+              margin-top: 10mm;
               padding-top: 5px;
               border-top: 3px solid #198754;
               text-align: center;
@@ -1176,10 +1207,7 @@ export default {
         <body>
           <div class="page">
             <div class="header">
-              <div class="seal">
-                NVSU<br>
-                SEAL
-              </div>
+              <img class="seal" src="${nvsuSeal}" alt="NVSU seal">
 
               <div>
                 <h1>

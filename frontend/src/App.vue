@@ -4,7 +4,10 @@
   <div v-else class="layout">
 
     <div class="mobile-header">
-      <h2>Property Inventory</h2>
+      <div class="mobile-brand">
+        <img :src="nvsuSeal" class="system-logo" alt="NVSU seal">
+        <h2>Property Inventory</h2>
+      </div>
 
       <button class="hamburger" @click="menuOpen = !menuOpen">
         <i class="bi bi-list"></i>
@@ -14,6 +17,7 @@
     <aside class="sidebar" :class="{ 'show-menu': menuOpen }">
 
       <div class="sidebar-title">
+        <img :src="nvsuSeal" class="system-logo" alt="NVSU seal">
         <h2>Property Inventory</h2>
         <small class="text-white-50">{{ currentUser?.email }}</small>
         <small class="d-block text-white-50">{{ currentUser?.role }}</small>
@@ -69,7 +73,7 @@
         -->
 
         <router-link
-          v-if="canAccess(['Administrator'])"
+          v-if="canAccess(['Administrator', 'Personnel'])"
           to="/personnel"
           class="nav-link"
           @click="menuOpen = false"
@@ -100,22 +104,12 @@
 
         <router-link
           v-if="canAccess(['Administrator', 'Personnel'])"
-          to="/returns"
+          to="/returns-incidents"
           class="nav-link"
           @click="menuOpen = false"
         >
           <i class="bi bi-arrow-return-left"></i>
-          Returns
-        </router-link>
-
-        <router-link
-          v-if="canAccess(['Administrator', 'Personnel'])"
-          to="/incidents"
-          class="nav-link"
-          @click="menuOpen = false"
-        >
-          <i class="bi bi-exclamation-triangle"></i>
-          Incidents
+          Returns &amp; Incidents
         </router-link>
 
         <router-link
@@ -155,12 +149,15 @@
 
 
 <script>
+import nvsuSeal from '@/assets/nvsu-seal.png'
+
 export default {
 
   name: 'App',
 
   data() {
     return {
+      nvsuSeal,
       menuOpen: false,
       currentUser: JSON.parse(localStorage.getItem('user') || 'null'),
       toast: {
@@ -307,6 +304,25 @@ body {
   font-size: 20px;
 }
 
+.system-logo {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  border-radius: 50%;
+  background: white;
+}
+
+.sidebar-title .system-logo {
+  margin-bottom: 10px;
+}
+
+.mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .sidebar .nav-link {
   color: white;
   text-decoration: none;
@@ -451,6 +467,11 @@ body {
     color: white;
     font-size: 18px;
     margin: 0;
+  }
+
+  .mobile-brand .system-logo {
+    width: 36px;
+    height: 36px;
   }
 
   .hamburger {
