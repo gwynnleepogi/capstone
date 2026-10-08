@@ -2,140 +2,183 @@
   <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
-        <h2>Returns &amp; Incidents</h2>
-        <p class="text-muted mb-0">
-          Returned, damaged, lost, missing and stolen property
-        </p>
+        <h2>Returns</h2>
+        <p class="text-muted">Manage returned property items</p>
       </div>
 
       <button class="btn btn-warning" @click="openAddModal">
-        <i class="bi bi-plus-lg me-1"></i>
-        Add Record
+        <i class="bi bi-arrow-return-left me-1"></i>
+        Add Return
       </button>
     </div>
 
-    <div class="alert alert-warning py-2">
-      <i class="bi bi-info-circle me-1"></i>
-      Items that are returned, damaged, lost, missing or stolen are
-      marked <strong>Unserviceable</strong> automatically and cannot be
-      requested or issued until their condition is set back to
-      <strong>Serviceable</strong> in the Items page.
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Search</label>
+
+            <input
+              type="text"
+              class="form-control"
+              v-model="search"
+              placeholder="Search item, returned by, office..."
+            >
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Condition</label>
+
+            <select
+              class="form-select"
+              v-model="conditionFilter"
+            >
+              <option value="">All Conditions</option>
+              <option value="Serviceable">Serviceable</option>
+              <option value="Unserviceable">Unserviceable</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Office</label>
+
+            <select
+              class="form-select"
+              v-model="officeFilter"
+            >
+              <option value="">All Offices</option>
+
+              <option
+                v-for="office in offices"
+                :key="office.id"
+                :value="office.office_name"
+              >
+                {{ office.office_name }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="card">
       <div class="card-body">
-        <div class="row g-2 mb-3">
-          <div class="col-12 col-md">
-            <input
-              v-model="search"
-              type="text"
-              class="form-control"
-              placeholder="Search item, person, office, details..."
-            >
-          </div>
-
-          <div class="col-6 col-md-3">
-            <select v-model="typeFilter" class="form-select">
-              <option value="">All Types</option>
-              <option
-                v-for="type in allTypes"
-                :key="type"
-                :value="type"
-              >
-                {{ type }}
-              </option>
-            </select>
-          </div>
-
-          <div class="col-6 col-md-2">
-            <select v-model.number="itemsPerPage" class="form-select">
-              <option :value="5">5 per page</option>
-              <option :value="10">10 per page</option>
-              <option :value="25">25 per page</option>
-              <option :value="50">50 per page</option>
-            </select>
-          </div>
-        </div>
-
         <div class="table-responsive">
           <table class="table table-hover align-middle">
             <thead>
               <tr>
-                <th class="sortable" @click="sortBy('item')">
-                  Item <i :class="getSortIcon('item')"></i>
+                <th
+                  class="sortable"
+                  @click="sortBy('item')"
+                >
+                  Item
+                  <i :class="getSortIcon('item')"></i>
                 </th>
-                <th class="sortable" @click="sortBy('person')">
-                  Reported / Returned By <i :class="getSortIcon('person')"></i>
+
+                <th
+                  class="sortable"
+                  @click="sortBy('returned_by')"
+                >
+                  Returned By
+                  <i :class="getSortIcon('returned_by')"></i>
                 </th>
-                <th class="sortable" @click="sortBy('type')">
-                  Type <i :class="getSortIcon('type')"></i>
+
+                <th
+                  class="sortable"
+                  @click="sortBy('office')"
+                >
+                  Office
+                  <i :class="getSortIcon('office')"></i>
                 </th>
-                <th class="sortable" @click="sortBy('date')">
-                  Date <i :class="getSortIcon('date')"></i>
+
+                <th
+                  class="sortable"
+                  @click="sortBy('return_date')"
+                >
+                  Return Date
+                  <i :class="getSortIcon('return_date')"></i>
                 </th>
-                <th>Office</th>
-                <th>Item Condition</th>
-                <th>Details</th>
+
+                <th
+                  class="sortable"
+                  @click="sortBy('condition')"
+                >
+                  Condition
+                  <i :class="getSortIcon('condition')"></i>
+                </th>
+
+                <th>Reason</th>
                 <th>Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              <tr v-if="loading">
-                <td colspan="8" class="text-center py-4">Loading...</td>
-              </tr>
-
               <tr
-                v-for="record in paginatedRecords"
-                :key="record.key"
+                v-for="itemReturn in paginatedReturns"
+                :key="itemReturn.id"
               >
-                <td>{{ record.item }}</td>
-                <td>{{ record.person }}</td>
-
                 <td>
-                  <span class="badge" :class="typeClass(record.type)">
-                    {{ record.type }}
-                  </span>
+                  {{ itemReturn.items?.description || '-' }}
                 </td>
 
-                <td>{{ record.date }}</td>
-                <td>{{ record.office }}</td>
+                <td>
+                  {{
+                    itemReturn.personnel?.full_name ||
+                    itemReturn.users?.full_name ||
+                    '-'
+                  }}
+                </td>
+
+                <td>
+                  {{ itemReturn.offices?.office_name || '-' }}
+                </td>
+
+                <td>
+                  {{ itemReturn.return_date || '-' }}
+                </td>
 
                 <td>
                   <span
                     class="badge"
-                    :class="record.itemCondition === 'Serviceable'
-                      ? 'bg-success'
-                      : 'bg-danger'"
+                    :class="
+                      itemReturn.condition_after_return === 'Serviceable'
+                        ? 'bg-success'
+                        : 'bg-danger'
+                    "
                   >
-                    {{ record.itemCondition }}
+                    {{ itemReturn.condition_after_return || '-' }}
                   </span>
                 </td>
 
-                <td>{{ record.details }}</td>
+                <td>
+                  {{ itemReturn.return_reason || '-' }}
+                </td>
 
-                <td class="text-nowrap">
+                <td>
                   <button
                     class="btn btn-sm btn-outline-success me-2"
+                    @click="editReturn(itemReturn)"
                     title="Edit"
-                    @click="editRecord(record)"
                   >
-                    <i class="bi bi-pencil"></i>
+                    Edit
                   </button>
 
                   <button
                     class="btn btn-sm btn-outline-danger"
+                    @click="deleteReturn(itemReturn.id)"
                     title="Delete"
-                    @click="deleteRecord(record)"
                   >
-                    <i class="bi bi-trash"></i>
+                    Delete
                   </button>
                 </td>
               </tr>
 
-              <tr v-if="!loading && filteredRecords.length === 0">
-                <td colspan="8" class="text-center text-muted py-4">
-                  No records found.
+              <tr v-if="paginatedReturns.length === 0">
+                <td
+                  colspan="7"
+                  class="text-center text-muted py-4"
+                >
+                  No returns found.
                 </td>
               </tr>
             </tbody>
@@ -143,51 +186,92 @@
         </div>
 
         <div
-          v-if="filteredRecords.length > 0"
-          class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2"
+          v-if="filteredReturns.length > 0"
+          class="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-3"
         >
-          <div class="text-muted small">
-            Showing {{ firstNumber }} to {{ lastNumber }}
-            of {{ filteredRecords.length }} records
+          <div class="d-flex align-items-center gap-2">
+            <label class="mb-0 text-muted small">
+              Show
+            </label>
+
+            <select
+              class="form-select form-select-sm"
+              v-model.number="itemsPerPage"
+              style="width: 75px"
+            >
+              <option :value="5">5</option>
+              <option :value="10">10</option>
+              <option :value="25">25</option>
+              <option :value="50">50</option>
+            </select>
+
+            <span class="text-muted small">
+              entries
+            </span>
           </div>
 
-          <ul class="pagination pagination-sm mb-0">
-            <li class="page-item" :class="{ disabled: currentPage === 1 }">
-              <button class="page-link" @click="goToPage(currentPage - 1)">
-                Previous
-              </button>
-            </li>
+          <div class="text-muted small">
+            Showing {{ firstReturnNumber }} to {{ lastReturnNumber }}
+            of {{ filteredReturns.length }} returns
+          </div>
 
-            <li
-              v-for="page in totalPages"
-              :key="page"
-              class="page-item"
-              :class="{ active: currentPage === page }"
-            >
-              <button class="page-link" @click="goToPage(page)">
-                {{ page }}
-              </button>
-            </li>
+          <nav>
+            <ul class="pagination pagination-sm mb-0">
+              <li
+                class="page-item"
+                :class="{ disabled: currentPage === 1 }"
+              >
+                <button
+                  class="page-link"
+                  @click="previousPage"
+                  :disabled="currentPage === 1"
+                >
+                  Previous
+                </button>
+              </li>
 
-            <li
-              class="page-item"
-              :class="{ disabled: currentPage === totalPages }"
-            >
-              <button class="page-link" @click="goToPage(currentPage + 1)">
-                Next
-              </button>
-            </li>
-          </ul>
+              <li
+                v-for="page in totalPages"
+                :key="page"
+                class="page-item"
+                :class="{ active: currentPage === page }"
+              >
+                <button
+                  class="page-link"
+                  @click="goToPage(page)"
+                >
+                  {{ page }}
+                </button>
+              </li>
+
+              <li
+                class="page-item"
+                :class="{ disabled: currentPage === totalPages }"
+              >
+                <button
+                  class="page-link"
+                  @click="nextPage"
+                  :disabled="currentPage === totalPages"
+                >
+                  Next
+                </button>
+              </li>
+            </ul>
+          </nav>
         </div>
       </div>
     </div>
 
-    <div class="modal fade" id="recordModal" tabindex="-1">
+    <div
+      class="modal fade"
+      id="returnModal"
+      tabindex="-1"
+    >
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">
-              {{ editing ? 'Edit Record' : 'Add Record' }}
+              {{ editing ? 'Edit Return' : 'Add Return' }}
             </h5>
 
             <button
@@ -197,153 +281,132 @@
             ></button>
           </div>
 
-          <form @submit.prevent="saveRecord">
+          <form @submit.prevent="saveReturn">
             <div class="modal-body">
-              <div class="row g-3">
-                <div class="col-12 col-md-6">
-                  <label class="form-label">Type</label>
+              <div class="mb-3">
+                <label class="form-label">
+                  Item
+                </label>
 
-                  <select
-                    v-model="form.type"
-                    class="form-select"
-                    required
+                <select
+                  class="form-select"
+                  v-model="form.item_id"
+                  required
+                >
+                  <option value="">
+                    Select Item
+                  </option>
+
+                  <option
+                    v-for="item in items"
+                    :key="item.id"
+                    :value="item.id"
                   >
-                    <option
-                      v-for="type in typeChoices"
-                      :key="type"
-                      :value="type"
-                    >
-                      {{ type }}
-                    </option>
-                  </select>
-                </div>
+                    {{ item.description }}
+                  </option>
+                </select>
+              </div>
 
-                <div class="col-12 col-md-6">
-                  <label class="form-label">Date</label>
+              <div class="mb-3">
+                <label class="form-label">
+                  Returned By
+                </label>
 
-                  <input
-                    v-model="form.date"
-                    type="date"
-                    class="form-control"
-                    required
+                <select
+                  class="form-select"
+                  v-model="form.returned_by"
+                >
+                  <option value="">
+                    Select Personnel
+                  </option>
+
+                  <option
+                    v-for="person in personnel"
+                    :key="person.id"
+                    :value="person.id"
                   >
-                </div>
+                    {{ person.full_name }}
+                  </option>
+                </select>
+              </div>
 
-                <div class="col-12">
-                  <label class="form-label">Item</label>
+              <div class="mb-3">
+                <label class="form-label">
+                  Office
+                </label>
 
-                  <select
-                    v-model="form.item_id"
-                    class="form-select"
-                    required
+                <select
+                  class="form-select"
+                  v-model="form.office_id"
+                >
+                  <option value="">
+                    Select Office
+                  </option>
+
+                  <option
+                    v-for="office in offices"
+                    :key="office.id"
+                    :value="office.id"
                   >
-                    <option value="" disabled>Select item</option>
+                    {{ office.office_name }}
+                  </option>
+                </select>
+              </div>
 
-                    <option
-                      v-for="item in items"
-                      :key="item.id"
-                      :value="item.id"
-                    >
-                      {{ item.property_number }} -
-                      {{ item.description }}
-                      ({{ item.status }}, {{ item.condition }})
-                    </option>
-                  </select>
-                </div>
+              <div class="mb-3">
+                <label class="form-label">
+                  Return Date
+                </label>
 
-                <div class="col-12 col-md-6">
-                  <label class="form-label">
-                    {{ isReturn ? 'Returned By' : 'Reported By' }}
-                  </label>
+                <input
+                  type="date"
+                  class="form-control"
+                  v-model="form.return_date"
+                >
+              </div>
 
-                  <select
-                    v-model="form.person_id"
-                    class="form-select"
-                    @change="autoFillOffice"
-                  >
-                    <option value="">Select personnel</option>
+              <div class="mb-3">
+                <label class="form-label">
+                  Condition After Return
+                </label>
 
-                    <option
-                      v-for="person in personnel"
-                      :key="person.id"
-                      :value="person.id"
-                    >
-                      {{ person.full_name }}
-                    </option>
-                  </select>
-                </div>
+                <select
+                  class="form-select"
+                  v-model="form.condition_after_return"
+                  required
+                >
+                  <option value="Serviceable">
+                    Serviceable
+                  </option>
 
-                <div v-if="isReturn" class="col-12 col-md-6">
-                  <label class="form-label">Office</label>
+                  <option value="Unserviceable">
+                    Unserviceable
+                  </option>
+                </select>
+              </div>
 
-                  <select v-model="form.office_id" class="form-select">
-                    <option value="">Select office</option>
+              <div class="mb-3">
+                <label class="form-label">
+                  Return Reason
+                </label>
 
-                    <option
-                      v-for="office in offices"
-                      :key="office.id"
-                      :value="office.id"
-                    >
-                      {{ office.office_name }}
-                    </option>
-                  </select>
-                </div>
+                <textarea
+                  class="form-control"
+                  rows="3"
+                  v-model="form.return_reason"
+                ></textarea>
+              </div>
 
-                <div v-else class="col-12 col-md-6">
-                  <label class="form-label">Incident Status</label>
+              <div class="mb-3">
+                <label class="form-label">
+                  Remarks
+                </label>
 
-                  <select v-model="form.status" class="form-select">
-                    <option value="Open">Open</option>
-                    <option value="Under Investigation">
-                      Under Investigation
-                    </option>
-                    <option value="Resolved">Resolved</option>
-                    <option value="Closed">Closed</option>
-                  </select>
-                </div>
-
-                <div class="col-12">
-                  <label class="form-label">
-                    {{ isReturn ? 'Return Reason' : 'Description' }}
-                  </label>
-
-                  <textarea
-                    v-model="form.description"
-                    class="form-control"
-                    rows="3"
-                    :required="!isReturn"
-                  ></textarea>
-                </div>
-
-                <div v-if="!isReturn" class="col-12">
-                  <label class="form-label">Action Taken</label>
-
-                  <textarea
-                    v-model="form.action_taken"
-                    class="form-control"
-                    rows="2"
-                  ></textarea>
-                </div>
-
-                <div class="col-12">
-                  <label class="form-label">Remarks</label>
-
-                  <textarea
-                    v-model="form.remarks"
-                    class="form-control"
-                    rows="2"
-                  ></textarea>
-                </div>
-
-                <div v-if="affectsItem" class="col-12">
-                  <div class="alert alert-warning mb-0 py-2">
-                    Saving will mark the item as
-                    <strong>Unserviceable</strong> with status
-                    <strong>{{ resultingStatus }}</strong>. It cannot be
-                    assigned again until it is set to Serviceable in the
-                    Items page.
-                  </div>
-                </div>
+                <textarea
+                  class="form-control"
+                  rows="3"
+                  v-model="form.remarks"
+                ></textarea>
               </div>
             </div>
 
@@ -361,7 +424,12 @@
                 class="btn btn-warning"
                 :disabled="saving"
               >
-                {{ saving ? 'Saving...' : 'Save Record' }}
+                <i
+                  v-if="!saving"
+                  class="bi bi-check-lg me-1"
+                ></i>
+
+                {{ saving ? 'Saving...' : 'Save Return' }}
               </button>
             </div>
           </form>
@@ -374,181 +442,111 @@
 <script>
 import { Modal } from 'bootstrap'
 
-const API = 'http://localhost:5000/api'
-
-const INCIDENT_TYPES = ['Damaged', 'Lost', 'Missing', 'Stolen', 'Other']
-const ALL_TYPES = ['Returned', ...INCIDENT_TYPES]
-
-// keep in sync with backend/middleware/itemCondition.js
-const STATUS_BY_TYPE = {
-  Returned: 'Returned',
-  Damaged: 'Damaged',
-  Lost: 'Lost',
-  Missing: 'Lost',
-  Stolen: 'Stolen'
-}
-
-async function fetchJson(url, options) {
-  const response = await fetch(url, options)
-  const text = await response.text()
-
-  let data
-
-  try {
-    data = JSON.parse(text)
-  } catch (error) {
-    throw new Error('Server did not return JSON for ' + url)
-  }
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Request failed')
-  }
-
-  return data
-}
-
-function toast(message) {
-  window.dispatchEvent(
-    new CustomEvent('show-toast', { detail: message })
-  )
-}
-
-function blankForm() {
-  return {
-    kind: 'incident',
-    id: null,
-    type: 'Damaged',
-    date: new Date().toISOString().split('T')[0],
-    item_id: '',
-    person_id: '',
-    office_id: '',
-    status: 'Open',
-    description: '',
-    action_taken: '',
-    remarks: ''
-  }
-}
-
 export default {
-  name: 'ReturnsIncidents',
+  name: 'Returns',
 
   data() {
     return {
       returns: [],
-      incidents: [],
       items: [],
       personnel: [],
       offices: [],
 
-      loading: true,
-      saving: false,
-      editing: false,
-
       search: '',
-      typeFilter: '',
+      conditionFilter: '',
+      officeFilter: '',
+
       currentPage: 1,
       itemsPerPage: 10,
-      sortColumn: 'date',
+
+      sortColumn: 'return_date',
       sortDirection: 'desc',
 
-      allTypes: ALL_TYPES,
-      form: blankForm()
+      editing: false,
+      saving: false,
+
+      form: {
+        id: null,
+        item_id: '',
+        returned_by: '',
+        office_id: '',
+        return_date: '',
+        condition_after_return: 'Serviceable',
+        return_reason: '',
+        remarks: ''
+      }
     }
   },
 
   computed: {
-    isReturn() {
-      return this.form.type === 'Returned'
-    },
+    filteredReturns() {
+      const searchText = this.search.toLowerCase().trim()
 
-    affectsItem() {
-      return Object.prototype.hasOwnProperty.call(
-        STATUS_BY_TYPE,
-        this.form.type
-      )
-    },
+      const filtered = this.returns.filter(itemReturn => {
+        const itemName = String(
+          itemReturn.items?.description || ''
+        ).toLowerCase()
 
-    resultingStatus() {
-      return STATUS_BY_TYPE[this.form.type] || ''
-    },
+        const returnedBy = String(
+          itemReturn.personnel?.full_name ||
+          itemReturn.users?.full_name ||
+          ''
+        ).toLowerCase()
 
-    // a return cannot be turned into an incident (and vice versa)
-    // when editing, because they are stored separately
-    typeChoices() {
-      if (!this.editing) {
-        return ALL_TYPES
-      }
+        const officeName = String(
+          itemReturn.offices?.office_name || ''
+        ).toLowerCase()
 
-      return this.form.kind === 'return'
-        ? ['Returned']
-        : INCIDENT_TYPES
-    },
+        const returnReason = String(
+          itemReturn.return_reason || ''
+        ).toLowerCase()
 
-    records() {
-      const itemById = id =>
-        this.items.find(item => item.id === id)
+        const condition = String(
+          itemReturn.condition_after_return || ''
+        ).toLowerCase()
 
-      const returnRows = this.returns.map(row => ({
-        key: 'return-' + row.id,
-        kind: 'return',
-        raw: row,
-        item: row.items?.description || '-',
-        itemCondition:
-          itemById(row.item_id)?.condition || 'Unserviceable',
-        person:
-          row.users?.full_name || '-',
-        type: 'Returned',
-        date: row.return_date || '',
-        office: row.offices?.office_name || '-',
-        details: row.return_reason || '-'
-      }))
+        const matchesSearch =
+          !searchText ||
+          itemName.includes(searchText) ||
+          returnedBy.includes(searchText) ||
+          officeName.includes(searchText) ||
+          returnReason.includes(searchText) ||
+          condition.includes(searchText)
 
-      const incidentRows = this.incidents.map(row => ({
-        key: 'incident-' + row.id,
-        kind: 'incident',
-        raw: row,
-        item: row.items?.description || '-',
-        itemCondition:
-          itemById(row.item_id)?.condition || '-',
-        person: row.users?.full_name || '-',
-        type: row.incident_type || '-',
-        date: row.incident_date || '',
-        office: '-',
-        details: row.description || '-'
-      }))
+        const matchesCondition =
+          !this.conditionFilter ||
+          itemReturn.condition_after_return === this.conditionFilter
 
-      return [...returnRows, ...incidentRows]
-    },
+        const matchesOffice =
+          !this.officeFilter ||
+          itemReturn.offices?.office_name === this.officeFilter
 
-    filteredRecords() {
-      const text = this.search.toLowerCase().trim()
-
-      const filtered = this.records.filter(record => {
-        const matchesType =
-          !this.typeFilter || record.type === this.typeFilter
-
-        const matchesText =
-          !text ||
-          [
-            record.item,
-            record.person,
-            record.type,
-            record.office,
-            record.details,
-            record.date
-          ].join(' ').toLowerCase().includes(text)
-
-        return matchesType && matchesText
+        return (
+          matchesSearch &&
+          matchesCondition &&
+          matchesOffice
+        )
       })
 
-      const direction = this.sortDirection === 'asc' ? 1 : -1
-
       return filtered.sort((a, b) => {
-        const first = String(a[this.sortColumn] || '').toLowerCase()
-        const second = String(b[this.sortColumn] || '').toLowerCase()
+        const firstValue = this.getSortValue(
+          a,
+          this.sortColumn
+        )
 
-        if (first < second) return -1 * direction
-        if (first > second) return 1 * direction
+        const secondValue = this.getSortValue(
+          b,
+          this.sortColumn
+        )
+
+        if (firstValue < secondValue) {
+          return this.sortDirection === 'asc' ? -1 : 1
+        }
+
+        if (firstValue > secondValue) {
+          return this.sortDirection === 'asc' ? 1 : -1
+        }
+
         return 0
       })
     },
@@ -556,76 +554,113 @@ export default {
     totalPages() {
       return Math.max(
         1,
-        Math.ceil(this.filteredRecords.length / this.itemsPerPage)
+        Math.ceil(
+          this.filteredReturns.length / this.itemsPerPage
+        )
       )
     },
 
-    paginatedRecords() {
-      const start = (this.currentPage - 1) * this.itemsPerPage
+    paginatedReturns() {
+      const start =
+        (this.currentPage - 1) * this.itemsPerPage
 
-      return this.filteredRecords.slice(
-        start,
-        start + this.itemsPerPage
+      const end = start + this.itemsPerPage
+
+      return this.filteredReturns.slice(start, end)
+    },
+
+    firstReturnNumber() {
+      if (this.filteredReturns.length === 0) {
+        return 0
+      }
+
+      return (
+        (this.currentPage - 1) * this.itemsPerPage + 1
       )
     },
 
-    firstNumber() {
-      return this.filteredRecords.length === 0
-        ? 0
-        : (this.currentPage - 1) * this.itemsPerPage + 1
-    },
-
-    lastNumber() {
+    lastReturnNumber() {
       return Math.min(
         this.currentPage * this.itemsPerPage,
-        this.filteredRecords.length
+        this.filteredReturns.length
       )
     }
   },
 
   watch: {
-    search() { this.currentPage = 1 },
-    typeFilter() { this.currentPage = 1 },
-    itemsPerPage() { this.currentPage = 1 },
-
-    totalPages(value) {
-      if (this.currentPage > value) {
-        this.currentPage = value
-      }
+    search() {
+      this.currentPage = 1
     },
 
-    // switching type while adding keeps the form tidy
-    'form.type'(type) {
-      if (type === 'Returned') {
-        this.form.kind = 'return'
-      } else {
-        this.form.kind = 'incident'
+    conditionFilter() {
+      this.currentPage = 1
+    },
+
+    officeFilter() {
+      this.currentPage = 1
+    },
+
+    itemsPerPage() {
+      this.currentPage = 1
+    },
+
+    totalPages(newTotalPages) {
+      if (this.currentPage > newTotalPages) {
+        this.currentPage = newTotalPages
       }
     }
   },
 
-  async mounted() {
-    await Promise.all([
-      this.getRecords(),
-      this.getItems(),
-      this.getOptions()
-    ])
-
-    this.loading = false
+  mounted() {
+    this.getReturns()
+    this.getItems()
+    this.getPersonnel()
+    this.getOffices()
   },
 
   methods: {
-    typeClass(type) {
-      if (type === 'Returned') return 'bg-info text-dark'
-      if (type === 'Damaged') return 'bg-warning text-dark'
-      if (type === 'Other') return 'bg-secondary'
-      return 'bg-danger'
+    getSortValue(itemReturn, column) {
+      if (column === 'item') {
+        return String(
+          itemReturn.items?.description || ''
+        ).toLowerCase()
+      }
+
+      if (column === 'returned_by') {
+        return String(
+          itemReturn.personnel?.full_name ||
+          itemReturn.users?.full_name ||
+          ''
+        ).toLowerCase()
+      }
+
+      if (column === 'office') {
+        return String(
+          itemReturn.offices?.office_name || ''
+        ).toLowerCase()
+      }
+
+      if (column === 'return_date') {
+        return String(
+          itemReturn.return_date || ''
+        ).toLowerCase()
+      }
+
+      if (column === 'condition') {
+        return String(
+          itemReturn.condition_after_return || ''
+        ).toLowerCase()
+      }
+
+      return ''
     },
 
     sortBy(column) {
       if (this.sortColumn === column) {
         this.sortDirection =
-          this.sortDirection === 'asc' ? 'desc' : 'asc'
+          this.sortDirection === 'asc'
+            ? 'desc'
+            : 'asc'
       } else {
         this.sortColumn = column
         this.sortDirection = 'asc'
@@ -637,9 +672,11 @@ export default {
         return 'bi bi-arrow-down-up text-muted ms-1'
       }
 
-      return this.sortDirection === 'asc'
-        ? 'bi bi-arrow-up ms-1'
-        : 'bi bi-arrow-down ms-1'
+      if (this.sortDirection === 'asc') {
+        return 'bi bi-arrow-up ms-1'
+      }
+
+      return 'bi bi-arrow-down ms-1'
     },
 
     goToPage(page) {
@@ -648,191 +685,254 @@ export default {
       }
     },
 
-    async getRecords() {
-      try {
-        const [returns, incidents] = await Promise.all([
-          fetchJson(API + '/returns'),
-          fetchJson(API + '/incidents')
-        ])
+    previousPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--
+      }
+    },
 
-        this.returns = Array.isArray(returns) ? returns : []
-        this.incidents = Array.isArray(incidents) ? incidents : []
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++
+      }
+    },
+
+    async getReturns() {
+      try {
+        const response = await fetch(
+          'http://localhost:5000/api/returns'
+        )
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || 'Failed to load returns'
+          )
+        }
+
+        this.returns = data
       } catch (error) {
         console.log(error)
-        toast(error.message)
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       }
     },
 
     async getItems() {
       try {
-        const data = await fetchJson(API + '/items')
-        this.items = Array.isArray(data) ? data : []
+        const response = await fetch(
+          'http://localhost:5000/api/items'
+        )
+
+        const data = await response.json()
+
+        if (response.ok) {
+          this.items = data
+        }
       } catch (error) {
         console.log(error)
-        toast(error.message)
       }
     },
 
-    async getOptions() {
+    async getPersonnel() {
       try {
-        const data = await fetchJson(API + '/items/options')
+        const response = await fetch(
+          'http://localhost:5000/api/personnel'
+        )
 
-        this.personnel = data.personnel || []
-        this.offices = data.offices || []
+        const data = await response.json()
 
-        return
+        if (response.ok) {
+          this.personnel = data
+        }
       } catch (error) {
-        console.log('Options route failed, using fallback:', error)
-      }
-
-      const [people, offices] = await Promise.allSettled([
-        fetchJson(API + '/personnel'),
-        fetchJson(API + '/offices')
-      ])
-
-      if (people.status === 'fulfilled') this.personnel = people.value
-      if (offices.status === 'fulfilled') this.offices = offices.value
-    },
-
-    autoFillOffice() {
-      if (!this.isReturn || this.form.office_id) return
-
-      const person = this.personnel.find(
-        p => p.id === this.form.person_id
-      )
-
-      if (person?.office_id) {
-        this.form.office_id = person.office_id
+        console.log(error)
       }
     },
 
-    showModal() {
-      Modal.getOrCreateInstance(
-        document.getElementById('recordModal')
-      ).show()
-    },
+    async getOffices() {
+      try {
+        const response = await fetch(
+          'http://localhost:5000/api/offices'
+        )
 
-    hideModal() {
-      Modal.getOrCreateInstance(
-        document.getElementById('recordModal')
-      ).hide()
+        const data = await response.json()
+
+        if (response.ok) {
+          this.offices = data
+        }
+      } catch (error) {
+        console.log(error)
+      }
     },
 
     openAddModal() {
       this.editing = false
-      this.form = blankForm()
-      this.showModal()
-    },
 
-    editRecord(record) {
-      const row = record.raw
-      this.editing = true
-
-      if (record.kind === 'return') {
-        this.form = {
-          ...blankForm(),
-          kind: 'return',
-          id: row.id,
-          type: 'Returned',
-          date: row.return_date || '',
-          item_id: row.item_id,
-          person_id: row.returned_by || '',
-          office_id: row.office_id || '',
-          description: row.return_reason || '',
-          remarks: row.remarks || ''
-        }
-      } else {
-        this.form = {
-          ...blankForm(),
-          kind: 'incident',
-          id: row.id,
-          type: row.incident_type,
-          date: row.incident_date || '',
-          item_id: row.item_id,
-          person_id: row.reported_by || '',
-          status: row.status || 'Open',
-          description: row.description || '',
-          action_taken: row.action_taken || '',
-          remarks: row.remarks || ''
-        }
+      this.form = {
+        id: null,
+        item_id: '',
+        returned_by: '',
+        office_id: '',
+        return_date: new Date()
+          .toISOString()
+          .split('T')[0],
+        condition_after_return: 'Serviceable',
+        return_reason: '',
+        remarks: ''
       }
 
-      this.showModal()
+      const modalElement =
+        document.getElementById('returnModal')
+
+      const modal =
+        Modal.getOrCreateInstance(modalElement)
+
+      modal.show()
     },
 
-    async saveRecord() {
+    editReturn(itemReturn) {
+      this.editing = true
+
+      this.form = {
+        id: itemReturn.id,
+        item_id: itemReturn.item_id,
+        returned_by: itemReturn.returned_by || '',
+        office_id: itemReturn.office_id || '',
+        return_date: itemReturn.return_date || '',
+        condition_after_return:
+          itemReturn.condition_after_return,
+        return_reason: itemReturn.return_reason || '',
+        remarks: itemReturn.remarks || ''
+      }
+
+      const modalElement =
+        document.getElementById('returnModal')
+
+      const modal =
+        Modal.getOrCreateInstance(modalElement)
+
+      modal.show()
+    },
+
+    async saveReturn() {
       this.saving = true
 
       try {
-        const isReturn = this.form.kind === 'return'
-        const base = API + (isReturn ? '/returns' : '/incidents')
+        let url =
+          'http://localhost:5000/api/returns'
 
-        const url = this.editing
-          ? base + '/' + this.form.id
-          : base
+        let method = 'POST'
 
-        const body = isReturn
-          ? {
-              item_id: this.form.item_id,
-              returned_by: this.form.person_id || null,
-              office_id: this.form.office_id || null,
-              return_date: this.form.date || null,
-              condition_after_return: 'Unserviceable',
-              return_reason: this.form.description,
-              remarks: this.form.remarks
-            }
-          : {
-              item_id: this.form.item_id,
-              reported_by: this.form.person_id || null,
-              incident_type: this.form.type,
-              incident_date: this.form.date,
-              status: this.form.status,
-              description: this.form.description,
-              action_taken: this.form.action_taken,
-              remarks: this.form.remarks
-            }
+        if (this.editing) {
+          url =
+            `http://localhost:5000/api/returns/${this.form.id}`
 
-        await fetchJson(url, {
-          method: this.editing ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
+          method = 'PUT'
+        }
+
+        const response = await fetch(url, {
+          method: method,
+
+          headers: {
+            'Content-Type': 'application/json'
+          },
+
+          body: JSON.stringify({
+            item_id: this.form.item_id,
+            returned_by: this.form.returned_by || null,
+            office_id: this.form.office_id || null,
+            return_date: this.form.return_date || null,
+            condition_after_return:
+              this.form.condition_after_return,
+            return_reason: this.form.return_reason,
+            remarks: this.form.remarks
+          })
         })
 
-        this.hideModal()
+        const data = await response.json()
 
-        // item status/condition changed on the server, so reload both
-        await Promise.all([this.getRecords(), this.getItems()])
+        if (!response.ok) {
+          throw new Error(
+            data.error || 'Failed to save return'
+          )
+        }
 
-        toast(
-          this.editing
-            ? 'Record updated successfully'
-            : 'Record added. Item marked Unserviceable.'
+        const modalElement =
+          document.getElementById('returnModal')
+
+        const modal =
+          Modal.getOrCreateInstance(modalElement)
+
+        modal.hide()
+
+        await this.getReturns()
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: this.editing
+              ? 'Return updated successfully'
+              : 'Return added successfully'
+          })
         )
       } catch (error) {
         console.log(error)
-        toast(error.message)
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       } finally {
         this.saving = false
       }
     },
 
-    async deleteRecord(record) {
-      if (!confirm('Are you sure you want to delete this record?')) {
+    async deleteReturn(id) {
+      if (
+        !confirm(
+          'Are you sure you want to delete this return?'
+        )
+      ) {
         return
       }
 
       try {
-        const base =
-          API + (record.kind === 'return' ? '/returns/' : '/incidents/')
+        const response = await fetch(
+          `http://localhost:5000/api/returns/${id}`,
+          {
+            method: 'DELETE'
+          }
+        )
 
-        await fetchJson(base + record.raw.id, { method: 'DELETE' })
+        const data = await response.json()
 
-        await this.getRecords()
+        if (!response.ok) {
+          throw new Error(
+            data.error || 'Failed to delete return'
+          )
+        }
 
-        toast('Record deleted successfully')
+        await this.getReturns()
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Return deleted successfully'
+          })
+        )
       } catch (error) {
         console.log(error)
-        toast(error.message)
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
+        )
       }
     }
   }
@@ -840,38 +940,42 @@ export default {
 </script>
 
 <style scoped>
-h2 {
-  color: #2F5D3A;
-}
-
-.btn-warning {
-  background-color: #E8C547;
-  border-color: #E8C547;
-  color: #2F5D3A;
-}
-
-.btn-warning:hover {
-  background-color: #d8b638;
-  border-color: #d8b638;
-}
-
-.table thead th {
-  background-color: #2F5D3A;
-  color: white;
-  white-space: nowrap;
-}
-
 .sortable {
   cursor: pointer;
+  white-space: nowrap;
   user-select: none;
 }
 
-.page-item.active .page-link {
-  background-color: #2F5D3A;
-  border-color: #2F5D3A;
+.sortable:hover {
+  background-color: #f8f9fa;
 }
 
 .page-link {
-  color: #2F5D3A;
+  color: #856404;
+}
+
+.page-item.active .page-link {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #212529;
+}
+
+@media (max-width: 576px) {
+  .table {
+    min-width: 0 !important;
+    table-layout: fixed;
+  }
+
+  .table th,
+  .table td {
+    padding: 9px 5px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .modal-dialog {
+    max-width: calc(100% - 1rem);
+    margin: .5rem auto;
+  }
 }
 </style>

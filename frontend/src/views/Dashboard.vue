@@ -64,7 +64,7 @@
 
             <div>
               <p class="text-secondary mb-1">
-                ICS High Value
+                Inventory Custodian Slip - High Value
               </p>
 
               <h2 class="mb-0">
@@ -85,7 +85,7 @@
 
             <div>
               <p class="text-secondary mb-1">
-                ICS Low Value
+                Inventory Custodian Slip - Low Value
               </p>
 
               <h2 class="mb-0">
@@ -593,6 +593,7 @@ h1 {
 }
 
 .summary-card {
+  height: 100%;
   border: 1px solid #e5e5e5;
   border-radius: 10px;
 }
@@ -607,6 +608,7 @@ h1 {
 .icon-box {
   width: 50px;
   height: 50px;
+  flex-shrink: 0;
 
   display: flex;
   align-items: center;

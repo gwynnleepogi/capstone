@@ -77,6 +77,10 @@
                 <th class="text-start">
                   Details
                 </th>
+
+                <th v-if="isAdmin" class="text-start">
+                  Actions
+                </th>
               </tr>
             </thead>
 
@@ -187,6 +191,15 @@
                     {{ log.description || '-' }}
                   </span>
                 </td>
+
+                <td v-if="isAdmin">
+                  <button
+                    class="btn btn-sm btn-outline-danger"
+                    @click="deleteLog(log.id)"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -284,6 +297,14 @@ export default {
   },
 
   computed: {
+    isAdmin() {
+      const user = JSON.parse(
+        localStorage.getItem('user') || 'null'
+      )
+
+      return user?.role === 'Administrator'
+    },
+
     filteredLogs() {
       const searchText = this.search.toLowerCase().trim()
 
@@ -405,6 +426,56 @@ export default {
         this.showToast(error.message)
       } finally {
         this.loading = false
+      }
+    },
+
+    async deleteLog(id) {
+      if (
+        !confirm(
+          'Are you sure you want to delete this audit log?'
+        )
+      ) {
+        return
+      }
+
+      try {
+        const token = localStorage.getItem('accessToken')
+
+        const response = await fetch(
+          `http://localhost:5000/api/audit-logs/${id}`,
+          {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        )
+
+        let data = {}
+
+        try {
+          data = await response.json()
+        } catch {
+          data = {}
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+            'Delete route not found. Please restart the backend server.'
+          )
+        }
+
+        this.logs = this.logs.filter(log => log.id !== id)
+
+        if (this.currentPage > this.totalPages) {
+          this.currentPage = this.totalPages
+        }
+
+        this.showToast('Audit log deleted')
+      } catch (error) {
+        console.error(error)
+        this.showToast(error.message)
       }
     },
 
@@ -667,11 +738,12 @@ export default {
   vertical-align: middle;
 }
 
-.audit-table th {
-  color: #2f5d3a;
+.audit-table thead th {
+  background-color: #2f5d3a;
+  color: white;
   font-weight: 600;
   white-space: nowrap;
-  border-bottom: 2px solid #dee2e6;
+  border-bottom: none;
 }
 
 .audit-table td {
@@ -686,8 +758,8 @@ export default {
   white-space: nowrap;
 }
 
-.sortable:hover {
-  background: #f3f4f6;
+.audit-table thead th.sortable:hover {
+  background-color: #244a2e;
 }
 
 .sort-icon {
@@ -704,18 +776,18 @@ export default {
 }
 
 .action-badge.created {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: #2f5d3a;
+  color: #ffffff;
 }
 
 .action-badge.updated {
-  background: #fff8e1;
-  color: #8a6d00;
+  background: #e8c547;
+  color: #2f5d3a;
 }
 
 .action-badge.deleted {
-  background: #fdecea;
-  color: #c62828;
+  background: #dc3545;
+  color: #ffffff;
 }
 
 .details-dropdown {
@@ -848,8 +920,8 @@ export default {
 
 .page-button:hover:not(:disabled),
 .page-button.active {
-  background: #198754;
-  border-color: #198754;
+  background: #2f5d3a;
+  border-color: #2f5d3a;
   color: #ffffff;
 }
 

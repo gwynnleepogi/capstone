@@ -1,32 +1,18 @@
-
 <template>
   <div>
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2>Receipts</h2>
         <p class="text-muted">Manage property receipts</p>
       </div>
 
-      <div class="d-flex flex-wrap align-items-center gap-2">
-        <label class="visually-hidden" for="receipt-print-size">Print paper size</label>
-        <select
-          id="receipt-print-size"
-          v-model="printPaperSize"
-          class="form-select form-select-sm w-auto"
-        >
-          <option value="short">Short Bond (8.5 x 11 in)</option>
-          <option value="a4">A4 (210 x 297 mm)</option>
-          <option value="long">Long Bond (8.5 x 13 in)</option>
-        </select>
-
-        <button
-          class="btn btn-warning"
-          @click="openAddModal"
-        >
-          <i class="bi bi-plus-lg"></i>
-          Add Receipt
-        </button>
-      </div>
+      <button
+        class="btn btn-warning"
+        @click="openAddModal"
+      >
+        <i class="bi bi-plus-lg"></i>
+        Add Receipt
+      </button>
     </div>
 
     <div class="card shadow-sm">
@@ -95,21 +81,21 @@
                     class="btn btn-sm btn-outline-primary me-1"
                     @click="editReceipt(receipt)"
                   >
-                    <i class="bi bi-pencil"></i>
+                    Edit
                   </button>
 
                   <button
                     class="btn btn-sm btn-outline-danger me-1"
                     @click="deleteReceipt(receipt.id)"
                   >
-                    <i class="bi bi-trash"></i>
+                    Delete
                   </button>
 
                   <button
                     class="btn btn-sm btn-outline-success"
                     @click="printReceipt(receipt)"
                   >
-                    <i class="bi bi-printer"></i>
+                    Print
                   </button>
                 </td>
               </tr>
@@ -203,29 +189,11 @@
                     v-for="request in itemRequests"
                     :key="request.id"
                     :value="request.id"
-                    :disabled="!request.item_id || !request.requested_by"
                   >
                     {{ request.request_number }} -
                     {{ request.item_description }}
-                    {{ getRequestProblem(request) }}
                   </option>
                 </select>
-
-                <small
-                  v-if="itemRequests.length === 0"
-                  class="text-danger"
-                >
-                  No approved item requests found. Approve a request
-                  in Item Requests first.
-                </small>
-
-                <small
-                  v-else-if="itemRequests.some(request => !request.item_id || !request.requested_by)"
-                  class="text-secondary"
-                >
-                  Greyed out requests are missing an inventory item
-                  or requester. Edit them in Item Requests first.
-                </small>
               </div>
 
               <!-- SELECTED ITEM DETAILS -->
@@ -359,14 +327,12 @@
 
 <script>
 import { Modal } from 'bootstrap'
-import nvsuSeal from '@/assets/nvsu-seal.png'
 
 export default {
   name: 'PropertyReceipts',
 
   data() {
     return {
-      printPaperSize: 'a4',
       receipts: [],
       items: [],
       personnel: [],
@@ -488,18 +454,6 @@ export default {
       }
     },
 
-    getRequestProblem(request) {
-      if (!request.item_id) {
-        return '(no inventory item - edit the request first)'
-      }
-
-      if (!request.requested_by) {
-        return '(no requester - edit the request first)'
-      }
-
-      return ''
-    },
-
     async getItemRequests() {
       try {
         const response = await fetch(
@@ -521,7 +475,9 @@ export default {
             []
 
         this.itemRequests = requests.filter(
-          request => request.status === 'Approved'
+          request =>
+            request.status === 'Approved' &&
+            request.item_id
         )
       } catch (error) {
         console.log(error)
@@ -803,12 +759,6 @@ export default {
     },
 
     printReceipt(receipt) {
-      const paperSizes = {
-        short: { size: '8.5in 11in', height: '11in' },
-        a4: { size: '210mm 297mm', height: '297mm' },
-        long: { size: '8.5in 13in', height: '13in' }
-      }
-      const paper = paperSizes[this.printPaperSize] || paperSizes.a4
       const item = this.getReceiptItem(receipt)
 
       const receiptType =
@@ -916,18 +866,8 @@ export default {
 
           <style>
             @page {
-              size: ${paper.size};
+              size: A4;
               margin: 10mm 12mm;
-            }
-
-            html,
-            body {
-              min-height: 100%;
-            }
-
-            html {
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
             }
 
             * {
@@ -943,9 +883,6 @@ export default {
 
             .page {
               width: 100%;
-              min-height: calc(${paper.height} - 20mm);
-              display: flex;
-              flex-direction: column;
             }
 
             .header {
@@ -961,9 +898,16 @@ export default {
             .seal {
               width: 72px;
               height: 72px;
-              object-fit: contain;
-              flex: 0 0 auto;
-              background: white;
+              border: 3px solid #198754;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              font-size: 10px;
+              font-weight: bold;
+              color: #198754;
+              background: #fff200;
             }
 
             .header h1 {
@@ -1056,14 +1000,11 @@ export default {
               color: white;
               text-align: center;
               font-size: 9px;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
             }
 
             .main-table td {
               height: 46px;
               font-size: 9px;
-              background: white;
             }
 
             .sn {
@@ -1112,11 +1053,11 @@ export default {
 
             .total-label {
               text-align: right;
-              background: white;
+              background: #fff200;
             }
 
             .total-amount {
-              background: white;
+              background: #fff200;
               text-align: right;
             }
 
@@ -1169,8 +1110,7 @@ export default {
               display: grid;
               grid-template-columns: 1fr 1fr;
               gap: 45px;
-              margin-top: auto;
-              padding-top: 24mm;
+              margin-top: 65px;
             }
 
             .signature-box {
@@ -1193,7 +1133,7 @@ export default {
             }
 
             .footer {
-              margin-top: 10mm;
+              margin-top: 18px;
               padding-top: 5px;
               border-top: 3px solid #198754;
               text-align: center;
@@ -1207,7 +1147,10 @@ export default {
         <body>
           <div class="page">
             <div class="header">
-              <img class="seal" src="${nvsuSeal}" alt="NVSU seal">
+              <div class="seal">
+                NVSU<br>
+                SEAL
+              </div>
 
               <div>
                 <h1>
@@ -1460,3 +1403,32 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.table th {
+  white-space: nowrap;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+@media (max-width: 576px) {
+  .table {
+    min-width: 0 !important;
+    table-layout: fixed;
+  }
+
+  .table th,
+  .table td {
+    padding: 9px 5px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .modal-dialog {
+    max-width: calc(100% - 1rem);
+    margin: 0.5rem auto;
+  }
+}
+</style>

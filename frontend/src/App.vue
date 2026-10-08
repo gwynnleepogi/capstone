@@ -4,10 +4,7 @@
   <div v-else class="layout">
 
     <div class="mobile-header">
-      <div class="mobile-brand">
-        <img :src="nvsuSeal" class="system-logo" alt="NVSU seal">
-        <h2>Property Inventory</h2>
-      </div>
+      <h2>Property Inventory</h2>
 
       <button class="hamburger" @click="menuOpen = !menuOpen">
         <i class="bi bi-list"></i>
@@ -17,7 +14,6 @@
     <aside class="sidebar" :class="{ 'show-menu': menuOpen }">
 
       <div class="sidebar-title">
-        <img :src="nvsuSeal" class="system-logo" alt="NVSU seal">
         <h2>Property Inventory</h2>
         <small class="text-white-50">{{ currentUser?.email }}</small>
         <small class="d-block text-white-50">{{ currentUser?.role }}</small>
@@ -73,7 +69,7 @@
         -->
 
         <router-link
-          v-if="canAccess(['Administrator', 'Personnel'])"
+          v-if="canAccess(['Administrator'])"
           to="/personnel"
           class="nav-link"
           @click="menuOpen = false"
@@ -104,12 +100,22 @@
 
         <router-link
           v-if="canAccess(['Administrator', 'Personnel'])"
-          to="/returns-incidents"
+          to="/returns"
           class="nav-link"
           @click="menuOpen = false"
         >
           <i class="bi bi-arrow-return-left"></i>
-          Returns &amp; Incidents
+          Returns
+        </router-link>
+
+        <router-link
+          v-if="canAccess(['Administrator', 'Personnel'])"
+          to="/incidents"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-exclamation-triangle"></i>
+          Incidents
         </router-link>
 
         <router-link
@@ -149,15 +155,12 @@
 
 
 <script>
-import nvsuSeal from '@/assets/nvsu-seal.png'
-
 export default {
 
   name: 'App',
 
   data() {
     return {
-      nvsuSeal,
       menuOpen: false,
       currentUser: JSON.parse(localStorage.getItem('user') || 'null'),
       toast: {
@@ -248,6 +251,22 @@ export default {
 
 /* Global */
 
+/* Display scale: makes 100% browser zoom look like ~90% */
+
+:root {
+  --ui-zoom: 1;
+}
+
+@media (min-width: 769px) {
+  :root {
+    --ui-zoom: 0.8;
+  }
+
+  html {
+    zoom: var(--ui-zoom);
+  }
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -268,7 +287,7 @@ body {
 
 .layout {
   display: flex;
-  min-height: 100vh;
+  min-height: calc(100vh / var(--ui-zoom));
   align-items: flex-start;
 }
 
@@ -281,8 +300,8 @@ body {
   left: 0;
 
   width: 250px;
-  height: 100vh;
-  min-height: 100vh;
+  height: calc(100vh / var(--ui-zoom));
+  min-height: calc(100vh / var(--ui-zoom));
 
   padding: 25px 15px;
 
@@ -302,25 +321,6 @@ body {
 .sidebar-title h2 {
   color: white;
   font-size: 20px;
-}
-
-.system-logo {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  object-fit: contain;
-  border-radius: 50%;
-  background: white;
-}
-
-.sidebar-title .system-logo {
-  margin-bottom: 10px;
-}
-
-.mobile-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .sidebar .nav-link {
@@ -350,7 +350,7 @@ body {
 .content {
   flex: 1;
   min-width: 0;
-  min-height: 100vh;
+  min-height: calc(100vh / var(--ui-zoom));
 
   padding: 30px;
 
@@ -445,7 +445,7 @@ body {
 
   .layout {
     display: block;
-    min-height: 100vh;
+    min-height: calc(100vh / var(--ui-zoom));
   }
 
   .mobile-header {
@@ -469,11 +469,6 @@ body {
     margin: 0;
   }
 
-  .mobile-brand .system-logo {
-    width: 36px;
-    height: 36px;
-  }
-
   .hamburger {
     background: none;
     border: none;
@@ -492,7 +487,7 @@ body {
     height: auto;
     min-height: auto;
 
-    max-height: calc(100vh - 57px);
+    max-height: calc(100vh / var(--ui-zoom) - 57px);
 
     padding: 15px;
 
@@ -519,7 +514,7 @@ body {
 
   .content {
     width: 100%;
-    min-height: calc(100vh - 57px);
+    min-height: calc(100vh / var(--ui-zoom) - 57px);
 
     padding: 15px;
   }
@@ -551,7 +546,7 @@ body {
 
   .sidebar {
     top: 49px;
-    max-height: calc(100vh - 49px);
+    max-height: calc(100vh / var(--ui-zoom) - 49px);
   }
 
   .content {

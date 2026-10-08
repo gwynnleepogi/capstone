@@ -1,4 +1,3 @@
-
 <template>
   <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -143,25 +142,25 @@
 
               <th>Assigned Items</th>
 
-              <th v-if="isAdministrator">Actions</th>
+              <th>Actions</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="loading">
-              <td :colspan="isAdministrator ? 7 : 6" class="text-center py-5">
+              <td colspan="7" class="text-center py-5">
                 Loading personnel...
               </td>
             </tr>
 
             <tr v-else-if="error">
-              <td :colspan="isAdministrator ? 7 : 6" class="text-center text-danger py-5">
+              <td colspan="7" class="text-center text-danger py-5">
                 {{ error }}
               </td>
             </tr>
 
             <tr v-else-if="filteredPersonnel.length === 0">
-              <td :colspan="isAdministrator ? 7 : 6" class="text-center text-muted py-5">
+              <td colspan="7" class="text-center text-muted py-5">
                 No personnel found.
               </td>
             </tr>
@@ -205,7 +204,7 @@
                 </button>
               </td>
 
-              <td v-if="isAdministrator">
+              <td>
                 <button
                   class="btn btn-sm btn-outline-danger"
                   @click="deletePersonnel(person.id)"
@@ -456,11 +455,6 @@ export default {
   },
 
   computed: {
-    isAdministrator() {
-      const user = JSON.parse(localStorage.getItem('user') || 'null')
-      return user?.role === 'Administrator'
-    },
-
     roles() {
       const roleList = this.personnel
         .map(person => person.role)
@@ -1049,7 +1043,7 @@ h1 {
 }
 
 .modal-body {
-  max-height: 70vh;
+  max-height: calc(70vh / var(--ui-zoom));
   overflow-y: auto;
 }
 

@@ -160,7 +160,7 @@
                     @click="editReturn(itemReturn)"
                     title="Edit"
                   >
-                    <i class="bi bi-pencil"></i>
+                    Edit
                   </button>
 
                   <button
@@ -168,7 +168,7 @@
                     @click="deleteReturn(itemReturn.id)"
                     title="Delete"
                   >
-                    <i class="bi bi-trash"></i>
+                    Delete
                   </button>
                 </td>
               </tr>
@@ -979,4 +979,3 @@ export default {
   }
 }
 </style>
-

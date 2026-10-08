@@ -1,10 +1,7 @@
 <template>
   <div class="login-page">
     <div class="login-box">
-      <div class="login-brand">
-        <img :src="nvsuSeal" class="login-logo" alt="NVSU seal">
-        <h1>Property Inventory</h1>
-      </div>
+      <h1>Property Inventory</h1>
 
       <p>
         {{
@@ -194,14 +191,11 @@
 </template>
 
 <script>
-import nvsuSeal from '@/assets/nvsu-seal.png'
-
 export default {
   name: 'Login',
 
   data() {
     return {
-      nvsuSeal,
       email: '',
       password: '',
       fullName: '',
@@ -358,7 +352,7 @@ export default {
 
 <style scoped>
 .login-page {
-  min-height: 100vh;
+  min-height: calc(100vh / var(--ui-zoom));
   display: grid;
   place-items: center;
   padding: 20px;
@@ -376,22 +370,7 @@ export default {
 .login-box h1 {
   color: #2f5d3a;
   text-align: center;
-  margin: 0;
-}
-
-.login-brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
   margin-bottom: 8px;
-}
-
-.login-logo {
-  width: 52px;
-  height: 52px;
-  flex: 0 0 auto;
-  object-fit: contain;
 }
 
 .login-box p {
