@@ -4,7 +4,10 @@
   <div v-else class="layout">
 
     <div class="mobile-header">
-      <h2>Property Inventory</h2>
+      <div class="mobile-brand">
+        <img :src="logo" alt="NVSU logo" class="mobile-brand-logo">
+        <h2>Property Inventory</h2>
+      </div>
 
       <button class="hamburger" @click="menuOpen = !menuOpen">
         <i class="bi bi-list"></i>
@@ -14,6 +17,7 @@
     <aside class="sidebar" :class="{ 'show-menu': menuOpen }">
 
       <div class="sidebar-title">
+        <img :src="logo" alt="NVSU logo" class="sidebar-logo">
         <h2>Property Inventory</h2>
         <small class="text-white-50">{{ currentUser?.email }}</small>
         <small class="d-block text-white-50">{{ currentUser?.role }}</small>
@@ -43,7 +47,7 @@
           @click="menuOpen = false"
         >
           <i class="bi bi-box"></i>
-          Items
+          Properties
         </router-link>
 
         <router-link
@@ -85,7 +89,7 @@
           @click="menuOpen = false"
         >
           <i class="bi bi-file-earmark-text"></i>
-          Item Requests
+          Requests
         </router-link>
 
         <router-link
@@ -95,27 +99,17 @@
           @click="menuOpen = false"
         >
           <i class="bi bi-receipt"></i>
-          Receipts
+          Acquisitions
         </router-link>
 
         <router-link
           v-if="canAccess(['Administrator', 'Personnel'])"
-          to="/returns"
+          to="/returns-incidents"
           class="nav-link"
           @click="menuOpen = false"
         >
           <i class="bi bi-arrow-return-left"></i>
-          Returns
-        </router-link>
-
-        <router-link
-          v-if="canAccess(['Administrator', 'Personnel'])"
-          to="/incidents"
-          class="nav-link"
-          @click="menuOpen = false"
-        >
-          <i class="bi bi-exclamation-triangle"></i>
-          Incidents
+          Returns &amp; Incidents
         </router-link>
 
         <router-link
@@ -155,12 +149,15 @@
 
 
 <script>
+import logo from './assets/LOGO.png'
+
 export default {
 
   name: 'App',
 
   data() {
     return {
+      logo,
       menuOpen: false,
       currentUser: JSON.parse(localStorage.getItem('user') || 'null'),
       toast: {
@@ -318,6 +315,14 @@ body {
   margin-bottom: 30px;
 }
 
+.sidebar-logo {
+  display: block;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 12px;
+  object-fit: contain;
+}
+
 .sidebar-title h2 {
   color: white;
   font-size: 20px;
@@ -469,6 +474,18 @@ body {
     margin: 0;
   }
 
+  .mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .mobile-brand-logo {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+  }
+
   .hamburger {
     background: none;
     border: none;
@@ -538,6 +555,15 @@ body {
 
   .mobile-header h2 {
     font-size: 16px;
+  }
+
+  .mobile-brand {
+    gap: 7px;
+  }
+
+  .mobile-brand-logo {
+    width: 30px;
+    height: 30px;
   }
 
   .hamburger {

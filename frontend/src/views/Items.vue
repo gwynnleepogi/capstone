@@ -5,15 +5,17 @@
         <h1 class="h3 mb-1">Items</h1>
         <p class="text-secondary mb-0">Property and inventory records</p>
       </div>
-
-      <div class="col-auto">
+      <div class="col-auto d-flex gap-2">
+        <button class="btn btn-success" @click="showMovementModal = true">
+          <i class="bi bi-arrow-left-right me-1"></i>
+          Track Inventory
+        </button>
         <button class="btn btn-warning" @click="showAddForm = true">
           <i class="bi bi-plus-lg me-1"></i>
           Add Item
         </button>
       </div>
     </div>
-
     <div class="card mb-3">
       <div class="card-body">
         <div class="row g-2">
@@ -22,35 +24,24 @@
               <span class="input-group-text">
                 <i class="bi bi-search"></i>
               </span>
-
               <input
                 v-model="search"
                 type="text"
                 class="form-control"
                 placeholder="Search property number or description"
-              >
+              />
             </div>
           </div>
-
           <div class="col-12 col-md-3">
-            <select
-              v-model="selectedClassification"
-              class="form-select"
-            >
+            <select v-model="selectedClassification" class="form-select">
               <option value="">All Classification</option>
-              <option value="PAR">
-                Property Acknowledgement Receipt
-              </option>
+              <option value="PAR">Property Acknowledgement Receipt</option>
               <option value="ICS High">Inventory Custodian Slip - High Value</option>
               <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
             </select>
           </div>
-
           <div class="col-12 col-md-3">
-            <select
-              v-model="selectedStatus"
-              class="form-select"
-            >
+            <select v-model="selectedStatus" class="form-select">
               <option value="">All Status</option>
               <option value="Available">Available</option>
               <option value="Issued">Issued</option>
@@ -64,7 +55,6 @@
         </div>
       </div>
     </div>
-
     <div class="row g-3 mb-3">
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
@@ -72,96 +62,62 @@
           <h4 class="mb-0 mt-1">{{ items.length }}</h4>
         </div>
       </div>
-
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
-          <small class="text-secondary">
-            Property Acknowledgement Receipt
-          </small>
-
+          <small class="text-secondary"> Property Acknowledgement Receipt </small>
           <h4 class="mb-0 mt-1">
             {{ countClassification('PAR') }}
           </h4>
         </div>
       </div>
-
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
           <small class="text-secondary">Inventory Custodian Slip - High Value</small>
-
           <h4 class="mb-0 mt-1">
             {{ countClassification('ICS High') }}
           </h4>
         </div>
       </div>
-
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
           <small class="text-secondary">Inventory Custodian Slip - Low Value</small>
-
           <h4 class="mb-0 mt-1">
             {{ countClassification('ICS Low') }}
           </h4>
         </div>
       </div>
     </div>
-
     <div v-if="showAddForm" class="card mb-4">
       <div class="card-header bg-white">
         <strong>Add New Item</strong>
       </div>
-
       <form @submit.prevent="addItem">
         <div class="card-body">
           <div class="row g-3">
             <div class="col-12 col-md-6">
               <label class="form-label">Property Number</label>
-
-              <input
-                v-model="newItem.property_number"
-                type="text"
-                class="form-control"
-                required
-              >
+              <input v-model="newItem.property_number" type="text" class="form-control" required />
             </div>
-
             <div class="col-12 col-md-6">
               <label class="form-label">Serial Number</label>
-
-              <input
-                v-model="newItem.serial_number"
-                type="text"
-                class="form-control"
-              >
+              <input v-model="newItem.serial_number" type="text" class="form-control" />
             </div>
-
             <div class="col-12">
               <label class="form-label">Description</label>
-
-              <input
-                v-model="newItem.description"
-                type="text"
-                class="form-control"
-                required
-              >
+              <input v-model="newItem.description" type="text" class="form-control" required />
             </div>
-
             <!-- <div class="col-12 col-md-6">
               <label class="form-label">Supplier</label>
-
               <input
                 v-model="newItem.supplier_id"
                 type="text"
                 class="form-control"
               >
             </div> -->
-
             <div class="col-12 col-md-6">
               <label class="form-label">Cost</label>
-
               <div class="input-group">
                 <span class="input-group-text">₱</span>
-
                 <input
                   v-model="newItem.cost"
                   type="number"
@@ -169,31 +125,21 @@
                   step="0.01"
                   class="form-control"
                   required
-                >
+                />
               </div>
             </div>
-
             <div class="col-12 col-md-6">
               <label class="form-label">Acquisition Date</label>
-
-              <input
-                v-model="newItem.acquisition_date"
-                type="date"
-                class="form-control"
-              >
+              <input v-model="newItem.acquisition_date" type="date" class="form-control" />
             </div>
-
             <div class="col-12 col-md-6">
               <label class="form-label">Accountable Employee</label>
-
               <select
                 v-model="newItem.accountable_employee"
                 class="form-select"
-                required
                 @change="autoFillOffice(newItem)"
               >
-                <option value="" disabled>Select personnel</option>
-
+                <option value="">Select personnel (optional)</option>
                 <option
                   v-for="person in personnelOptions"
                   :key="person.id"
@@ -203,17 +149,10 @@
                 </option>
               </select>
             </div>
-
             <div class="col-12 col-md-6">
               <label class="form-label">Responsibility Center</label>
-
-              <select
-                v-model="newItem.responsibility_center"
-                class="form-select"
-                required
-              >
-                <option value="" disabled>Select office</option>
-
+              <select v-model="newItem.responsibility_center" class="form-select">
+                <option value="">Select office (optional)</option>
                 <option
                   v-for="office in officeOptions"
                   :key="office.id"
@@ -223,45 +162,24 @@
                 </option>
               </select>
             </div>
-
             <div class="col-12 col-md-4">
               <label class="form-label">Classification</label>
-
-              <select
-                v-model="newItem.classification"
-                class="form-select"
-                required
-              >
-                <option value="PAR">
-                  Property Acknowledgement Receipt
-                </option>
-
+              <select v-model="newItem.classification" class="form-select" required>
+                <option value="PAR">Property Acknowledgement Receipt</option>
                 <option value="ICS High">Inventory Custodian Slip - High Value</option>
                 <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
               </select>
             </div>
-
             <div class="col-12 col-md-4">
               <label class="form-label">Condition</label>
-
-              <select
-                v-model="newItem.condition"
-                class="form-select"
-                required
-              >
+              <select v-model="newItem.condition" class="form-select" required>
                 <option value="Serviceable">Serviceable</option>
                 <option value="Unserviceable">Unserviceable</option>
               </select>
             </div>
-
             <div class="col-12 col-md-4">
               <label class="form-label">Status</label>
-
-              <select
-                v-model="newItem.status"
-                class="form-select"
-                required
-              >
+              <select v-model="newItem.status" class="form-select" required>
                 <option value="Available">Available</option>
                 <option value="Issued">Issued</option>
                 <option value="Returned">Returned</option>
@@ -273,32 +191,18 @@
             </div>
           </div>
         </div>
-
         <div class="card-footer bg-white">
-          <button
-            type="button"
-            class="btn btn-secondary me-2"
-            @click="cancelAdd"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="submit"
-            class="btn btn-success"
-            :disabled="saving"
-          >
+          <button type="button" class="btn btn-secondary me-2" @click="cancelAdd">Cancel</button>
+          <button type="submit" class="btn btn-success" :disabled="saving">
             {{ saving ? 'Saving...' : 'Save Item' }}
           </button>
         </div>
       </form>
     </div>
-
     <div class="card">
       <div class="card-header bg-white">
         <strong>Inventory Items</strong>
       </div>
-
       <div class="table-responsive">
         <table class="table table-hover mb-0">
           <thead>
@@ -316,59 +220,41 @@
               <th>Actions</th>
             </tr>
           </thead>
-
           <tbody>
             <tr v-if="loading">
-              <td colspan="12" class="text-center py-5">
-                Loading items...
-              </td>
+              <td colspan="12" class="text-center py-5">Loading items...</td>
             </tr>
-
             <tr v-else-if="error">
               <td colspan="12" class="text-center text-danger py-5">
                 {{ error }}
               </td>
             </tr>
-
             <tr v-else-if="filteredItems.length === 0">
-              <td colspan="12" class="text-center text-secondary py-5">
-                No items found.
-              </td>
+              <td colspan="12" class="text-center text-secondary py-5">No items found.</td>
             </tr>
-
-            <tr
-              v-for="item in filteredItems"
-              :key="item.id"
-            >
+            <tr v-for="item in filteredItems" :key="item.id">
               <td>{{ item.property_number || '-' }}</td>
               <td>{{ item.description || '-' }}</td>
               <td>{{ item.serial_number || '-' }}</td>
               <td>₱{{ item.cost || 0 }}</td>
               <td>{{ item.acquisition_date || '-' }}</td>
-
               <td>
-                <span
-                  class="badge"
-                  :class="getClassificationClass(item.classification)"
-                >
+                <span class="badge" :class="getClassificationClass(item.classification)">
                   {{ displayClassification(item.classification) }}
                 </span>
               </td>
-
-              <td>{{ item.condition || '-' }}</td>
-
               <td>
-                <span
-                  class="badge"
-                  :class="getStatusClass(item.status)"
-                >
+                <span class="badge" :class="getConditionClass(item.condition)">
+                  {{ item.condition || '-' }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" :class="getStatusClass(item.status)">
                   {{ item.status || '-' }}
                 </span>
               </td>
-
               <td>{{ item.accountable_employee || '-' }}</td>
               <td>{{ item.responsibility_center || '-' }}</td>
-
               <td>
                 <button
                   type="button"
@@ -377,7 +263,6 @@
                 >
                   Edit
                 </button>
-
                 <button
                   type="button"
                   class="btn btn-sm btn-outline-danger"
@@ -391,79 +276,34 @@
         </table>
       </div>
     </div>
-
-    <div
-      v-if="editingItem"
-      class="edit-overlay"
-      @click="cancelEdit"
-    >
-      <div
-        class="edit-sidebar"
-        @click.stop
-      >
+    <div v-if="editingItem" class="edit-overlay" @click="cancelEdit">
+      <div class="edit-sidebar" @click.stop>
         <div class="edit-sidebar-header">
           <h5 class="mb-0">Edit Item</h5>
-
-          <button
-            type="button"
-            class="btn-close"
-            @click="cancelEdit"
-          ></button>
+          <button type="button" class="btn-close" @click="cancelEdit"></button>
         </div>
-
-        <form
-          @submit.prevent="updateItem"
-          class="edit-sidebar-form"
-        >
+        <form @submit.prevent="updateItem" class="edit-sidebar-form">
           <div class="edit-sidebar-body">
             <div class="mb-3">
               <label class="form-label">Property Number</label>
-
-              <input
-                v-model="editForm.property_number"
-                type="text"
-                class="form-control"
-                required
-              >
+              <input v-model="editForm.property_number" type="text" class="form-control" required />
             </div>
-
             <div class="mb-3">
               <label class="form-label">Serial Number</label>
-
-              <input
-                v-model="editForm.serial_number"
-                type="text"
-                class="form-control"
-              >
+              <input v-model="editForm.serial_number" type="text" class="form-control" />
             </div>
-
             <div class="mb-3">
               <label class="form-label">Description</label>
-
-              <input
-                v-model="editForm.description"
-                type="text"
-                class="form-control"
-                required
-              >
+              <input v-model="editForm.description" type="text" class="form-control" required />
             </div>
-
             <div class="mb-3">
               <label class="form-label">Supplier</label>
-
-              <input
-                v-model="editForm.supplier_id"
-                type="text"
-                class="form-control"
-              >
+              <input v-model="editForm.supplier_id" type="text" class="form-control" />
             </div>
-
             <div class="mb-3">
               <label class="form-label">Cost</label>
-
               <div class="input-group">
                 <span class="input-group-text">₱</span>
-
                 <input
                   v-model="editForm.cost"
                   type="number"
@@ -471,23 +311,15 @@
                   step="0.01"
                   class="form-control"
                   required
-                >
+                />
               </div>
             </div>
-
             <div class="mb-3">
               <label class="form-label">Acquisition Date</label>
-
-              <input
-                v-model="editForm.acquisition_date"
-                type="date"
-                class="form-control"
-              >
+              <input v-model="editForm.acquisition_date" type="date" class="form-control" />
             </div>
-
             <div class="mb-3">
               <label class="form-label">Accountable Employee</label>
-
               <select
                 v-model="editForm.accountable_employee"
                 class="form-select"
@@ -495,7 +327,6 @@
                 @change="autoFillOffice(editForm)"
               >
                 <option value="" disabled>Select personnel</option>
-
                 <option
                   v-for="person in editPersonnelOptions"
                   :key="person.id"
@@ -505,17 +336,10 @@
                 </option>
               </select>
             </div>
-
             <div class="mb-3">
               <label class="form-label">Responsibility Center</label>
-
-              <select
-                v-model="editForm.responsibility_center"
-                class="form-select"
-                required
-              >
+              <select v-model="editForm.responsibility_center" class="form-select" required>
                 <option value="" disabled>Select office</option>
-
                 <option
                   v-for="office in editOfficeOptions"
                   :key="office.id"
@@ -525,45 +349,24 @@
                 </option>
               </select>
             </div>
-
             <div class="mb-3">
               <label class="form-label">Classification</label>
-
-              <select
-                v-model="editForm.classification"
-                class="form-select"
-                required
-              >
-                <option value="PAR">
-                  Property Acknowledgement Receipt
-                </option>
-
+              <select v-model="editForm.classification" class="form-select" required>
+                <option value="PAR">Property Acknowledgement Receipt</option>
                 <option value="ICS High">ICS High</option>
                 <option value="ICS Low">ICS Low</option>
               </select>
             </div>
-
             <div class="mb-3">
               <label class="form-label">Condition</label>
-
-              <select
-                v-model="editForm.condition"
-                class="form-select"
-                required
-              >
+              <select v-model="editForm.condition" class="form-select" required>
                 <option value="Serviceable">Serviceable</option>
                 <option value="Unserviceable">Unserviceable</option>
               </select>
             </div>
-
             <div class="mb-3">
               <label class="form-label">Status</label>
-
-              <select
-                v-model="editForm.status"
-                class="form-select"
-                required
-              >
+              <select v-model="editForm.status" class="form-select" required>
                 <option value="Available">Available</option>
                 <option value="Issued">Issued</option>
                 <option value="Returned">Returned</option>
@@ -574,47 +377,40 @@
               </select>
             </div>
           </div>
-
           <div class="edit-sidebar-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              @click="cancelEdit"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              class="btn btn-success"
-              :disabled="updating"
-            >
+            <button type="button" class="btn btn-secondary" @click="cancelEdit">Cancel</button>
+            <button type="submit" class="btn btn-success" :disabled="updating">
               {{ updating ? 'Updating...' : 'Update Item' }}
             </button>
           </div>
         </form>
       </div>
     </div>
+    <InventoryMovementModal
+      :show="showMovementModal"
+      @close="showMovementModal = false"
+    />
   </div>
 </template>
-
 <script>
+import InventoryMovementModal from '../components/InventoryMovementModal.vue'
 async function apiRequest(url, options = {}) {
   const token = localStorage.getItem('accessToken')
-
   return fetch(url, {
     ...options,
     headers: {
       ...options.headers,
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
+      'Content-Type': 'application/json',
+    },
   })
 }
-
 export default {
   name: 'Items',
 
+  components: {
+    InventoryMovementModal,
+  },
   data() {
     return {
       items: [],
@@ -628,8 +424,8 @@ export default {
       updating: false,
       error: '',
       showAddForm: false,
+      showMovementModal: false,
       editingItem: null,
-
       newItem: {
         property_number: '',
         description: '',
@@ -641,9 +437,8 @@ export default {
         condition: 'Serviceable',
         status: 'Available',
         accountable_employee: '',
-        responsibility_center: ''
+        responsibility_center: '',
       },
-
       editForm: {
         property_number: '',
         description: '',
@@ -655,298 +450,213 @@ export default {
         condition: 'Serviceable',
         status: 'Available',
         accountable_employee: '',
-        responsibility_center: ''
-      }
+        responsibility_center: '',
+      },
     }
   },
-
   computed: {
     personnelOptions() {
       return this.personnel
     },
-
     officeOptions() {
       return this.offices
     },
-
     // keep the item's current value selectable in Edit even if it is
     // an older free-text value that is not in the lists
     editPersonnelOptions() {
       const current = this.editForm.accountable_employee
-
-      if (
-        current &&
-        !this.personnel.some(person => person.full_name === current)
-      ) {
-        return [
-          ...this.personnel,
-          { id: 'current', full_name: current }
-        ]
+      if (current && !this.personnel.some((person) => person.full_name === current)) {
+        return [...this.personnel, { id: 'current', full_name: current }]
       }
-
       return this.personnel
     },
-
     editOfficeOptions() {
       const current = this.editForm.responsibility_center
-
-      if (
-        current &&
-        !this.offices.some(office => office.office_name === current)
-      ) {
-        return [
-          ...this.offices,
-          { id: 'current', office_name: current }
-        ]
+      if (current && !this.offices.some((office) => office.office_name === current)) {
+        return [...this.offices, { id: 'current', office_name: current }]
       }
-
       return this.offices
     },
-
     filteredItems() {
       const search = this.search.toLowerCase().trim()
-
-      return this.items.filter(item => {
+      return this.items.filter((item) => {
         const matchesSearch =
           !search ||
-          String(item.property_number || '').toLowerCase().includes(search) ||
-          String(item.description || '').toLowerCase().includes(search) ||
-          String(item.serial_number || '').toLowerCase().includes(search) ||
-          String(item.accountable_employee || '').toLowerCase().includes(search) ||
-          String(item.responsibility_center || '').toLowerCase().includes(search) ||
-          String(item.condition || '').toLowerCase().includes(search) ||
-          String(item.status || '').toLowerCase().includes(search) ||
-          String(item.classification || '').toLowerCase().includes(search)
-
+          String(item.property_number || '')
+            .toLowerCase()
+            .includes(search) ||
+          String(item.description || '')
+            .toLowerCase()
+            .includes(search) ||
+          String(item.serial_number || '')
+            .toLowerCase()
+            .includes(search) ||
+          String(item.accountable_employee || '')
+            .toLowerCase()
+            .includes(search) ||
+          String(item.responsibility_center || '')
+            .toLowerCase()
+            .includes(search) ||
+          String(item.condition || '')
+            .toLowerCase()
+            .includes(search) ||
+          String(item.status || '')
+            .toLowerCase()
+            .includes(search) ||
+          String(item.classification || '')
+            .toLowerCase()
+            .includes(search)
         const matchesClassification =
-          !this.selectedClassification ||
-          item.classification === this.selectedClassification
-
-        const matchesStatus =
-          !this.selectedStatus ||
-          item.status === this.selectedStatus
-
-        return matchesSearch &&
-          matchesClassification &&
-          matchesStatus
+          !this.selectedClassification || item.classification === this.selectedClassification
+        const matchesStatus = !this.selectedStatus || item.status === this.selectedStatus
+        return matchesSearch && matchesClassification && matchesStatus
       })
-    }
+    },
   },
-
   async mounted() {
-    await Promise.all([
-      this.getItems(),
-      this.getOptions()
-    ])
+    await Promise.all([this.getItems(), this.getOptions()])
   },
-
   methods: {
     async fetchJson(url) {
       const response = await apiRequest(url)
       const text = await response.text()
-
       let data
-
       try {
         data = JSON.parse(text)
       } catch (parseError) {
         throw new Error('Server did not return JSON for ' + url)
       }
-
       if (!response.ok) {
         throw new Error(data.error || 'Request failed: ' + url)
       }
-
       return data
     },
-
     async getOptions() {
       const base = 'http://localhost:5000/api'
-
       try {
         // preferred: one call that works for Administrator and Personnel
         const data = await this.fetchJson(base + '/items/options')
-
-        this.personnel = Array.isArray(data.personnel)
-          ? data.personnel
-          : []
-
-        this.offices = Array.isArray(data.offices)
-          ? data.offices
-          : []
-
+        this.personnel = Array.isArray(data.personnel) ? data.personnel : []
+        this.offices = Array.isArray(data.offices) ? data.offices : []
         return
       } catch (error) {
         console.log('Options route failed, using fallback:', error)
       }
-
       // fallback: the existing endpoints (personnel list is admin-only)
-      const [personnelResult, officesResult] =
-        await Promise.allSettled([
-          this.fetchJson(base + '/personnel'),
-          this.fetchJson(base + '/offices')
-        ])
-
+      const [personnelResult, officesResult] = await Promise.allSettled([
+        this.fetchJson(base + '/personnel'),
+        this.fetchJson(base + '/offices'),
+      ])
       if (personnelResult.status === 'fulfilled') {
-        this.personnel = Array.isArray(personnelResult.value)
-          ? personnelResult.value
-          : []
+        this.personnel = Array.isArray(personnelResult.value) ? personnelResult.value : []
       }
-
       if (officesResult.status === 'fulfilled') {
-        this.offices = Array.isArray(officesResult.value)
-          ? officesResult.value
-          : []
+        this.offices = Array.isArray(officesResult.value) ? officesResult.value : []
       }
-
-      if (
-        personnelResult.status === 'rejected' ||
-        officesResult.status === 'rejected'
-      ) {
+      if (personnelResult.status === 'rejected' || officesResult.status === 'rejected') {
         const reason =
           personnelResult.reason?.message ||
           officesResult.reason?.message ||
           'Failed to load personnel and offices'
-
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: reason
-          })
+            detail: reason,
+          }),
         )
       }
     },
-
     // when a person is picked, default the responsibility center
     // to that person's office (can still be changed afterwards)
     autoFillOffice(form) {
-      const person = this.personnel.find(
-        p => p.full_name === form.accountable_employee
-      )
-
+      const person = this.personnel.find((p) => p.full_name === form.accountable_employee)
       if (!person || !person.office_id) {
         return
       }
-
-      const office = this.offices.find(
-        o => o.id === person.office_id
-      )
-
+      const office = this.offices.find((o) => o.id === person.office_id)
       if (office) {
         form.responsibility_center = office.office_name
       }
     },
-
     async getItems() {
       this.loading = true
-
       try {
-        const response = await apiRequest(
-          'http://localhost:5000/api/items'
-        )
-
+        const response = await apiRequest('http://localhost:5000/api/items')
         if (!response.ok) {
           throw new Error('Failed to get items')
         }
-
         this.items = await response.json()
         this.error = ''
       } catch (error) {
         console.log(error)
         this.error = error.message
-
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: error.message
-          })
+            detail: error.message,
+          }),
         )
       } finally {
         this.loading = false
       }
     },
-
     countClassification(classification) {
-      return this.items.filter(
-        item => item.classification === classification
-      ).length
+      return this.items.filter((item) => item.classification === classification).length
     },
-
     displayClassification(classification) {
       if (classification === 'PAR') {
         return 'Property Acknowledgement Receipt'
       }
-
       if (classification === 'ICS High') {
         return 'Inventory Custodian Slip - High Value'
       }
-
       if (classification === 'ICS Low') {
         return 'Inventory Custodian Slip - Low Value'
       }
-
       return classification || '-'
     },
-
     getClassificationClass(classification) {
       if (classification === 'PAR') {
         return 'classification-par'
       }
-
       if (classification === 'ICS High') {
         return 'classification-high'
       }
-
       if (classification === 'ICS Low') {
         return 'classification-low'
       }
-
       return 'classification-default'
     },
-
     async addItem() {
       this.saving = true
-
       try {
-        const response = await apiRequest(
-          'http://localhost:5000/api/items',
-          {
-            method: 'POST',
-            body: JSON.stringify(this.newItem)
-          }
-        )
-
+        const response = await apiRequest('http://localhost:5000/api/items', {
+          method: 'POST',
+          body: JSON.stringify(this.newItem),
+        })
         const data = await response.json()
-
         if (!response.ok) {
-          throw new Error(
-            data.error || 'Failed to add item'
-          )
+          throw new Error(data.error || 'Failed to add item')
         }
-
         this.items.unshift(data)
         this.resetForm()
         this.showAddForm = false
-
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: 'Item added successfully'
-          })
+            detail: 'Item added successfully',
+          }),
         )
       } catch (error) {
         console.log(error)
-
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: error.message
-          })
+            detail: error.message,
+          }),
         )
       } finally {
         this.saving = false
       }
     },
-
     startEdit(item) {
       this.editingItem = item
-
       this.editForm = {
         property_number: item.property_number || '',
         description: item.description || '',
@@ -958,127 +668,85 @@ export default {
         condition: item.condition || 'Serviceable',
         status: item.status || 'Available',
         accountable_employee: item.accountable_employee || '',
-        responsibility_center: item.responsibility_center || ''
+        responsibility_center: item.responsibility_center || '',
       }
     },
-
     async updateItem() {
       if (!this.editingItem) {
         return
       }
-
       this.updating = true
-
       try {
         const response = await apiRequest(
-          'http://localhost:5000/api/items/' +
-          this.editingItem.id,
+          'http://localhost:5000/api/items/' + this.editingItem.id,
           {
             method: 'PUT',
-            body: JSON.stringify(this.editForm)
-          }
+            body: JSON.stringify(this.editForm),
+          },
         )
-
         const data = await response.json()
-
         if (!response.ok) {
-          throw new Error(
-            data.error || 'Failed to update item'
-          )
+          throw new Error(data.error || 'Failed to update item')
         }
-
-        const index = this.items.findIndex(
-          item => item.id === this.editingItem.id
-        )
-
+        const index = this.items.findIndex((item) => item.id === this.editingItem.id)
         if (index !== -1) {
           this.items[index] = data
         }
-
         this.editingItem = null
-
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: 'Item updated successfully'
-          })
+            detail: 'Item updated successfully',
+          }),
         )
       } catch (error) {
         console.log(error)
-
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: error.message
-          })
+            detail: error.message,
+          }),
         )
       } finally {
         this.updating = false
       }
     },
-
     async deleteItem(item) {
-      const confirmed = window.confirm(
-        'Delete ' +
-        (item.description || 'this item') +
-        '?'
-      )
-
+      const confirmed = window.confirm('Delete ' + (item.description || 'this item') + '?')
       if (!confirmed) {
         return
       }
-
       try {
-        const response = await apiRequest(
-          'http://localhost:5000/api/items/' +
-          item.id,
-          {
-            method: 'DELETE'
-          }
-        )
-
+        const response = await apiRequest('http://localhost:5000/api/items/' + item.id, {
+          method: 'DELETE',
+        })
         const data = await response.json()
-
         if (!response.ok) {
-          throw new Error(
-            data.error || 'Failed to delete item'
-          )
+          throw new Error(data.error || 'Failed to delete item')
         }
-
-        this.items = this.items.filter(
-          currentItem => currentItem.id !== item.id
-        )
-
-        if (
-          this.editingItem &&
-          this.editingItem.id === item.id
-        ) {
+        this.items = this.items.filter((currentItem) => currentItem.id !== item.id)
+        if (this.editingItem && this.editingItem.id === item.id) {
           this.editingItem = null
         }
-
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: 'Item deleted successfully'
-          })
+            detail: 'Item deleted successfully',
+          }),
         )
       } catch (error) {
         console.log(error)
-
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: error.message
-          })
+            detail: error.message,
+          }),
         )
       }
     },
-
     cancelAdd() {
       this.showAddForm = false
       this.resetForm()
     },
-
     cancelEdit() {
       this.editingItem = null
     },
-
     resetForm() {
       this.newItem = {
         property_number: '',
@@ -1091,99 +759,89 @@ export default {
         condition: 'Serviceable',
         status: 'Available',
         accountable_employee: '',
-        responsibility_center: ''
+        responsibility_center: '',
       }
     },
-
+    getConditionClass(condition) {
+      if (condition === 'Serviceable') {
+        return 'bg-success'
+      }
+      if (condition === 'Unserviceable') {
+        return 'bg-danger'
+      }
+      return 'bg-secondary'
+    },
     getStatusClass(status) {
       if (status === 'Available') {
         return 'bg-success'
       }
-
       if (status === 'Issued') {
         return 'bg-primary'
       }
-
       if (status === 'Returned') {
         return 'bg-info'
       }
-
       if (status === 'Lost') {
         return 'bg-danger'
       }
-
       if (status === 'Damaged') {
         return 'bg-warning text-dark'
       }
-
       if (status === 'Stolen') {
         return 'bg-danger'
       }
-
       if (status === 'Disposed') {
         return 'bg-secondary'
       }
-
       return 'bg-secondary'
-    }
-  }
+    },
+  },
 }
 </script>
-
 <style scoped>
 h1 {
-  color: #2F5D3A;
+  color: #2f5d3a;
 }
-
 .btn-warning {
-  background-color: #E8C547;
-  border-color: #E8C547;
-  color: #2F5D3A;
+  background-color: #e8c547;
+  border-color: #e8c547;
+  color: #2f5d3a;
 }
-
 .btn-warning:hover {
   background-color: #d8b638;
   border-color: #d8b638;
 }
-
 .table thead th {
-  background-color: #2F5D3A;
+  background-color: #2f5d3a;
   color: white;
   white-space: nowrap;
 }
-
 .table td {
   white-space: nowrap;
   vertical-align: middle;
 }
-
 .classification-par {
-  background-color: #2F5D3A;
+  background-color: #2f5d3a;
   color: white;
 }
-
 .classification-high {
-  background-color: #E8C547;
-  color: #2F5D3A;
+  background-color: #e8c547;
+  color: #2f5d3a;
 }
-
 .classification-low {
-  background-color: #DCEBDC;
-  color: #2F5D3A;
+  background-color: #dcebdc;
+  color: #2f5d3a;
 }
-
 .classification-default {
   background-color: #6c757d;
   color: white;
 }
-
 .edit-overlay {
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.35);
   z-index: 1050;
 }
-
 .edit-sidebar {
   position: absolute;
   top: 0;
@@ -1196,34 +854,29 @@ h1 {
   display: flex;
   flex-direction: column;
 }
-
 .edit-sidebar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 20px;
   border-bottom: 1px solid #dee2e6;
-  background-color: #2F5D3A;
+  background-color: #2f5d3a;
   color: white;
 }
-
 .edit-sidebar-header .btn-close {
   filter: brightness(0) invert(1);
 }
-
 .edit-sidebar-form {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
 }
-
 .edit-sidebar-body {
   padding: 20px;
   overflow-y: auto;
   flex: 1;
 }
-
 .edit-sidebar-footer {
   padding: 15px 20px;
   border-top: 1px solid #dee2e6;
@@ -1232,28 +885,23 @@ h1 {
   justify-content: flex-end;
   gap: 10px;
 }
-
 @media (max-width: 576px) {
   .edit-sidebar {
     width: 100%;
   }
-
   .table {
     min-width: 0 !important;
     table-layout: fixed;
   }
-
   .table th,
   .table td {
     padding: 9px 5px;
     white-space: normal;
     overflow-wrap: anywhere;
   }
-
   .edit-sidebar-footer {
     flex-wrap: wrap;
   }
-
   .edit-sidebar-footer .btn {
     flex: 1 1 130px;
   }

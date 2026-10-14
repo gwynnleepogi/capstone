@@ -78,7 +78,7 @@
                   class="sortable"
                   @click="sortBy('item_description')"
                 >
-                  Item Description
+                  Property Description
                   <i :class="getSortIcon('item_description')"></i>
                 </th>
 
@@ -753,7 +753,19 @@ export default {
           )
         }
 
-        this.items = Array.isArray(data) ? data : []
+        const availableItems = Array.isArray(data) ? data : []
+        const selectedItem = this.editing
+          ? this.items.find(item => item.id === this.form.item_id)
+          : null
+
+        if (
+          selectedItem &&
+          !availableItems.some(item => item.id === selectedItem.id)
+        ) {
+          availableItems.push(selectedItem)
+        }
+
+        this.items = availableItems
       } catch (error) {
         console.log('Inventory items error:', error)
 

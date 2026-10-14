@@ -1,7 +1,14 @@
 <template>
   <div class="login-page">
     <div class="login-box">
-      <h1>Property Inventory</h1>
+      <div class="login-brand">
+        <img
+          class="login-logo"
+          src="../assets/LOGO.png"
+          alt="NVSU logo"
+        >
+        <h1>Property Inventory</h1>
+      </div>
 
       <p>
         {{
@@ -367,16 +374,51 @@ export default {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
 }
 
+.login-logo {
+  display: block;
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
 .login-box h1 {
   color: #2f5d3a;
-  text-align: center;
-  margin-bottom: 8px;
+  font-size: 26px;
+  line-height: 1.15;
+  margin: 0;
 }
 
 .login-box p {
   text-align: center;
   color: #6c757d;
   margin-bottom: 20px;
+}
+
+@media (max-width: 480px) {
+  .login-box {
+    padding: 24px;
+  }
+
+  .login-brand {
+    gap: 9px;
+  }
+
+  .login-logo {
+    width: 60px;
+    height: 60px;
+  }
+
+  .login-box h1 {
+    font-size: 23px;
+  }
 }
 
 .login-box label {

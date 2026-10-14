@@ -195,9 +195,12 @@ router.post('/', async (req, res) => {
 
     // CHECK REQUEST STATUS
 
-    if (request.status !== 'Approved') {
+    if (
+      request.status !== 'Approved' &&
+      request.status !== 'Delivered'
+    ) {
       return res.status(400).json({
-        error: 'Only approved requests can be issued'
+        error: 'Only approved or delivered requests can be issued'
       })
     }
 
@@ -270,9 +273,14 @@ router.post('/', async (req, res) => {
 
     // CHECK ITEM STATUS
 
-    if (item.status !== 'Available') {
+    const allowedItemStatuses =
+      request.status === 'Delivered'
+        ? ['Available', 'Issued']
+        : ['Available']
+
+    if (!allowedItemStatuses.includes(item.status)) {
       return res.status(400).json({
-        error: `This item is not available. Current status: ${item.status}`
+        error: `This item cannot be issued for this request. Current status: ${item.status}`
       })
     }
 

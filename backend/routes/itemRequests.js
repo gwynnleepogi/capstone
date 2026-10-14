@@ -394,6 +394,9 @@ router.put(
       })
     }
 
+    const requestOwner =
+      requested_by || oldData.requested_by
+
     if (
       oldData.status === 'Delivered' &&
       status !== 'Delivered'
@@ -440,11 +443,71 @@ router.put(
       itemDescription = selectedItem.description
     }
 
+    if (
+      status === 'Delivered' &&
+      oldData.status !== 'Delivered'
+    ) {
+      const {
+        data: requester,
+        error: requesterError
+      } = await supabase
+        .from('users')
+        .select('full_name, office_id')
+        .eq('id', requestOwner)
+        .single()
+
+      if (requesterError || !requester) {
+        return res.status(400).json({
+          error: 'The request owner could not be found'
+        })
+      }
+
+      const requesterOfficeId =
+        office_id || oldData.office_id || requester.office_id
+
+      let responsibilityCenter = ''
+
+      if (requesterOfficeId) {
+        const {
+          data: office,
+          error: officeError
+        } = await supabase
+          .from('offices')
+          .select('office_name')
+          .eq('id', requesterOfficeId)
+          .single()
+
+        if (officeError || !office) {
+          return res.status(400).json({
+            error: 'The request owner office could not be found'
+          })
+        }
+
+        responsibilityCenter = office.office_name
+      }
+
+      const { error: itemUpdateError } = await supabase
+        .from('items')
+        .update({
+          accountable_employee: requester.full_name,
+          responsibility_center: responsibilityCenter
+        })
+        .eq('id', item_id)
+
+      if (itemUpdateError) {
+        console.log(itemUpdateError)
+
+        return res.status(500).json({
+          error: itemUpdateError.message
+        })
+      }
+    }
+
     const { data, error } = await supabase
       .from('item_requests')
       .update({
         request_number,
-        requested_by,
+        requested_by: requestOwner,
         office_id: office_id || null,
         item_description: itemDescription,
         quantity: Number(quantity),

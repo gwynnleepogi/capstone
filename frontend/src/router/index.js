@@ -10,6 +10,7 @@ import ItemRequests from '@/views/ItemRequests.vue'
 import PropertyReceipts from '@/views/PropertyReceipts.vue'
 import Returns from '@/views/Returns.vue'
 import Incidents from '@/views/Incidents.vue'
+import ReturnIncidents from '@/views/ReturnIncidents.vue'
 import AuditLogs from '@/views/AuditLogs.vue'
 
 
@@ -74,6 +75,12 @@ const router = createRouter({
     path: '/incidents',
     name: 'Incidents',
     component: Incidents,
+      meta: { roles: ['Administrator', 'Personnel'] }
+  },
+  {
+    path: '/returns-incidents',
+    name: 'ReturnIncidents',
+    component: ReturnIncidents,
       meta: { roles: ['Administrator', 'Personnel'] }
   },
   {

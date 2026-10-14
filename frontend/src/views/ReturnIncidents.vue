@@ -1,3 +1,4 @@
+
 <template>
   <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -17,7 +18,6 @@
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">Search</label>
-
             <input
               type="text"
               class="form-control"
@@ -28,11 +28,7 @@
 
           <div class="col-md-3">
             <label class="form-label">Condition</label>
-
-            <select
-              class="form-select"
-              v-model="conditionFilter"
-            >
+            <select class="form-select" v-model="conditionFilter">
               <option value="">All Conditions</option>
               <option value="Serviceable">Serviceable</option>
               <option value="Unserviceable">Unserviceable</option>
@@ -41,13 +37,8 @@
 
           <div class="col-md-3">
             <label class="form-label">Office</label>
-
-            <select
-              class="form-select"
-              v-model="officeFilter"
-            >
+            <select class="form-select" v-model="officeFilter">
               <option value="">All Offices</option>
-
               <option
                 v-for="office in offices"
                 :key="office.id"
@@ -67,60 +58,34 @@
           <table class="table table-hover align-middle">
             <thead>
               <tr>
-                <th
-                  class="sortable"
-                  @click="sortBy('item')"
-                >
+                <th class="sortable" @click="sortBy('item')">
                   Item
                   <i :class="getSortIcon('item')"></i>
                 </th>
-
-                <th
-                  class="sortable"
-                  @click="sortBy('returned_by')"
-                >
+                <th class="sortable" @click="sortBy('returned_by')">
                   Returned By
                   <i :class="getSortIcon('returned_by')"></i>
                 </th>
-
-                <th
-                  class="sortable"
-                  @click="sortBy('office')"
-                >
+                <th class="sortable" @click="sortBy('office')">
                   Office
                   <i :class="getSortIcon('office')"></i>
                 </th>
-
-                <th
-                  class="sortable"
-                  @click="sortBy('return_date')"
-                >
+                <th class="sortable" @click="sortBy('return_date')">
                   Return Date
                   <i :class="getSortIcon('return_date')"></i>
                 </th>
-
-                <th
-                  class="sortable"
-                  @click="sortBy('condition')"
-                >
+                <th class="sortable" @click="sortBy('condition')">
                   Condition
                   <i :class="getSortIcon('condition')"></i>
                 </th>
-
                 <th>Reason</th>
                 <th>Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              <tr
-                v-for="itemReturn in paginatedReturns"
-                :key="itemReturn.id"
-              >
-                <td>
-                  {{ itemReturn.items?.description || '-' }}
-                </td>
-
+              <tr v-for="itemReturn in paginatedReturns" :key="itemReturn.id">
+                <td>{{ itemReturn.items?.description || '-' }}</td>
                 <td>
                   {{
                     itemReturn.personnel?.full_name ||
@@ -128,15 +93,8 @@
                     '-'
                   }}
                 </td>
-
-                <td>
-                  {{ itemReturn.offices?.office_name || '-' }}
-                </td>
-
-                <td>
-                  {{ itemReturn.return_date || '-' }}
-                </td>
-
+                <td>{{ itemReturn.offices?.office_name || '-' }}</td>
+                <td>{{ itemReturn.return_date || '-' }}</td>
                 <td>
                   <span
                     class="badge"
@@ -149,11 +107,7 @@
                     {{ itemReturn.condition_after_return || '-' }}
                   </span>
                 </td>
-
-                <td>
-                  {{ itemReturn.return_reason || '-' }}
-                </td>
-
+                <td>{{ itemReturn.return_reason || '-' }}</td>
                 <td>
                   <button
                     class="btn btn-sm btn-outline-success me-2"
@@ -162,7 +116,6 @@
                   >
                     Edit
                   </button>
-
                   <button
                     class="btn btn-sm btn-outline-danger"
                     @click="deleteReturn(itemReturn.id)"
@@ -174,10 +127,7 @@
               </tr>
 
               <tr v-if="paginatedReturns.length === 0">
-                <td
-                  colspan="7"
-                  class="text-center text-muted py-4"
-                >
+                <td colspan="7" class="text-center text-muted py-4">
                   No returns found.
                 </td>
               </tr>
@@ -190,10 +140,7 @@
           class="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-3"
         >
           <div class="d-flex align-items-center gap-2">
-            <label class="mb-0 text-muted small">
-              Show
-            </label>
-
+            <label class="mb-0 text-muted small">Show</label>
             <select
               class="form-select form-select-sm"
               v-model.number="itemsPerPage"
@@ -204,10 +151,7 @@
               <option :value="25">25</option>
               <option :value="50">50</option>
             </select>
-
-            <span class="text-muted small">
-              entries
-            </span>
+            <span class="text-muted small">entries</span>
           </div>
 
           <div class="text-muted small">
@@ -217,10 +161,7 @@
 
           <nav>
             <ul class="pagination pagination-sm mb-0">
-              <li
-                class="page-item"
-                :class="{ disabled: currentPage === 1 }"
-              >
+              <li class="page-item" :class="{ disabled: currentPage === 1 }">
                 <button
                   class="page-link"
                   @click="previousPage"
@@ -236,10 +177,7 @@
                 class="page-item"
                 :class="{ active: currentPage === page }"
               >
-                <button
-                  class="page-link"
-                  @click="goToPage(page)"
-                >
+                <button class="page-link" @click="goToPage(page)">
                   {{ page }}
                 </button>
               </li>
@@ -262,18 +200,13 @@
       </div>
     </div>
 
-    <div
-      class="modal fade"
-      id="returnModal"
-      tabindex="-1"
-    >
+    <div class="modal fade" id="returnModal" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">
               {{ editing ? 'Edit Return' : 'Add Return' }}
             </h5>
-
             <button
               type="button"
               class="btn-close"
@@ -284,19 +217,9 @@
           <form @submit.prevent="saveReturn">
             <div class="modal-body">
               <div class="mb-3">
-                <label class="form-label">
-                  Item
-                </label>
-
-                <select
-                  class="form-select"
-                  v-model="form.item_id"
-                  required
-                >
-                  <option value="">
-                    Select Item
-                  </option>
-
+                <label class="form-label">Item</label>
+                <select class="form-select" v-model="form.item_id" required>
+                  <option value="">Select Item</option>
                   <option
                     v-for="item in items"
                     :key="item.id"
@@ -308,18 +231,9 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">
-                  Returned By
-                </label>
-
-                <select
-                  class="form-select"
-                  v-model="form.returned_by"
-                >
-                  <option value="">
-                    Select Personnel
-                  </option>
-
+                <label class="form-label">Returned By</label>
+                <select class="form-select" v-model="form.returned_by">
+                  <option value="">Select Personnel</option>
                   <option
                     v-for="person in personnel"
                     :key="person.id"
@@ -331,18 +245,9 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">
-                  Office
-                </label>
-
-                <select
-                  class="form-select"
-                  v-model="form.office_id"
-                >
-                  <option value="">
-                    Select Office
-                  </option>
-
+                <label class="form-label">Office</label>
+                <select class="form-select" v-model="form.office_id">
+                  <option value="">Select Office</option>
                   <option
                     v-for="office in offices"
                     :key="office.id"
@@ -354,10 +259,7 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">
-                  Return Date
-                </label>
-
+                <label class="form-label">Return Date</label>
                 <input
                   type="date"
                   class="form-control"
@@ -366,30 +268,19 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">
-                  Condition After Return
-                </label>
-
+                <label class="form-label">Condition After Return</label>
                 <select
                   class="form-select"
                   v-model="form.condition_after_return"
                   required
                 >
-                  <option value="Serviceable">
-                    Serviceable
-                  </option>
-
-                  <option value="Unserviceable">
-                    Unserviceable
-                  </option>
+                  <option value="Serviceable">Serviceable</option>
+                  <option value="Unserviceable">Unserviceable</option>
                 </select>
               </div>
 
               <div class="mb-3">
-                <label class="form-label">
-                  Return Reason
-                </label>
-
+                <label class="form-label">Return Reason</label>
                 <textarea
                   class="form-control"
                   rows="3"
@@ -398,10 +289,7 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">
-                  Remarks
-                </label>
-
+                <label class="form-label">Remarks</label>
                 <textarea
                   class="form-control"
                   rows="3"
@@ -418,17 +306,12 @@
               >
                 Cancel
               </button>
-
               <button
                 type="submit"
                 class="btn btn-warning"
                 :disabled="saving"
               >
-                <i
-                  v-if="!saving"
-                  class="bi bi-check-lg me-1"
-                ></i>
-
+                <i v-if="!saving" class="bi bi-check-lg me-1"></i>
                 {{ saving ? 'Saving...' : 'Save Return' }}
               </button>
             </div>
@@ -451,20 +334,15 @@ export default {
       items: [],
       personnel: [],
       offices: [],
-
       search: '',
       conditionFilter: '',
       officeFilter: '',
-
       currentPage: 1,
       itemsPerPage: 10,
-
       sortColumn: 'return_date',
       sortDirection: 'desc',
-
       editing: false,
       saving: false,
-
       form: {
         id: null,
         item_id: '',
@@ -521,23 +399,12 @@ export default {
           !this.officeFilter ||
           itemReturn.offices?.office_name === this.officeFilter
 
-        return (
-          matchesSearch &&
-          matchesCondition &&
-          matchesOffice
-        )
+        return matchesSearch && matchesCondition && matchesOffice
       })
 
       return filtered.sort((a, b) => {
-        const firstValue = this.getSortValue(
-          a,
-          this.sortColumn
-        )
-
-        const secondValue = this.getSortValue(
-          b,
-          this.sortColumn
-        )
+        const firstValue = this.getSortValue(a, this.sortColumn)
+        const secondValue = this.getSortValue(b, this.sortColumn)
 
         if (firstValue < secondValue) {
           return this.sortDirection === 'asc' ? -1 : 1
@@ -554,16 +421,12 @@ export default {
     totalPages() {
       return Math.max(
         1,
-        Math.ceil(
-          this.filteredReturns.length / this.itemsPerPage
-        )
+        Math.ceil(this.filteredReturns.length / this.itemsPerPage)
       )
     },
 
     paginatedReturns() {
-      const start =
-        (this.currentPage - 1) * this.itemsPerPage
-
+      const start = (this.currentPage - 1) * this.itemsPerPage
       const end = start + this.itemsPerPage
 
       return this.filteredReturns.slice(start, end)
@@ -574,9 +437,7 @@ export default {
         return 0
       }
 
-      return (
-        (this.currentPage - 1) * this.itemsPerPage + 1
-      )
+      return (this.currentPage - 1) * this.itemsPerPage + 1
     },
 
     lastReturnNumber() {
@@ -641,9 +502,7 @@ export default {
       }
 
       if (column === 'return_date') {
-        return String(
-          itemReturn.return_date || ''
-        ).toLowerCase()
+        return String(itemReturn.return_date || '').toLowerCase()
       }
 
       if (column === 'condition') {
@@ -658,9 +517,7 @@ export default {
     sortBy(column) {
       if (this.sortColumn === column) {
         this.sortDirection =
-          this.sortDirection === 'asc'
-            ? 'desc'
-            : 'asc'
+          this.sortDirection === 'asc' ? 'desc' : 'asc'
       } else {
         this.sortColumn = column
         this.sortDirection = 'asc'
@@ -706,9 +563,7 @@ export default {
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(
-            data.error || 'Failed to load returns'
-          )
+          throw new Error(data.error || 'Failed to load returns')
         }
 
         this.returns = data
@@ -779,19 +634,14 @@ export default {
         item_id: '',
         returned_by: '',
         office_id: '',
-        return_date: new Date()
-          .toISOString()
-          .split('T')[0],
+        return_date: new Date().toISOString().split('T')[0],
         condition_after_return: 'Serviceable',
         return_reason: '',
         remarks: ''
       }
 
-      const modalElement =
-        document.getElementById('returnModal')
-
-      const modal =
-        Modal.getOrCreateInstance(modalElement)
+      const modalElement = document.getElementById('returnModal')
+      const modal = Modal.getOrCreateInstance(modalElement)
 
       modal.show()
     },
@@ -805,17 +655,13 @@ export default {
         returned_by: itemReturn.returned_by || '',
         office_id: itemReturn.office_id || '',
         return_date: itemReturn.return_date || '',
-        condition_after_return:
-          itemReturn.condition_after_return,
+        condition_after_return: itemReturn.condition_after_return,
         return_reason: itemReturn.return_reason || '',
         remarks: itemReturn.remarks || ''
       }
 
-      const modalElement =
-        document.getElementById('returnModal')
-
-      const modal =
-        Modal.getOrCreateInstance(modalElement)
+      const modalElement = document.getElementById('returnModal')
+      const modal = Modal.getOrCreateInstance(modalElement)
 
       modal.show()
     },
@@ -824,32 +670,25 @@ export default {
       this.saving = true
 
       try {
-        let url =
-          'http://localhost:5000/api/returns'
-
+        let url = 'http://localhost:5000/api/returns'
         let method = 'POST'
 
         if (this.editing) {
-          url =
-            `http://localhost:5000/api/returns/${this.form.id}`
-
+          url = `http://localhost:5000/api/returns/${this.form.id}`
           method = 'PUT'
         }
 
         const response = await fetch(url, {
           method: method,
-
           headers: {
             'Content-Type': 'application/json'
           },
-
           body: JSON.stringify({
             item_id: this.form.item_id,
             returned_by: this.form.returned_by || null,
             office_id: this.form.office_id || null,
             return_date: this.form.return_date || null,
-            condition_after_return:
-              this.form.condition_after_return,
+            condition_after_return: this.form.condition_after_return,
             return_reason: this.form.return_reason,
             remarks: this.form.remarks
           })
@@ -858,16 +697,11 @@ export default {
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(
-            data.error || 'Failed to save return'
-          )
+          throw new Error(data.error || 'Failed to save return')
         }
 
-        const modalElement =
-          document.getElementById('returnModal')
-
-        const modal =
-          Modal.getOrCreateInstance(modalElement)
+        const modalElement = document.getElementById('returnModal')
+        const modal = Modal.getOrCreateInstance(modalElement)
 
         modal.hide()
 
@@ -894,11 +728,7 @@ export default {
     },
 
     async deleteReturn(id) {
-      if (
-        !confirm(
-          'Are you sure you want to delete this return?'
-        )
-      ) {
+      if (!confirm('Are you sure you want to delete this return?')) {
         return
       }
 
@@ -913,9 +743,7 @@ export default {
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(
-            data.error || 'Failed to delete return'
-          )
+          throw new Error(data.error || 'Failed to delete return')
         }
 
         await this.getReturns()

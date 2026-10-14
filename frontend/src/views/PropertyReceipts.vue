@@ -92,10 +92,17 @@
                   </button>
 
                   <button
-                    class="btn btn-sm btn-outline-success"
+                    class="btn btn-sm btn-outline-success me-1"
                     @click="printReceipt(receipt)"
                   >
                     Print
+                  </button>
+
+                  <button
+                    class="btn btn-sm btn-outline-dark"
+                    @click="openRISModal(receipt)"
+                  >
+                    Print RIS
                   </button>
                 </td>
               </tr>
@@ -322,6 +329,72 @@
         </div>
       </div>
     </div>
+
+    <div
+      class="modal fade"
+      id="risDetailsModal"
+      tabindex="-1"
+      aria-labelledby="risDetailsModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <form @submit.prevent="confirmPrintRIS">
+            <div class="modal-header">
+              <h5 class="modal-title" id="risDetailsModalLabel">Complete RIS Details</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+              <p class="text-muted small">Existing request and item details will be filled in automatically. Complete the required fields before printing.</p>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Fund Cluster <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.fundCluster" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Requested By <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.requestedBy" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Requested By Designation <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.requestedDesignation" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Approved By <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.approvedBy" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Approved By Designation <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.approvedDesignation" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Issued By <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.issuedBy" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Issued By Designation <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.issuedDesignation" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Received By <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.receivedBy" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Received By Designation <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.receivedDesignation" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success">Continue to Print</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -340,6 +413,18 @@ export default {
 
       editing: false,
       saving: false,
+      selectedRISReceipt: null,
+      risForm: {
+        fundCluster: '',
+        requestedBy: '',
+        requestedDesignation: '',
+        approvedBy: '',
+        approvedDesignation: '',
+        issuedBy: '',
+        issuedDesignation: '',
+        receivedBy: '',
+        receivedDesignation: ''
+      },
 
       form: {
         id: null,
@@ -758,6 +843,233 @@ export default {
       )
     },
 
+    openRISModal(receipt) {
+      const request = receipt.item_requests || {}
+      const issuedTo = this.getIssuedToName(receipt)
+      this.selectedRISReceipt = receipt
+      this.risForm = {
+        fundCluster: request.fund_cluster || receipt.fund_cluster || '',
+        requestedBy: request.requested_by_name || request.users?.full_name || '',
+        requestedDesignation: request.requested_by_designation || '',
+        approvedBy: receipt.approved_by_name || '',
+        approvedDesignation: receipt.approved_by_designation || '',
+        issuedBy: receipt.issued_by_name || '',
+        issuedDesignation: receipt.issued_by_designation || '',
+        receivedBy: issuedTo === '-' ? '' : issuedTo,
+        receivedDesignation: receipt.received_by_designation || ''
+      }
+      const modal = Modal.getOrCreateInstance(document.getElementById('risDetailsModal'))
+      modal.show()
+    },
+
+    confirmPrintRIS() {
+      if (!this.selectedRISReceipt) return
+      const modal = Modal.getOrCreateInstance(document.getElementById('risDetailsModal'))
+      modal.hide()
+      this.printRIS(this.selectedRISReceipt, { ...this.risForm })
+    },
+
+    printRIS(receipt, details = {}) {
+      const item = this.getReceiptItem(receipt)
+      const request = receipt.item_requests || {}
+      const office = request.offices || receipt.offices || {}
+      const escape = value => this.escapeHtml(value === null || value === undefined || value === '' ? '-' : value)
+      const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
+
+      const printWindow = window.open('', '_blank')
+      if (!printWindow) {
+        this.showToast('Please allow pop-ups to print the RIS')
+        return
+      }
+
+      const receiptNumber = escape(receipt.receipt_number)
+      const dateIssued = escape(receipt.date_issued)
+      const officeName = escape(office.office_name || request.office_name || receipt.office_name)
+      const division = escape(request.division || receipt.division)
+      const responsibilityCenter = escape(request.responsibility_center || receipt.responsibility_center || item.responsibility_center)
+      const fundCluster = escape(details.fundCluster || request.fund_cluster || receipt.fund_cluster)
+      const description = escape(item.description || request.item_description)
+      const stockNumber = escape(item.stock_number || item.property_number || item.stock_no)
+      const unit = escape(item.unit || item.unit_of_measure)
+      const quantityRequested = escape(request.quantity_requested || request.quantity || receipt.quantity_requested)
+      const quantityIssued = escape(receipt.quantity_issued || request.quantity_issued || request.quantity_requested || request.quantity)
+      const availableQuantity = Number(item.quantity_available ?? item.quantity ?? item.stock_balance)
+      const requestedQuantity = Number(request.quantity_requested || request.quantity || receipt.quantity_requested)
+      let stockAvailability = 'Not available'
+      if (Number.isFinite(availableQuantity) && Number.isFinite(requestedQuantity)) {
+        stockAvailability = availableQuantity >= requestedQuantity ? 'Available' : 'Not available'
+      } else if (item.stock_available === true || item.available === true) {
+        stockAvailability = 'Available'
+      } else if (item.stock_available === false || item.available === false) {
+        stockAvailability = 'Not available'
+      }
+      const purpose = escape(request.purpose || receipt.purpose || request.remarks)
+      const remarks = escape(receipt.remarks || request.remarks)
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>RIS - ${receiptNumber}</title>
+          <style>
+            @page { size: 8.5in 13in portrait; margin: 8mm; }
+            * { box-sizing: border-box; }
+            body { font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 10px; margin: 0; }
+            .form-frame { border: 1px solid #000; padding: 5px; }
+            .letterhead { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; border-bottom: 1px solid #000; min-height: 72px; }
+            .logo-box { border-right: 1px solid #000; height: 72px; display: flex; align-items: center; justify-content: center; }
+            .logo { width: 58px; height: 58px; object-fit: contain; }
+            .letterhead-text { line-height: 1.25; padding: 3px; }
+            .letterhead-text p { margin: 1px 0; }
+            .school-name { font-size: 14px; font-weight: bold; }
+            .document-title { text-align: center; font-size: 14px; font-weight: bold; padding: 5px 0; border-bottom: 1px solid #000; }
+            table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            th, td { border: 1px solid #000; padding: 4px 4px; vertical-align: middle; overflow-wrap: anywhere; }
+            th { text-align: center; font-weight: bold; }
+            .meta td { height: 23px; }
+            .items { margin-top: 0; }
+            .items th { height: 29px; }
+            .items td { height: 30px; }
+            .center { text-align: center; }
+            .purpose { border: 1px solid #000; border-top: 0; padding: 7px 5px; min-height: 35px; }
+            .signature-table { margin-top: 7px; }
+            .signature-table th { text-align: left; height: 23px; }
+            .signature-table td { height: 48px; vertical-align: top; }
+            .signature-space { margin-top: 20px; border-top: 1px solid #000; text-align: center; padding-top: 3px; }
+            .small { font-size: 9px; }
+            .instructions { margin-top: 6px; border: 1px solid #000; padding: 5px 6px; font-size: 7px; line-height: 1.2; }
+            .instructions-title { text-align: center; font-weight: bold; text-decoration: underline; margin-bottom: 4px; }
+            .instructions p { margin: 0 0 3px; }
+            .instructions .copies { margin-left: 10px; }
+            .form-code { margin-top: 3px; font-weight: bold; }
+            @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+          </style>
+        </head>
+        <body>
+          <div class="form-frame">
+            <div class="letterhead">
+              <div class="logo-box"><img class="logo" src="${logoUrl}" alt="NVSU Logo"></div>
+              <div class="letterhead-text">
+                <p>Republic of the Philippines</p>
+                <p class="school-name">NUEVA VIZCAYA STATE UNIVERSITY</p>
+                <p>3702 Bambang, Nueva Vizcaya</p>
+              </div>
+            </div>
+
+            <div class="document-title">REQUISITION AND ISSUE SLIP (RIS)</div>
+
+            <table class="meta">
+              <tbody>
+                <tr>
+                  <td colspan="2"><strong>Fund Cluster:</strong> ${fundCluster}</td>
+                  <td colspan="2"><strong>Responsibility Center Code:</strong> ${responsibilityCenter}</td>
+                  <td><strong>RIS No.:</strong> ${receiptNumber}</td>
+                  <td><strong>Date:</strong> ${dateIssued}</td>
+                </tr>
+                <tr>
+                  <td colspan="2"><strong>Division:</strong> ${division}</td>
+                  <td colspan="4"><strong>Office:</strong> ${officeName}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <table class="items">
+              <colgroup>
+                <col style="width: 9%">
+                <col style="width: 7%">
+                <col style="width: 31%">
+                <col style="width: 8%">
+                <col style="width: 7%">
+                <col style="width: 7%">
+                <col style="width: 8%">
+                <col style="width: 23%">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th rowspan="2">Stock #</th>
+                  <th rowspan="2">Unit</th>
+                  <th rowspan="2">Description</th>
+                  <th rowspan="2">QTY</th>
+                  <th colspan="2">Stock Available?</th>
+                  <th colspan="2">Issue</th>
+                </tr>
+                <tr>
+                  <th>Yes</th>
+                  <th>No</th>
+                  <th>QTY</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="center">${stockNumber}</td>
+                  <td class="center">${unit}</td>
+                  <td>${description}</td>
+                  <td class="center">${quantityRequested}</td>
+                  <td class="center">${stockAvailability === 'Available' ? '✓' : ''}</td>
+                  <td class="center">${stockAvailability !== 'Available' ? '✓' : ''}</td>
+                  <td class="center">${quantityIssued}</td>
+                  <td>${remarks}</td>
+                </tr>
+                <tr>
+                  <td colspan="8" class="center"><strong>***Nothing Follows***</strong></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="purpose"><strong>Purpose:</strong> ${purpose}</div>
+
+          <table class="signature-table">
+            <tbody>
+              <tr>
+                <th colspan="2">Requested by:</th>
+                <th colspan="2">Approved by:</th>
+              </tr>
+              <tr>
+                <td colspan="2"><div class="signature-space"><strong>${escape(details.requestedBy)}</strong><br>${escape(details.requestedDesignation)}<br>Signature / Date</div></td>
+                <td colspan="2"><div class="signature-space"><strong>${escape(details.approvedBy)}</strong><br>${escape(details.approvedDesignation)}<br>Signature / Date</div></td>
+              </tr>
+              <tr>
+                <th colspan="2">Issued by:</th>
+                <th colspan="2">Received by:</th>
+              </tr>
+              <tr>
+                <td colspan="2"><div class="signature-space"><strong>${escape(details.issuedBy)}</strong><br>${escape(details.issuedDesignation)}<br>Signature / Date</div></td>
+                <td colspan="2"><div class="signature-space"><strong>${escape(details.receivedBy)}</strong><br>${escape(details.receivedDesignation)}<br>Signature / Date</div></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="instructions">
+            <div class="instructions-title">INSTRUCTIONS</div>
+            <p><strong>A.</strong> The RIS shall be prepared by the authorized officer or employee to request needed Property/Supply, by the Supervisor of the requesting unit to approve the request, by the Property/Supply Custodian to verify the availability of stocks and issuance of the item/s, and by the end user or authorized personnel of the requesting unit to receive the item/s as an accountable/responsible officer or employee.</p>
+            <p><strong>B.</strong> For requested item/s other than the category of consumable property/supply, the approved RIS (GAM Appendix 63) shall be the basis of the SMO Staff in preparing and processing the Inventory Custodian Slip (GAM Appendix 69) for semi-expendable property and/or Property Acknowledgement Receipt (GAM Appendix 71) for non-expendable property prior to issuance if the item/s is available on stock; and</p>
+            <p><strong>C.</strong> This form shall be prepared in three (3) copies and in 8.5&quot; x 13&quot; paper. It will be distributed as follows:</p>
+            <div class="copies">Original - Accounting Office</div>
+            <div class="copies">Copy 2 - Requesting Office</div>
+            <div class="copies">Copy 3 - Supply Management Office</div>
+            <div class="form-code">NVSU-FR-SMO-08-00 (031022)</div>
+          </div>
+          </div>
+
+          <script>
+            window.onload = function () {
+              const logo = document.querySelector('.logo')
+              if (logo && !logo.complete) {
+                logo.onload = function () { window.print() }
+                logo.onerror = function () { window.print() }
+              } else {
+                window.print()
+              }
+            }
+          <\/script>
+        </body>
+        </html>
+      `)
+      printWindow.document.close()
+    },
+
     printReceipt(receipt) {
       const item = this.getReceiptItem(receipt)
 
@@ -891,14 +1203,14 @@ export default {
               justify-content: center;
               gap: 14px;
               text-align: center;
-              border-bottom: 5px solid #198754;
+              border-bottom: 1px solid #000;
               padding-bottom: 8px;
             }
 
             .seal {
               width: 72px;
               height: 72px;
-              border: 3px solid #198754;
+              border: 1px solid #000;
               border-radius: 50%;
               display: flex;
               align-items: center;
@@ -906,14 +1218,14 @@ export default {
               text-align: center;
               font-size: 10px;
               font-weight: bold;
-              color: #198754;
-              background: #fff200;
+              color: #000;
+              background: #fff;
             }
 
             .header h1 {
               margin: 0;
               font-size: 19px;
-              color: #198754;
+              color: #000;
               font-weight: bold;
             }
 
@@ -937,17 +1249,17 @@ export default {
 
             .receipt-title {
               text-align: center;
-              background: #198754;
-              color: white;
+              background: #fff;
+              color: #000;
               font-size: 15px;
               font-weight: bold;
               padding: 9px;
               margin: 8px 0 10px;
-              border: 2px solid #198754;
+              border: 1px solid #000;
             }
 
             .receipt-title span {
-              color: #fff200;
+              color: #000;
             }
 
             /* FUND CLUSTER AND PAR NUMBER */
@@ -996,8 +1308,8 @@ export default {
             }
 
             .main-table th {
-              background: #198754;
-              color: white;
+              background: #fff;
+              color: #000;
               text-align: center;
               font-size: 9px;
             }
@@ -1053,11 +1365,11 @@ export default {
 
             .total-label {
               text-align: right;
-              background: #fff200;
+              background: #fff;
             }
 
             .total-amount {
-              background: #fff200;
+              background: #fff;
               text-align: right;
             }
 
@@ -1084,7 +1396,7 @@ export default {
             }
 
             .lower-details strong {
-              color: #198754;
+              color: #000;
             }
 
             .line {
@@ -1103,7 +1415,7 @@ export default {
             }
 
             .acknowledgement strong {
-              color: #198754;
+              color: #000;
             }
 
             .signature {
@@ -1138,7 +1450,7 @@ export default {
               border-top: 3px solid #198754;
               text-align: center;
               font-size: 9px;
-              color: #198754;
+              color: #000;
               font-weight: bold;
             }
           </style>

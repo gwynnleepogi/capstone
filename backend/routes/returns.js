@@ -4,6 +4,19 @@ const router = express.Router()
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
 
+async function updateItemCondition(itemId, condition) {
+  const { error } = await supabase
+    .from('items')
+    .update({ condition })
+    .eq('id', itemId)
+
+  if (error) {
+    console.log(error)
+  }
+
+  return error
+}
+
 
 // GET RETURNS
 
@@ -73,6 +86,17 @@ router.post('/', async (req, res) => {
     })
   }
 
+  const itemUpdateError = await updateItemCondition(
+    item_id,
+    condition_after_return
+  )
+
+  if (itemUpdateError) {
+    return res.status(500).json({
+      error: `Return saved, but failed to update item condition: ${itemUpdateError.message}`
+    })
+  }
+
   await createAuditLog(
     'Created',
     data.id,
@@ -137,6 +161,17 @@ router.put('/:id', async (req, res) => {
 
     return res.status(500).json({
       error: error.message
+    })
+  }
+
+  const itemUpdateError = await updateItemCondition(
+    item_id,
+    condition_after_return
+  )
+
+  if (itemUpdateError) {
+    return res.status(500).json({
+      error: `Return updated, but failed to update item condition: ${itemUpdateError.message}`
     })
   }
 
