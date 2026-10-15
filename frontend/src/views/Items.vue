@@ -1,3 +1,4 @@
+
 <template>
   <div class="container-fluid">
     <div class="row align-items-center mb-4">
@@ -16,6 +17,7 @@
         </button>
       </div>
     </div>
+
     <div class="card mb-3">
       <div class="card-body">
         <div class="row g-2">
@@ -24,12 +26,7 @@
               <span class="input-group-text">
                 <i class="bi bi-search"></i>
               </span>
-              <input
-                v-model="search"
-                type="text"
-                class="form-control"
-                placeholder="Search property number or description"
-              />
+              <input v-model="search" type="text" class="form-control" placeholder="Search property number or description" />
             </div>
           </div>
           <div class="col-12 col-md-3">
@@ -55,6 +52,7 @@
         </div>
       </div>
     </div>
+
     <div class="row g-3 mb-3">
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
@@ -64,29 +62,24 @@
       </div>
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
-          <small class="text-secondary"> Property Acknowledgement Receipt </small>
-          <h4 class="mb-0 mt-1">
-            {{ countClassification('PAR') }}
-          </h4>
+          <small class="text-secondary">Property Acknowledgement Receipt</small>
+          <h4 class="mb-0 mt-1">{{ countClassification('PAR') }}</h4>
         </div>
       </div>
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
           <small class="text-secondary">Inventory Custodian Slip - High Value</small>
-          <h4 class="mb-0 mt-1">
-            {{ countClassification('ICS High') }}
-          </h4>
+          <h4 class="mb-0 mt-1">{{ countClassification('ICS High') }}</h4>
         </div>
       </div>
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
           <small class="text-secondary">Inventory Custodian Slip - Low Value</small>
-          <h4 class="mb-0 mt-1">
-            {{ countClassification('ICS Low') }}
-          </h4>
+          <h4 class="mb-0 mt-1">{{ countClassification('ICS Low') }}</h4>
         </div>
       </div>
     </div>
+
     <div v-if="showAddForm" class="card mb-4">
       <div class="card-header bg-white">
         <strong>Add New Item</strong>
@@ -106,26 +99,19 @@
               <label class="form-label">Description</label>
               <input v-model="newItem.description" type="text" class="form-control" required />
             </div>
-            <!-- <div class="col-12 col-md-6">
-              <label class="form-label">Supplier</label>
-              <input
-                v-model="newItem.supplier_id"
-                type="text"
-                class="form-control"
-              >
-            </div> -->
+            <div class="col-12 col-md-6">
+              <label class="form-label">Quantity in Stock</label>
+              <input v-model.number="newItem.quantity" type="number" min="0" step="1" class="form-control" required />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Unit</label>
+              <input v-model.trim="newItem.unit" type="text" class="form-control" placeholder="e.g., piece, pack, box" required />
+            </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Cost</label>
               <div class="input-group">
                 <span class="input-group-text">₱</span>
-                <input
-                  v-model="newItem.cost"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="form-control"
-                  required
-                />
+                <input v-model="newItem.cost" type="number" min="0" step="0.01" class="form-control" required />
               </div>
             </div>
             <div class="col-12 col-md-6">
@@ -134,17 +120,9 @@
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Accountable Employee</label>
-              <select
-                v-model="newItem.accountable_employee"
-                class="form-select"
-                @change="autoFillOffice(newItem)"
-              >
+              <select v-model="newItem.accountable_employee" class="form-select" @change="autoFillOffice(newItem)">
                 <option value="">Select personnel (optional)</option>
-                <option
-                  v-for="person in personnelOptions"
-                  :key="person.id"
-                  :value="person.full_name"
-                >
+                <option v-for="person in personnelOptions" :key="person.id" :value="person.full_name">
                   {{ person.full_name }}
                 </option>
               </select>
@@ -153,11 +131,7 @@
               <label class="form-label">Responsibility Center</label>
               <select v-model="newItem.responsibility_center" class="form-select">
                 <option value="">Select office (optional)</option>
-                <option
-                  v-for="office in officeOptions"
-                  :key="office.id"
-                  :value="office.office_name"
-                >
+                <option v-for="office in officeOptions" :key="office.id" :value="office.office_name">
                   {{ office.office_name }}
                 </option>
               </select>
@@ -199,6 +173,7 @@
         </div>
       </form>
     </div>
+
     <div class="card">
       <div class="card-header bg-white">
         <strong>Inventory Items</strong>
@@ -209,6 +184,8 @@
             <tr>
               <th>Property No.</th>
               <th>Description</th>
+              <th>Quantity</th>
+              <th>Unit</th>
               <th>Serial No.</th>
               <th>Cost</th>
               <th>Acquisition Date</th>
@@ -222,19 +199,19 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="12" class="text-center py-5">Loading items...</td>
+              <td colspan="13" class="text-center py-5">Loading items...</td>
             </tr>
             <tr v-else-if="error">
-              <td colspan="12" class="text-center text-danger py-5">
-                {{ error }}
-              </td>
+              <td colspan="13" class="text-center text-danger py-5">{{ error }}</td>
             </tr>
             <tr v-else-if="filteredItems.length === 0">
-              <td colspan="12" class="text-center text-secondary py-5">No items found.</td>
+              <td colspan="13" class="text-center text-secondary py-5">No items found.</td>
             </tr>
             <tr v-for="item in filteredItems" :key="item.id">
               <td>{{ item.property_number || '-' }}</td>
               <td>{{ item.description || '-' }}</td>
+              <td>{{ item.quantity ?? 0 }}</td>
+              <td>{{ item.unit || '-' }}</td>
               <td>{{ item.serial_number || '-' }}</td>
               <td>₱{{ item.cost || 0 }}</td>
               <td>{{ item.acquisition_date || '-' }}</td>
@@ -256,33 +233,28 @@
               <td>{{ item.accountable_employee || '-' }}</td>
               <td>{{ item.responsibility_center || '-' }}</td>
               <td>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-success me-1"
-                  @click="startEdit(item)"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-danger"
-                  @click="deleteItem(item)"
-                >
-                  Delete
-                </button>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-primary" @click="startEdit(item)" title="Edit item">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" @click="deleteItem(item)" :disabled="deletingItemId === item.id" title="Delete item">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-    <div v-if="editingItem" class="edit-overlay" @click="cancelEdit">
-      <div class="edit-sidebar" @click.stop>
+
+    <div v-if="editingItem" class="edit-overlay" @click.self="cancelEdit">
+      <div class="edit-sidebar">
         <div class="edit-sidebar-header">
           <h5 class="mb-0">Edit Item</h5>
-          <button type="button" class="btn-close" @click="cancelEdit"></button>
+          <button type="button" class="btn-close" aria-label="Close" @click="cancelEdit"></button>
         </div>
-        <form @submit.prevent="updateItem" class="edit-sidebar-form">
+        <form class="edit-sidebar-form" @submit.prevent="updateItem">
           <div class="edit-sidebar-body">
             <div class="mb-3">
               <label class="form-label">Property Number</label>
@@ -297,64 +269,27 @@
               <input v-model="editForm.description" type="text" class="form-control" required />
             </div>
             <div class="mb-3">
-              <label class="form-label">Supplier</label>
-              <input v-model="editForm.supplier_id" type="text" class="form-control" />
+              <label class="form-label">Quantity in Stock</label>
+              <input v-model.number="editForm.quantity" type="number" min="0" step="1" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Unit</label>
+              <input v-model.trim="editForm.unit" type="text" class="form-control" required />
             </div>
             <div class="mb-3">
               <label class="form-label">Cost</label>
-              <div class="input-group">
-                <span class="input-group-text">₱</span>
-                <input
-                  v-model="editForm.cost"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="form-control"
-                  required
-                />
-              </div>
+              <input v-model="editForm.cost" type="number" min="0" step="0.01" class="form-control" required />
             </div>
             <div class="mb-3">
               <label class="form-label">Acquisition Date</label>
               <input v-model="editForm.acquisition_date" type="date" class="form-control" />
             </div>
             <div class="mb-3">
-              <label class="form-label">Accountable Employee</label>
-              <select
-                v-model="editForm.accountable_employee"
-                class="form-select"
-                required
-                @change="autoFillOffice(editForm)"
-              >
-                <option value="" disabled>Select personnel</option>
-                <option
-                  v-for="person in editPersonnelOptions"
-                  :key="person.id"
-                  :value="person.full_name"
-                >
-                  {{ person.full_name }}
-                </option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Responsibility Center</label>
-              <select v-model="editForm.responsibility_center" class="form-select" required>
-                <option value="" disabled>Select office</option>
-                <option
-                  v-for="office in editOfficeOptions"
-                  :key="office.id"
-                  :value="office.office_name"
-                >
-                  {{ office.office_name }}
-                </option>
-              </select>
-            </div>
-            <div class="mb-3">
               <label class="form-label">Classification</label>
               <select v-model="editForm.classification" class="form-select" required>
                 <option value="PAR">Property Acknowledgement Receipt</option>
-                <option value="ICS High">ICS High</option>
-                <option value="ICS Low">ICS Low</option>
+                <option value="ICS High">Inventory Custodian Slip - High Value</option>
+                <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
               </select>
             </div>
             <div class="mb-3">
@@ -376,6 +311,24 @@
                 <option value="Disposed">Disposed</option>
               </select>
             </div>
+            <div class="mb-3">
+              <label class="form-label">Accountable Employee</label>
+              <select v-model="editForm.accountable_employee" class="form-select" @change="autoFillOffice(editForm)">
+                <option value="">Select personnel (optional)</option>
+                <option v-for="person in personnelOptions" :key="person.id" :value="person.full_name">
+                  {{ person.full_name }}
+                </option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Responsibility Center</label>
+              <select v-model="editForm.responsibility_center" class="form-select">
+                <option value="">Select office (optional)</option>
+                <option v-for="office in officeOptions" :key="office.id" :value="office.office_name">
+                  {{ office.office_name }}
+                </option>
+              </select>
+            </div>
           </div>
           <div class="edit-sidebar-footer">
             <button type="button" class="btn btn-secondary" @click="cancelEdit">Cancel</button>
@@ -386,28 +339,20 @@
         </form>
       </div>
     </div>
+
     <InventoryMovementModal
-      :show="showMovementModal"
+      v-if="showMovementModal"
       @close="showMovementModal = false"
+      @saved="handleMovementSaved"
     />
   </div>
 </template>
+
 <script>
-import InventoryMovementModal from '../components/InventoryMovementModal.vue'
-async function apiRequest(url, options = {}) {
-  const token = localStorage.getItem('accessToken')
-  return fetch(url, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  })
-}
+import InventoryMovementModal from '@/components/InventoryMovementModal.vue'
+
 export default {
   name: 'Items',
-
   components: {
     InventoryMovementModal,
   },
@@ -416,21 +361,23 @@ export default {
       items: [],
       personnel: [],
       offices: [],
-      search: '',
-      selectedClassification: '',
-      selectedStatus: '',
-      loading: true,
+      loading: false,
       saving: false,
       updating: false,
       error: '',
+      search: '',
+      selectedClassification: '',
+      selectedStatus: '',
       showAddForm: false,
       showMovementModal: false,
       editingItem: null,
+      deletingItemId: null,
       newItem: {
         property_number: '',
         description: '',
+        quantity: 0,
+        unit: 'unit',
         serial_number: '',
-        supplier_id: '',
         cost: 0,
         acquisition_date: '',
         classification: 'PAR',
@@ -442,8 +389,9 @@ export default {
       editForm: {
         property_number: '',
         description: '',
+        quantity: 0,
+        unit: 'unit',
         serial_number: '',
-        supplier_id: '',
         cost: 0,
         acquisition_date: '',
         classification: 'PAR',
@@ -455,140 +403,99 @@ export default {
     }
   },
   computed: {
-    personnelOptions() {
-      return this.personnel
-    },
-    officeOptions() {
-      return this.offices
-    },
-    // keep the item's current value selectable in Edit even if it is
-    // an older free-text value that is not in the lists
-    editPersonnelOptions() {
-      const current = this.editForm.accountable_employee
-      if (current && !this.personnel.some((person) => person.full_name === current)) {
-        return [...this.personnel, { id: 'current', full_name: current }]
-      }
-      return this.personnel
-    },
-    editOfficeOptions() {
-      const current = this.editForm.responsibility_center
-      if (current && !this.offices.some((office) => office.office_name === current)) {
-        return [...this.offices, { id: 'current', office_name: current }]
-      }
-      return this.offices
-    },
     filteredItems() {
-      const search = this.search.toLowerCase().trim()
+      const searchValue = this.search.toLowerCase().trim()
+
       return this.items.filter((item) => {
         const matchesSearch =
-          !search ||
-          String(item.property_number || '')
-            .toLowerCase()
-            .includes(search) ||
-          String(item.description || '')
-            .toLowerCase()
-            .includes(search) ||
-          String(item.serial_number || '')
-            .toLowerCase()
-            .includes(search) ||
-          String(item.accountable_employee || '')
-            .toLowerCase()
-            .includes(search) ||
-          String(item.responsibility_center || '')
-            .toLowerCase()
-            .includes(search) ||
-          String(item.condition || '')
-            .toLowerCase()
-            .includes(search) ||
-          String(item.status || '')
-            .toLowerCase()
-            .includes(search) ||
-          String(item.classification || '')
-            .toLowerCase()
-            .includes(search)
+          !searchValue ||
+          (item.property_number || '').toLowerCase().includes(searchValue) ||
+          (item.description || '').toLowerCase().includes(searchValue) ||
+          (item.serial_number || '').toLowerCase().includes(searchValue)
+
         const matchesClassification =
           !this.selectedClassification || item.classification === this.selectedClassification
+
         const matchesStatus = !this.selectedStatus || item.status === this.selectedStatus
+
         return matchesSearch && matchesClassification && matchesStatus
       })
     },
+    personnelOptions() {
+      return this.personnel.filter((person) => person && person.full_name)
+    },
+    officeOptions() {
+      return this.offices.filter((office) => office && office.office_name)
+    },
   },
-  async mounted() {
-    await Promise.all([this.getItems(), this.getOptions()])
+  mounted() {
+    this.getItems()
+    this.getPersonnelAndOffices()
   },
   methods: {
     async fetchJson(url) {
-      const response = await apiRequest(url)
-      const text = await response.text()
-      let data
-      try {
-        data = JSON.parse(text)
-      } catch (parseError) {
-        throw new Error('Server did not return JSON for ' + url)
-      }
+      const response = await fetch(url)
+
       if (!response.ok) {
-        throw new Error(data.error || 'Request failed: ' + url)
+        throw new Error('Failed to load data')
       }
-      return data
+
+      return response.json()
     },
-    async getOptions() {
-      const base = 'http://localhost:5000/api'
-      try {
-        // preferred: one call that works for Administrator and Personnel
-        const data = await this.fetchJson(base + '/items/options')
-        this.personnel = Array.isArray(data.personnel) ? data.personnel : []
-        this.offices = Array.isArray(data.offices) ? data.offices : []
-        return
-      } catch (error) {
-        console.log('Options route failed, using fallback:', error)
-      }
-      // fallback: the existing endpoints (personnel list is admin-only)
-      const [personnelResult, officesResult] = await Promise.allSettled([
-        this.fetchJson(base + '/personnel'),
-        this.fetchJson(base + '/offices'),
+
+    async getPersonnelAndOffices() {
+      const results = await Promise.allSettled([
+        this.fetchJson('http://localhost:5000/api/personnel'),
+        this.fetchJson('http://localhost:5000/api/offices'),
       ])
-      if (personnelResult.status === 'fulfilled') {
-        this.personnel = Array.isArray(personnelResult.value) ? personnelResult.value : []
+
+      if (results[0].status === 'fulfilled') {
+        this.personnel = Array.isArray(results[0].value) ? results[0].value : []
       }
-      if (officesResult.status === 'fulfilled') {
-        this.offices = Array.isArray(officesResult.value) ? officesResult.value : []
+
+      if (results[1].status === 'fulfilled') {
+        this.offices = Array.isArray(results[1].value) ? results[1].value : []
       }
-      if (personnelResult.status === 'rejected' || officesResult.status === 'rejected') {
-        const reason =
-          personnelResult.reason?.message ||
-          officesResult.reason?.message ||
-          'Failed to load personnel and offices'
+
+      if (results.some((result) => result.status === 'rejected')) {
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: reason,
+            detail: 'Failed to load personnel and office options',
           }),
         )
       }
     },
-    // when a person is picked, default the responsibility center
-    // to that person's office (can still be changed afterwards)
+
     autoFillOffice(form) {
       const person = this.personnel.find((p) => p.full_name === form.accountable_employee)
+
       if (!person || !person.office_id) {
         return
       }
+
       const office = this.offices.find((o) => o.id === person.office_id)
+
       if (office) {
         form.responsibility_center = office.office_name
       }
     },
+
     async getItems() {
       this.loading = true
+
       try {
-        const response = await apiRequest('http://localhost:5000/api/items')
+        const response = await fetch('http://localhost:5000/api/items')
+
         if (!response.ok) {
           throw new Error('Failed to get items')
         }
+
         this.items = await response.json()
         this.error = ''
       } catch (error) {
         console.log(error)
         this.error = error.message
+
         window.dispatchEvent(
           new CustomEvent('show-toast', {
             detail: error.message,
@@ -598,47 +505,65 @@ export default {
         this.loading = false
       }
     },
+
     countClassification(classification) {
       return this.items.filter((item) => item.classification === classification).length
     },
+
     displayClassification(classification) {
       if (classification === 'PAR') {
         return 'Property Acknowledgement Receipt'
       }
+
       if (classification === 'ICS High') {
         return 'Inventory Custodian Slip - High Value'
       }
+
       if (classification === 'ICS Low') {
         return 'Inventory Custodian Slip - Low Value'
       }
+
       return classification || '-'
     },
+
     getClassificationClass(classification) {
       if (classification === 'PAR') {
         return 'classification-par'
       }
+
       if (classification === 'ICS High') {
         return 'classification-high'
       }
+
       if (classification === 'ICS Low') {
         return 'classification-low'
       }
+
       return 'classification-default'
     },
+
     async addItem() {
       this.saving = true
+
       try {
-        const response = await apiRequest('http://localhost:5000/api/items', {
+        const response = await fetch('http://localhost:5000/api/items', {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(this.newItem),
         })
+
         const data = await response.json()
+
         if (!response.ok) {
           throw new Error(data.error || 'Failed to add item')
         }
+
         this.items.unshift(data)
         this.resetForm()
         this.showAddForm = false
+
         window.dispatchEvent(
           new CustomEvent('show-toast', {
             detail: 'Item added successfully',
@@ -646,6 +571,7 @@ export default {
         )
       } catch (error) {
         console.log(error)
+
         window.dispatchEvent(
           new CustomEvent('show-toast', {
             detail: error.message,
@@ -655,13 +581,15 @@ export default {
         this.saving = false
       }
     },
+
     startEdit(item) {
       this.editingItem = item
       this.editForm = {
         property_number: item.property_number || '',
         description: item.description || '',
+        quantity: Number(item.quantity ?? 0),
+        unit: item.unit || 'unit',
         serial_number: item.serial_number || '',
-        supplier_id: item.supplier_id || '',
         cost: item.cost || 0,
         acquisition_date: item.acquisition_date || '',
         classification: item.classification || 'PAR',
@@ -671,28 +599,40 @@ export default {
         responsibility_center: item.responsibility_center || '',
       }
     },
+
     async updateItem() {
       if (!this.editingItem) {
         return
       }
+
       this.updating = true
+
       try {
-        const response = await apiRequest(
+        const response = await fetch(
           'http://localhost:5000/api/items/' + this.editingItem.id,
           {
             method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
             body: JSON.stringify(this.editForm),
           },
         )
+
         const data = await response.json()
+
         if (!response.ok) {
           throw new Error(data.error || 'Failed to update item')
         }
+
         const index = this.items.findIndex((item) => item.id === this.editingItem.id)
+
         if (index !== -1) {
           this.items[index] = data
         }
+
         this.editingItem = null
+
         window.dispatchEvent(
           new CustomEvent('show-toast', {
             detail: 'Item updated successfully',
@@ -700,6 +640,7 @@ export default {
         )
       } catch (error) {
         console.log(error)
+
         window.dispatchEvent(
           new CustomEvent('show-toast', {
             detail: error.message,
@@ -709,50 +650,80 @@ export default {
         this.updating = false
       }
     },
+
     async deleteItem(item) {
-      const confirmed = window.confirm('Delete ' + (item.description || 'this item') + '?')
-      if (!confirmed) {
+      const confirmed = window.confirm(
+        'Are you sure you want to delete "' +
+          (item.description || item.property_number || 'this item') +
+          '"? This action cannot be undone.',
+      )
+
+      if (!confirmed || this.deletingItemId !== null) {
         return
       }
+
+      this.deletingItemId = item.id
+
       try {
-        const response = await apiRequest('http://localhost:5000/api/items/' + item.id, {
+        const response = await fetch('http://localhost:5000/api/items/' + item.id, {
           method: 'DELETE',
         })
-        const data = await response.json()
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to delete item')
+
+        const responseText = await response.text()
+        let data = {}
+
+        if (responseText) {
+          try {
+            data = JSON.parse(responseText)
+          } catch (parseError) {
+            throw new Error('The server returned an invalid response while deleting the item.')
+          }
         }
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to delete item. Please try again.')
+        }
+
         this.items = this.items.filter((currentItem) => currentItem.id !== item.id)
+
         if (this.editingItem && this.editingItem.id === item.id) {
           this.editingItem = null
         }
+
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: 'Item deleted successfully',
+            detail: data.message || 'Item deleted successfully',
           }),
         )
       } catch (error) {
-        console.log(error)
+        console.error(error)
+
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: error.message,
+            detail: error.message || 'Unable to delete this item.',
           }),
         )
+      } finally {
+        this.deletingItemId = null
       }
     },
+
     cancelAdd() {
       this.showAddForm = false
       this.resetForm()
     },
+
     cancelEdit() {
       this.editingItem = null
     },
+
     resetForm() {
       this.newItem = {
         property_number: '',
         description: '',
+        quantity: 0,
+        unit: 'unit',
         serial_number: '',
-        supplier_id: '',
         cost: 0,
         acquisition_date: '',
         classification: 'PAR',
@@ -762,86 +733,113 @@ export default {
         responsibility_center: '',
       }
     },
+
+    handleMovementSaved() {
+      this.showMovementModal = false
+      this.getItems()
+    },
+
     getConditionClass(condition) {
       if (condition === 'Serviceable') {
         return 'bg-success'
       }
+
       if (condition === 'Unserviceable') {
         return 'bg-danger'
       }
+
       return 'bg-secondary'
     },
+
     getStatusClass(status) {
       if (status === 'Available') {
         return 'bg-success'
       }
+
       if (status === 'Issued') {
         return 'bg-primary'
       }
+
       if (status === 'Returned') {
         return 'bg-info'
       }
+
       if (status === 'Lost') {
         return 'bg-danger'
       }
+
       if (status === 'Damaged') {
         return 'bg-warning text-dark'
       }
+
       if (status === 'Stolen') {
         return 'bg-danger'
       }
+
       if (status === 'Disposed') {
         return 'bg-secondary'
       }
+
       return 'bg-secondary'
     },
   },
 }
 </script>
+
 <style scoped>
 h1 {
   color: #2f5d3a;
 }
+
 .btn-warning {
   background-color: #e8c547;
   border-color: #e8c547;
   color: #2f5d3a;
 }
+
 .btn-warning:hover {
   background-color: #d8b638;
   border-color: #d8b638;
 }
+
 .table thead th {
   background-color: #2f5d3a;
   color: white;
   white-space: nowrap;
 }
+
 .table td {
   white-space: nowrap;
   vertical-align: middle;
 }
+
 .classification-par {
   background-color: #2f5d3a;
   color: white;
 }
+
 .classification-high {
   background-color: #e8c547;
   color: #2f5d3a;
 }
+
 .classification-low {
   background-color: #dcebdc;
   color: #2f5d3a;
 }
+
 .classification-default {
   background-color: #6c757d;
   color: white;
 }
+
 .edit-overlay {
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.35);
   z-index: 1050;
 }
+
 .edit-sidebar {
   position: absolute;
   top: 0;
@@ -854,6 +852,7 @@ h1 {
   display: flex;
   flex-direction: column;
 }
+
 .edit-sidebar-header {
   display: flex;
   align-items: center;
@@ -863,20 +862,24 @@ h1 {
   background-color: #2f5d3a;
   color: white;
 }
+
 .edit-sidebar-header .btn-close {
   filter: brightness(0) invert(1);
 }
+
 .edit-sidebar-form {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
 }
+
 .edit-sidebar-body {
   padding: 20px;
   overflow-y: auto;
   flex: 1;
 }
+
 .edit-sidebar-footer {
   padding: 15px 20px;
   border-top: 1px solid #dee2e6;
@@ -885,23 +888,28 @@ h1 {
   justify-content: flex-end;
   gap: 10px;
 }
+
 @media (max-width: 576px) {
   .edit-sidebar {
     width: 100%;
   }
+
   .table {
     min-width: 0 !important;
     table-layout: fixed;
   }
+
   .table th,
   .table td {
     padding: 9px 5px;
     white-space: normal;
     overflow-wrap: anywhere;
   }
+
   .edit-sidebar-footer {
     flex-wrap: wrap;
   }
+
   .edit-sidebar-footer .btn {
     flex: 1 1 130px;
   }

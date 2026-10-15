@@ -346,43 +346,70 @@
             </div>
 
             <div class="modal-body">
-              <p class="text-muted small">Existing request and item details will be filled in automatically. Complete the required fields before printing.</p>
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label">Fund Cluster <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.fundCluster" required>
+              <p class="text-muted small mb-3">Fill in each person's name and position together. The name goes in the first box, and their job title goes in the second box.</p>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Fund Cluster <span class="text-danger">*</span></label>
+                <input class="form-control" v-model.trim="risForm.fundCluster" placeholder="Enter fund cluster (e.g., TF-2)" required>
+              </div>
+
+              <div class="border rounded p-3 mb-3 bg-light">
+                <h6 class="fw-bold mb-1">1. Person Requesting the Items</h6>
+                <p class="text-muted small mb-3">Who is asking for the items?</p>
+                <div class="row g-3">
+                  <div class="col-md-7">
+                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <input class="form-control" v-model.trim="risForm.requestedBy" placeholder="Enter requester's full name" required>
+                  </div>
+                  <div class="col-md-5">
+                    <label class="form-label">Position / Job Title <span class="text-danger">*</span></label>
+                    <input class="form-control" v-model.trim="risForm.requestedDesignation" placeholder="e.g., Teacher" required>
+                  </div>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label">Requested By <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.requestedBy" required>
+              </div>
+
+              <div class="border rounded p-3 mb-3 bg-light">
+                <h6 class="fw-bold mb-1">2. Person Approving the Request</h6>
+                <p class="text-muted small mb-3">Who authorizes or approves the request?</p>
+                <div class="row g-3">
+                  <div class="col-md-7">
+                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <input class="form-control" v-model.trim="risForm.approvedBy" placeholder="Enter approver's full name" required>
+                  </div>
+                  <div class="col-md-5">
+                    <label class="form-label">Position / Job Title <span class="text-danger">*</span></label>
+                    <input class="form-control" v-model.trim="risForm.approvedDesignation" placeholder="e.g., School Head" required>
+                  </div>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label">Requested By Designation <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.requestedDesignation" required>
+              </div>
+
+              <div class="border rounded p-3 mb-3 bg-light">
+                <h6 class="fw-bold mb-1">3. Person Releasing the Items</h6>
+                <p class="text-muted small mb-3">Who gives out the items?</p>
+                <div class="row g-3">
+                  <div class="col-md-7">
+                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <input class="form-control" v-model.trim="risForm.issuedBy" placeholder="Enter issuer's full name" required>
+                  </div>
+                  <div class="col-md-5">
+                    <label class="form-label">Position / Job Title <span class="text-danger">*</span></label>
+                    <input class="form-control" v-model.trim="risForm.issuedDesignation" placeholder="e.g., Property Custodian" required>
+                  </div>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label">Approved By <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.approvedBy" required>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Approved By Designation <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.approvedDesignation" required>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Issued By <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.issuedBy" required>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Issued By Designation <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.issuedDesignation" required>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Received By <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.receivedBy" required>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Received By Designation <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.receivedDesignation" required>
+              </div>
+
+              <div class="border rounded p-3 bg-light">
+                <h6 class="fw-bold mb-1">4. Person Receiving the Items</h6>
+                <p class="text-muted small mb-3">Who will receive the items?</p>
+                <div class="row g-3">
+                  <div class="col-md-7">
+                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <input class="form-control" v-model.trim="risForm.receivedBy" placeholder="Enter receiver's full name" required>
+                  </div>
+                  <div class="col-md-5">
+                    <label class="form-label">Position / Job Title <span class="text-danger">*</span></label>
+                    <input class="form-control" v-model.trim="risForm.receivedDesignation" placeholder="e.g., Teacher" required>
+                  </div>
                 </div>
               </div>
             </div>
@@ -870,8 +897,20 @@ export default {
     },
 
     printRIS(receipt, details = {}) {
-      const item = this.getReceiptItem(receipt)
       const request = receipt.item_requests || {}
+      let item = this.getReceiptItem(receipt) || {}
+      const requestItems = Array.isArray(request.items) ? request.items[0] : request.items
+      const itemId = item.id || item.item_id || receipt.item_id || request.item_id || requestItems?.id || requestItems?.item_id
+      const inventoryItem = itemId
+        ? this.items.find(entry => String(entry.id) === String(itemId) || String(entry.item_id) === String(itemId))
+        : null
+      if (inventoryItem) {
+        item = { ...item, ...inventoryItem }
+      }
+      if (!item.id && request.items) {
+        const requestItem = Array.isArray(request.items) ? request.items[0] : request.items
+        if (requestItem) item = { ...requestItem, ...item }
+      }
       const office = request.offices || receipt.offices || {}
       const escape = value => this.escapeHtml(value === null || value === undefined || value === '' ? '-' : value)
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
@@ -890,17 +929,30 @@ export default {
       const fundCluster = escape(details.fundCluster || request.fund_cluster || receipt.fund_cluster)
       const description = escape(item.description || request.item_description)
       const stockNumber = escape(item.stock_number || item.property_number || item.stock_no)
-      const unit = escape(item.unit || item.unit_of_measure)
-      const quantityRequested = escape(request.quantity_requested || request.quantity || receipt.quantity_requested)
-      const quantityIssued = escape(receipt.quantity_issued || request.quantity_issued || request.quantity_requested || request.quantity)
-      const availableQuantity = Number(item.quantity_available ?? item.quantity ?? item.stock_balance)
-      const requestedQuantity = Number(request.quantity_requested || request.quantity || receipt.quantity_requested)
-      let stockAvailability = 'Not available'
-      if (Number.isFinite(availableQuantity) && Number.isFinite(requestedQuantity)) {
-        stockAvailability = availableQuantity >= requestedQuantity ? 'Available' : 'Not available'
-      } else if (item.stock_available === true || item.available === true) {
+      const unit = escape(item.unit || item.unit_of_measure || item.unit_name || item.uom || 'Not recorded')
+      const firstQuantity = (...values) => values.find(value => value !== null && value !== undefined && String(value).trim() !== '')
+      const rawRequestedQuantity = firstQuantity(
+        request.quantity_requested,
+        request.quantity,
+        receipt.quantity_requested,
+        item.quantity_requested,
+        item.requested_quantity,
+        receipt.quantity_issued
+      )
+      const quantityRequested = escape(rawRequestedQuantity)
+      const rawQuantityIssued = firstQuantity(receipt.quantity_issued, request.quantity_issued, rawRequestedQuantity)
+      const quantityIssued = escape(rawQuantityIssued)
+      const rawAvailableQuantity = item.quantity_available ?? item.available_quantity ?? item.stock_balance ?? item.quantity_on_hand ?? item.stock_quantity ?? item.quantity_in_stock ?? item.available_stock ?? item.quantity
+      const availableQuantity = Number(rawAvailableQuantity)
+      const requestedQuantity = Number(rawRequestedQuantity)
+      const hasStockQuantity = rawAvailableQuantity !== null && rawAvailableQuantity !== undefined && rawAvailableQuantity !== '' && Number.isFinite(availableQuantity)
+      const quantityToCheck = Number.isFinite(requestedQuantity) && requestedQuantity > 0 ? requestedQuantity : 1
+      let stockAvailability = 'Not recorded'
+      if (hasStockQuantity) {
+        stockAvailability = availableQuantity >= quantityToCheck ? 'Available' : 'Not available'
+      } else if (item.stock_available === true || item.available === true || item.status === 'Available' || item.status === 'Returned') {
         stockAvailability = 'Available'
-      } else if (item.stock_available === false || item.available === false) {
+      } else if (item.stock_available === false || item.available === false || ['Issued', 'Lost', 'Damaged', 'Stolen', 'Disposed'].includes(item.status)) {
         stockAvailability = 'Not available'
       }
       const purpose = escape(request.purpose || receipt.purpose || request.remarks)
@@ -1008,7 +1060,7 @@ export default {
                   <td>${description}</td>
                   <td class="center">${quantityRequested}</td>
                   <td class="center">${stockAvailability === 'Available' ? '✓' : ''}</td>
-                  <td class="center">${stockAvailability !== 'Available' ? '✓' : ''}</td>
+                  <td class="center">${stockAvailability === 'Not available' ? '✓' : ''}</td>
                   <td class="center">${quantityIssued}</td>
                   <td>${remarks}</td>
                 </tr>
@@ -1091,6 +1143,16 @@ export default {
       const description =
         this.escapeHtml(
           item.description || '-'
+        )
+
+      const itemQuantity =
+        this.escapeHtml(
+          item.quantity ?? 0
+        )
+
+      const itemUnit =
+        this.escapeHtml(
+          item.unit || 'unit'
         )
 
       const propertyNumber =
@@ -1551,11 +1613,11 @@ export default {
                   </td>
 
                   <td class="qty">
-                    1
+                    ${itemQuantity}
                   </td>
 
                   <td class="unit">
-                    unit
+                    ${itemUnit}
                   </td>
 
                   <td class="article">
@@ -1614,11 +1676,6 @@ export default {
 
                 <p>
                   <strong>BUR NO.:</strong>
-                  <span class="line"></span>
-                </p>
-
-                <p>
-                  <strong>SUPPLIER:</strong>
                   <span class="line"></span>
                 </p>
 
@@ -1725,6 +1782,46 @@ export default {
   vertical-align: middle;
 }
 
+/* Keep the RIS form inside the screen and allow its fields to scroll */
+#risDetailsModal .modal-dialog {
+  width: calc(100% - 1.5rem);
+  max-width: 900px;
+  margin: 0.75rem auto;
+}
+
+#risDetailsModal .modal-content {
+  max-height: calc(100vh - 1.5rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#risDetailsModal form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#risDetailsModal .modal-body {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#risDetailsModal .modal-footer {
+  flex-shrink: 0;
+}
+
+#risDetailsModal .row > div {
+  min-width: 0;
+}
+
+#risDetailsModal .form-control {
+  width: 100%;
+  min-width: 0;
+}
+
 @media (max-width: 576px) {
   .table {
     min-width: 0 !important;
@@ -1741,6 +1838,19 @@ export default {
   .modal-dialog {
     max-width: calc(100% - 1rem);
     margin: 0.5rem auto;
+  }
+
+  #risDetailsModal .modal-dialog {
+    width: calc(100% - 1rem);
+    margin: 0.5rem auto;
+  }
+
+  #risDetailsModal .modal-content {
+    max-height: calc(100vh - 1rem);
+  }
+
+  #risDetailsModal .modal-body {
+    padding: 1rem;
   }
 }
 </style>

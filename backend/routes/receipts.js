@@ -1,14 +1,8 @@
 
 const express = require('express')
-
 const router = express.Router()
-
 const supabase = require('../supabase')
-
 const createAuditLog = require('../middleware/auditLog')
-
-
-// GET ALL RECEIPTS
 
 router.get('/', async (req, res) => {
   try {
@@ -20,6 +14,8 @@ router.get('/', async (req, res) => {
           id,
           property_number,
           description,
+          quantity,
+          unit,
           serial_number,
           cost,
           acquisition_date,
@@ -34,6 +30,7 @@ router.get('/', async (req, res) => {
           id,
           request_number,
           item_description,
+          quantity,
           purpose,
           status,
           requested_by,
@@ -48,28 +45,18 @@ router.get('/', async (req, res) => {
           )
         )
       `)
-      .order('created_at', {
-        ascending: false
-      })
+      .order('created_at', { ascending: false })
 
     if (error) {
-      return res.status(500).json({
-        error: error.message
-      })
+      return res.status(500).json({ error: error.message })
     }
 
     res.json(data || [])
   } catch (error) {
     console.log(error)
-
-    res.status(500).json({
-      error: 'Failed to load receipts'
-    })
+    res.status(500).json({ error: 'Failed to load receipts' })
   }
 })
-
-
-// GET ONE RECEIPT
 
 router.get('/:id', async (req, res) => {
   try {
@@ -81,6 +68,8 @@ router.get('/:id', async (req, res) => {
           id,
           property_number,
           description,
+          quantity,
+          unit,
           serial_number,
           cost,
           acquisition_date,
@@ -95,6 +84,7 @@ router.get('/:id', async (req, res) => {
           id,
           request_number,
           item_description,
+          quantity,
           purpose,
           status,
           requested_by,
@@ -113,23 +103,15 @@ router.get('/:id', async (req, res) => {
       .single()
 
     if (error) {
-      return res.status(404).json({
-        error: 'Receipt not found'
-      })
+      return res.status(404).json({ error: 'Receipt not found' })
     }
 
     res.json(data)
   } catch (error) {
     console.log(error)
-
-    res.status(500).json({
-      error: 'Failed to load receipt'
-    })
+    res.status(500).json({ error: 'Failed to load receipt' })
   }
 })
-
-
-// CREATE RECEIPT
 
 router.post('/', async (req, res) => {
   try {
@@ -142,34 +124,20 @@ router.post('/', async (req, res) => {
     } = req.body
 
     if (!item_request_id) {
-      return res.status(400).json({
-        error: 'Item request is required'
-      })
+      return res.status(400).json({ error: 'Item request is required' })
     }
 
     if (!receipt_type) {
-      return res.status(400).json({
-        error: 'Receipt type is required'
-      })
+      return res.status(400).json({ error: 'Receipt type is required' })
     }
 
-    if (
-      receipt_type !== 'PAR' &&
-      receipt_type !== 'ICS'
-    ) {
-      return res.status(400).json({
-        error: 'Receipt type must be PAR or ICS'
-      })
+    if (receipt_type !== 'PAR' && receipt_type !== 'ICS') {
+      return res.status(400).json({ error: 'Receipt type must be PAR or ICS' })
     }
 
     if (!receipt_number) {
-      return res.status(400).json({
-        error: 'Receipt number is required'
-      })
+      return res.status(400).json({ error: 'Receipt number is required' })
     }
-
-
-    // GET ITEM REQUEST
 
     const {
       data: request,
@@ -187,25 +155,14 @@ router.post('/', async (req, res) => {
       .single()
 
     if (requestError || !request) {
-      return res.status(404).json({
-        error: 'Item request not found'
-      })
+      return res.status(404).json({ error: 'Item request not found' })
     }
 
-
-    // CHECK REQUEST STATUS
-
-    if (
-      request.status !== 'Approved' &&
-      request.status !== 'Delivered'
-    ) {
+    if (request.status !== 'Approved' && request.status !== 'Delivered') {
       return res.status(400).json({
         error: 'Only approved or delivered requests can be issued'
       })
     }
-
-
-    // CHECK REQUEST ITEM
 
     if (!request.item_id) {
       return res.status(400).json({
@@ -213,17 +170,11 @@ router.post('/', async (req, res) => {
       })
     }
 
-
-    // CHECK REQUESTED PERSON
-
     if (!request.requested_by) {
       return res.status(400).json({
         error: 'This request does not have a recipient'
       })
     }
-
-
-    // CHECK DUPLICATE RECEIPT
 
     const {
       data: existingReceipt,
@@ -235,9 +186,7 @@ router.post('/', async (req, res) => {
       .maybeSingle()
 
     if (existingReceiptError) {
-      return res.status(500).json({
-        error: existingReceiptError.message
-      })
+      return res.status(500).json({ error: existingReceiptError.message })
     }
 
     if (existingReceipt) {
@@ -245,9 +194,6 @@ router.post('/', async (req, res) => {
         error: 'This item request already has a receipt'
       })
     }
-
-
-    // GET ITEM
 
     const {
       data: item,
@@ -257,6 +203,8 @@ router.post('/', async (req, res) => {
       .select(`
         id,
         description,
+        quantity,
+        unit,
         status,
         condition,
         accountable_employee
@@ -265,18 +213,12 @@ router.post('/', async (req, res) => {
       .single()
 
     if (itemError || !item) {
-      return res.status(404).json({
-        error: 'Item not found'
-      })
+      return res.status(404).json({ error: 'Item not found' })
     }
 
-
-    // CHECK ITEM STATUS
-
-    const allowedItemStatuses =
-      request.status === 'Delivered'
-        ? ['Available', 'Issued']
-        : ['Available']
+    const allowedItemStatuses = request.status === 'Delivered'
+      ? ['Available', 'Issued']
+      : ['Available']
 
     if (!allowedItemStatuses.includes(item.status)) {
       return res.status(400).json({
@@ -284,17 +226,11 @@ router.post('/', async (req, res) => {
       })
     }
 
-
-    // CHECK ITEM CONDITION
-
     if (item.condition !== 'Serviceable') {
       return res.status(400).json({
         error: 'This item is Unserviceable and cannot be issued until it is marked Serviceable again'
       })
     }
-
-
-    // GET RECIPIENT NAME
 
     const {
       data: recipient,
@@ -306,43 +242,29 @@ router.post('/', async (req, res) => {
       .single()
 
     if (recipientError || !recipient) {
-      return res.status(404).json({
-        error: 'Recipient not found'
-      })
+      return res.status(404).json({ error: 'Recipient not found' })
     }
-
-
-    // CREATE RECEIPT
 
     const {
       data: receipt,
       error: receiptError
     } = await supabase
       .from('property_receipts')
-      .insert([
-        {
-          item_id: request.item_id,
-          item_request_id: item_request_id,
-          receipt_type: receipt_type,
-          receipt_number: receipt_number,
-          issued_to: request.requested_by,
-          date_issued: date_issued || new Date()
-            .toISOString()
-            .split('T')[0],
-          remarks: remarks || null
-        }
-      ])
+      .insert([{
+        item_id: request.item_id,
+        item_request_id: item_request_id,
+        receipt_type: receipt_type,
+        receipt_number: receipt_number,
+        issued_to: request.requested_by,
+        date_issued: date_issued || new Date().toISOString().split('T')[0],
+        remarks: remarks || null
+      }])
       .select()
       .single()
 
     if (receiptError) {
-      return res.status(500).json({
-        error: receiptError.message
-      })
+      return res.status(500).json({ error: receiptError.message })
     }
-
-
-    // UPDATE ITEM
 
     const {
       data: updatedItem,
@@ -363,21 +285,12 @@ router.post('/', async (req, res) => {
         .delete()
         .eq('id', receipt.id)
 
-      return res.status(500).json({
-        error: updateItemError.message
-      })
+      return res.status(500).json({ error: updateItemError.message })
     }
 
-
-    // UPDATE REQUEST
-
-    const {
-      error: updateRequestError
-    } = await supabase
+    const { error: updateRequestError } = await supabase
       .from('item_requests')
-      .update({
-        status: 'Delivered'
-      })
+      .update({ status: 'Delivered' })
       .eq('id', item_request_id)
 
     if (updateRequestError) {
@@ -394,13 +307,8 @@ router.post('/', async (req, res) => {
         .delete()
         .eq('id', receipt.id)
 
-      return res.status(500).json({
-        error: updateRequestError.message
-      })
+      return res.status(500).json({ error: updateRequestError.message })
     }
-
-
-    // AUDIT LOG
 
     try {
       await createAuditLog({
@@ -420,7 +328,6 @@ router.post('/', async (req, res) => {
       console.log('Audit log error:', auditError)
     }
 
-
     res.status(201).json({
       message: 'Receipt created successfully',
       receipt: receipt,
@@ -428,15 +335,9 @@ router.post('/', async (req, res) => {
     })
   } catch (error) {
     console.log(error)
-
-    res.status(500).json({
-      error: 'Failed to create receipt'
-    })
+    res.status(500).json({ error: 'Failed to create receipt' })
   }
 })
-
-
-// UPDATE RECEIPT
 
 router.put('/:id', async (req, res) => {
   try {
@@ -448,28 +349,18 @@ router.put('/:id', async (req, res) => {
     } = req.body
 
     if (!receipt_type) {
-      return res.status(400).json({
-        error: 'Receipt type is required'
-      })
+      return res.status(400).json({ error: 'Receipt type is required' })
     }
 
-    if (
-      receipt_type !== 'PAR' &&
-      receipt_type !== 'ICS'
-    ) {
+    if (receipt_type !== 'PAR' && receipt_type !== 'ICS') {
       return res.status(400).json({
         error: 'Receipt type must be PAR or ICS'
       })
     }
 
     if (!receipt_number) {
-      return res.status(400).json({
-        error: 'Receipt number is required'
-      })
+      return res.status(400).json({ error: 'Receipt number is required' })
     }
-
-
-    // GET EXISTING RECEIPT
 
     const {
       data: existingReceipt,
@@ -493,13 +384,8 @@ router.put('/:id', async (req, res) => {
       .single()
 
     if (existingReceiptError || !existingReceipt) {
-      return res.status(404).json({
-        error: 'Receipt not found'
-      })
+      return res.status(404).json({ error: 'Receipt not found' })
     }
-
-
-    // UPDATE RECEIPT
 
     const {
       data: updatedReceipt,
@@ -517,13 +403,8 @@ router.put('/:id', async (req, res) => {
       .single()
 
     if (updateReceiptError) {
-      return res.status(500).json({
-        error: updateReceiptError.message
-      })
+      return res.status(500).json({ error: updateReceiptError.message })
     }
-
-
-    // AUDIT LOG
 
     try {
       await createAuditLog({
@@ -549,27 +430,18 @@ router.put('/:id', async (req, res) => {
       console.log('Audit log error:', auditError)
     }
 
-
     res.json({
       message: 'Receipt updated successfully',
       receipt: updatedReceipt
     })
   } catch (error) {
     console.log(error)
-
-    res.status(500).json({
-      error: 'Failed to update receipt'
-    })
+    res.status(500).json({ error: 'Failed to update receipt' })
   }
 })
 
-
-// DELETE RECEIPT
-
 router.delete('/:id', async (req, res) => {
   try {
-    // GET EXISTING RECEIPT
-
     const {
       data: existingReceipt,
       error: existingReceiptError
@@ -588,34 +460,20 @@ router.delete('/:id', async (req, res) => {
       .single()
 
     if (existingReceiptError || !existingReceipt) {
-      return res.status(404).json({
-        error: 'Receipt not found'
-      })
+      return res.status(404).json({ error: 'Receipt not found' })
     }
 
-
-    // DELETE RECEIPT
-
-    const {
-      error: deleteError
-    } = await supabase
+    const { error: deleteError } = await supabase
       .from('property_receipts')
       .delete()
       .eq('id', req.params.id)
 
     if (deleteError) {
-      return res.status(500).json({
-        error: deleteError.message
-      })
+      return res.status(500).json({ error: deleteError.message })
     }
 
-
-    // RESTORE ITEM
-
     if (existingReceipt.item_id) {
-      const {
-        error: restoreItemError
-      } = await supabase
+      const { error: restoreItemError } = await supabase
         .from('items')
         .update({
           status: 'Available',
@@ -624,36 +482,20 @@ router.delete('/:id', async (req, res) => {
         .eq('id', existingReceipt.item_id)
 
       if (restoreItemError) {
-        console.log(
-          'Item restore error:',
-          restoreItemError.message
-        )
+        console.log('Item restore error:', restoreItemError.message)
       }
     }
 
-
-    // RESTORE REQUEST
-
     if (existingReceipt.item_request_id) {
-      const {
-        error: restoreRequestError
-      } = await supabase
+      const { error: restoreRequestError } = await supabase
         .from('item_requests')
-        .update({
-          status: 'Approved'
-        })
+        .update({ status: 'Approved' })
         .eq('id', existingReceipt.item_request_id)
 
       if (restoreRequestError) {
-        console.log(
-          'Request restore error:',
-          restoreRequestError.message
-        )
+        console.log('Request restore error:', restoreRequestError.message)
       }
     }
-
-
-    // AUDIT LOG
 
     try {
       await createAuditLog({
@@ -672,18 +514,11 @@ router.delete('/:id', async (req, res) => {
       console.log('Audit log error:', auditError)
     }
 
-
-    res.json({
-      message: 'Receipt deleted successfully'
-    })
+    res.json({ message: 'Receipt deleted successfully' })
   } catch (error) {
     console.log(error)
-
-    res.status(500).json({
-      error: 'Failed to delete receipt'
-    })
+    res.status(500).json({ error: 'Failed to delete receipt' })
   }
 })
-
 
 module.exports = router

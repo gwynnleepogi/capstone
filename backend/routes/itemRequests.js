@@ -1,3 +1,4 @@
+
 const express = require('express')
 const router = express.Router()
 
@@ -25,9 +26,6 @@ const allowedStatusChanges = {
   Rejected: []
 }
 
-
-// GET ITEM REQUESTS
-
 router.get('/', async (req, res) => {
   let query = supabase
     .from('item_requests')
@@ -46,6 +44,8 @@ router.get('/', async (req, res) => {
         id,
         property_number,
         description,
+        quantity,
+        unit,
         serial_number,
         classification,
         condition,
@@ -64,27 +64,18 @@ router.get('/', async (req, res) => {
     req.role === 'Teacher' ||
     req.role === 'Non-Teaching Staff'
   ) {
-    query = query.eq(
-      'requested_by',
-      req.profile.id
-    )
+    query = query.eq('requested_by', req.profile.id)
   }
 
   const { data, error } = await query
 
   if (error) {
     console.log(error)
-
-    return res.status(500).json({
-      error: error.message
-    })
+    return res.status(500).json({ error: error.message })
   }
 
   res.json(data)
 })
-
-
-// ITEMS THAT ALREADY HAVE AN OPEN REQUEST (Pending or Approved)
 
 async function getActiveRequestedItemIds() {
   const { data, error } = await supabase
@@ -95,7 +86,6 @@ async function getActiveRequestedItemIds() {
 
   if (error) {
     console.log(error)
-
     return {
       ids: new Set(),
       error: error.message
@@ -108,65 +98,48 @@ async function getActiveRequestedItemIds() {
   }
 }
 
+router.get('/available-items', async (req, res) => {
+  const { data, error } = await supabase
+    .from('items')
+    .select(`
+      id,
+      property_number,
+      description,
+      quantity,
+      unit,
+      serial_number,
+      classification,
+      condition,
+      status,
+      cost,
+      acquisition_date,
+      accountable_employee,
+      responsibility_center
+    `)
+    .in('status', ['Available', 'Returned'])
+    .eq('condition', 'Serviceable')
+    .order('description', { ascending: true })
 
-// GET AVAILABLE INVENTORY ITEMS
-
-router.get(
-  '/available-items',
-  async (req, res) => {
-    const { data, error } = await supabase
-      .from('items')
-      .select(`
-        id,
-        property_number,
-        description,
-        serial_number,
-        classification,
-        condition,
-        status,
-        cost,
-        acquisition_date,
-        accountable_employee,
-        responsibility_center
-      `)
-      .in('status', [
-        'Available',
-        'Returned'
-      ])
-      .eq('condition', 'Serviceable')
-      .order('description', {
-        ascending: true
-      })
-
-    if (error) {
-      console.log(error)
-
-      return res.status(500).json({
-        error: error.message
-      })
-    }
-
-    const {
-      ids: requestedItemIds,
-      error: requestedError
-    } = await getActiveRequestedItemIds()
-
-    if (requestedError) {
-      return res.status(500).json({
-        error: requestedError
-      })
-    }
-
-    const freeItems = data.filter(
-      item => !requestedItemIds.has(item.id)
-    )
-
-    res.json(freeItems)
+  if (error) {
+    console.log(error)
+    return res.status(500).json({ error: error.message })
   }
-)
 
+  const {
+    ids: requestedItemIds,
+    error: requestedError
+  } = await getActiveRequestedItemIds()
 
-// GET SELECTED INVENTORY ITEM
+  if (requestedError) {
+    return res.status(500).json({ error: requestedError })
+  }
+
+  const freeItems = data.filter(
+    item => !requestedItemIds.has(item.id)
+  )
+
+  res.json(freeItems)
+})
 
 async function getSelectedItem(itemId, excludeRequestId) {
   const { data, error } = await supabase
@@ -174,6 +147,8 @@ async function getSelectedItem(itemId, excludeRequestId) {
     .select(`
       id,
       description,
+      quantity,
+      unit,
       status,
       condition
     `)
@@ -239,10 +214,6 @@ async function getSelectedItem(itemId, excludeRequestId) {
   }
 }
 
-
-// ADD ITEM REQUEST
-// ALL LOGGED-IN ROLES CAN CREATE REQUESTS
-
 router.post('/', async (req, res) => {
   const {
     request_number,
@@ -254,9 +225,7 @@ router.post('/', async (req, res) => {
   } = req.body
 
   if (!req.profile) {
-    return res.status(401).json({
-      error: 'Please log in'
-    })
+    return res.status(401).json({ error: 'Please log in' })
   }
 
   let requestOwner = req.profile.id
@@ -265,8 +234,7 @@ router.post('/', async (req, res) => {
     req.role === 'Administrator' ||
     req.role === 'Personnel'
   ) {
-    requestOwner =
-      requested_by || req.profile.id
+    requestOwner = requested_by || req.profile.id
   }
 
   if (!item_id) {
@@ -300,27 +268,22 @@ router.post('/', async (req, res) => {
 
   const { data, error } = await supabase
     .from('item_requests')
-    .insert([
-      {
-        request_number,
-        requested_by: requestOwner,
-        office_id: office_id || null,
-        item_id,
-        item_description: selectedItem.description,
-        quantity: Number(quantity),
-        purpose,
-        status: 'Pending'
-      }
-    ])
+    .insert([{
+      request_number,
+      requested_by: requestOwner,
+      office_id: office_id || null,
+      item_id,
+      item_description: selectedItem.description,
+      quantity: Number(quantity),
+      purpose,
+      status: 'Pending'
+    }])
     .select()
     .single()
 
   if (error) {
     console.log(error)
-
-    return res.status(500).json({
-      error: error.message
-    })
+    return res.status(500).json({ error: error.message })
   }
 
   await createAuditLog(
@@ -328,16 +291,12 @@ router.post('/', async (req, res) => {
     data.id,
     null,
     JSON.stringify(data),
-    'Added item request: ' +
-      data.request_number,
+    'Added item request: ' + data.request_number,
     req.profile.id
   )
 
   res.status(201).json(data)
 })
-
-
-// UPDATE ITEM REQUEST
 
 router.put(
   '/:id',
@@ -388,22 +347,19 @@ router.put(
 
     if (oldError || !oldData) {
       console.log(oldError)
-
       return res.status(404).json({
         error: 'Item request not found'
       })
     }
 
-    const requestOwner =
-      requested_by || oldData.requested_by
+    const requestOwner = requested_by || oldData.requested_by
 
     if (
       oldData.status === 'Delivered' &&
       status !== 'Delivered'
     ) {
       return res.status(400).json({
-        error:
-          'Delivered requests cannot be changed'
+        error: 'Delivered requests cannot be changed'
       })
     }
 
@@ -413,11 +369,8 @@ router.put(
 
       if (!allowedNextStatuses.includes(status)) {
         return res.status(400).json({
-          error:
-            'Invalid status change from ' +
-            oldData.status +
-            ' to ' +
-            status
+          error: 'Invalid status change from ' +
+            oldData.status + ' to ' + status
         })
       }
     }
@@ -436,8 +389,7 @@ router.put(
       })
     }
 
-    let itemDescription =
-      oldData.item_description
+    let itemDescription = oldData.item_description
 
     if (selectedItem) {
       itemDescription = selectedItem.description
@@ -496,7 +448,6 @@ router.put(
 
       if (itemUpdateError) {
         console.log(itemUpdateError)
-
         return res.status(500).json({
           error: itemUpdateError.message
         })
@@ -521,10 +472,7 @@ router.put(
 
     if (error) {
       console.log(error)
-
-      return res.status(500).json({
-        error: error.message
-      })
+      return res.status(500).json({ error: error.message })
     }
 
     await createAuditLog(
@@ -532,17 +480,13 @@ router.put(
       data.id,
       JSON.stringify(oldData),
       JSON.stringify(data),
-      'Updated item request: ' +
-        data.request_number,
+      'Updated item request: ' + data.request_number,
       req.profile.id
     )
 
     res.json(data)
   }
 )
-
-
-// DELETE ITEM REQUEST
 
 router.delete(
   '/:id',
@@ -559,7 +503,6 @@ router.delete(
 
     if (oldError || !oldData) {
       console.log(oldError)
-
       return res.status(404).json({
         error: 'Item request not found'
       })
@@ -567,8 +510,7 @@ router.delete(
 
     if (oldData.status === 'Delivered') {
       return res.status(400).json({
-        error:
-          'Delivered requests cannot be deleted'
+        error: 'Delivered requests cannot be deleted'
       })
     }
 
@@ -579,10 +521,7 @@ router.delete(
 
     if (error) {
       console.log(error)
-
-      return res.status(500).json({
-        error: error.message
-      })
+      return res.status(500).json({ error: error.message })
     }
 
     await createAuditLog(
@@ -590,16 +529,12 @@ router.delete(
       req.params.id,
       JSON.stringify(oldData),
       null,
-      'Deleted item request: ' +
-        oldData.request_number,
+      'Deleted item request: ' + oldData.request_number,
       req.profile.id
     )
 
-    res.json({
-      message: 'Request deleted successfully'
-    })
+    res.json({ message: 'Request deleted successfully' })
   }
 )
-
 
 module.exports = router
