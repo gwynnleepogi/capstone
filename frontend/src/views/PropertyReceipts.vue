@@ -93,7 +93,7 @@
 
                   <button
                     class="btn btn-sm btn-outline-success me-1"
-                    @click="printReceipt(receipt)"
+                    @click="openReceiptPrintModal(receipt)"
                   >
                     Print
                   </button>
@@ -332,6 +332,66 @@
 
     <div
       class="modal fade"
+      id="receiptPrintDetailsModal"
+      tabindex="-1"
+      aria-labelledby="receiptPrintDetailsModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <form @submit.prevent="confirmPrintReceipt">
+            <div class="modal-header">
+              <h5 class="modal-title" id="receiptPrintDetailsModalLabel">Complete PAR / ICS Print Details</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted small">Complete the details below before printing. The item information will be filled in automatically.</p>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Fund Cluster</label>
+                  <input class="form-control" v-model.trim="receiptPrintForm.fundCluster">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Purpose</label>
+                  <input class="form-control" v-model.trim="receiptPrintForm.purpose">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Unit / Office</label>
+                  <input class="form-control" v-model.trim="receiptPrintForm.unitOffice">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">PO No.</label>
+                  <input class="form-control" v-model.trim="receiptPrintForm.poNumber">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">UACS</label>
+                  <input class="form-control" v-model.trim="receiptPrintForm.uacs">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">BUR No.</label>
+                  <input class="form-control" v-model.trim="receiptPrintForm.burNumber">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">IAR No.</label>
+                  <input class="form-control" v-model.trim="receiptPrintForm.iarNumber">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Received From</label>
+                  <input class="form-control" v-model.trim="receiptPrintForm.receivedFrom">
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success">Continue to Print</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
       id="risDetailsModal"
       tabindex="-1"
       aria-labelledby="risDetailsModalLabel"
@@ -346,70 +406,43 @@
             </div>
 
             <div class="modal-body">
-              <p class="text-muted small mb-3">Fill in each person's name and position together. The name goes in the first box, and their job title goes in the second box.</p>
-
-              <div class="mb-3">
-                <label class="form-label fw-semibold">Fund Cluster <span class="text-danger">*</span></label>
-                <input class="form-control" v-model.trim="risForm.fundCluster" placeholder="Enter fund cluster (e.g., TF-2)" required>
-              </div>
-
-              <div class="border rounded p-3 mb-3 bg-light">
-                <h6 class="fw-bold mb-1">1. Person Requesting the Items</h6>
-                <p class="text-muted small mb-3">Who is asking for the items?</p>
-                <div class="row g-3">
-                  <div class="col-md-7">
-                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                    <input class="form-control" v-model.trim="risForm.requestedBy" placeholder="Enter requester's full name" required>
-                  </div>
-                  <div class="col-md-5">
-                    <label class="form-label">Position / Job Title <span class="text-danger">*</span></label>
-                    <input class="form-control" v-model.trim="risForm.requestedDesignation" placeholder="e.g., Teacher" required>
-                  </div>
+              <p class="text-muted small">Existing request and item details will be filled in automatically. Complete the required fields before printing.</p>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Fund Cluster <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.fundCluster" required>
                 </div>
-              </div>
-
-              <div class="border rounded p-3 mb-3 bg-light">
-                <h6 class="fw-bold mb-1">2. Person Approving the Request</h6>
-                <p class="text-muted small mb-3">Who authorizes or approves the request?</p>
-                <div class="row g-3">
-                  <div class="col-md-7">
-                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                    <input class="form-control" v-model.trim="risForm.approvedBy" placeholder="Enter approver's full name" required>
-                  </div>
-                  <div class="col-md-5">
-                    <label class="form-label">Position / Job Title <span class="text-danger">*</span></label>
-                    <input class="form-control" v-model.trim="risForm.approvedDesignation" placeholder="e.g., School Head" required>
-                  </div>
+                <div class="col-md-6">
+                  <label class="form-label">Requested By <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.requestedBy" required>
                 </div>
-              </div>
-
-              <div class="border rounded p-3 mb-3 bg-light">
-                <h6 class="fw-bold mb-1">3. Person Releasing the Items</h6>
-                <p class="text-muted small mb-3">Who gives out the items?</p>
-                <div class="row g-3">
-                  <div class="col-md-7">
-                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                    <input class="form-control" v-model.trim="risForm.issuedBy" placeholder="Enter issuer's full name" required>
-                  </div>
-                  <div class="col-md-5">
-                    <label class="form-label">Position / Job Title <span class="text-danger">*</span></label>
-                    <input class="form-control" v-model.trim="risForm.issuedDesignation" placeholder="e.g., Property Custodian" required>
-                  </div>
+                <div class="col-md-6">
+                  <label class="form-label">Requested By Designation <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.requestedDesignation" required>
                 </div>
-              </div>
-
-              <div class="border rounded p-3 bg-light">
-                <h6 class="fw-bold mb-1">4. Person Receiving the Items</h6>
-                <p class="text-muted small mb-3">Who will receive the items?</p>
-                <div class="row g-3">
-                  <div class="col-md-7">
-                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                    <input class="form-control" v-model.trim="risForm.receivedBy" placeholder="Enter receiver's full name" required>
-                  </div>
-                  <div class="col-md-5">
-                    <label class="form-label">Position / Job Title <span class="text-danger">*</span></label>
-                    <input class="form-control" v-model.trim="risForm.receivedDesignation" placeholder="e.g., Teacher" required>
-                  </div>
+                <div class="col-md-6">
+                  <label class="form-label">Approved By <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.approvedBy" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Approved By Designation <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.approvedDesignation" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Issued By <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.issuedBy" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Issued By Designation <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.issuedDesignation" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Received By <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.receivedBy" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Received By Designation <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="risForm.receivedDesignation" required>
                 </div>
               </div>
             </div>
@@ -441,6 +474,17 @@ export default {
       editing: false,
       saving: false,
       selectedRISReceipt: null,
+      selectedPrintReceipt: null,
+      receiptPrintForm: {
+        fundCluster: 'TF-2',
+        purpose: '',
+        unitOffice: '',
+        poNumber: '',
+        uacs: '',
+        burNumber: '',
+        iarNumber: '',
+        receivedFrom: ''
+      },
       risForm: {
         fundCluster: '',
         requestedBy: '',
@@ -624,22 +668,20 @@ export default {
       this.form = {
         id: receipt.id,
         item_request_id: '',
-        receipt_type:
-          receipt.receipt_type || 'PAR',
-        receipt_number:
-          receipt.receipt_number || '',
-        date_issued:
-          receipt.date_issued || '',
-        remarks:
-          receipt.remarks || ''
+        receipt_type: receipt.receipt_type || 'PAR',
+        receipt_number: receipt.receipt_number || '',
+        date_issued: receipt.date_issued || '',
+        remarks: receipt.remarks || ''
       }
 
-      const modal =
-        Modal.getOrCreateInstance(
-          document.getElementById('receiptModal')
-        )
+this.$nextTick(() => {
+        const modalElement = document.getElementById('receiptModal')
 
-      modal.show()
+        if (modalElement) {
+          const modalInstance = Modal.getOrCreateInstance(modalElement)
+          modalInstance.show()
+        }
+      })
     },
 
     async saveReceipt() {
@@ -870,6 +912,30 @@ export default {
       )
     },
 
+    openReceiptPrintModal(receipt) {
+      this.selectedPrintReceipt = receipt
+      const item = this.getReceiptItem(receipt)
+      this.receiptPrintForm = {
+        fundCluster: receipt.fund_cluster || 'TF-2',
+        purpose: receipt.remarks || '',
+        unitOffice: item.responsibility_center || receipt.offices?.office_name || '',
+        poNumber: receipt.po_number || '',
+        uacs: receipt.uacs || '',
+        burNumber: receipt.bur_number || '',
+        iarNumber: receipt.iar_number || '',
+        receivedFrom: this.getIssuedToName(receipt) === '-' ? '' : this.getIssuedToName(receipt)
+      }
+      const modal = Modal.getOrCreateInstance(document.getElementById('receiptPrintDetailsModal'))
+      modal.show()
+    },
+
+    confirmPrintReceipt() {
+      if (!this.selectedPrintReceipt) return
+      const modal = Modal.getOrCreateInstance(document.getElementById('receiptPrintDetailsModal'))
+      modal.hide()
+      this.printReceipt(this.selectedPrintReceipt, { ...this.receiptPrintForm })
+    },
+
     openRISModal(receipt) {
       const request = receipt.item_requests || {}
       const issuedTo = this.getIssuedToName(receipt)
@@ -897,20 +963,8 @@ export default {
     },
 
     printRIS(receipt, details = {}) {
+      const item = this.getReceiptItem(receipt)
       const request = receipt.item_requests || {}
-      let item = this.getReceiptItem(receipt) || {}
-      const requestItems = Array.isArray(request.items) ? request.items[0] : request.items
-      const itemId = item.id || item.item_id || receipt.item_id || request.item_id || requestItems?.id || requestItems?.item_id
-      const inventoryItem = itemId
-        ? this.items.find(entry => String(entry.id) === String(itemId) || String(entry.item_id) === String(itemId))
-        : null
-      if (inventoryItem) {
-        item = { ...item, ...inventoryItem }
-      }
-      if (!item.id && request.items) {
-        const requestItem = Array.isArray(request.items) ? request.items[0] : request.items
-        if (requestItem) item = { ...requestItem, ...item }
-      }
       const office = request.offices || receipt.offices || {}
       const escape = value => this.escapeHtml(value === null || value === undefined || value === '' ? '-' : value)
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
@@ -929,30 +983,17 @@ export default {
       const fundCluster = escape(details.fundCluster || request.fund_cluster || receipt.fund_cluster)
       const description = escape(item.description || request.item_description)
       const stockNumber = escape(item.stock_number || item.property_number || item.stock_no)
-      const unit = escape(item.unit || item.unit_of_measure || item.unit_name || item.uom || 'Not recorded')
-      const firstQuantity = (...values) => values.find(value => value !== null && value !== undefined && String(value).trim() !== '')
-      const rawRequestedQuantity = firstQuantity(
-        request.quantity_requested,
-        request.quantity,
-        receipt.quantity_requested,
-        item.quantity_requested,
-        item.requested_quantity,
-        receipt.quantity_issued
-      )
-      const quantityRequested = escape(rawRequestedQuantity)
-      const rawQuantityIssued = firstQuantity(receipt.quantity_issued, request.quantity_issued, rawRequestedQuantity)
-      const quantityIssued = escape(rawQuantityIssued)
-      const rawAvailableQuantity = item.quantity_available ?? item.available_quantity ?? item.stock_balance ?? item.quantity_on_hand ?? item.stock_quantity ?? item.quantity_in_stock ?? item.available_stock ?? item.quantity
-      const availableQuantity = Number(rawAvailableQuantity)
-      const requestedQuantity = Number(rawRequestedQuantity)
-      const hasStockQuantity = rawAvailableQuantity !== null && rawAvailableQuantity !== undefined && rawAvailableQuantity !== '' && Number.isFinite(availableQuantity)
-      const quantityToCheck = Number.isFinite(requestedQuantity) && requestedQuantity > 0 ? requestedQuantity : 1
+      const unit = escape(item.unit || item.unit_of_measure)
+      const quantityRequested = escape(request.quantity_requested || request.quantity || receipt.quantity_requested)
+      const quantityIssued = escape(receipt.quantity_issued || request.quantity_issued || request.quantity_requested || request.quantity)
+      const availableQuantity = Number(item.quantity_available ?? item.quantity ?? item.stock_balance)
+      const requestedQuantity = Number(request.quantity_requested || request.quantity || receipt.quantity_requested)
       let stockAvailability = 'Not recorded'
-      if (hasStockQuantity) {
-        stockAvailability = availableQuantity >= quantityToCheck ? 'Available' : 'Not available'
-      } else if (item.stock_available === true || item.available === true || item.status === 'Available' || item.status === 'Returned') {
+      if (Number.isFinite(availableQuantity) && Number.isFinite(requestedQuantity)) {
+        stockAvailability = availableQuantity >= requestedQuantity ? 'Available' : 'Not available'
+      } else if (item.stock_available === true || item.available === true) {
         stockAvailability = 'Available'
-      } else if (item.stock_available === false || item.available === false || ['Issued', 'Lost', 'Damaged', 'Stolen', 'Disposed'].includes(item.status)) {
+      } else if (item.stock_available === false || item.available === false) {
         stockAvailability = 'Not available'
       }
       const purpose = escape(request.purpose || receipt.purpose || request.remarks)
@@ -1122,8 +1163,9 @@ export default {
       printWindow.document.close()
     },
 
-    printReceipt(receipt) {
+    printReceipt(receipt, details = {}) {
       const item = this.getReceiptItem(receipt)
+      const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
 
       const receiptType =
         this.escapeHtml(
@@ -1143,16 +1185,6 @@ export default {
       const description =
         this.escapeHtml(
           item.description || '-'
-        )
-
-      const itemQuantity =
-        this.escapeHtml(
-          item.quantity ?? 0
-        )
-
-      const itemUnit =
-        this.escapeHtml(
-          item.unit || 'unit'
         )
 
       const propertyNumber =
@@ -1191,7 +1223,7 @@ export default {
 
       const responsibilityCenter =
         this.escapeHtml(
-          item.responsibility_center || '-'
+          details.unitOffice || item.responsibility_center || '-'
         )
 
       const cost =
@@ -1202,7 +1234,7 @@ export default {
 
       const remarks =
         this.escapeHtml(
-          receipt.remarks || '-'
+          details.purpose || receipt.remarks || '-'
         )
 
       const receiptStatus =
@@ -1239,305 +1271,65 @@ export default {
           </title>
 
           <style>
-            @page {
-              size: A4;
-              margin: 10mm 12mm;
-            }
-
-            * {
-              box-sizing: border-box;
-            }
-
-            body {
-              margin: 0;
-              color: #000;
-              font-family: Arial, sans-serif;
-              font-size: 10px;
-            }
-
-            .page {
-              width: 100%;
-            }
-
-            .header {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 14px;
-              text-align: center;
-              border-bottom: 1px solid #000;
-              padding-bottom: 8px;
-            }
-
-            .seal {
-              width: 72px;
-              height: 72px;
-              border: 1px solid #000;
-              border-radius: 50%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              text-align: center;
-              font-size: 10px;
-              font-weight: bold;
-              color: #000;
-              background: #fff;
-            }
-
-            .header h1 {
-              margin: 0;
-              font-size: 19px;
-              color: #000;
-              font-weight: bold;
-            }
-
-            .header h2 {
-              margin: 3px 0;
-              font-size: 13px;
-              color: #000;
-            }
-
-            .header p {
-              margin: 2px 0;
-              font-size: 11px;
-            }
-
-            .appendix {
-              text-align: right;
-              margin-top: 5px;
-              font-size: 10px;
-              font-weight: bold;
-            }
-
-            .receipt-title {
-              text-align: center;
-              background: #fff;
-              color: #000;
-              font-size: 15px;
-              font-weight: bold;
-              padding: 9px;
-              margin: 8px 0 10px;
-              border: 1px solid #000;
-            }
-
-            .receipt-title span {
-              color: #000;
-            }
-
-            /* FUND CLUSTER AND PAR NUMBER */
-            .receipt-info {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin: 8px 0 5px;
-              font-size: 12px;
-              font-weight: bold;
-            }
-
-            .fund-cluster,
-            .par-number {
-              display: flex;
-              align-items: center;
-              gap: 10px;
-            }
-
-            .fund-cluster span,
-            .par-number span {
-              display: inline-block;
-              min-width: 155px;
-              border-bottom: 1px solid #000;
-              padding: 2px 5px;
-              font-weight: normal;
-            }
-
-            .par-number span {
-              min-width: 120px;
-            }
-
-            .main-table {
-              width: 100%;
-              border-collapse: collapse;
-              table-layout: fixed;
-              margin-top: 5px;
-            }
-
-            .main-table th,
-            .main-table td {
-              border: 1px solid #000;
-              padding: 5px 4px;
-              vertical-align: middle;
-              word-wrap: break-word;
-            }
-
-            .main-table th {
-              background: #fff;
-              color: #000;
-              text-align: center;
-              font-size: 9px;
-            }
-
-            .main-table td {
-              height: 46px;
-              font-size: 9px;
-            }
-
-            .sn {
-              width: 7%;
-              text-align: center;
-            }
-
-            .qty {
-              width: 6%;
-              text-align: center;
-            }
-
-            .unit {
-              width: 7%;
-              text-align: center;
-            }
-
-            .article {
-              width: 23%;
-            }
-
-            .property {
-              width: 14%;
-              text-align: center;
-            }
-
-            .serial {
-              width: 13%;
-              text-align: center;
-            }
-
-            .date {
-              width: 13%;
-              text-align: center;
-            }
-
-            .amount {
-              width: 17%;
-              text-align: right;
-            }
-
-            .total-row td {
-              height: 28px;
-              font-weight: bold;
-            }
-
-            .total-label {
-              text-align: right;
-              background: #fff;
-            }
-
-            .total-amount {
-              background: #fff;
-              text-align: right;
-            }
-
-            .lower-details {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              border: 1px solid #000;
-              border-top: none;
-            }
-
-            .lower-left,
-            .lower-right {
-              padding: 9px;
-              min-height: 155px;
-            }
-
-            .lower-left {
-              border-right: 1px solid #000;
-            }
-
-            .lower-details p {
-              margin: 0 0 9px;
-              line-height: 1.25;
-            }
-
-            .lower-details strong {
-              color: #000;
-            }
-
-            .line {
-              display: inline-block;
-              border-bottom: 1px solid #000;
-              width: 150px;
-              height: 12px;
-            }
-
-            .acknowledgement {
-              margin-top: 12px;
-              border: 1px solid #000;
-              padding: 8px;
-              font-size: 10px;
-              line-height: 1.5;
-            }
-
-            .acknowledgement strong {
-              color: #000;
-            }
-
-            .signature {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 45px;
-              margin-top: 65px;
-            }
-
-            .signature-box {
-              text-align: center;
-              font-size: 10px;
-            }
-
-            .signature-line {
-              border-top: 1px solid #000;
-              padding-top: 5px;
-            }
-
-            .signature-name {
-              margin-top: 5px;
-              font-weight: bold;
-            }
-
-            .signature-label {
-              margin-top: 3px;
-            }
-
-            .footer {
-              margin-top: 18px;
-              padding-top: 5px;
-              border-top: 3px solid #198754;
-              text-align: center;
-              font-size: 9px;
-              color: #000;
-              font-weight: bold;
-            }
+            @page { size: 8.5in 13in portrait; margin: 8mm; }
+            * { box-sizing: border-box; }
+            body { margin: 0; color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 10px; }
+            .page { width: 100%; border: 1px solid #000; padding: 5px; }
+            .header { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; border-bottom: 1px solid #000; min-height: 72px; }
+            .logo-box { border-right: 1px solid #000; height: 72px; display: flex; align-items: center; justify-content: center; }
+            .logo { width: 58px; height: 58px; object-fit: contain; }
+            .header-text { line-height: 1.25; padding: 3px; }
+            .header-text p { margin: 1px 0; }
+            .header h1 { margin: 1px 0; font-size: 14px; color: #000; font-weight: bold; }
+            .header h2 { margin: 1px 0; font-size: 10px; color: #000; font-weight: normal; }
+            .header p { margin: 1px 0; font-size: 10px; }
+            .appendix { text-align: right; margin-top: 4px; font-size: 9px; font-weight: bold; }
+            .receipt-title { text-align: center; color: #000; font-size: 14px; font-weight: bold; padding: 6px 0; margin: 0; border-bottom: 1px solid #000; }
+            .receipt-title span { color: #000; }
+            .receipt-info { display: grid; grid-template-columns: 1fr 1fr; margin: 0; font-size: 10px; font-weight: normal; }
+            .fund-cluster, .par-number { display: flex; align-items: center; gap: 6px; border: 1px solid #000; padding: 6px; min-height: 28px; }
+            .fund-cluster span, .par-number span { display: inline-block; flex: 1; border-bottom: 1px solid #000; padding: 2px 4px; font-weight: normal; min-width: 0; }
+            .main-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 0; }
+            .main-table th, .main-table td { border: 1px solid #000; padding: 4px; vertical-align: middle; overflow-wrap: anywhere; }
+            .main-table th { background: #fff; color: #000; text-align: center; font-size: 9px; font-weight: bold; }
+            .main-table td { height: 35px; font-size: 9px; }
+            .sn { width: 7%; text-align: center; }
+            .qty { width: 6%; text-align: center; }
+            .unit { width: 7%; text-align: center; }
+            .article { width: 23%; }
+            .property { width: 14%; text-align: center; }
+            .serial { width: 13%; text-align: center; }
+            .date { width: 13%; text-align: center; }
+            .amount { width: 17%; text-align: right; }
+            .total-row td { height: 28px; font-weight: bold; }
+            .total-label, .total-amount { background: #fff; }
+            .total-label { text-align: right; }
+            .total-amount { text-align: right; }
+            .lower-details { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #000; border-top: 0; }
+            .lower-left, .lower-right { padding: 7px; min-height: 125px; }
+            .lower-left { border-right: 1px solid #000; }
+            .lower-details p { margin: 0 0 7px; line-height: 1.25; }
+            .lower-details strong, .acknowledgement strong { color: #000; }
+            .line { display: inline-block; border-bottom: 1px solid #000; width: 125px; height: 12px; }
+            .acknowledgement { margin-top: 0; border: 1px solid #000; border-top: 0; padding: 7px; font-size: 9px; line-height: 1.4; }
+            .signature { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 28px; }
+            .signature-box { text-align: center; font-size: 9px; }
+            .signature-line { border-top: 1px solid #000; padding-top: 4px; }
+            .signature-name { margin-top: 4px; font-weight: bold; }
+            .signature-label { margin-top: 3px; }
+            .footer { margin-top: 10px; padding-top: 4px; border-top: 1px solid #000; text-align: center; font-size: 8px; color: #000; font-weight: bold; }
+            @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
           </style>
         </head>
 
         <body>
           <div class="page">
             <div class="header">
-              <div class="seal">
-                NVSU<br>
-                SEAL
-              </div>
-
-              <div>
-                <h1>
-                  NUEVA VIZCAYA STATE UNIVERSITY
-                </h1>
-
-                <h2>
-                  Bambang Campus
-                </h2>
-
-                <p>
-                  Bambang, Nueva Vizcaya
-                </p>
+              <div class="logo-box"><img class="logo" src="${logoUrl}" alt="NVSU Logo"></div>
+              <div class="header-text">
+                <p>Republic of the Philippines</p>
+                <h1>NUEVA VIZCAYA STATE UNIVERSITY</h1>
+                <h2>3702 Bambang, Nueva Vizcaya</h2>
               </div>
             </div>
 
@@ -1559,7 +1351,7 @@ export default {
             <div class="receipt-info">
               <div class="fund-cluster">
                 <strong>FUND CLUSTER:</strong>
-                <span>TF-2</span>
+                <span>${this.escapeHtml(details.fundCluster || 'TF-2')}</span>
               </div>
 
               <div class="par-number">
@@ -1613,11 +1405,11 @@ export default {
                   </td>
 
                   <td class="qty">
-                    ${itemQuantity}
+                    1
                   </td>
 
                   <td class="unit">
-                    ${itemUnit}
+                    unit
                   </td>
 
                   <td class="article">
@@ -1661,27 +1453,27 @@ export default {
               <div class="lower-left">
                 <p>
                   <strong>UNIT/OFFICE:</strong>
-                  <span class="line"></span>
+                  ${this.escapeHtml(details.unitOffice || responsibilityCenter || '-')}
                 </p>
 
                 <p>
                   <strong>PO NO.:</strong>
-                  <span class="line"></span>
+                  ${this.escapeHtml(details.poNumber || '-')}
                 </p>
 
                 <p>
                   <strong>UACS:</strong>
-                  <span class="line"></span>
+                  ${this.escapeHtml(details.uacs || '-')}
                 </p>
 
                 <p>
                   <strong>BUR NO.:</strong>
-                  <span class="line"></span>
+                  ${this.escapeHtml(details.burNumber || '-')}
                 </p>
 
                 <p>
                   <strong>IAR NO.:</strong>
-                  <span class="line"></span>
+                  ${this.escapeHtml(details.iarNumber || '-')}
                 </p>
               </div>
 
@@ -1743,7 +1535,7 @@ export default {
                 </div>
 
                 <div class="signature-name">
-                  Administrative Officer V
+                  ${this.escapeHtml(details.receivedFrom || 'Administrative Officer V')}
                 </div>
 
                 <div class="signature-label">
@@ -1760,8 +1552,14 @@ export default {
 
           <script>
             window.onload = function () {
-              window.print();
-            };
+              const logo = document.querySelector('.logo')
+              if (logo && !logo.complete) {
+                logo.onload = function () { window.print() }
+                logo.onerror = function () { window.print() }
+              } else {
+                window.print()
+              }
+            }
           <\/script>
         </body>
         </html>
@@ -1782,46 +1580,6 @@ export default {
   vertical-align: middle;
 }
 
-/* Keep the RIS form inside the screen and allow its fields to scroll */
-#risDetailsModal .modal-dialog {
-  width: calc(100% - 1.5rem);
-  max-width: 900px;
-  margin: 0.75rem auto;
-}
-
-#risDetailsModal .modal-content {
-  max-height: calc(100vh - 1.5rem);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-#risDetailsModal form {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-}
-
-#risDetailsModal .modal-body {
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-#risDetailsModal .modal-footer {
-  flex-shrink: 0;
-}
-
-#risDetailsModal .row > div {
-  min-width: 0;
-}
-
-#risDetailsModal .form-control {
-  width: 100%;
-  min-width: 0;
-}
-
 @media (max-width: 576px) {
   .table {
     min-width: 0 !important;
@@ -1838,19 +1596,6 @@ export default {
   .modal-dialog {
     max-width: calc(100% - 1rem);
     margin: 0.5rem auto;
-  }
-
-  #risDetailsModal .modal-dialog {
-    width: calc(100% - 1rem);
-    margin: 0.5rem auto;
-  }
-
-  #risDetailsModal .modal-content {
-    max-height: calc(100vh - 1rem);
-  }
-
-  #risDetailsModal .modal-body {
-    padding: 1rem;
   }
 }
 </style>

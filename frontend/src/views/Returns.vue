@@ -483,9 +483,7 @@ export default {
       const searchText = this.search.toLowerCase().trim()
 
       const filtered = this.returns.filter(itemReturn => {
-        const itemName = String(
-          itemReturn.items?.description || ''
-        ).toLowerCase()
+        const itemName = String(itemReturn.items?.description || '').toLowerCase()
 
         const returnedBy = String(
           itemReturn.personnel?.full_name ||
@@ -493,17 +491,11 @@ export default {
           ''
         ).toLowerCase()
 
-        const officeName = String(
-          itemReturn.offices?.office_name || ''
-        ).toLowerCase()
+        const officeName = String(itemReturn.offices?.office_name || '').toLowerCase()
 
-        const returnReason = String(
-          itemReturn.return_reason || ''
-        ).toLowerCase()
+        const returnReason = String(itemReturn.return_reason || '').toLowerCase()
 
-        const condition = String(
-          itemReturn.condition_after_return || ''
-        ).toLowerCase()
+        const condition = String(itemReturn.condition_after_return || '').toLowerCase()
 
         const matchesSearch =
           !searchText ||
@@ -529,15 +521,9 @@ export default {
       })
 
       return filtered.sort((a, b) => {
-        const firstValue = this.getSortValue(
-          a,
-          this.sortColumn
-        )
+        const firstValue = this.getSortValue(a, this.sortColumn)
 
-        const secondValue = this.getSortValue(
-          b,
-          this.sortColumn
-        )
+        const secondValue = this.getSortValue(b, this.sortColumn)
 
         if (firstValue < secondValue) {
           return this.sortDirection === 'asc' ? -1 : 1
@@ -574,9 +560,7 @@ export default {
         return 0
       }
 
-      return (
-        (this.currentPage - 1) * this.itemsPerPage + 1
-      )
+      return ((this.currentPage - 1) * this.itemsPerPage + 1)
     },
 
     lastReturnNumber() {
@@ -621,9 +605,7 @@ export default {
   methods: {
     getSortValue(itemReturn, column) {
       if (column === 'item') {
-        return String(
-          itemReturn.items?.description || ''
-        ).toLowerCase()
+        return String(itemReturn.items?.description || '').toLowerCase()
       }
 
       if (column === 'returned_by') {
@@ -635,21 +617,15 @@ export default {
       }
 
       if (column === 'office') {
-        return String(
-          itemReturn.offices?.office_name || ''
-        ).toLowerCase()
+        return String(itemReturn.offices?.office_name || '').toLowerCase()
       }
 
       if (column === 'return_date') {
-        return String(
-          itemReturn.return_date || ''
-        ).toLowerCase()
+        return String(itemReturn.return_date || '').toLowerCase()
       }
 
       if (column === 'condition') {
-        return String(
-          itemReturn.condition_after_return || ''
-        ).toLowerCase()
+        return String(itemReturn.condition_after_return || '').toLowerCase()
       }
 
       return ''

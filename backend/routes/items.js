@@ -12,230 +12,302 @@ function getItemReferenceError(error, operation) {
 
   if (error.message.includes('item_requests_item_id_fkey')) {
     return operation === 'deleted'
-      ? 'This item cannot be deleted because it is linked to existing item requests. Keep the item to preserve request history.'
-      : 'This item identifier cannot be changed while item requests refer to it. Other item details can still be edited.'
+      ? 'This item is linked to existing requests. Update the request references before deleting it.'
+      : 'This item identifier cannot be changed while requests refer to it.'
   }
 
   return `This item cannot be ${operation} because it is referenced by existing records.`
 }
 
 router.get('/', async (req, res) => {
-  const { data, error } = await supabase
-    .from('items')
-    .select('*')
-    .order('created_at', { ascending: false })
+  try {
+    const { data, error } = await supabase
+      .from('items')
+      .select('*')
+      .order('created_at', { ascending: false })
 
-  if (error) {
+    if (error) {
+      console.log(error)
+      return res.status(500).json({ error: error.message })
+    }
+
+    res.json(data || [])
+  } catch (error) {
     console.log(error)
-    return res.status(500).json({ error: error.message })
+    res.status(500).json({ error: 'Failed to load items' })
   }
-
-  res.json(data)
 })
 
 router.get('/options', async (req, res) => {
-  const { data: personnel, error: personnelError } = await supabase
-    .from('users')
-    .select('id, full_name, role, office_id')
-    .order('full_name', { ascending: true })
+  try {
+    const { data: personnel, error: personnelError } = await supabase
+      .from('users')
+      .select('id, full_name, role, office_id')
+      .order('full_name', { ascending: true })
 
-  if (personnelError) {
-    console.log(personnelError)
-    return res.status(500).json({ error: personnelError.message })
+    if (personnelError) {
+      console.log(personnelError)
+      return res.status(500).json({ error: personnelError.message })
+    }
+
+    const { data: offices, error: officesError } = await supabase
+      .from('offices')
+      .select('id, office_name, office_code')
+      .order('office_name', { ascending: true })
+
+    if (officesError) {
+      console.log(officesError)
+      return res.status(500).json({ error: officesError.message })
+    }
+
+    res.json({ personnel, offices })
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ error: 'Failed to load options' })
   }
-
-  const { data: offices, error: officesError } = await supabase
-    .from('offices')
-    .select('id, office_name, office_code')
-    .order('office_name', { ascending: true })
-
-  if (officesError) {
-    console.log(officesError)
-    return res.status(500).json({ error: officesError.message })
-  }
-
-  res.json({ personnel, offices })
 })
 
 router.get('/assigned/:employeeName', async (req, res) => {
-  const employeeName = decodeURIComponent(req.params.employeeName)
+  try {
+    const employeeName = decodeURIComponent(req.params.employeeName)
 
-  const { data, error } = await supabase
-    .from('items')
-    .select('*')
-    .ilike('accountable_employee', employeeName)
-    .order('created_at', { ascending: false })
+    const { data, error } = await supabase
+      .from('items')
+      .select('*')
+      .ilike('accountable_employee', employeeName)
+      .order('created_at', { ascending: false })
 
-  if (error) {
+    if (error) {
+      console.log(error)
+      return res.status(500).json({ error: error.message })
+    }
+
+    res.json(data || [])
+  } catch (error) {
     console.log(error)
-    return res.status(500).json({ error: error.message })
+    res.status(500).json({ error: 'Failed to load assigned items' })
   }
-
-  res.json(data)
 })
 
 router.post('/', async (req, res) => {
-  const {
-    property_number,
-    description,
-    quantity,
-    unit,
-    serial_number,
-    cost,
-    acquisition_date,
-    classification,
-    condition,
-    status,
-    accountable_employee,
-    responsibility_center
-  } = req.body
-
-  const { data, error } = await supabase
-    .from('items')
-    .insert([{
+  try {
+    const {
       property_number,
       description,
-      quantity: Number(quantity ?? 0),
-      unit: unit || 'unit',
       serial_number,
       cost,
-      acquisition_date,
-      classification,
-      condition,
-      accountable_employee,
-      responsibility_center,
-      status: status || 'Available'
-    }])
-    .select()
-    .single()
-
-  if (error) {
-    console.log(error)
-    return res.status(500).json({ error: error.message })
-  }
-
-  await createAuditLog(
-    'Created',
-    data.id,
-    null,
-    JSON.stringify(data),
-    'Added item: ' + data.description,
-    req.profile.id
-  )
-
-  res.status(201).json(data)
-})
-
-router.put('/:id', async (req, res) => {
-  const {
-    property_number,
-    description,
-    quantity,
-    unit,
-    serial_number,
-    cost,
-    acquisition_date,
-    classification,
-    condition,
-    status,
-    accountable_employee,
-    responsibility_center
-  } = req.body
-
-  const { data: oldData, error: oldError } = await supabase
-    .from('items')
-    .select('*')
-    .eq('id', req.params.id)
-    .single()
-
-  if (oldError) {
-    console.log(oldError)
-    return res.status(404).json({ error: 'Item not found' })
-  }
-
-  const { data, error } = await supabase
-    .from('items')
-    .update({
-      property_number,
-      description,
-      quantity: Number(quantity ?? 0),
-      unit: unit || 'unit',
-      serial_number,
-      cost,
+      quantity,
+      unit,
       acquisition_date,
       classification,
       condition,
       status,
       accountable_employee,
       responsibility_center
-    })
-    .eq('id', req.params.id)
-    .select()
-    .single()
+    } = req.body
 
-  if (error) {
-    console.log(error)
+    const itemQuantity = Number(quantity ?? 0)
 
-    const referenceError = getItemReferenceError(error, 'updated')
-
-    if (referenceError) {
-      return res.status(409).json({ error: referenceError })
+    if (!Number.isInteger(itemQuantity) || itemQuantity < 0) {
+      return res.status(400).json({
+        error: 'Quantity must be a non-negative whole number.'
+      })
     }
 
-    return res.status(500).json({ error: error.message })
+    const { data, error } = await supabase
+      .from('items')
+      .insert([{
+        property_number,
+        description,
+        serial_number,
+        cost,
+        quantity: itemQuantity,
+        unit: unit || 'unit',
+        acquisition_date,
+        classification,
+        condition,
+        accountable_employee,
+        responsibility_center,
+        status: status || 'Available'
+      }])
+      .select()
+      .single()
+
+    if (error) {
+      console.log(error)
+      return res.status(500).json({ error: error.message })
+    }
+
+    try {
+      await createAuditLog(
+        'Created',
+        data.id,
+        null,
+        JSON.stringify(data),
+        'Added item: ' + data.description,
+        req.profile.id
+      )
+    } catch (auditError) {
+      console.log('Audit log error:', auditError)
+    }
+
+    res.status(201).json(data)
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ error: 'Failed to create item' })
   }
+})
 
-  await createAuditLog(
-    'Updated',
-    data.id,
-    JSON.stringify(oldData),
-    JSON.stringify(data),
-    'Updated item: ' + data.description,
-    req.profile.id
-  )
+router.put('/:id', async (req, res) => {
+  try {
+    const {
+      property_number,
+      description,
+      serial_number,
+      cost,
+      quantity,
+      unit,
+      acquisition_date,
+      classification,
+      condition,
+      status,
+      accountable_employee,
+      responsibility_center
+    } = req.body
 
-  res.json(data)
+    const itemQuantity = Number(quantity ?? 0)
+
+    if (!Number.isInteger(itemQuantity) || itemQuantity < 0) {
+      return res.status(400).json({
+        error: 'Quantity must be a non-negative whole number.'
+      })
+    }
+
+    const { data: oldData, error: oldError } = await supabase
+      .from('items')
+      .select('*')
+      .eq('id', req.params.id)
+      .single()
+
+    if (oldError || !oldData) {
+      return res.status(404).json({ error: 'Item not found' })
+    }
+
+    const { data, error } = await supabase
+      .from('items')
+      .update({
+        property_number,
+        description,
+        serial_number,
+        cost,
+        quantity: itemQuantity,
+        unit: unit || 'unit',
+        acquisition_date,
+        classification,
+        condition,
+        status,
+        accountable_employee,
+        responsibility_center
+      })
+      .eq('id', req.params.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.log(error)
+
+      const referenceError = getItemReferenceError(error, 'updated')
+
+      if (referenceError) {
+        return res.status(409).json({ error: referenceError })
+      }
+
+      return res.status(500).json({ error: error.message })
+    }
+
+    try {
+      await createAuditLog(
+        'Updated',
+        data.id,
+        JSON.stringify(oldData),
+        JSON.stringify(data),
+        'Updated item: ' + data.description,
+        req.profile.id
+      )
+    } catch (auditError) {
+      console.log('Audit log error:', auditError)
+    }
+
+    res.json(data)
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ error: 'Failed to update item' })
+  }
 })
 
 router.delete('/:id', async (req, res) => {
-  const { data: oldData, error: oldError } = await supabase
-    .from('items')
-    .select('*')
-    .eq('id', req.params.id)
-    .single()
+  try {
+    const { data: oldData, error: oldError } = await supabase
+      .from('items')
+      .select('*')
+      .eq('id', req.params.id)
+      .single()
 
-  if (oldError) {
-    console.log(oldError)
-    return res.status(404).json({ error: 'Item not found' })
-  }
-
-  const { error } = await supabase
-    .from('items')
-    .delete()
-    .eq('id', req.params.id)
-
-  if (error) {
-    console.log(error)
-
-    const referenceError = getItemReferenceError(error, 'deleted')
-
-    if (referenceError) {
-      return res.status(409).json({ error: referenceError })
+    if (oldError || !oldData) {
+      return res.status(404).json({ error: 'Item not found' })
     }
 
-    return res.status(500).json({ error: error.message })
+    const { error: requestError } = await supabase
+      .from('item_requests')
+      .update({ item_id: null })
+      .eq('item_id', req.params.id)
+
+    if (requestError) {
+      console.log(requestError)
+      return res.status(500).json({
+        error: 'Could not preserve item request history.',
+        details: requestError.message
+      })
+    }
+
+    const { error: deleteError } = await supabase
+      .from('items')
+      .delete()
+      .eq('id', req.params.id)
+
+    if (deleteError) {
+      console.log(deleteError)
+
+      const referenceError = getItemReferenceError(
+        deleteError,
+        'deleted'
+      )
+
+      if (referenceError) {
+        return res.status(409).json({ error: referenceError })
+      }
+
+      return res.status(500).json({ error: deleteError.message })
+    }
+
+    try {
+      await createAuditLog(
+        'Deleted',
+        req.params.id,
+        JSON.stringify(oldData),
+        null,
+        'Deleted item: ' + oldData.description,
+        req.profile.id
+      )
+    } catch (auditError) {
+      console.log('Audit log error:', auditError)
+    }
+
+    res.json({ message: 'Item deleted successfully' })
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ error: 'Failed to delete item' })
   }
-
-  await createAuditLog(
-    'Deleted',
-    req.params.id,
-    JSON.stringify(oldData),
-    null,
-    'Deleted item: ' + oldData.description,
-    req.profile.id
-  )
-
-  res.json({ message: 'Item deleted successfully' })
 })
 
 module.exports = router

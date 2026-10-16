@@ -1,72 +1,44 @@
+
 const express = require('express')
 const router = express.Router()
-
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
 
-async function updateItemCondition(itemId, condition) {
-  const { error } = await supabase
-    .from('items')
-    .update({ condition })
-    .eq('id', itemId)
-
-  if (error) {
-    console.log(error)
-  }
-
-  return error
-}
-
-
-// GET RETURNS
-
 router.get('/', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('item_returns')
+      .select(`
+        *,
+        items (
+          id,
+          description,
+          property_number
+        ),
+        users (
+          id,
+          full_name
+        ),
+        offices (
+          id,
+          office_name
+        )
+      `)
+      .order('created_at', { ascending: false })
 
-  const { data, error } = await supabase
-    .from('item_returns')
-    .select(`
-      *,
-      items (
-        description
-      ),
-      users (
-        full_name
-      ),
-      offices (
-        office_name
-      )
-    `)
-    .order('created_at', { ascending: false })
+    if (error) {
+      return res.status(500).json({ error: error.message })
+    }
 
-  if (error) {
-    console.log(error)
-
-    return res.status(500).json({
-      error: error.message
-    })
+    res.json(data)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
   }
-
-  res.json(data)
 })
-
-
-// ADD RETURN
 
 router.post('/', async (req, res) => {
-
-  const {
-    item_id,
-    returned_by,
-    office_id,
-    return_date,
-    condition_after_return,
-    return_reason,
-    remarks
-  } = req.body
-
-  const { data, error } = await supabase
-    .from('item_returns')
-    .insert([{
+  try {
+    const {
       item_id,
       returned_by,
       office_id,
@@ -74,75 +46,58 @@ router.post('/', async (req, res) => {
       condition_after_return,
       return_reason,
       remarks
-    }])
-    .select()
-    .single()
+    } = req.body
 
-  if (error) {
-    console.log(error)
+    if (!item_id) {
+      return res.status(400).json({
+        error: 'Please select an item'
+      })
+    }
 
-    return res.status(500).json({
-      error: error.message
-    })
+    if (!condition_after_return) {
+      return res.status(400).json({
+        error: 'Please select the item condition'
+      })
+    }
+
+    const { data: newReturn, error } = await supabase
+      .from('item_returns')
+      .insert([{
+        item_id,
+        returned_by: returned_by || null,
+        office_id: office_id || null,
+        return_date: return_date || null,
+        condition_after_return,
+        return_reason: return_reason || null,
+        remarks: remarks || null
+      }])
+      .select()
+      .single()
+
+    if (error) {
+      return res.status(500).json({ error: error.message })
+    }
+
+    await createAuditLog(
+      'Created',
+      newReturn.item_id,
+      null,
+      JSON.stringify(newReturn),
+      `Recorded return for item ID ${item_id}`,
+      req.profile?.id
+    )
+
+    res.status(201).json(newReturn)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
   }
-
-  const itemUpdateError = await updateItemCondition(
-    item_id,
-    condition_after_return
-  )
-
-  if (itemUpdateError) {
-    return res.status(500).json({
-      error: `Return saved, but failed to update item condition: ${itemUpdateError.message}`
-    })
-  }
-
-  await createAuditLog(
-    'Created',
-    data.id,
-    null,
-    JSON.stringify(data),
-    'Added item return'
-  )
-
-  res.status(201).json(data)
 })
-
-
-// UPDATE RETURN
 
 router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
 
-  const {
-    item_id,
-    returned_by,
-    office_id,
-    return_date,
-    condition_after_return,
-    return_reason,
-    remarks
-  } = req.body
-
-
-  const { data: oldData, error: oldError } = await supabase
-    .from('item_returns')
-    .select('*')
-    .eq('id', req.params.id)
-    .single()
-
-  if (oldError) {
-
-    console.log(oldError)
-
-    return res.status(404).json({
-      error: 'Return not found'
-    })
-  }
-
-
-  const { data, error } = await supabase
-    .from('item_returns')
-    .update({
+    const {
       item_id,
       returned_by,
       office_id,
@@ -150,93 +105,92 @@ router.put('/:id', async (req, res) => {
       condition_after_return,
       return_reason,
       remarks
-    })
-    .eq('id', req.params.id)
-    .select()
-    .single()
+    } = req.body
 
-  if (error) {
+    if (!item_id) {
+      return res.status(400).json({
+        error: 'Please select an item'
+      })
+    }
 
-    console.log(error)
+    if (!condition_after_return) {
+      return res.status(400).json({
+        error: 'Please select the item condition'
+      })
+    }
 
-    return res.status(500).json({
-      error: error.message
-    })
+    const { data: updatedReturn, error } = await supabase
+      .from('item_returns')
+      .update({
+        item_id,
+        returned_by: returned_by || null,
+        office_id: office_id || null,
+        return_date: return_date || null,
+        condition_after_return,
+        return_reason: return_reason || null,
+        remarks: remarks || null
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      return res.status(500).json({ error: error.message })
+    }
+
+    await createAuditLog(
+      'Updated',
+      updatedReturn.item_id,
+      null,
+      JSON.stringify(updatedReturn),
+      `Updated return record ${id}`,
+      req.profile?.id
+    )
+
+    res.json(updatedReturn)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
   }
-
-  const itemUpdateError = await updateItemCondition(
-    item_id,
-    condition_after_return
-  )
-
-  if (itemUpdateError) {
-    return res.status(500).json({
-      error: `Return updated, but failed to update item condition: ${itemUpdateError.message}`
-    })
-  }
-
-
-  await createAuditLog(
-    'Updated',
-    data.id,
-    JSON.stringify(oldData),
-    JSON.stringify(data),
-    'Updated item return',
-    req.profile.id
-  )
-
-  res.json(data)
 })
-
-
-// DELETE RETURN
 
 router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
 
-  const { data: oldData, error: oldError } = await supabase
-    .from('item_returns')
-    .select('*')
-    .eq('id', req.params.id)
-    .single()
+    const { data: deletedReturn, error: fetchError } = await supabase
+      .from('item_returns')
+      .select('*')
+      .eq('id', id)
+      .single()
 
-  if (oldError) {
+    if (fetchError) {
+      return res.status(404).json({ error: fetchError.message })
+    }
 
-    console.log(oldError)
+    const { error } = await supabase
+      .from('item_returns')
+      .delete()
+      .eq('id', id)
 
-    return res.status(404).json({
-      error: 'Return not found'
+    if (error) {
+      return res.status(500).json({ error: error.message })
+    }
+
+    await createAuditLog(
+      'Deleted',
+      deletedReturn.item_id,
+      JSON.stringify(deletedReturn),
+      null,
+      `Deleted return record ${id}`,
+      req.profile?.id
+    )
+
+    res.json({
+      message: 'Return record deleted successfully'
     })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
   }
-
-
-  const { error } = await supabase
-    .from('item_returns')
-    .delete()
-    .eq('id', req.params.id)
-
-  if (error) {
-
-    console.log(error)
-
-    return res.status(500).json({
-      error: error.message
-    })
-  }
-
-
-  await createAuditLog(
-    'Deleted',
-    req.params.id,
-    JSON.stringify(oldData),
-    null,
-    'Deleted item return',
-    req.profile.id
-  )
-
-  res.json({
-    message: 'Return deleted successfully'
-  })
 })
-
 
 module.exports = router
