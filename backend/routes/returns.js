@@ -4,6 +4,18 @@ const router = express.Router()
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
 
+async function syncReturnedItem(itemId, condition) {
+  return supabase
+    .from('items')
+    .update({
+      condition,
+      status: 'Returned'
+    })
+    .eq('id', itemId)
+    .select('id')
+    .single()
+}
+
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -78,6 +90,25 @@ router.post('/', async (req, res) => {
       return res.status(500).json({ error: error.message })
     }
 
+    const { error: itemError } = await syncReturnedItem(
+      newReturn.item_id,
+      newReturn.condition_after_return
+    )
+
+    if (itemError) {
+      const { error: rollbackError } = await supabase
+        .from('item_returns')
+        .delete()
+        .eq('id', newReturn.id)
+
+      return res.status(500).json({
+        error: `Return was not completed because the item could not be updated: ${itemError.message}`,
+        ...(rollbackError && {
+          details: `The return record also could not be rolled back: ${rollbackError.message}`
+        })
+      })
+    }
+
     await createAuditLog(
       'Created',
       newReturn.item_id,
@@ -119,6 +150,16 @@ router.put('/:id', async (req, res) => {
       })
     }
 
+    const { data: oldReturn, error: oldReturnError } = await supabase
+      .from('item_returns')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (oldReturnError || !oldReturn) {
+      return res.status(404).json({ error: 'Return record not found' })
+    }
+
     const { data: updatedReturn, error } = await supabase
       .from('item_returns')
       .update({
@@ -138,10 +179,37 @@ router.put('/:id', async (req, res) => {
       return res.status(500).json({ error: error.message })
     }
 
+    const { error: itemError } = await syncReturnedItem(
+      updatedReturn.item_id,
+      updatedReturn.condition_after_return
+    )
+
+    if (itemError) {
+      const { error: rollbackError } = await supabase
+        .from('item_returns')
+        .update({
+          item_id: oldReturn.item_id,
+          returned_by: oldReturn.returned_by,
+          office_id: oldReturn.office_id,
+          return_date: oldReturn.return_date,
+          condition_after_return: oldReturn.condition_after_return,
+          return_reason: oldReturn.return_reason,
+          remarks: oldReturn.remarks
+        })
+        .eq('id', id)
+
+      return res.status(500).json({
+        error: `Return was not completed because the item could not be updated: ${itemError.message}`,
+        ...(rollbackError && {
+          details: `The return record also could not be rolled back: ${rollbackError.message}`
+        })
+      })
+    }
+
     await createAuditLog(
       'Updated',
       updatedReturn.item_id,
-      null,
+      JSON.stringify(oldReturn),
       JSON.stringify(updatedReturn),
       `Updated return record ${id}`,
       req.profile?.id

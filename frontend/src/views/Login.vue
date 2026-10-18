@@ -267,7 +267,7 @@ export default {
 
       try {
         const response = await fetch(
-          `http://localhost:5000/api/auth/${this.signingUp ? 'signup' : 'login'}`,
+          `/api/auth/${this.signingUp ? 'signup' : 'login'}`,
           {
             method: 'POST',
 
@@ -338,7 +338,15 @@ export default {
           })
         )
 
-        await this.$router.push('/')
+        const redirect = this.$route.query.redirect
+        const destination =
+          typeof redirect === 'string' &&
+          redirect.startsWith('/') &&
+          !redirect.startsWith('//')
+            ? redirect
+            : '/'
+
+        await this.$router.push(destination)
       } catch (error) {
         console.log(error)
 

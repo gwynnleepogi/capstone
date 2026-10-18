@@ -97,10 +97,18 @@ router.beforeEach((to) => {
   const user = JSON.parse(localStorage.getItem('user') || 'null')
 
   if (to.name !== 'Login' && !token) {
-    return { name: 'Login' }
+    return { name: 'Login', query: { redirect: to.fullPath } }
   }
 
   if (to.name === 'Login' && token) {
+    if (
+      typeof to.query.redirect === 'string' &&
+      to.query.redirect.startsWith('/') &&
+      !to.query.redirect.startsWith('//')
+    ) {
+      return to.query.redirect
+    }
+
     return { name: 'Dashboard' }
   }
 

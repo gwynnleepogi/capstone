@@ -3,6 +3,7 @@ const cors = require('cors')
 require('dotenv').config()
 
 const itemsRoutes = require('./routes/items')
+const itemDocumentsRoutes = require('./routes/itemDocuments')
 const officesRoutes = require('./routes/offices')
 const personnelRoutes = require('./routes/personnel')
 const suppliersRoutes = require('./routes/suppliers')
@@ -19,6 +20,7 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 app.use('/api/auth', authRoutes)
+app.use('/api/item-documents', itemDocumentsRoutes)
 
 app.get('/', (req, res) => {
   res.json({

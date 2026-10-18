@@ -4,6 +4,7 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
+const { createItemDocumentToken } = require('../itemDocumentToken')
 
 function getItemReferenceError(error, operation) {
   if (error.code !== '23503') {
@@ -35,6 +36,39 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.log(error)
     res.status(500).json({ error: 'Failed to load items' })
+  }
+})
+
+router.post('/:id/document-link', async (req, res) => {
+  try {
+    const { data: item, error } = await supabase
+      .from('items')
+      .select('id')
+      .eq('id', req.params.id)
+      .maybeSingle()
+
+    if (error) {
+      console.error('Failed to verify item for document link:', error)
+      return res.status(500).json({ error: 'Failed to create item document link' })
+    }
+
+    if (!item) {
+      return res.status(404).json({ error: 'Item not found' })
+    }
+
+    const token = createItemDocumentToken(item.id, req.body?.origin)
+
+    res.json({
+      downloadUrl: `/api/item-documents/${encodeURIComponent(item.id)}/${encodeURIComponent(token)}`
+    })
+  } catch (error) {
+    if (error.code === 'QR_DOCUMENT_SECRET_MISSING') {
+      console.error('QR document downloads are unavailable: QR_DOCUMENT_SECRET is not configured')
+      return res.status(503).json({ error: 'Item document downloads are not configured' })
+    }
+
+    console.error('Failed to create item document link:', error)
+    res.status(500).json({ error: 'Failed to create item document link' })
   }
 })
 

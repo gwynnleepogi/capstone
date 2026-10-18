@@ -234,8 +234,9 @@
               <td>{{ item.responsibility_center || '-' }}</td>
               <td>
                 <div class="d-flex gap-1">
-                  <button class="btn btn-sm btn-outline-primary" @click="startEdit(item)" title="Edit item">
-                    <i class="bi bi-pencil"></i>
+                  <button class="btn btn-sm btn-outline-primary" @click="showItemDetails(item)" title="View item details">
+                    <i class="bi bi-eye me-1"></i>
+                    Details
                   </button>
                   <button class="btn btn-sm btn-outline-danger" @click="deleteItem(item)" :disabled="deletingItemId === item.id" title="Delete item">
                     <i class="bi bi-trash"></i>
@@ -246,6 +247,79 @@
           </tbody>
         </table>
       </div>
+    </div>
+
+    <div v-if="detailItem" class="detail-overlay" @click.self="closeItemDetails">
+      <section class="detail-dialog card" role="dialog" aria-modal="true" aria-labelledby="item-details-title">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h2 id="item-details-title" class="h5 mb-0">Item Details</h2>
+          <button type="button" class="btn-close" aria-label="Close" @click="closeItemDetails"></button>
+        </div>
+        <div class="card-body">
+          <div class="row g-4 align-items-center">
+            <div class="col-12 col-md-4 text-center">
+              <div v-if="detailQrCode" class="qr-code-frame">
+                <img :src="detailQrCode" :alt="'QR code for property ' + (detailItem.property_number || '')" />
+              </div>
+              <div v-else-if="qrCodeError" class="text-danger small">{{ qrCodeError }}</div>
+              <div v-else class="text-secondary">Generating QR code...</div>
+              <div class="fw-semibold mt-2">{{ detailItem.property_number || 'No property number' }}</div>
+              <small class="text-secondary d-block">Scan to download this item document</small>
+              <small v-if="isLocalDevelopmentHost" class="text-warning d-block mt-2">
+                For phone scanning, open this app using your laptop's Wi-Fi address, not localhost.
+              </small>
+            </div>
+            <div class="col-12 col-md-8">
+              <dl class="row mb-0 item-detail-list">
+                <dt class="col-sm-5">Description</dt>
+                <dd class="col-sm-7">{{ detailItem.description || '-' }}</dd>
+                <dt class="col-sm-5">Serial Number</dt>
+                <dd class="col-sm-7">{{ detailItem.serial_number || '-' }}</dd>
+                <dt class="col-sm-5">Quantity</dt>
+                <dd class="col-sm-7">{{ detailItem.quantity ?? 0 }} {{ detailItem.unit || '' }}</dd>
+                <dt class="col-sm-5">Cost</dt>
+                <dd class="col-sm-7">₱{{ detailItem.cost || 0 }}</dd>
+                <dt class="col-sm-5">Acquisition Date</dt>
+                <dd class="col-sm-7">{{ detailItem.acquisition_date || '-' }}</dd>
+                <dt class="col-sm-5">Classification</dt>
+                <dd class="col-sm-7">{{ displayClassification(detailItem.classification) }}</dd>
+                <dt class="col-sm-5">Condition</dt>
+                <dd class="col-sm-7">
+                  <span class="badge" :class="getConditionClass(detailItem.condition)">
+                    {{ detailItem.condition || '-' }}
+                  </span>
+                </dd>
+                <dt class="col-sm-5">Status</dt>
+                <dd class="col-sm-7">
+                  <span class="badge" :class="getStatusClass(detailItem.status)">
+                    {{ detailItem.status || '-' }}
+                  </span>
+                </dd>
+                <dt class="col-sm-5">Accountable Employee</dt>
+                <dd class="col-sm-7">{{ detailItem.accountable_employee || '-' }}</dd>
+                <dt class="col-sm-5">Responsibility Center</dt>
+                <dd class="col-sm-7">{{ detailItem.responsibility_center || '-' }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary" @click="closeItemDetails">Close</button>
+          <button
+            type="button"
+            class="btn btn-outline-success"
+            :disabled="downloadingDocument || !detailQrCode"
+            @click="downloadItemDocument"
+          >
+            <i class="bi bi-download me-1"></i>
+            {{ downloadingDocument ? 'Preparing document...' : 'Download DOCX' }}
+          </button>
+          <button type="button" class="btn btn-success" @click="editItemFromDetails">
+            <i class="bi bi-pencil me-1"></i>
+            Edit Item
+          </button>
+        </div>
+      </section>
     </div>
 
     <div v-if="editingItem" class="edit-overlay" @click.self="cancelEdit">
@@ -350,6 +424,16 @@
 
 <script>
 import InventoryMovementModal from '@/components/InventoryMovementModal.vue'
+import {
+  AlignmentType,
+  Document as DocxDocument,
+  HeadingLevel,
+  ImageRun,
+  Packer,
+  Paragraph,
+  TextRun,
+} from 'docx'
+import QRCode from 'qrcode'
 
 export default {
   name: 'Items',
@@ -359,6 +443,7 @@ export default {
   data() {
     return {
       items: [],
+      itemsLoaded: false,
       personnel: [],
       offices: [],
       loading: false,
@@ -370,6 +455,10 @@ export default {
       selectedStatus: '',
       showAddForm: false,
       showMovementModal: false,
+      detailItem: null,
+      detailQrCode: '',
+      qrCodeError: '',
+      downloadingDocument: false,
       editingItem: null,
       deletingItemId: null,
       newItem: {
@@ -427,10 +516,18 @@ export default {
     officeOptions() {
       return this.offices.filter((office) => office && office.office_name)
     },
+    isLocalDevelopmentHost() {
+      return ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    },
   },
   mounted() {
     this.getItems()
     this.getPersonnelAndOffices()
+  },
+  watch: {
+    '$route.query.item'(itemId) {
+      this.openItemFromRoute(itemId)
+    },
   },
   methods: {
     async fetchJson(url) {
@@ -445,8 +542,8 @@ export default {
 
     async getPersonnelAndOffices() {
       const results = await Promise.allSettled([
-        this.fetchJson('http://localhost:5000/api/personnel'),
-        this.fetchJson('http://localhost:5000/api/offices'),
+        this.fetchJson('/api/personnel'),
+        this.fetchJson('/api/offices'),
       ])
 
       if (results[0].status === 'fulfilled') {
@@ -484,14 +581,16 @@ export default {
       this.loading = true
 
       try {
-        const response = await fetch('http://localhost:5000/api/items')
+        const response = await fetch('/api/items')
 
         if (!response.ok) {
           throw new Error('Failed to get items')
         }
 
         this.items = await response.json()
+        this.itemsLoaded = true
         this.error = ''
+        this.openItemFromRoute(this.$route.query.item)
       } catch (error) {
         console.log(error)
         this.error = error.message
@@ -546,7 +645,7 @@ export default {
       this.saving = true
 
       try {
-        const response = await fetch('http://localhost:5000/api/items', {
+        const response = await fetch('/api/items', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -600,6 +699,202 @@ export default {
       }
     },
 
+    async showItemDetails(item) {
+      this.detailItem = item
+      this.detailQrCode = ''
+      this.qrCodeError = ''
+
+      try {
+        const response = await fetch(
+          `/api/items/${encodeURIComponent(item.id)}/document-link`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ origin: window.location.origin }),
+          },
+        )
+
+        if (!response.headers.get('content-type')?.includes('application/json')) {
+          throw new Error(
+            'The backend needs to be restarted to enable QR document downloads. Restart it, then reload the app.',
+          )
+        }
+
+        const linkData = await response.json()
+
+        if (!response.ok) {
+          throw new Error(linkData.error || 'Failed to create the item document link.')
+        }
+
+        if (typeof linkData.downloadUrl !== 'string' || !linkData.downloadUrl.startsWith('/api/item-documents/')) {
+          throw new Error('The backend returned an invalid document download link.')
+        }
+
+        const documentUrl = new URL(linkData.downloadUrl, window.location.origin).toString()
+
+        const qrCode = await QRCode.toDataURL(
+          documentUrl,
+          { errorCorrectionLevel: 'L', margin: 2, width: 400 },
+        )
+
+        if (this.detailItem?.id === item.id) {
+          this.detailQrCode = qrCode
+        }
+      } catch (error) {
+        console.error('Failed to generate item QR code:', error)
+        if (this.detailItem?.id === item.id) {
+          this.qrCodeError = error.message || 'Unable to generate the QR code.'
+        }
+      }
+    },
+
+    async downloadItemDocument() {
+      const item = this.detailItem
+
+      if (!item || !this.detailQrCode) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'The item QR code is not ready yet.',
+          }),
+        )
+        return
+      }
+
+      this.downloadingDocument = true
+
+      try {
+        const base64QrCode = this.detailQrCode.split(',')[1]
+
+        if (!base64QrCode) {
+          throw new Error('The item QR code is unavailable.')
+        }
+
+        const qrImage = Uint8Array.from(atob(base64QrCode), (character) =>
+          character.charCodeAt(0),
+        )
+        const itemDetails = [
+          ['Property Number', item.property_number || '-'],
+          ['Description', item.description || '-'],
+          ['Serial Number', item.serial_number || '-'],
+          ['Quantity', `${item.quantity ?? 0} ${item.unit || ''}`.trim()],
+          [
+            'Unit Cost',
+            `PHP ${Number(item.cost || 0).toLocaleString('en-PH', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`,
+          ],
+          ['Date Acquired', item.acquisition_date || '-'],
+          ['Classification', this.displayClassification(item.classification)],
+          ['Condition', item.condition || '-'],
+          ['Status', item.status || '-'],
+          ['Accountable Employee', item.accountable_employee || '-'],
+          ['Responsibility Center / Office', item.responsibility_center || '-'],
+        ]
+        const documentFile = new DocxDocument({
+          sections: [
+            {
+              children: [
+                new Paragraph({
+                  text: 'Property Item Details',
+                  heading: HeadingLevel.TITLE,
+                }),
+                ...itemDetails.map(
+                  ([label, value]) =>
+                    new Paragraph({
+                      children: [
+                        new TextRun({ text: `${label}: `, bold: true }),
+                        new TextRun(value),
+                      ],
+                    }),
+                ),
+                new Paragraph({
+                  children: [
+                    new ImageRun({
+                      data: qrImage,
+                      transformation: { width: 220, height: 220 },
+                    }),
+                  ],
+                  alignment: AlignmentType.CENTER,
+                }),
+              ],
+            },
+          ],
+        })
+        const blob = await Packer.toBlob(documentFile)
+        const downloadUrl = URL.createObjectURL(blob)
+        const downloadLink = document.createElement('a')
+        const safePropertyNumber = (item.property_number || 'item')
+          .trim()
+          .replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
+          .replace(/\s+/g, '-')
+          .replace(/[. ]+$/g, '')
+
+        downloadLink.href = downloadUrl
+        downloadLink.download = `property-${safePropertyNumber || 'item'}.docx`
+        document.body.appendChild(downloadLink)
+        downloadLink.click()
+        downloadLink.remove()
+        window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000)
+
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Item document downloaded successfully.',
+          }),
+        )
+      } catch (error) {
+        console.error('Failed to create item document:', error)
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Failed to create the item document.',
+          }),
+        )
+      } finally {
+        this.downloadingDocument = false
+      }
+    },
+
+    openItemFromRoute(itemId) {
+      if (!itemId || !this.itemsLoaded) {
+        return
+      }
+
+      const item = this.items.find((currentItem) => String(currentItem.id) === String(itemId))
+
+      if (!item) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'The item linked by this QR code could not be found.',
+          }),
+        )
+        return
+      }
+
+      this.showItemDetails(item)
+    },
+
+    closeItemDetails() {
+      this.detailItem = null
+      this.detailQrCode = ''
+      this.qrCodeError = ''
+
+      if (this.$route.query.item) {
+        const query = { ...this.$route.query }
+        delete query.item
+        this.$router.replace({ name: 'Items', query })
+      }
+    },
+
+    editItemFromDetails() {
+      if (!this.detailItem) {
+        return
+      }
+
+      const item = this.detailItem
+      this.closeItemDetails()
+      this.startEdit(item)
+    },
+
     async updateItem() {
       if (!this.editingItem) {
         return
@@ -609,7 +904,7 @@ export default {
 
       try {
         const response = await fetch(
-          'http://localhost:5000/api/items/' + this.editingItem.id,
+          '/api/items/' + this.editingItem.id,
           {
             method: 'PUT',
             headers: {
@@ -629,6 +924,10 @@ export default {
 
         if (index !== -1) {
           this.items[index] = data
+        }
+
+        if (this.detailItem && this.detailItem.id === data.id) {
+          this.detailItem = data
         }
 
         this.editingItem = null
@@ -665,7 +964,7 @@ export default {
       this.deletingItemId = item.id
 
       try {
-        const response = await fetch('http://localhost:5000/api/items/' + item.id, {
+        const response = await fetch('/api/items/' + item.id, {
           method: 'DELETE',
         })
 
@@ -838,6 +1137,43 @@ h1 {
   inset: 0;
   background-color: rgba(0, 0, 0, 0.35);
   z-index: 1050;
+}
+
+.detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+.detail-dialog {
+  width: min(760px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.qr-code-frame {
+  display: inline-flex;
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  background: white;
+}
+
+.qr-code-frame img {
+  display: block;
+  width: 180px;
+  height: 180px;
+}
+
+.item-detail-list dt,
+.item-detail-list dd {
+  margin-bottom: 0.75rem;
 }
 
 .edit-sidebar {
