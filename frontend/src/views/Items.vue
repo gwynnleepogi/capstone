@@ -255,7 +255,7 @@
               <div v-else-if="qrCodeError" class="text-danger small">{{ qrCodeError }}</div>
               <div v-else class="text-secondary">Generating QR code...</div>
               <div class="fw-semibold mt-2">{{ detailItem.property_number || 'No property number' }}</div>
-              <small class="text-secondary d-block">Scan to download this item document</small>
+              <small class="text-secondary d-block">Scan to view item details</small>
               <small v-if="isLocalDevelopmentHost" class="text-warning d-block mt-2">
                 For phone scanning, open this app using your laptop's Wi-Fi address, not localhost.
               </small>
@@ -710,7 +710,7 @@ export default {
 
         if (!response.headers.get('content-type')?.includes('application/json')) {
           throw new Error(
-            'The backend needs to be restarted to enable QR document downloads. Restart it, then reload the app.',
+            'The backend needs to be restarted to enable item QR links. Restart it, then reload the app.',
           )
         }
 
@@ -720,14 +720,20 @@ export default {
           throw new Error(linkData.error || 'Failed to create the item document link.')
         }
 
-        if (typeof linkData.downloadUrl !== 'string' || !linkData.downloadUrl.startsWith('/api/item-documents/')) {
-          throw new Error('The backend returned an invalid document download link.')
+        if (typeof linkData.downloadUrl === 'string' && !linkData.viewUrl) {
+          throw new Error(
+            'Restart the backend to enable QR codes that open item details, then reload the app.',
+          )
         }
 
-        const documentUrl = new URL(linkData.downloadUrl, window.location.origin).toString()
+        if (typeof linkData.viewUrl !== 'string' || !linkData.viewUrl.startsWith('/public-item/')) {
+          throw new Error('The backend returned an invalid item details link.')
+        }
+
+        const itemDetailsUrl = new URL(linkData.viewUrl, window.location.origin).toString()
 
         const qrCode = await QRCode.toDataURL(
-          documentUrl,
+          itemDetailsUrl,
           { errorCorrectionLevel: 'L', margin: 2, width: 400 },
         )
 
@@ -1049,7 +1055,7 @@ export default {
       }
 
       if (status === 'Issued') {
-        return 'bg-primary'
+        return 'bg-warning text-dark'
       }
 
       if (status === 'Returned') {
@@ -1145,7 +1151,7 @@ h1 {
 }
 
 .detail-dialog {
-  width: min(760px, 100%);
+  width: min(680px, 100%);
   max-height: 100%;
   overflow-y: auto;
 }
@@ -1221,18 +1227,6 @@ h1 {
 @media (max-width: 576px) {
   .edit-sidebar {
     width: 100%;
-  }
-
-  .table {
-    min-width: 0 !important;
-    table-layout: fixed;
-  }
-
-  .table th,
-  .table td {
-    padding: 9px 5px;
-    white-space: normal;
-    overflow-wrap: anywhere;
   }
 
   .edit-sidebar-footer {

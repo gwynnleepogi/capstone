@@ -729,7 +729,7 @@ export default {
 
       try {
         const response = await fetch(
-          `http://localhost:5000/api/item-requests/${request.id}/status`,
+          `/api/item-requests/${request.id}/status`,
           {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -839,7 +839,7 @@ export default {
     async getRequests() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/item-requests'
+          '/api/item-requests'
         )
 
         const data = await response.json()
@@ -863,7 +863,7 @@ export default {
     async getItems() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/item-requests/available-items'
+          '/api/item-requests/available-items'
         )
 
         const data = await response.json()
@@ -899,7 +899,7 @@ export default {
     async getPersonnel() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/personnel'
+          '/api/personnel'
         )
 
         const data = await response.json()
@@ -923,7 +923,7 @@ export default {
     async getOffices() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/offices'
+          '/api/offices'
         )
 
         const data = await response.json()
@@ -1005,13 +1005,13 @@ export default {
 
       try {
         let url =
-          'http://localhost:5000/api/item-requests'
+          '/api/item-requests'
 
         let method = 'POST'
 
         if (this.editing) {
           url =
-            `http://localhost:5000/api/item-requests/${this.form.id}`
+            `/api/item-requests/${this.form.id}`
 
           method = 'PUT'
         }
@@ -1091,7 +1091,7 @@ export default {
 
       try {
         const response = await fetch(
-          `http://localhost:5000/api/item-requests/${id}`,
+          `/api/item-requests/${id}`,
           {
             method: 'DELETE'
           }

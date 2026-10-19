@@ -472,7 +472,7 @@ export default {
     async getSuppliers() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/suppliers'
+          '/api/suppliers'
         )
 
         const data = await response.json()
@@ -595,12 +595,12 @@ export default {
       this.saving = true
 
       try {
-        let url = 'http://localhost:5000/api/suppliers'
+        let url = '/api/suppliers'
         let method = 'POST'
 
         if (this.editing) {
           url =
-            `http://localhost:5000/api/suppliers/${this.form.id}`
+            `/api/suppliers/${this.form.id}`
 
           method = 'PUT'
         }
@@ -666,7 +666,7 @@ export default {
 
       try {
         const response = await fetch(
-          `http://localhost:5000/api/suppliers/${id}`,
+          `/api/suppliers/${id}`,
           {
             method: 'DELETE'
           }

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import Login from '@/views/Login.vue'
+import PublicItemDetails from '@/views/PublicItemDetails.vue'
 import Dashboard from '@/views/Dashboard.vue'
 import Items from '@/views/Items.vue'
 import Offices from '@/views/Offices.vue'
@@ -21,6 +22,12 @@ const router = createRouter({
       path: '/login',
       name: 'Login',
       component: Login
+    },
+    {
+      path: '/public-item/:id',
+      name: 'PublicItemDetails',
+      component: PublicItemDetails,
+      meta: { public: true }
     },
     {
     path: '/',
@@ -92,6 +99,10 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
+  if (to.meta.public) {
+    return true
+  }
+
   const token = localStorage.getItem('accessToken')
   const user = JSON.parse(localStorage.getItem('user') || 'null')
 

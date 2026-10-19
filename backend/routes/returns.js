@@ -378,12 +378,15 @@ router.delete('/:id', async (req, res) => {
       }
     }
 
-    const { error } = await supabase
+    const { data: deletedRecord, error: deleteError } = await supabase
       .from('item_returns')
       .delete()
       .eq('id', id)
+      .select('id')
+      .maybeSingle()
 
-    if (error) {
+    if (deleteError || !deletedRecord) {
+      const errorMessage = deleteError?.message || 'Return record was not deleted'
       if (itemBeforeDelete) {
         const { error: rollbackError } = await supabase
           .from('items')
@@ -397,13 +400,13 @@ router.delete('/:id', async (req, res) => {
 
         if (rollbackError) {
           return res.status(500).json({
-            error: `Return could not be deleted: ${error.message}`,
+            error: `Return could not be deleted: ${errorMessage}`,
             details: `Inventory rollback failed: ${rollbackError.message}`
           })
         }
       }
 
-      return res.status(500).json({ error: error.message })
+      return res.status(deleteError ? 500 : 404).json({ error: errorMessage })
     }
 
     await createAuditLog(

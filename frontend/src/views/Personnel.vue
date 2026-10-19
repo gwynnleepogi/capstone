@@ -730,7 +730,7 @@ export default {
 
       try {
         const response = await apiRequest(
-          `http://localhost:5000/api/personnel/${personId}`,
+          `/api/personnel/${personId}`,
           {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -774,7 +774,7 @@ export default {
 
       try {
         const response = await apiRequest(
-          'http://localhost:5000/api/personnel'
+          '/api/personnel'
         )
 
         const data = await response.json()
@@ -805,7 +805,7 @@ export default {
     async getOffices() {
       try {
         const response = await apiRequest(
-          'http://localhost:5000/api/offices'
+          '/api/offices'
         )
 
         const data = await response.json()
@@ -840,7 +840,7 @@ export default {
         )
 
         const response = await apiRequest(
-          'http://localhost:5000/api/items/assigned/' +
+          '/api/items/assigned/' +
           employeeName
         )
 
@@ -953,7 +953,7 @@ export default {
 
       try {
         const response = await apiRequest(
-          'http://localhost:5000/api/personnel/' + id,
+          '/api/personnel/' + id,
           {
             method: 'DELETE'
           }
@@ -1068,18 +1068,18 @@ h1 {
 }
 
 .role-admin {
-  background-color: #00ff1e;
-  color: rgb(12, 79, 23);
+  background-color: #e7efe5;
+  color: #2f5d3a;
 }
 
 .role-personnel {
-  background-color: #cff95c;
-  color: rgb(28, 100, 40);
+  background-color: #fbf4d7;
+  color: #5c4a0c;
 }
 
 .role-teaching {
-  background-color: #aac8f0;
-  color: #2a3f4e;
+  background-color: #e8f0e8;
+  color: #385b3d;
 }
 
 .role-default {
@@ -1093,13 +1093,13 @@ h1 {
 }
 
 .status-issued {
-  background-color: #cfe2ff;
-  color: #084298;
+  background-color: #fbf4d7;
+  color: #5c4a0c;
 }
 
 .status-returned {
-  background-color: #cff4fc;
-  color: #055160;
+  background-color: #e8f0e8;
+  color: #385b3d;
 }
 
 .status-lost {
@@ -1209,18 +1209,6 @@ h1 {
 }
 
 @media (max-width: 576px) {
-  .table {
-    min-width: 0 !important;
-    table-layout: fixed;
-  }
-
-  .table th,
-  .table td {
-    padding: 9px 5px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
   .pagination {
     flex-wrap: wrap;
   }

@@ -11,28 +11,35 @@
 
       <div class="filter-section">
         <div class="filter-group">
-          <label>Report Period</label>
-          <select v-model="period" @change="applyPeriod">
-            <option value="all">All Time</option>
+          <label for="movement-report-period">Report Period <span aria-hidden="true">*</span></label>
+          <select id="movement-report-period" v-model="period" @change="applyPeriod">
+            <option value="" disabled>Select a report period</option>
             <option value="day">Daily</option>
             <option value="month">Monthly</option>
+            <option value="quarter">Quarterly</option>
             <option value="semi">Semi-Annual</option>
-            <option value="year">Annual / Yearly</option>
+            <option value="year">Annual</option>
             <option value="custom">Custom Date Range</option>
           </select>
         </div>
 
         <div class="filter-group">
-          <label>From</label>
-          <input type="date" v-model="dateFrom" :disabled="period !== 'custom'">
+          <label for="movement-date-from">{{ dateFromLabel }}</label>
+          <input
+            id="movement-date-from"
+            type="date"
+            v-model="dateFrom"
+            :disabled="!period"
+            @change="updatePeriodFromDate"
+          >
         </div>
 
         <div class="filter-group">
-          <label>To</label>
-          <input type="date" v-model="dateTo" :disabled="period !== 'custom'">
+          <label for="movement-date-to">{{ dateToLabel }}</label>
+          <input id="movement-date-to" type="date" v-model="dateTo" :disabled="period !== 'custom'">
         </div>
         <p v-if="invalidDateRange" class="date-range-error">
-          The start date must be on or before the end date.
+          {{ dateRangeError }}
         </p>
 
         <div class="filter-group">
@@ -54,7 +61,7 @@
         </div>
       </div>
 
-      <div class="summary-section">
+      <div v-if="period" class="summary-section">
         <div class="summary-card">
           <span>Total Movements</span>
           <strong>{{ filteredMovements.length }}</strong>
@@ -124,7 +131,7 @@
         <div class="footer-actions">
           <button
             class="print-button"
-            :disabled="loading || Boolean(errorMessage) || !filteredMovements.length || invalidDateRange"
+            :disabled="loading || Boolean(errorMessage) || !filteredMovements.length || !period || invalidDateRange"
             @click="printReport"
           >
             <i class="bi bi-printer"></i>
@@ -153,7 +160,7 @@ export default {
       movements: [],
       loading: false,
       errorMessage: '',
-      period: 'all',
+      period: '',
       dateFrom: '',
       dateTo: '',
       movementType: 'all',
@@ -163,10 +170,55 @@ export default {
 
   computed: {
     invalidDateRange() {
-      return Boolean(this.dateFrom && this.dateTo && this.dateFrom > this.dateTo);
+      if (!this.period) {
+        return false;
+      }
+
+      if (this.period === 'custom') {
+        return !this.dateFrom || !this.dateTo || this.dateFrom > this.dateTo;
+      }
+
+      return false;
+    },
+
+    dateRangeError() {
+      if (!this.dateFrom || !this.dateTo) {
+        return 'Choose both a start date and an end date for the custom report.';
+      }
+
+      return 'The start date must be on or before the end date.';
+    },
+
+    periodLabel() {
+      const labels = {
+        day: 'Daily',
+        month: 'Monthly',
+        quarter: 'Quarterly',
+        semi: 'Semi-Annual',
+        year: 'Annual',
+        custom: 'Custom Date Range'
+      };
+
+      return labels[this.period] || '';
+    },
+
+    dateFromLabel() {
+      if (this.period === 'custom') {
+        return 'From';
+      }
+
+      return this.period === 'day' ? 'Select Day' : 'Select Date in Period';
+    },
+
+    dateToLabel() {
+      return this.period === 'custom' ? 'To' : 'Through';
     },
 
     filteredMovements() {
+      if (!this.period || this.invalidDateRange) {
+        return [];
+      }
+
       let result = this.movements;
 
       if (this.dateFrom) {
@@ -233,15 +285,45 @@ export default {
   },
 
   methods: {
+    updatePeriodFromDate() {
+      if (!this.dateFrom || this.period === 'custom') {
+        return;
+      }
+
+      const selectedDate = new Date(this.dateFrom + 'T00:00:00');
+
+      if (Number.isNaN(selectedDate.getTime())) {
+        return;
+      }
+
+      const year = selectedDate.getFullYear();
+      const month = selectedDate.getMonth();
+
+      if (this.period === 'day') {
+        this.dateTo = this.dateFrom;
+      } else if (this.period === 'month') {
+        this.dateFrom = this.toDateString(new Date(year, month, 1));
+        this.dateTo = this.toDateString(new Date(year, month + 1, 0));
+      } else if (this.period === 'quarter') {
+        const quarterStartMonth = Math.floor(month / 3) * 3;
+        this.dateFrom = this.toDateString(new Date(year, quarterStartMonth, 1));
+        this.dateTo = this.toDateString(new Date(year, quarterStartMonth + 3, 0));
+      } else if (this.period === 'semi') {
+        const halfStartMonth = month < 6 ? 0 : 6;
+        this.dateFrom = this.toDateString(new Date(year, halfStartMonth, 1));
+        this.dateTo = this.toDateString(new Date(year, halfStartMonth + 6, 0));
+      } else if (this.period === 'year') {
+        this.dateFrom = this.toDateString(new Date(year, 0, 1));
+        this.dateTo = this.toDateString(new Date(year, 12, 0));
+      }
+    },
+
     applyPeriod() {
       const today = new Date();
       const year = today.getFullYear();
       const month = today.getMonth();
 
-      if (this.period === 'all') {
-        this.dateFrom = '';
-        this.dateTo = '';
-      } else if (this.period === 'day') {
+      if (this.period === 'day') {
         const date = this.toDateString(today);
         this.dateFrom = date;
         this.dateTo = date;
@@ -251,6 +333,14 @@ export default {
         );
         this.dateTo = this.toDateString(
           new Date(year, month + 1, 0)
+        );
+      } else if (this.period === 'quarter') {
+        const quarterStartMonth = Math.floor(month / 3) * 3;
+        this.dateFrom = this.toDateString(
+          new Date(year, quarterStartMonth, 1)
+        );
+        this.dateTo = this.toDateString(
+          new Date(year, quarterStartMonth + 3, 0)
         );
       } else if (this.period === 'semi') {
         if (month < 6) {
@@ -314,9 +404,7 @@ export default {
         return;
       }
 
-      const range = this.dateFrom || this.dateTo
-        ? `${this.dateFrom ? this.formatDate(this.dateFrom) : 'Beginning'} – ${this.dateTo ? this.formatDate(this.dateTo) : 'Present'}`
-        : 'All time';
+      const range = `${this.periodLabel}: ${this.formatDate(this.dateFrom)} – ${this.formatDate(this.dateTo)}`;
       const rows = this.filteredMovements.map(item => `
         <tr>
           <td>${this.escapeHtml(this.formatDate(item.date))}</td>
@@ -392,9 +480,9 @@ export default {
         }
 
         const endpoints = [
-          { url: 'http://localhost:5000/api/items', type: 'items' },
-          { url: 'http://localhost:5000/api/receipts', type: 'receipts' },
-          { url: 'http://localhost:5000/api/returns', type: 'returns' }
+          { url: '/api/items', type: 'items' },
+          { url: '/api/receipts', type: 'receipts' },
+          { url: '/api/returns', type: 'returns' }
         ];
 
         const results = await Promise.all(
@@ -517,18 +605,20 @@ export default {
   justify-content: center;
   align-items: center;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(25, 42, 29, 0.55);
 }
 
 .modal-container {
   width: 100%;
-  max-width: 1250px;
+  max-width: 680px;
   max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
   background: #ffffff;
-  color: #1f2937;
-  border-radius: 12px;
-  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.25);
+  color: #26332a;
+  border: 1px solid #e4e2d8;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(25, 42, 29, 0.16);
 }
 
 .modal-header {
@@ -537,24 +627,26 @@ export default {
   align-items: flex-start;
   gap: 20px;
   padding: 24px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e4e2d8;
+  background: #f7f5e8;
 }
 
 .modal-header h2 {
   margin: 0 0 8px;
+  color: #2f5d3a;
   font-size: 22px;
 }
 
 .modal-header p {
   margin: 0;
-  color: #6b7280;
+  color: #717a72;
   font-size: 14px;
 }
 
 .close-button {
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: #717a72;
   font-size: 30px;
   cursor: pointer;
 }
@@ -589,10 +681,10 @@ export default {
   width: 100%;
   min-width: 0;
   padding: 10px;
-  border: 1px solid #d1d5db;
+  border: 1px solid #dfe3d9;
   border-radius: 6px;
   background: #ffffff;
-  color: #1f2937;
+  color: #26332a;
   font-size: 13px;
 }
 
@@ -612,13 +704,13 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding: 18px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e4e2d8;
   border-radius: 8px;
-  background: #f9fafb;
+  background: #fffdf6;
 }
 
 .summary-card span {
-  color: #6b7280;
+  color: #717a72;
   font-size: 13px;
 }
 
@@ -627,7 +719,7 @@ export default {
 }
 
 .in-count {
-  color: #15803d;
+  color: #2f5d3a;
 }
 
 .out-count {
@@ -649,12 +741,13 @@ table {
 th,
 td {
   padding: 13px 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e9e7de;
   white-space: nowrap;
 }
 
 th {
-  background: #f3f4f6;
+  background: #2f5d3a;
+  color: #ffffff;
   font-weight: 600;
 }
 
@@ -669,8 +762,8 @@ th {
 }
 
 .badge-in {
-  background: #dcfce7;
-  color: #166534;
+  background: #e7efe5;
+  color: #2f5d3a;
 }
 
 .badge-out {
@@ -680,7 +773,7 @@ th {
 
 .empty-message {
   padding: 30px;
-  color: #6b7280;
+  color: #717a72;
   text-align: center;
 }
 
@@ -699,7 +792,7 @@ th {
   padding: 9px 16px;
   border: none;
   border-radius: 6px;
-  background: #1f2937;
+  background: #2f5d3a;
   color: white;
   cursor: pointer;
 }
@@ -710,8 +803,9 @@ th {
   align-items: center;
   gap: 16px;
   padding: 18px 24px;
-  border-top: 1px solid #e5e7eb;
-  color: #6b7280;
+  border-top: 1px solid #e4e2d8;
+  background: #fffdf6;
+  color: #717a72;
   font-size: 13px;
 }
 
@@ -725,13 +819,13 @@ th {
   padding: 10px 20px;
   border: none;
   border-radius: 6px;
-  background: #1f2937;
+  background: #2f5d3a;
   color: white;
   cursor: pointer;
 }
 
 .print-button {
-  background: #166534;
+  background: #2f5d3a;
   color: white;
 }
 
@@ -745,10 +839,20 @@ th {
 }
 
 .close-footer-button:hover {
-  background: #374151;
+  background: #244a2e;
 }
 
 @media (max-width: 800px) {
+  .modal-overlay {
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .modal-container {
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+
   .filter-section {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -761,6 +865,11 @@ th {
 @media (max-width: 500px) {
   .modal-overlay {
     padding: 8px;
+  }
+
+  .modal-container {
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
   }
 
   .modal-header,
@@ -797,6 +906,14 @@ th {
   .modal-footer,
   .footer-actions {
     flex-wrap: wrap;
+  }
+
+  .footer-actions {
+    width: 100%;
+  }
+
+  .footer-actions button {
+    flex: 1 1 145px;
   }
 }
 </style>

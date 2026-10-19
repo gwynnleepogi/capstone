@@ -463,7 +463,7 @@ export default {
         const token = localStorage.getItem('accessToken')
 
         const response = await fetch(
-          'http://localhost:5000/api/audit-logs',
+          '/api/audit-logs',
           {
             headers: {
               Authorization: `Bearer ${token}`
@@ -501,7 +501,7 @@ export default {
         const token = localStorage.getItem('accessToken')
 
         const response = await fetch(
-          `http://localhost:5000/api/audit-logs/${id}`,
+          `/api/audit-logs/${id}`,
           {
             method: 'DELETE',
             headers: {

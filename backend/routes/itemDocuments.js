@@ -41,6 +41,49 @@ function safeFileName(propertyNumber) {
   return `property-${safePropertyNumber || 'item'}.docx`
 }
 
+router.get('/:itemId/:token/details', async (req, res) => {
+  let origin
+
+  try {
+    origin = verifyItemDocumentToken(req.params.itemId, req.params.token)
+  } catch (error) {
+    if (error.code === 'QR_DOCUMENT_SECRET_MISSING') {
+      console.error('Public item details are unavailable: QR_DOCUMENT_SECRET is not configured')
+      return res.status(503).json({ error: 'Item details are temporarily unavailable.' })
+    }
+
+    console.error('Failed to validate public item details link:', error)
+    return res.status(500).json({ error: 'Unable to validate the item link.' })
+  }
+
+  if (!origin) {
+    return res.status(404).json({ error: 'Item details not found.' })
+  }
+
+  try {
+    const { data: item, error } = await supabase
+      .from('items')
+      .select('id, property_number, description, serial_number, quantity, cost, acquisition_date, classification, condition, status, accountable_employee, responsibility_center')
+      .eq('id', req.params.itemId)
+      .maybeSingle()
+
+    if (error) {
+      console.error('Failed to load public item details:', error)
+      return res.status(500).json({ error: 'Unable to load item details.' })
+    }
+
+    if (!item) {
+      return res.status(404).json({ error: 'Item details not found.' })
+    }
+
+    res.set('Cache-Control', 'private, no-store')
+    return res.json(item)
+  } catch (error) {
+    console.error('Failed to load public item details:', error)
+    return res.status(500).json({ error: 'Unable to load item details.' })
+  }
+})
+
 router.get('/:itemId/:token', async (req, res) => {
   let origin
 
@@ -76,11 +119,11 @@ router.get('/:itemId/:token', async (req, res) => {
       return res.status(404).send('Document not found.')
     }
 
-    const downloadUrl = new URL(
-      `/api/item-documents/${encodeURIComponent(req.params.itemId)}/${encodeURIComponent(req.params.token)}`,
+    const itemDetailsUrl = new URL(
+      `/public-item/${encodeURIComponent(req.params.itemId)}?token=${encodeURIComponent(req.params.token)}`,
       origin
     ).toString()
-    const qrImage = await QRCode.toBuffer(downloadUrl, {
+    const qrImage = await QRCode.toBuffer(itemDetailsUrl, {
       errorCorrectionLevel: 'M',
       margin: 2,
       width: 400,

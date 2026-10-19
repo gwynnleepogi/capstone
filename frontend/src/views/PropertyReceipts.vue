@@ -15,11 +15,11 @@
       </button>
     </div>
 
-    <div class="card shadow-sm">
+    <div class="card">
       <div class="card-body">
         <div class="table-responsive">
           <table class="table table-hover align-middle">
-            <thead class="table-dark">
+            <thead class="receipt-table-header">
               <tr>
                 <th>Receipt Number</th>
                 <th>Type</th>
@@ -78,7 +78,7 @@
 
                 <td>
                   <button
-                    class="btn btn-sm btn-outline-primary"
+                    class="btn btn-sm btn-outline-success"
                     @click="viewReceiptDetails(receipt)"
                     title="View receipt details"
                   >
@@ -681,7 +681,7 @@ export default {
     async getReceipts() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/receipts'
+          '/api/receipts'
         )
 
         const data = await response.json()
@@ -704,7 +704,7 @@ export default {
     async getItems() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/items'
+          '/api/items'
         )
 
         const data = await response.json()
@@ -726,7 +726,7 @@ export default {
     async getPersonnel() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/personnel'
+          '/api/personnel'
         )
 
         const data = await response.json()
@@ -748,7 +748,7 @@ export default {
     async getItemRequests() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/item-requests'
+          '/api/item-requests'
         )
 
         const data = await response.json()
@@ -824,7 +824,7 @@ this.$nextTick(() => {
 
       try {
         let url =
-          'http://localhost:5000/api/receipts'
+          '/api/receipts'
 
         let method = 'POST'
 
@@ -844,7 +844,7 @@ this.$nextTick(() => {
 
         if (this.editing) {
           url =
-            `http://localhost:5000/api/receipts/${this.form.id}`
+            `/api/receipts/${this.form.id}`
 
           method = 'PUT'
         } else {
@@ -905,7 +905,7 @@ this.$nextTick(() => {
 
       try {
         const response = await fetch(
-          `http://localhost:5000/api/receipts/${id}`,
+          `/api/receipts/${id}`,
           {
             method: 'DELETE'
           }
@@ -1713,19 +1713,19 @@ this.$nextTick(() => {
   vertical-align: middle;
 }
 
+.receipt-table-header th {
+  background-color: #2f5d3a;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.card {
+  border-color: #e4e2d8;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
 @media (max-width: 576px) {
-  .table {
-    min-width: 0 !important;
-    table-layout: fixed;
-  }
-
-  .table th,
-  .table td {
-    padding: 9px 5px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
   .modal-dialog {
     max-width: calc(100% - 1rem);
     margin: 0.5rem auto;

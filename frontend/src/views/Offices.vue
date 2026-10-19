@@ -570,7 +570,7 @@ export default {
 
       try {
         const response = await fetch(
-          'http://localhost:5000/api/offices'
+          '/api/offices'
         )
 
         const data = await response.json()
@@ -719,7 +719,7 @@ export default {
 
       try {
         const response = await fetch(
-          'http://localhost:5000/api/offices',
+          '/api/offices',
           {
             method: 'POST',
             headers: {
@@ -769,7 +769,7 @@ export default {
 
       try {
         const response = await fetch(
-          'http://localhost:5000/api/offices/' +
+          '/api/offices/' +
           this.editingOffice.id,
           {
             method: 'PUT',
@@ -830,7 +830,7 @@ export default {
 
       try {
         const response = await fetch(
-          'http://localhost:5000/api/offices/' +
+          '/api/offices/' +
           office.id,
           {
             method: 'DELETE'
@@ -950,18 +950,6 @@ h1 {
 }
 
 @media (max-width: 576px) {
-  .table {
-    min-width: 0 !important;
-    table-layout: fixed;
-  }
-
-  .table th,
-  .table td {
-    padding: 9px 5px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
   .pagination {
     flex-wrap: wrap;
   }

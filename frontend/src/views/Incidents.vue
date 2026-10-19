@@ -629,7 +629,7 @@ export default {
     async getIncidents() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/incidents'
+          '/api/incidents'
         )
 
         const data = await response.json()
@@ -655,7 +655,7 @@ export default {
     async getItems() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/items'
+          '/api/items'
         )
 
         const data = await response.json()
@@ -681,7 +681,7 @@ export default {
     async getPersonnel() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/personnel'
+          '/api/personnel'
         )
 
         const data = await response.json()
@@ -763,13 +763,13 @@ export default {
 
       try {
         let url =
-          'http://localhost:5000/api/incidents'
+          '/api/incidents'
 
         let method = 'POST'
 
         if (this.editing) {
           url =
-            `http://localhost:5000/api/incidents/${this.form.id}`
+            `/api/incidents/${this.form.id}`
 
           method = 'PUT'
         }
@@ -857,7 +857,7 @@ export default {
 
       try {
         const response = await fetch(
-          `http://localhost:5000/api/incidents/${id}`,
+          `/api/incidents/${id}`,
           {
             method: 'DELETE'
           }
@@ -958,9 +958,9 @@ export default {
 
 .page-button:hover:not(:disabled),
 .page-button.active {
-  background: #198754;
-  border-color: #198754;
-  color: #ffffff;
+  background: var(--app-gold);
+  border-color: var(--app-gold);
+  color: var(--app-forest);
 }
 
 .page-button:disabled {
@@ -969,18 +969,6 @@ export default {
 }
 
 @media (max-width: 576px) {
-  .table {
-    min-width: 0 !important;
-    table-layout: fixed;
-  }
-
-  .table th,
-  .table td {
-    padding: 9px 5px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
   .modal-dialog {
     max-width: calc(100% - 1rem);
     margin: .5rem auto;

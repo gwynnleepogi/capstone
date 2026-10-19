@@ -495,8 +495,14 @@
             <button type="button" class="btn btn-outline-warning" @click="editSelectedReturn">
               <i class="bi bi-pencil me-1"></i>Edit
             </button>
-            <button type="button" class="btn btn-outline-danger" @click="deleteSelectedReturn">
-              <i class="bi bi-trash me-1"></i>Delete
+            <button
+              type="button"
+              class="btn btn-outline-danger"
+              :disabled="deletingReturnId === selectedReturn?.id"
+              @click="deleteSelectedReturn"
+            >
+              <i class="bi bi-trash me-1"></i>
+              {{ deletingReturnId === selectedReturn?.id ? 'Deleting...' : 'Delete' }}
             </button>
           </div>
         </div>
@@ -531,6 +537,7 @@ export default {
 
       editing: false,
       saving: false,
+      deletingReturnId: null,
 
       form: {
         id: null,
@@ -766,7 +773,7 @@ export default {
     async getReturns() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/returns'
+          '/api/returns'
         )
 
         const data = await response.json()
@@ -791,7 +798,7 @@ export default {
 
     async getReceipts() {
       try {
-        const response = await fetch('http://localhost:5000/api/receipts')
+        const response = await fetch('/api/receipts')
         const data = await response.json()
 
         if (!response.ok) {
@@ -810,7 +817,7 @@ export default {
     async getPersonnel() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/personnel'
+          '/api/personnel'
         )
 
         const data = await response.json()
@@ -826,7 +833,7 @@ export default {
     async getOffices() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/offices'
+          '/api/offices'
         )
 
         const data = await response.json()
@@ -902,11 +909,13 @@ export default {
       this.editReturn(itemReturn)
     },
 
-    deleteSelectedReturn() {
+    async deleteSelectedReturn() {
       if (!this.selectedReturn) return
       const id = this.selectedReturn.id
-      Modal.getInstance(document.getElementById('returnDetailsModal'))?.hide()
-      this.deleteReturn(id)
+      const deleted = await this.deleteReturn(id)
+      if (deleted) {
+        Modal.getInstance(document.getElementById('returnDetailsModal'))?.hide()
+      }
     },
 
     async saveReturn() {
@@ -914,13 +923,13 @@ export default {
 
       try {
         let url =
-          'http://localhost:5000/api/returns'
+          '/api/returns'
 
         let method = 'POST'
 
         if (this.editing) {
           url =
-            `http://localhost:5000/api/returns/${this.form.id}`
+            `/api/returns/${this.form.id}`
 
           method = 'PUT'
         }
@@ -984,23 +993,38 @@ export default {
     },
 
     async deleteReturn(id) {
+      if (this.deletingReturnId !== null) {
+        return false
+      }
+
       if (
         !confirm(
           'Are you sure you want to delete this return?'
         )
       ) {
-        return
+        return false
       }
+
+      this.deletingReturnId = id
 
       try {
         const response = await fetch(
-          `http://localhost:5000/api/returns/${id}`,
+          `/api/returns/${id}`,
           {
             method: 'DELETE'
           }
         )
 
-        const data = await response.json()
+        const responseText = await response.text()
+        let data = {}
+
+        if (responseText) {
+          try {
+            data = JSON.parse(responseText)
+          } catch {
+            throw new Error('The server returned an invalid response while deleting the return.')
+          }
+        }
 
         if (!response.ok) {
           throw new Error(
@@ -1016,6 +1040,7 @@ export default {
             detail: 'Return deleted successfully'
           })
         )
+        return true
       } catch (error) {
         console.log(error)
 
@@ -1024,6 +1049,9 @@ export default {
             detail: error.message
           })
         )
+        return false
+      } finally {
+        this.deletingReturnId = null
       }
     }
   }
@@ -1046,27 +1074,16 @@ export default {
 }
 
 .page-item.active .page-link {
-  background-color: #ffc107;
-  border-color: #ffc107;
-  color: #212529;
+  background-color: var(--app-gold);
+  border-color: var(--app-gold);
+  color: var(--app-forest);
 }
 
 @media (max-width: 576px) {
-  .table {
-    min-width: 0 !important;
-    table-layout: fixed;
-  }
-
-  .table th,
-  .table td {
-    padding: 9px 5px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
   .modal-dialog {
     max-width: calc(100% - 1rem);
     margin: .5rem auto;
   }
+
 }
 </style>

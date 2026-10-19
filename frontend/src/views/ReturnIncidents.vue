@@ -557,7 +557,7 @@ export default {
     async getReturns() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/returns'
+          '/api/returns'
         )
 
         const data = await response.json()
@@ -581,7 +581,7 @@ export default {
     async getItems() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/items'
+          '/api/items'
         )
 
         const data = await response.json()
@@ -597,7 +597,7 @@ export default {
     async getPersonnel() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/personnel'
+          '/api/personnel'
         )
 
         const data = await response.json()
@@ -613,7 +613,7 @@ export default {
     async getOffices() {
       try {
         const response = await fetch(
-          'http://localhost:5000/api/offices'
+          '/api/offices'
         )
 
         const data = await response.json()
@@ -670,11 +670,11 @@ export default {
       this.saving = true
 
       try {
-        let url = 'http://localhost:5000/api/returns'
+        let url = '/api/returns'
         let method = 'POST'
 
         if (this.editing) {
-          url = `http://localhost:5000/api/returns/${this.form.id}`
+          url = `/api/returns/${this.form.id}`
           method = 'PUT'
         }
 
@@ -734,7 +734,7 @@ export default {
 
       try {
         const response = await fetch(
-          `http://localhost:5000/api/returns/${id}`,
+          `/api/returns/${id}`,
           {
             method: 'DELETE'
           }
@@ -783,24 +783,12 @@ export default {
 }
 
 .page-item.active .page-link {
-  background-color: #ffc107;
-  border-color: #ffc107;
-  color: #212529;
+  background-color: var(--app-gold);
+  border-color: var(--app-gold);
+  color: var(--app-forest);
 }
 
 @media (max-width: 576px) {
-  .table {
-    min-width: 0 !important;
-    table-layout: fixed;
-  }
-
-  .table th,
-  .table td {
-    padding: 9px 5px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
   .modal-dialog {
     max-width: calc(100% - 1rem);
     margin: .5rem auto;

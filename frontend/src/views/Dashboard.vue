@@ -99,7 +99,7 @@
     </div>
 
     <!-- Analytics Charts -->
-    <div class="row g-4 mb-4">
+    <div class="row g-3 mb-4">
 
       <!-- Classification Doughnut Chart -->
       <div class="col-12 col-lg-6">
@@ -115,8 +115,25 @@
 
               <div
                 class="doughnut-chart classification-chart"
-                :style="{ background: classificationChartBackground }"
+                role="img"
+                aria-label="Inventory classification chart"
               >
+                <svg class="chart-ring" viewBox="0 0 100 100" aria-hidden="true">
+                  <circle class="chart-track" cx="50" cy="50" r="44" />
+                  <circle
+                    v-for="segment in classificationChartSegments"
+                    :key="segment.name"
+                    class="chart-ring-segment"
+                    :class="segment.className"
+                    cx="50"
+                    cy="50"
+                    r="44"
+                    :style="{
+                      strokeDasharray: `${segment.length} ${chartCircumference}`,
+                      strokeDashoffset: -segment.offset
+                    }"
+                  />
+                </svg>
                 <div class="chart-center">
                   <strong>{{ items.length }}</strong>
                   <span>Total Items</span>
@@ -190,8 +207,25 @@
 
               <div
                 class="doughnut-chart status-chart"
-                :style="{ background: statusChartBackground }"
+                role="img"
+                aria-label="Inventory status chart"
               >
+                <svg class="chart-ring" viewBox="0 0 100 100" aria-hidden="true">
+                  <circle class="chart-track" cx="50" cy="50" r="44" />
+                  <circle
+                    v-for="segment in statusChartSegments"
+                    :key="segment.name"
+                    class="chart-ring-segment"
+                    :class="segment.className"
+                    cx="50"
+                    cy="50"
+                    r="44"
+                    :style="{
+                      strokeDasharray: `${segment.length} ${chartCircumference}`,
+                      strokeDashoffset: -segment.offset
+                    }"
+                  />
+                </svg>
                 <div class="chart-center">
                   <strong>{{ items.length }}</strong>
                   <span>Total Items</span>
@@ -377,7 +411,9 @@ export default {
 
       loading: true,
 
-      error: ''
+      error: '',
+
+      chartCircumference: 2 * Math.PI * 44
 
     }
 
@@ -385,72 +421,24 @@ export default {
 
   computed: {
 
-    classificationChartBackground() {
-
-      const total = this.items.length
-
-      if (total === 0) {
-        return '#e5e5e5'
-      }
-
-      const par = this.countClassification('PAR')
-      const icsHigh = this.countClassification('ICS High')
-      const icsLow = this.countClassification('ICS Low')
-
-      const parDegree = (par / total) * 360
-      const icsHighDegree = (icsHigh / total) * 360
-
-      const firstEnd = parDegree
-      const secondEnd = parDegree + icsHighDegree
-
-      return `conic-gradient(
-        #2F5D3A 0deg ${firstEnd}deg,
-        #E8C547 ${firstEnd}deg ${secondEnd}deg,
-        #70A4ED ${secondEnd}deg 360deg
-      )`
-
+    classificationChartSegments() {
+      return this.buildChartSegments([
+        { name: 'PAR', className: 'par-segment', count: this.countClassification('PAR') },
+        { name: 'ICS High', className: 'ics-high-segment', count: this.countClassification('ICS High') },
+        { name: 'ICS Low', className: 'ics-low-segment', count: this.countClassification('ICS Low') }
+      ])
     },
 
-    statusChartBackground() {
-
-      const total = this.items.length
-
-      if (total === 0) {
-        return '#e5e5e5'
-      }
-
-      const available = this.countStatus('Available')
-      const issued = this.countStatus('Issued')
-      const returned = this.countStatus('Returned')
-      const lost = this.countStatus('Lost')
-      const damaged = this.countStatus('Damaged')
-      const stolen = this.countStatus('Stolen')
-      const disposed = this.countStatus('Disposed')
-
-      const availableDegree = (available / total) * 360
-      const issuedDegree = (issued / total) * 360
-      const returnedDegree = (returned / total) * 360
-      const lostDegree = (lost / total) * 360
-      const damagedDegree = (damaged / total) * 360
-      const stolenDegree = (stolen / total) * 360
-
-      const firstEnd = availableDegree
-      const secondEnd = firstEnd + issuedDegree
-      const thirdEnd = secondEnd + returnedDegree
-      const fourthEnd = thirdEnd + lostDegree
-      const fifthEnd = fourthEnd + damagedDegree
-      const sixthEnd = fifthEnd + stolenDegree
-
-      return `conic-gradient(
-        green 0deg ${firstEnd}deg,
-        blue ${firstEnd}deg ${secondEnd}deg,
-        #70A4ED ${secondEnd}deg ${thirdEnd}deg,
-        red ${thirdEnd}deg ${fourthEnd}deg,
-        orange ${fourthEnd}deg ${fifthEnd}deg,
-        red ${fifthEnd}deg ${sixthEnd}deg,
-        gray ${sixthEnd}deg 360deg
-      )`
-
+    statusChartSegments() {
+      return this.buildChartSegments([
+        { name: 'Available', className: 'available-segment', count: this.countStatus('Available') },
+        { name: 'Issued', className: 'issued-segment', count: this.countStatus('Issued') },
+        { name: 'Returned', className: 'returned-segment', count: this.countStatus('Returned') },
+        { name: 'Lost', className: 'lost-segment', count: this.countStatus('Lost') },
+        { name: 'Damaged', className: 'damaged-segment', count: this.countStatus('Damaged') },
+        { name: 'Stolen', className: 'stolen-segment', count: this.countStatus('Stolen') },
+        { name: 'Disposed', className: 'disposed-segment', count: this.countStatus('Disposed') }
+      ])
     }
 
   },
@@ -463,6 +451,28 @@ export default {
 
   methods: {
 
+    buildChartSegments(definitions) {
+      const total = definitions.reduce(
+        (sum, definition) => sum + definition.count,
+        0
+      )
+      let offset = 0
+
+      return definitions.map(definition => {
+        const length = total
+          ? (definition.count / total) * this.chartCircumference
+          : 0
+        const segment = {
+          ...definition,
+          length,
+          offset
+        }
+
+        offset += length
+        return segment
+      })
+    },
+
     async getItems() {
 
       try {
@@ -471,7 +481,7 @@ export default {
           localStorage.getItem('accessToken')
 
         const response = await fetch(
-          'http://localhost:5000/api/items',
+          '/api/items',
           {
             headers: {
               Authorization: `Bearer ${token}`
@@ -592,6 +602,10 @@ h1 {
   color: #2F5D3A;
 }
 
+.container-fluid > .mb-4 > h1 {
+  font-size: 1.5rem;
+}
+
 .summary-card {
   height: 100%;
   border: 1px solid #e5e5e5;
@@ -601,13 +615,14 @@ h1 {
 .summary-card .card-body {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 20px;
+  gap: 12px;
+  min-height: 74px;
+  padding: 10px 12px;
 }
 
 .icon-box {
-  width: 50px;
-  height: 50px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
 
   display: flex;
@@ -618,13 +633,20 @@ h1 {
 
   border-radius: 10px;
 
-  font-size: 22px;
+  font-size: 18px;
 
   color: #2F5D3A;
 }
 
 .summary-card h2 {
   color: #2F5D3A;
+  font-size: 1.15rem;
+  line-height: 1.1;
+}
+
+.summary-card p {
+  font-size: 13px;
+  line-height: 1.25;
 }
 
 .card {
@@ -637,20 +659,20 @@ h1 {
 
 .analytics-card .card-header {
   color: #2F5D3A;
-  padding: 16px 20px;
+  padding: 11px 14px;
 }
 
 .chart-layout {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(110px, .7fr) minmax(0, 1.3fr);
   align-items: center;
-  justify-content: center;
-  gap: 25px;
+  gap: 12px;
 }
 
 .doughnut-chart {
-  width: 220px;
-  height: 220px;
+  width: min(100%, 136px);
+  aspect-ratio: 1;
+  justify-self: center;
 
   display: flex;
   align-items: center;
@@ -662,13 +684,70 @@ h1 {
   flex-shrink: 0;
 }
 
+.chart-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+
+.chart-track,
+.chart-ring-segment {
+  fill: none;
+  stroke-width: 17;
+}
+
+.chart-track {
+  stroke: #e5e5e5;
+}
+
+.chart-ring-segment {
+  stroke-dasharray: 0 276.46;
+  transition:
+    stroke-dasharray 900ms cubic-bezier(.22, 1, .36, 1),
+    stroke-dashoffset 900ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.par-segment,
+.available-segment {
+  stroke: var(--app-forest);
+}
+
+.ics-high-segment,
+.issued-segment {
+  stroke: var(--app-gold);
+}
+
+.ics-low-segment,
+.returned-segment {
+  stroke: var(--app-sage);
+}
+
+.lost-segment {
+  stroke: var(--app-alert-red);
+}
+
+.damaged-segment {
+  stroke: var(--app-alert-orange);
+}
+
+.stolen-segment {
+  stroke: var(--app-deep-red);
+}
+
+.disposed-segment {
+  stroke: var(--app-status-gray);
+}
+
 .doughnut-chart::before {
   content: '';
 
   position: absolute;
 
-  width: 135px;
-  height: 135px;
+  width: 62%;
+  height: 62%;
 
   background-color: white;
 
@@ -688,7 +767,7 @@ h1 {
 }
 
 .chart-center strong {
-  font-size: 30px;
+  font-size: 20px;
   color: #2F5D3A;
 }
 
@@ -700,17 +779,17 @@ h1 {
 .chart-legend {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 9px;
   align-items: start;
 }
 
 .classification-legend {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .status-legend {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .legend-item {
@@ -722,13 +801,13 @@ h1 {
 }
 
 .legend-color {
-  width: 14px;
-  height: 14px;
+  width: 9px;
+  height: 9px;
 
-  border-radius: 3px;
+  border-radius: 50%;
 
   flex-shrink: 0;
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .legend-item div {
@@ -736,7 +815,7 @@ h1 {
 }
 
 .legend-item p {
-  font-size: 13px;
+  font-size: 12px;
   color: #6C757D;
   line-height: 1.4;
   margin: 0;
@@ -748,43 +827,43 @@ h1 {
 }
 
 .par-color {
-  background-color: #2F5D3A;
+  background-color: var(--app-forest);
 }
 
 .ics-high-color {
-  background-color: #E8C547;
+  background-color: var(--app-gold);
 }
 
 .ics-low-color {
-  background-color: #70A4ED;
+  background-color: var(--app-sage);
 }
 
 .available-color {
-  background-color: green;
+  background-color: var(--app-forest);
 }
 
 .issued-color {
-  background-color: blue;
+  background-color: var(--app-gold);
 }
 
 .returned-color {
-  background-color: #70A4ED;
+  background-color: var(--app-sage);
 }
 
 .lost-color {
-  background-color: red;
+  background-color: var(--app-alert-red);
 }
 
 .damaged-color {
-  background-color: orange;
+  background-color: var(--app-alert-orange);
 }
 
 .stolen-color {
-  background-color: red;
+  background-color: var(--app-deep-red);
 }
 
 .disposed-color {
-  background-color: gray;
+  background-color: var(--app-status-gray);
 }
 
 .table thead th {
@@ -801,23 +880,23 @@ h1 {
 @media (max-width: 1200px) {
 
   .status-legend {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
 }
 
 @media (max-width: 992px) {
 
-  .chart-legend {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .classification-legend {
+  .chart-layout {
     grid-template-columns: 1fr;
   }
 
+  .doughnut-chart {
+    width: min(100%, 148px);
+  }
+
   .status-legend {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
 }
@@ -825,32 +904,21 @@ h1 {
 @media (max-width: 576px) {
 
   .summary-card .card-body {
-    padding: 14px;
+    min-height: 76px;
+    padding: 11px;
   }
 
   .chart-layout {
-    gap: 20px;
+    gap: 18px;
   }
 
-.doughnut-chart {
-  width: 220px;
-  height: 220px;
-  border-radius: 50%;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: chartAppear 0.8s ease-out;
-}
-
-
   .doughnut-chart::before {
-    width: 115px;
-    height: 115px;
+    width: 62%;
+    height: 62%;
   }
 
   .chart-center strong {
-    font-size: 26px;
+    font-size: 24px;
   }
 
   .chart-legend {
@@ -858,7 +926,7 @@ h1 {
   }
 
   .status-legend {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px 8px;
   }
 
@@ -876,17 +944,22 @@ h1 {
   }
 
   .table {
-    min-width: 0 !important;
-    table-layout: fixed;
+    min-width: 640px;
+    table-layout: auto;
   }
 
   .table th,
   .table td {
-    padding: 9px 5px;
-    white-space: normal;
-    overflow-wrap: anywhere;
+    padding: 9px 8px;
+    white-space: nowrap;
   }
 
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-ring-segment {
+    transition: none;
+  }
 }
 
 </style>
