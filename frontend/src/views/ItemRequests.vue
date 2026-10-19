@@ -114,7 +114,7 @@
                   <i :class="getSortIcon('status')"></i>
                 </th>
 
-                <th v-if="canManageRequests">
+                <th>
                   Actions
                 </th>
               </tr>
@@ -158,28 +158,43 @@
                   </span>
                 </td>
 
-                <td v-if="canManageRequests">
+                <td class="request-actions-cell">
+                  <div class="request-actions">
                   <button
-                    class="btn btn-sm btn-outline-success me-1"
-                    @click="editRequest(request)"
+                    class="btn btn-sm btn-outline-primary"
+                    @click="viewRequestDetails(request)"
+                    title="View request details"
                   >
-                    <i class="bi bi-pencil"></i>
-                    Edit
+                    <i class="bi bi-eye me-1"></i>
+                    Details
                   </button>
-
-                  <button
-                    class="btn btn-sm btn-outline-danger"
-                    @click="deleteRequest(request.id)"
-                  >
-                    <i class="bi bi-trash"></i>
-                    Delete
-                  </button>
+                  <template v-if="canManageRequests && request.status === 'Pending'">
+                    <button
+                      class="btn btn-sm btn-outline-success"
+                      :disabled="updatingRequestId === request.id"
+                      @click="updateRequestStatus(request, 'Approved')"
+                      title="Accept request"
+                    >
+                      <i class="bi bi-check-lg me-1"></i>
+                      Accept
+                    </button>
+                    <button
+                      class="btn btn-sm btn-outline-danger"
+                      :disabled="updatingRequestId === request.id"
+                      @click="updateRequestStatus(request, 'Rejected')"
+                      title="Reject request"
+                    >
+                      <i class="bi bi-x-lg me-1"></i>
+                      Reject
+                    </button>
+                  </template>
+                  </div>
                 </td>
               </tr>
 
               <tr v-if="filteredRequests.length === 0">
                 <td
-                  :colspan="canManageRequests ? 7 : 5"
+                  :colspan="canManageRequests ? 7 : 6"
                   class="text-center text-secondary py-5"
                 >
                   No item requests found.
@@ -439,6 +454,48 @@
         </div>
       </div>
     </div>
+
+    <div class="modal fade" id="requestDetailsModal" tabindex="-1" aria-labelledby="requestDetailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="requestDetailsModalLabel" class="modal-title">Request Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div v-if="requestDetails" class="modal-body">
+            <dl class="row mb-0">
+              <dt class="col-sm-4">Request Number</dt>
+              <dd class="col-sm-8">{{ requestDetails.request_number || '-' }}</dd>
+              <dt class="col-sm-4">Property</dt>
+              <dd class="col-sm-8">{{ requestDetails.item_description || requestDetails.items?.description || '-' }}</dd>
+              <dt class="col-sm-4">Quantity</dt>
+              <dd class="col-sm-8">{{ requestDetails.quantity ?? 0 }}</dd>
+              <dt class="col-sm-4">Requested By</dt>
+              <dd class="col-sm-8">{{ requestDetails.users?.full_name || requestDetails.personnel?.full_name || '-' }}</dd>
+              <dt class="col-sm-4">Office</dt>
+              <dd class="col-sm-8">{{ requestDetails.offices?.office_name || '-' }}</dd>
+              <dt class="col-sm-4">Purpose</dt>
+              <dd class="col-sm-8">{{ requestDetails.purpose || '-' }}</dd>
+              <dt class="col-sm-4">Status</dt>
+              <dd class="col-sm-8">{{ requestDetails.status || '-' }}</dd>
+              <dt class="col-sm-4">Created</dt>
+              <dd class="col-sm-8">{{ requestDetails.created_at || '-' }}</dd>
+            </dl>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <template v-if="canManageRequests">
+              <button type="button" class="btn btn-outline-warning" @click="editSelectedRequest">
+                <i class="bi bi-pencil me-1"></i>Edit
+              </button>
+              <button type="button" class="btn btn-outline-danger" @click="deleteSelectedRequest">
+                <i class="bi bi-trash me-1"></i>Delete
+              </button>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -457,6 +514,8 @@ export default {
 
       editing: false,
       saving: false,
+      updatingRequestId: null,
+      requestDetails: null,
 
       search: '',
       statusFilter: '',
@@ -635,6 +694,68 @@ export default {
   },
 
   methods: {
+    viewRequestDetails(request) {
+      this.requestDetails = request
+      Modal.getOrCreateInstance(
+        document.getElementById('requestDetailsModal')
+      ).show()
+    },
+
+    editSelectedRequest() {
+      if (!this.requestDetails || !this.canManageRequests) return
+      const request = this.requestDetails
+      Modal.getInstance(document.getElementById('requestDetailsModal'))?.hide()
+      this.editRequest(request)
+    },
+
+    deleteSelectedRequest() {
+      if (!this.requestDetails || !this.canManageRequests) return
+      const id = this.requestDetails.id
+      Modal.getInstance(document.getElementById('requestDetailsModal'))?.hide()
+      this.deleteRequest(id)
+    },
+
+    async updateRequestStatus(request, status) {
+      if (!this.canManageRequests || request.status !== 'Pending') return
+
+      if (
+        status === 'Rejected' &&
+        !window.confirm(`Reject request ${request.request_number || ''}?`)
+      ) {
+        return
+      }
+
+      this.updatingRequestId = request.id
+
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/item-requests/${request.id}/status`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+          }
+        )
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || `Failed to ${status.toLowerCase()} request`)
+        }
+
+        await this.getRequests()
+        this.showToast(
+          status === 'Approved'
+            ? 'Request accepted successfully'
+            : 'Request rejected successfully'
+        )
+      } catch (error) {
+        console.log('Update request status error:', error)
+        this.showToast(error.message)
+      } finally {
+        this.updatingRequestId = null
+      }
+    },
+
     formatItem(item) {
       let text = item.description || 'Unnamed item'
 
@@ -731,7 +852,7 @@ export default {
 
         this.requests = Array.isArray(data)
           ? data
-          : []
+          : [] 
       } catch (error) {
         console.log('Requests error:', error)
 
@@ -1058,6 +1179,23 @@ export default {
 
 .sortable:hover {
   background-color: #244b30 !important;
+}
+
+.request-actions-cell {
+  min-width: 230px;
+}
+
+.request-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.request-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sort-icon {

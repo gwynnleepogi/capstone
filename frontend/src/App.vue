@@ -75,7 +75,7 @@
         <router-link
           v-if="canAccess(['Administrator'])"
           to="/personnel"
-          class="nav-link"
+          class="nav-link"cd f
           @click="menuOpen = false"
         >
           <i class="bi bi-people"></i>
@@ -83,7 +83,7 @@
         </router-link>
 
         <router-link
-          v-if="canAccess(['Administrator', 'Teacher', 'Non-Teaching Staff'])"
+          v-if="canAccess(['Administrator','Personnel',  'Teacher', 'Non-Teaching Staff'])"
           to="/request"
           class="nav-link"
           @click="menuOpen = false"

@@ -78,7 +78,7 @@
                   Details
                 </th>
 
-                <th v-if="isAdmin" class="text-start">
+                <th class="text-start">
                   Actions
                 </th>
               </tr>
@@ -192,12 +192,13 @@
                   </span>
                 </td>
 
-                <td v-if="isAdmin">
+                <td>
                   <button
-                    class="btn btn-sm btn-outline-danger"
-                    @click="deleteLog(log.id)"
+                    class="btn btn-sm btn-outline-primary"
+                    @click="viewLogDetails(log)"
                   >
-                    Delete
+                    <i class="bi bi-eye me-1"></i>
+                    Details
                   </button>
                 </td>
               </tr>
@@ -251,16 +252,60 @@
     >
       {{ toast.message }}
     </div>
+
+    <div class="modal fade" id="logDetailsModal" tabindex="-1" aria-labelledby="logDetailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="logDetailsModalLabel" class="modal-title">Audit Log Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div v-if="selectedLog" class="modal-body">
+            <p><strong>Date:</strong> {{ formatDate(selectedLog.created_at) }}</p>
+            <p><strong>Action:</strong> {{ selectedLog.action || '-' }}</p>
+            <p><strong>Item:</strong> {{ getItemName(selectedLog) }}</p>
+            <p><strong>Description:</strong> {{ selectedLog.description || '-' }}</p>
+            <div v-if="selectedLog.old_value" class="mb-3">
+              <strong>Before</strong>
+              <div class="detail-grid">
+                <div v-for="entry in detailEntries(selectedLog.old_value)" :key="entry.key" class="detail-field">
+                  <span>{{ formatLabel(entry.key) }}</span>
+                  <strong>{{ entry.value }}</strong>
+                </div>
+              </div>
+            </div>
+            <div v-if="selectedLog.new_value">
+              <strong>After</strong>
+              <div class="detail-grid">
+                <div v-for="entry in detailEntries(selectedLog.new_value)" :key="entry.key" class="detail-field">
+                  <span>{{ formatLabel(entry.key) }}</span>
+                  <strong>{{ entry.value }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button v-if="isAdmin" type="button" class="btn btn-outline-danger" @click="deleteSelectedLog">
+              <i class="bi bi-trash me-1"></i>Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+import { Modal } from 'bootstrap'
+
 export default {
   name: 'AuditLogs',
 
   data() {
     return {
       logs: [],
+      selectedLog: null,
       loading: false,
       openedLog: null,
 
@@ -397,6 +442,20 @@ export default {
   },
 
   methods: {
+    viewLogDetails(log) {
+      this.selectedLog = log
+      Modal.getOrCreateInstance(
+        document.getElementById('logDetailsModal')
+      ).show()
+    },
+
+    deleteSelectedLog() {
+      if (!this.selectedLog || !this.isAdmin) return
+      const id = this.selectedLog.id
+      Modal.getInstance(document.getElementById('logDetailsModal'))?.hide()
+      this.deleteLog(id)
+    },
+
     async getLogs() {
       this.loading = true
 

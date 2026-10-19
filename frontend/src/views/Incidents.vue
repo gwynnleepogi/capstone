@@ -113,17 +113,12 @@
 
                 <td>
                   <button
-                    class="btn btn-sm btn-outline-primary me-2"
-                    @click="editIncident(incident)"
+                    class="btn btn-sm btn-outline-primary"
+                    @click="viewIncidentDetails(incident)"
+                    title="View incident details"
                   >
-                    Edit
-                  </button>
-
-                  <button
-                    class="btn btn-sm btn-outline-danger"
-                    @click="deleteIncident(incident.id)"
-                  >
-                    Delete
+                    <i class="bi bi-eye me-1"></i>
+                    Details
                   </button>
                 </td>
               </tr>
@@ -351,6 +346,48 @@
         </div>
       </div>
     </div>
+
+    <div class="modal fade" id="incidentDetailsModal" tabindex="-1" aria-labelledby="incidentDetailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="incidentDetailsModalLabel" class="modal-title">Incident Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div v-if="selectedIncident" class="modal-body">
+            <dl class="row mb-0">
+              <dt class="col-sm-4">Property</dt>
+              <dd class="col-sm-8">{{ selectedIncident.items?.description || '-' }}</dd>
+              <dt class="col-sm-4">Property Number</dt>
+              <dd class="col-sm-8">{{ selectedIncident.items?.property_number || '-' }}</dd>
+              <dt class="col-sm-4">Reported By</dt>
+              <dd class="col-sm-8">{{ selectedIncident.personnel?.full_name || selectedIncident.users?.full_name || '-' }}</dd>
+              <dt class="col-sm-4">Incident Type</dt>
+              <dd class="col-sm-8">{{ selectedIncident.incident_type || '-' }}</dd>
+              <dt class="col-sm-4">Date</dt>
+              <dd class="col-sm-8">{{ selectedIncident.incident_date || '-' }}</dd>
+              <dt class="col-sm-4">Status</dt>
+              <dd class="col-sm-8">{{ selectedIncident.status || '-' }}</dd>
+              <dt class="col-sm-4">Description</dt>
+              <dd class="col-sm-8">{{ selectedIncident.description || '-' }}</dd>
+              <dt class="col-sm-4">Action Taken</dt>
+              <dd class="col-sm-8">{{ selectedIncident.action_taken || '-' }}</dd>
+              <dt class="col-sm-4">Remarks</dt>
+              <dd class="col-sm-8">{{ selectedIncident.remarks || '-' }}</dd>
+            </dl>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-outline-warning" @click="editSelectedIncident">
+              <i class="bi bi-pencil me-1"></i>Edit
+            </button>
+            <button type="button" class="btn btn-outline-danger" @click="deleteSelectedIncident">
+              <i class="bi bi-trash me-1"></i>Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -363,6 +400,7 @@ export default {
   data() {
     return {
       incidents: [],
+      selectedIncident: null,
       items: [],
       personnel: [],
       editing: false,
@@ -511,6 +549,27 @@ export default {
   },
 
   methods: {
+    viewIncidentDetails(incident) {
+      this.selectedIncident = incident
+      Modal.getOrCreateInstance(
+        document.getElementById('incidentDetailsModal')
+      ).show()
+    },
+
+    editSelectedIncident() {
+      if (!this.selectedIncident) return
+      const incident = this.selectedIncident
+      Modal.getInstance(document.getElementById('incidentDetailsModal'))?.hide()
+      this.editIncident(incident)
+    },
+
+    deleteSelectedIncident() {
+      if (!this.selectedIncident) return
+      const id = this.selectedIncident.id
+      Modal.getInstance(document.getElementById('incidentDetailsModal'))?.hide()
+      this.deleteIncident(id)
+    },
+
     getSortValue(incident, column) {
       if (column === 'item') {
         return incident.items?.description || ''

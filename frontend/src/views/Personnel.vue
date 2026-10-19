@@ -140,27 +140,25 @@
                 <i :class="getSortIcon('created_at')"></i>
               </th>
 
-              <th>Assigned Items</th>
-
               <th>Actions</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="loading">
-              <td colspan="7" class="text-center py-5">
+              <td colspan="6" class="text-center py-5">
                 Loading personnel...
               </td>
             </tr>
 
             <tr v-else-if="error">
-              <td colspan="7" class="text-center text-danger py-5">
+              <td colspan="6" class="text-center text-danger py-5">
                 {{ error }}
               </td>
             </tr>
 
             <tr v-else-if="filteredPersonnel.length === 0">
-              <td colspan="7" class="text-center text-muted py-5">
+              <td colspan="6" class="text-center text-muted py-5">
                 No personnel found.
               </td>
             </tr>
@@ -197,20 +195,11 @@
               <td>
                 <button
                   class="btn btn-sm btn-outline-primary"
-                  @click="viewItems(person)"
+                  @click="viewPersonnelDetails(person)"
+                  title="View personnel details"
                 >
-                  <i class="bi bi-box-seam me-1"></i>
-                  View Items
-                </button>
-              </td>
-
-              <td>
-                <button
-                  class="btn btn-sm btn-outline-danger"
-                  @click="deletePersonnel(person.id)"
-                >
-                  <i class="bi bi-trash"></i>
-                  Delete
+                  <i class="bi bi-eye me-1"></i>
+                  Details
                 </button>
               </td>
             </tr>
@@ -410,10 +399,95 @@
         </div>
       </div>
     </div>
+
+    <div class="modal fade" id="personnelDetailsModal" tabindex="-1" aria-labelledby="personnelDetailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="personnelDetailsModalLabel" class="modal-title">Personnel Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div v-if="selectedPersonnel" class="modal-body">
+            <dl class="row mb-0">
+              <dt class="col-sm-4">Full Name</dt>
+              <dd class="col-sm-8">{{ selectedPersonnel.full_name || '-' }}</dd>
+              <dt class="col-sm-4">Email</dt>
+              <dd class="col-sm-8">{{ selectedPersonnel.email || '-' }}</dd>
+              <dt class="col-sm-4">Role</dt>
+              <dd class="col-sm-8">{{ selectedPersonnel.role || '-' }}</dd>
+              <dt class="col-sm-4">Office</dt>
+              <dd class="col-sm-8">{{ selectedPersonnel.offices?.office_name || '-' }}</dd>
+              <dt class="col-sm-4">Created</dt>
+              <dd class="col-sm-8">{{ formatDate(selectedPersonnel.created_at) }}</dd>
+            </dl>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-outline-primary" @click="viewSelectedPersonnelItems">
+              <i class="bi bi-box-seam me-1"></i>View Items
+            </button>
+            <button type="button" class="btn btn-outline-warning" @click="editSelectedPersonnel">
+              <i class="bi bi-pencil me-1"></i>Edit
+            </button>
+            <button type="button" class="btn btn-outline-danger" @click="deleteSelectedPersonnel">
+              <i class="bi bi-trash me-1"></i>Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="personnelEditModal" tabindex="-1" aria-labelledby="personnelEditModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form @submit.prevent="savePersonnelEdit">
+            <div class="modal-header">
+              <h5 id="personnelEditModalLabel" class="modal-title">Edit Personnel</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input v-model.trim="personnelForm.full_name" class="form-control" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input v-model.trim="personnelForm.email" type="email" class="form-control" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Role</label>
+                <select v-model="personnelForm.role" class="form-select" required>
+                  <option value="Personnel">Personnel</option>
+                  <option value="Teacher">Teacher</option>
+                  <option value="Non-Teaching Staff">Non-Teaching Staff</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Office</label>
+                <select v-model="personnelForm.office_id" class="form-select">
+                  <option value="">No Office</option>
+                  <option v-for="office in offices" :key="office.id" :value="office.id">
+                    {{ office.office_name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-outline-warning" :disabled="personnelSaving">
+                <i class="bi bi-pencil me-1"></i>{{ personnelSaving ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+import { Modal } from 'bootstrap'
+
 async function apiRequest(url, options = {}) {
   const token = localStorage.getItem('accessToken')
 
@@ -450,7 +524,14 @@ export default {
       showItemsModal: false,
       selectedPersonnel: {},
       assignedItems: [],
-      itemsLoading: false
+      itemsLoading: false,
+      personnelSaving: false,
+      personnelForm: {
+        full_name: '',
+        email: '',
+        role: '',
+        office_id: ''
+      }
     }
   },
 
@@ -613,6 +694,81 @@ export default {
   },
 
   methods: {
+    viewPersonnelDetails(person) {
+      this.selectedPersonnel = person
+      Modal.getOrCreateInstance(
+        document.getElementById('personnelDetailsModal')
+      ).show()
+    },
+
+    viewSelectedPersonnelItems() {
+      if (!this.selectedPersonnel?.id) return
+      const person = this.selectedPersonnel
+      Modal.getInstance(document.getElementById('personnelDetailsModal'))?.hide()
+      this.viewItems(person)
+    },
+
+    editSelectedPersonnel() {
+      const person = this.selectedPersonnel
+      if (!person?.id) return
+      this.personnelForm = {
+        full_name: person.full_name || '',
+        email: person.email || '',
+        role: person.role || 'Personnel',
+        office_id: person.office_id || ''
+      }
+      Modal.getInstance(document.getElementById('personnelDetailsModal'))?.hide()
+      Modal.getOrCreateInstance(
+        document.getElementById('personnelEditModal')
+      ).show()
+    },
+
+    async savePersonnelEdit() {
+      const personId = this.selectedPersonnel?.id
+      if (!personId) return
+      this.personnelSaving = true
+
+      try {
+        const response = await apiRequest(
+          `http://localhost:5000/api/personnel/${personId}`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(this.personnelForm)
+          }
+        )
+        const result = await response.json()
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to update personnel')
+        }
+
+        const updatedPerson = result.data
+        const office = this.offices.find(entry => entry.id === updatedPerson.office_id)
+        updatedPerson.offices = office ? { office_name: office.office_name } : null
+        const index = this.personnel.findIndex(entry => entry.id === personId)
+        if (index !== -1) this.personnel[index] = updatedPerson
+        this.selectedPersonnel = updatedPerson
+        Modal.getInstance(document.getElementById('personnelEditModal'))?.hide()
+        window.dispatchEvent(
+          new CustomEvent('show-toast', { detail: 'Personnel updated successfully' })
+        )
+      } catch (error) {
+        console.log(error)
+        window.dispatchEvent(
+          new CustomEvent('show-toast', { detail: error.message })
+        )
+      } finally {
+        this.personnelSaving = false
+      }
+    },
+
+    deleteSelectedPersonnel() {
+      const personId = this.selectedPersonnel?.id
+      if (!personId) return
+      Modal.getInstance(document.getElementById('personnelDetailsModal'))?.hide()
+      this.deletePersonnel(personId)
+    },
+
     async getPersonnel() {
       this.loading = true
 

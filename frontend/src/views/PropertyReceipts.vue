@@ -78,31 +78,12 @@
 
                 <td>
                   <button
-                    class="btn btn-sm btn-outline-primary me-1"
-                    @click="editReceipt(receipt)"
+                    class="btn btn-sm btn-outline-primary"
+                    @click="viewReceiptDetails(receipt)"
+                    title="View receipt details"
                   >
-                    Edit
-                  </button>
-
-                  <button
-                    class="btn btn-sm btn-outline-danger me-1"
-                    @click="deleteReceipt(receipt.id)"
-                  >
-                    Delete
-                  </button>
-
-                  <button
-                    class="btn btn-sm btn-outline-success me-1"
-                    @click="openReceiptPrintModal(receipt)"
-                  >
-                    Print
-                  </button>
-
-                  <button
-                    class="btn btn-sm btn-outline-dark"
-                    @click="openRISModal(receipt)"
-                  >
-                    Print RIS
+                    <i class="bi bi-eye me-1"></i>
+                    Details
                   </button>
                 </td>
               </tr>
@@ -339,7 +320,7 @@
     >
       <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-          <form @submit.prevent="confirmPrintReceipt">
+          <form class="receipt-print-details-form" @submit.prevent="confirmPrintReceipt">
             <div class="modal-header">
               <h5 class="modal-title" id="receiptPrintDetailsModalLabel">Complete PAR / ICS Print Details</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -376,10 +357,51 @@
                   <input class="form-control" v-model.trim="receiptPrintForm.iarNumber">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Received From</label>
+                  <label class="form-label">Appendix</label>
+                  <input class="form-control" v-model.trim="receiptPrintForm.appendix" required>
+                </div>
+                <div class="col-12">
+                  <strong>Received By</strong>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Received By Name <span class="text-danger">*</span></label>
+                  <input class="form-control" v-model.trim="receiptPrintForm.receivedBy" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Designation</label>
+                  <input class="form-control" v-model.trim="receiptPrintForm.receivedByDesignation">
+                </div>
+                <div class="col-12">
+                  <strong>Received From</strong>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Received From Name</label>
                   <input class="form-control" v-model.trim="receiptPrintForm.receivedFrom">
                 </div>
+                <div class="col-md-6">
+                  <label class="form-label">Designation</label>
+                  <input class="form-control" v-model.trim="receiptPrintForm.receivedFromDesignation">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Paper Size</label>
+                  <select class="form-select" v-model="receiptPrintForm.paperSize">
+                    <option value="short">Short (8.5 × 11 in)</option>
+                    <option value="long">Long (8.5 × 13 in)</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                <template v-if="receiptPrintForm.paperSize === 'custom'">
+                  <div class="col-md-3">
+                    <label class="form-label">Paper Width (in)</label>
+                    <input class="form-control" type="number" min="1" step="0.1" v-model.number="receiptPrintForm.paperWidth" required>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Paper Height (in)</label>
+                    <input class="form-control" type="number" min="1" step="0.1" v-model.number="receiptPrintForm.paperHeight" required>
+                  </div>
+                </template>
               </div>
+              <p class="text-muted small mt-3 mb-0">Choose the same paper size in your printer settings.</p>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -444,7 +466,26 @@
                   <label class="form-label">Received By Designation <span class="text-danger">*</span></label>
                   <input class="form-control" v-model.trim="risForm.receivedDesignation" required>
                 </div>
+                <div class="col-md-6">
+                  <label class="form-label">Paper Size</label>
+                  <select class="form-select" v-model="risForm.paperSize">
+                    <option value="short">Short (8.5 × 11 in)</option>
+                    <option value="long">Long (8.5 × 13 in)</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                <template v-if="risForm.paperSize === 'custom'">
+                  <div class="col-md-3">
+                    <label class="form-label">Paper Width (in)</label>
+                    <input class="form-control" type="number" min="1" step="0.1" v-model.number="risForm.paperWidth" required>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Paper Height (in)</label>
+                    <input class="form-control" type="number" min="1" step="0.1" v-model.number="risForm.paperHeight" required>
+                  </div>
+                </template>
               </div>
+              <p class="text-muted small mt-3 mb-0">Choose the same paper size in your printer settings.</p>
             </div>
 
             <div class="modal-footer">
@@ -452,6 +493,54 @@
               <button type="submit" class="btn btn-success">Continue to Print</button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="receiptDetailsModal" tabindex="-1" aria-labelledby="receiptDetailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="receiptDetailsModalLabel" class="modal-title">Receipt Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div v-if="selectedDetailsReceipt" class="modal-body">
+            <dl class="row mb-0">
+              <dt class="col-sm-4">Receipt Number</dt>
+              <dd class="col-sm-8">{{ selectedDetailsReceipt.receipt_number || '-' }}</dd>
+              <dt class="col-sm-4">Type</dt>
+              <dd class="col-sm-8">{{ selectedDetailsReceipt.receipt_type || '-' }}</dd>
+              <dt class="col-sm-4">Property</dt>
+              <dd class="col-sm-8">{{ getReceiptItem(selectedDetailsReceipt).description || '-' }}</dd>
+              <dt class="col-sm-4">Property Number</dt>
+              <dd class="col-sm-8">{{ getReceiptItem(selectedDetailsReceipt).property_number || '-' }}</dd>
+              <dt class="col-sm-4">Quantity Issued</dt>
+              <dd class="col-sm-8">{{ selectedDetailsReceipt.quantity ?? '-' }}</dd>
+              <dt class="col-sm-4">Issued To</dt>
+              <dd class="col-sm-8">{{ getIssuedToName(selectedDetailsReceipt) }}</dd>
+              <dt class="col-sm-4">Date Issued</dt>
+              <dd class="col-sm-8">{{ selectedDetailsReceipt.date_issued || '-' }}</dd>
+              <dt class="col-sm-4">Status</dt>
+              <dd class="col-sm-8">{{ selectedDetailsReceipt.status || '-' }}</dd>
+              <dt class="col-sm-4">Remarks</dt>
+              <dd class="col-sm-8">{{ selectedDetailsReceipt.remarks || '-' }}</dd>
+            </dl>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-outline-warning" @click="editSelectedReceipt">
+              <i class="bi bi-pencil me-1"></i>Edit
+            </button>
+            <button type="button" class="btn btn-outline-danger" @click="deleteSelectedReceipt">
+              <i class="bi bi-trash me-1"></i>Delete
+            </button>
+            <button type="button" class="btn btn-outline-success" @click="printSelectedReceipt">
+              <i class="bi bi-printer me-1"></i>Print PAR / ICS
+            </button>
+            <button type="button" class="btn btn-outline-dark" @click="printSelectedRIS">
+              <i class="bi bi-file-earmark-text me-1"></i>Print RIS
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -475,15 +564,23 @@ export default {
       saving: false,
       selectedRISReceipt: null,
       selectedPrintReceipt: null,
+      selectedDetailsReceipt: null,
       receiptPrintForm: {
         fundCluster: 'TF-2',
+        appendix: '71',
         purpose: '',
         unitOffice: '',
         poNumber: '',
         uacs: '',
         burNumber: '',
         iarNumber: '',
-        receivedFrom: ''
+        receivedBy: '',
+        receivedByDesignation: '',
+        receivedFrom: '',
+        receivedFromDesignation: '',
+        paperSize: 'short',
+        paperWidth: 8.5,
+        paperHeight: 11
       },
       risForm: {
         fundCluster: '',
@@ -494,7 +591,10 @@ export default {
         issuedBy: '',
         issuedDesignation: '',
         receivedBy: '',
-        receivedDesignation: ''
+        receivedDesignation: '',
+        paperSize: 'long',
+        paperWidth: 8.5,
+        paperHeight: 13
       },
 
       form: {
@@ -543,6 +643,41 @@ export default {
   },
 
   methods: {
+    viewReceiptDetails(receipt) {
+      this.selectedDetailsReceipt = receipt
+      Modal.getOrCreateInstance(
+        document.getElementById('receiptDetailsModal')
+      ).show()
+    },
+
+    editSelectedReceipt() {
+      if (!this.selectedDetailsReceipt) return
+      const receipt = this.selectedDetailsReceipt
+      Modal.getInstance(document.getElementById('receiptDetailsModal'))?.hide()
+      this.editReceipt(receipt)
+    },
+
+    deleteSelectedReceipt() {
+      if (!this.selectedDetailsReceipt) return
+      const id = this.selectedDetailsReceipt.id
+      Modal.getInstance(document.getElementById('receiptDetailsModal'))?.hide()
+      this.deleteReceipt(id)
+    },
+
+    printSelectedReceipt() {
+      if (!this.selectedDetailsReceipt) return
+      const receipt = this.selectedDetailsReceipt
+      Modal.getInstance(document.getElementById('receiptDetailsModal'))?.hide()
+      this.openReceiptPrintModal(receipt)
+    },
+
+    printSelectedRIS() {
+      if (!this.selectedDetailsReceipt) return
+      const receipt = this.selectedDetailsReceipt
+      Modal.getInstance(document.getElementById('receiptDetailsModal'))?.hide()
+      this.openRISModal(receipt)
+    },
+
     async getReceipts() {
       try {
         const response = await fetch(
@@ -917,13 +1052,20 @@ this.$nextTick(() => {
       const item = this.getReceiptItem(receipt)
       this.receiptPrintForm = {
         fundCluster: receipt.fund_cluster || 'TF-2',
+        appendix: receipt.appendix || '71',
         purpose: receipt.remarks || '',
         unitOffice: item.responsibility_center || receipt.offices?.office_name || '',
         poNumber: receipt.po_number || '',
         uacs: receipt.uacs || '',
         burNumber: receipt.bur_number || '',
         iarNumber: receipt.iar_number || '',
-        receivedFrom: this.getIssuedToName(receipt) === '-' ? '' : this.getIssuedToName(receipt)
+        receivedBy: this.getIssuedToName(receipt) === '-' ? '' : this.getIssuedToName(receipt),
+        receivedByDesignation: receipt.received_by_designation || '',
+        receivedFrom: receipt.received_from_name || '',
+        receivedFromDesignation: receipt.received_from_designation || 'Administrative Officer V',
+        paperSize: 'short',
+        paperWidth: 8.5,
+        paperHeight: 11
       }
       const modal = Modal.getOrCreateInstance(document.getElementById('receiptPrintDetailsModal'))
       modal.show()
@@ -949,7 +1091,10 @@ this.$nextTick(() => {
         issuedBy: receipt.issued_by_name || '',
         issuedDesignation: receipt.issued_by_designation || '',
         receivedBy: issuedTo === '-' ? '' : issuedTo,
-        receivedDesignation: receipt.received_by_designation || ''
+        receivedDesignation: receipt.received_by_designation || '',
+        paperSize: 'long',
+        paperWidth: 8.5,
+        paperHeight: 13
       }
       const modal = Modal.getOrCreateInstance(document.getElementById('risDetailsModal'))
       modal.show()
@@ -962,7 +1107,30 @@ this.$nextTick(() => {
       this.printRIS(this.selectedRISReceipt, { ...this.risForm })
     },
 
+    getPrintPageSize(details) {
+      if (details.paperSize === 'short') {
+        return { width: 8.5, height: 11 }
+      }
+
+      if (details.paperSize !== 'custom') {
+        return { width: 8.5, height: 13 }
+      }
+
+      const width = Number(details.paperWidth)
+      const height = Number(details.paperHeight)
+
+      if (!Number.isFinite(width) || width < 1 || !Number.isFinite(height) || height < 1) {
+        this.showToast('Enter a valid custom paper width and height of at least 1 inch.')
+        return null
+      }
+
+      return { width, height }
+    },
+
     printRIS(receipt, details = {}) {
+      const pageSize = this.getPrintPageSize(details)
+      if (!pageSize) return
+
       const item = this.getReceiptItem(receipt)
       const request = receipt.item_requests || {}
       const office = request.offices || receipt.offices || {}
@@ -983,19 +1151,19 @@ this.$nextTick(() => {
       const fundCluster = escape(details.fundCluster || request.fund_cluster || receipt.fund_cluster)
       const description = escape(item.description || request.item_description)
       const stockNumber = escape(item.stock_number || item.property_number || item.stock_no)
-      const unit = escape(item.unit || item.unit_of_measure)
-      const quantityRequested = escape(request.quantity_requested || request.quantity || receipt.quantity_requested)
-      const quantityIssued = escape(receipt.quantity_issued || request.quantity_issued || request.quantity_requested || request.quantity)
+      const quantityRequested = escape(request.quantity ?? request.quantity_requested ?? receipt.quantity_requested ?? receipt.quantity)
+      const quantityIssued = escape(receipt.quantity ?? receipt.quantity_issued ?? request.quantity_issued ?? request.quantity)
+      const requestedQuantity = Number(request.quantity ?? request.quantity_requested ?? receipt.quantity_requested)
       const availableQuantity = Number(item.quantity_available ?? item.quantity ?? item.stock_balance)
-      const requestedQuantity = Number(request.quantity_requested || request.quantity || receipt.quantity_requested)
-      let stockAvailability = 'Not recorded'
-      if (Number.isFinite(availableQuantity) && Number.isFinite(requestedQuantity)) {
-        stockAvailability = availableQuantity >= requestedQuantity ? 'Available' : 'Not available'
-      } else if (item.stock_available === true || item.available === true) {
-        stockAvailability = 'Available'
-      } else if (item.stock_available === false || item.available === false) {
-        stockAvailability = 'Not available'
-      }
+      const stockWasAvailableWhenIssued =
+        ['Issued', 'Delivered'].includes(receipt.status) ||
+        request.status === 'Delivered'
+      const stockIsAvailable = stockWasAvailableWhenIssued || (
+        item.status === 'Available' &&
+        Number.isFinite(availableQuantity) &&
+        Number.isFinite(requestedQuantity) &&
+        availableQuantity >= requestedQuantity
+      )
       const purpose = escape(request.purpose || receipt.purpose || request.remarks)
       const remarks = escape(receipt.remarks || request.remarks)
 
@@ -1006,7 +1174,7 @@ this.$nextTick(() => {
           <meta charset="UTF-8">
           <title>RIS - ${receiptNumber}</title>
           <style>
-            @page { size: 8.5in 13in portrait; margin: 8mm; }
+            @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 8mm; }
             * { box-sizing: border-box; }
             body { font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 10px; margin: 0; }
             .form-frame { border: 1px solid #000; padding: 5px; }
@@ -1027,9 +1195,12 @@ this.$nextTick(() => {
             .center { text-align: center; }
             .purpose { border: 1px solid #000; border-top: 0; padding: 7px 5px; min-height: 35px; }
             .signature-table { margin-top: 7px; }
+            .signature-table th,
+            .signature-table td { border: 0; }
             .signature-table th { text-align: left; height: 23px; }
             .signature-table td { height: 48px; vertical-align: top; }
-            .signature-space { margin-top: 20px; border-top: 1px solid #000; text-align: center; padding-top: 3px; }
+            .signature-space { margin: 8px 8px 0; text-align: center; }
+            .signature-line { border-top: 0.5px solid #000; margin: 2px 0; }
             .small { font-size: 9px; }
             .instructions { margin-top: 6px; border: 1px solid #000; padding: 5px 6px; font-size: 7px; line-height: 1.2; }
             .instructions-title { text-align: center; font-weight: bold; text-decoration: underline; margin-bottom: 4px; }
@@ -1070,18 +1241,16 @@ this.$nextTick(() => {
             <table class="items">
               <colgroup>
                 <col style="width: 9%">
-                <col style="width: 7%">
                 <col style="width: 31%">
                 <col style="width: 8%">
                 <col style="width: 7%">
                 <col style="width: 7%">
                 <col style="width: 8%">
-                <col style="width: 23%">
+                <col style="width: 30%">
               </colgroup>
               <thead>
                 <tr>
                   <th rowspan="2">Stock #</th>
-                  <th rowspan="2">Unit</th>
                   <th rowspan="2">Description</th>
                   <th rowspan="2">QTY</th>
                   <th colspan="2">Stock Available?</th>
@@ -1097,16 +1266,15 @@ this.$nextTick(() => {
               <tbody>
                 <tr>
                   <td class="center">${stockNumber}</td>
-                  <td class="center">${unit}</td>
                   <td>${description}</td>
                   <td class="center">${quantityRequested}</td>
-                  <td class="center">${stockAvailability === 'Available' ? '✓' : ''}</td>
-                  <td class="center">${stockAvailability === 'Not available' ? '✓' : ''}</td>
+                  <td class="center">${stockIsAvailable ? '✓' : ''}</td>
+                  <td class="center">${stockIsAvailable ? '' : '✓'}</td>
                   <td class="center">${quantityIssued}</td>
                   <td>${remarks}</td>
                 </tr>
                 <tr>
-                  <td colspan="8" class="center"><strong>***Nothing Follows***</strong></td>
+                  <td colspan="7" class="center"><strong>***Nothing Follows***</strong></td>
                 </tr>
               </tbody>
             </table>
@@ -1120,16 +1288,16 @@ this.$nextTick(() => {
                 <th colspan="2">Approved by:</th>
               </tr>
               <tr>
-                <td colspan="2"><div class="signature-space"><strong>${escape(details.requestedBy)}</strong><br>${escape(details.requestedDesignation)}<br>Signature / Date</div></td>
-                <td colspan="2"><div class="signature-space"><strong>${escape(details.approvedBy)}</strong><br>${escape(details.approvedDesignation)}<br>Signature / Date</div></td>
+                <td colspan="2"><div class="signature-space"><strong>${escape(details.requestedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.requestedDesignation)}</div></div></td>
+                <td colspan="2"><div class="signature-space"><strong>${escape(details.approvedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.approvedDesignation)}</div></div></td>
               </tr>
               <tr>
                 <th colspan="2">Issued by:</th>
                 <th colspan="2">Received by:</th>
               </tr>
               <tr>
-                <td colspan="2"><div class="signature-space"><strong>${escape(details.issuedBy)}</strong><br>${escape(details.issuedDesignation)}<br>Signature / Date</div></td>
-                <td colspan="2"><div class="signature-space"><strong>${escape(details.receivedBy)}</strong><br>${escape(details.receivedDesignation)}<br>Signature / Date</div></td>
+                <td colspan="2"><div class="signature-space"><strong>${escape(details.issuedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.issuedDesignation)}</div></div></td>
+                <td colspan="2"><div class="signature-space"><strong>${escape(details.receivedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.receivedDesignation)}</div></div></td>
               </tr>
             </tbody>
           </table>
@@ -1164,6 +1332,9 @@ this.$nextTick(() => {
     },
 
     printReceipt(receipt, details = {}) {
+      const pageSize = this.getPrintPageSize(details)
+      if (!pageSize) return
+
       const item = this.getReceiptItem(receipt)
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
 
@@ -1179,12 +1350,17 @@ this.$nextTick(() => {
 
       const personnelName =
         this.escapeHtml(
-          this.getIssuedToName(receipt)
+          details.receivedBy || this.getIssuedToName(receipt)
         )
 
       const description =
         this.escapeHtml(
           item.description || '-'
+        )
+
+      const quantity =
+        this.escapeHtml(
+          receipt.quantity ?? 1
         )
 
       const propertyNumber =
@@ -1230,16 +1406,11 @@ this.$nextTick(() => {
         Number(item.cost || 0)
 
       const amount =
-        this.formatAmount(cost)
+        this.formatAmount(cost * Number(receipt.quantity ?? 1))
 
       const remarks =
         this.escapeHtml(
           details.purpose || receipt.remarks || '-'
-        )
-
-      const receiptStatus =
-        this.escapeHtml(
-          receipt.status || 'Delivered'
         )
 
       const officeName =
@@ -1271,12 +1442,12 @@ this.$nextTick(() => {
           </title>
 
           <style>
-            @page { size: 8.5in 13in portrait; margin: 8mm; }
+            @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 8mm; }
             * { box-sizing: border-box; }
             body { margin: 0; color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 10px; }
-            .page { width: 100%; border: 1px solid #000; padding: 5px; }
-            .header { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; border-bottom: 1px solid #000; min-height: 72px; }
-            .logo-box { border-right: 1px solid #000; height: 72px; display: flex; align-items: center; justify-content: center; }
+            .page { width: 100%; min-height: calc(${pageSize.height}in - 16mm); padding: 5px; display: flex; flex-direction: column; }
+            .header { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; min-height: 72px; }
+            .logo-box { height: 72px; display: flex; align-items: center; justify-content: center; }
             .logo { width: 58px; height: 58px; object-fit: contain; }
             .header-text { line-height: 1.25; padding: 3px; }
             .header-text p { margin: 1px 0; }
@@ -1284,40 +1455,42 @@ this.$nextTick(() => {
             .header h2 { margin: 1px 0; font-size: 10px; color: #000; font-weight: normal; }
             .header p { margin: 1px 0; font-size: 10px; }
             .appendix { text-align: right; margin-top: 4px; font-size: 9px; font-weight: bold; }
-            .receipt-title { text-align: center; color: #000; font-size: 14px; font-weight: bold; padding: 6px 0; margin: 0; border-bottom: 1px solid #000; }
+            .receipt-title { text-align: center; color: #000; font-size: 14px; font-weight: bold; padding: 6px 0; margin: 0; }
             .receipt-title span { color: #000; }
             .receipt-info { display: grid; grid-template-columns: 1fr 1fr; margin: 0; font-size: 10px; font-weight: normal; }
-            .fund-cluster, .par-number { display: flex; align-items: center; gap: 6px; border: 1px solid #000; padding: 6px; min-height: 28px; }
-            .fund-cluster span, .par-number span { display: inline-block; flex: 1; border-bottom: 1px solid #000; padding: 2px 4px; font-weight: normal; min-width: 0; }
+            .fund-cluster, .par-number { display: flex; align-items: center; gap: 6px; padding: 6px; min-height: 28px; }
+            .fund-cluster span, .par-number span { display: inline-block; flex: 1; padding: 2px 4px; font-weight: normal; min-width: 0; }
+            .par-number span { color: #b22222; font-weight: bold; }
             .main-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 0; }
-            .main-table th, .main-table td { border: 1px solid #000; padding: 4px; vertical-align: middle; overflow-wrap: anywhere; }
-            .main-table th { background: #fff; color: #000; text-align: center; font-size: 9px; font-weight: bold; }
+            .main-table th, .main-table td { border: 0; padding: 4px; vertical-align: middle; overflow-wrap: anywhere; }
+            .main-table th { background: #fff; color: #000; text-align: center; font-size: 9px; font-weight: bold; border-bottom: 0.5px solid #000; }
             .main-table td { height: 35px; font-size: 9px; }
+            .main-table tbody tr:first-child td { border-bottom: 0.5px solid #000; }
             .sn { width: 7%; text-align: center; }
             .qty { width: 6%; text-align: center; }
-            .unit { width: 7%; text-align: center; }
-            .article { width: 23%; }
+            .article { width: 30%; }
             .property { width: 14%; text-align: center; }
             .serial { width: 13%; text-align: center; }
             .date { width: 13%; text-align: center; }
             .amount { width: 17%; text-align: right; }
             .total-row td { height: 28px; font-weight: bold; }
-            .total-label, .total-amount { background: #fff; }
+            .total-label, .total-amount { color: #b22222; font-weight: bold; }
             .total-label { text-align: right; }
-            .total-amount { text-align: right; }
-            .lower-details { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #000; border-top: 0; }
+            .total-amount { text-align: right; background: #ffeb3b; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .lower-details { display: grid; grid-template-columns: 1fr 1fr; }
             .lower-left, .lower-right { padding: 7px; min-height: 125px; }
-            .lower-left { border-right: 1px solid #000; }
             .lower-details p { margin: 0 0 7px; line-height: 1.25; }
-            .lower-details strong, .acknowledgement strong { color: #000; }
+            .lower-details strong { color: #000; }
             .line { display: inline-block; border-bottom: 1px solid #000; width: 125px; height: 12px; }
-            .acknowledgement { margin-top: 0; border: 1px solid #000; border-top: 0; padding: 7px; font-size: 9px; line-height: 1.4; }
-            .signature { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 28px; }
-            .signature-box { text-align: center; font-size: 9px; }
-            .signature-line { border-top: 1px solid #000; padding-top: 4px; }
-            .signature-name { margin-top: 4px; font-weight: bold; }
-            .signature-label { margin-top: 3px; }
-            .footer { margin-top: 10px; padding-top: 4px; border-top: 1px solid #000; text-align: center; font-size: 8px; color: #000; font-weight: bold; }
+            .print-footer { width: 100%; margin: auto 0 0; padding-bottom: 0; }
+            .page-number { margin: 0 2px 5px; text-align: right; font-size: 8px; }
+            .signature { display: grid; grid-template-columns: 38% 38%; justify-content: space-between; gap: 12px; min-height: 78px; border-top: 1px solid #000; padding: 5px 0 0; }
+            .signature-box { display: flex; flex-direction: column; font-size: 9px; }
+            .signature-heading { font-weight: bold; }
+            .signature-name { margin-top: 18px; text-align: center; font-weight: bold; }
+            .signature-label, .signature-date { text-align: center; }
+            .signature-label { margin-top: 2px; }
+            .signature-date { margin-top: 2px; }
             @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
           </style>
         </head>
@@ -1334,7 +1507,7 @@ this.$nextTick(() => {
             </div>
 
             <div class="appendix">
-              APPENDIX 71
+              APPENDIX ${this.escapeHtml(details.appendix || '71')}
             </div>
 
             <div class="receipt-title">
@@ -1372,10 +1545,6 @@ this.$nextTick(() => {
                     Qty.
                   </th>
 
-                  <th class="unit">
-                    Unit
-                  </th>
-
                   <th class="article">
                     Article and Description
                   </th>
@@ -1405,11 +1574,7 @@ this.$nextTick(() => {
                   </td>
 
                   <td class="qty">
-                    1
-                  </td>
-
-                  <td class="unit">
-                    unit
+                    ${quantity}
                   </td>
 
                   <td class="article">
@@ -1435,7 +1600,7 @@ this.$nextTick(() => {
 
                 <tr class="total-row">
                   <td
-                    colspan="7"
+                    colspan="6"
                     class="total-label"
                   >
                     Total
@@ -1486,67 +1651,28 @@ this.$nextTick(() => {
                   ${remarks}
                 </p>
 
-                <p>
-                  <strong>DATE ISSUED:</strong>
-                  ${dateIssued}
-                </p>
-
-                <p>
-                  <strong>STATUS:</strong>
-                  ${receiptStatus}
-                </p>
               </div>
             </div>
 
-            <!-- ACKNOWLEDGEMENT -->
-            <div class="acknowledgement">
-              <strong>
-                ACKNOWLEDGEMENT:
-              </strong>
-
-              I hereby acknowledge receipt of the
-              property/item described above and agree
-              to take proper care of the assigned property.
-            </div>
-
-            <!-- SIGNATURES -->
-            <div class="signature">
-              <div class="signature-box">
-                <div class="signature-line">
-                  <strong>
-                    RECEIVED BY:
-                  </strong>
+            <div class="print-footer">
+              <div class="page-number">Page 1 of 1</div>
+              <div class="signature">
+                <div class="signature-box">
+                  <div class="signature-heading">RECEIVED BY</div>
+                  <div class="signature-name">${personnelName}</div>
+                  <div class="signature-label">${this.escapeHtml(details.receivedByDesignation || '')}</div>
+                  <div class="signature-label">Signature over Printed Name</div>
+                  <div class="signature-date">${dateIssued}</div>
                 </div>
 
-                <div class="signature-name">
-                  ${personnelName}
-                </div>
-
-                <div class="signature-label">
-                  Signature over Printed Name
+                <div class="signature-box">
+                  <div class="signature-heading">RECEIVED FROM:</div>
+                  <div class="signature-name">${this.escapeHtml(details.receivedFrom || '-')}</div>
+                  <div class="signature-label">${this.escapeHtml(details.receivedFromDesignation || '')}</div>
+                  <div class="signature-label">Signature over Printed Name</div>
+                  <div class="signature-date">${dateIssued}</div>
                 </div>
               </div>
-
-              <div class="signature-box">
-                <div class="signature-line">
-                  <strong>
-                    RECEIVED FROM:
-                  </strong>
-                </div>
-
-                <div class="signature-name">
-                  ${this.escapeHtml(details.receivedFrom || 'Administrative Officer V')}
-                </div>
-
-                <div class="signature-label">
-                  Signature over Printed Name
-                </div>
-              </div>
-            </div>
-
-            <div class="footer">
-              NUEVA VIZCAYA STATE UNIVERSITY
-              PROPERTY MANAGEMENT SYSTEM
             </div>
           </div>
 
@@ -1572,6 +1698,13 @@ this.$nextTick(() => {
 </script>
 
 <style scoped>
+.receipt-print-details-form .modal-body {
+  max-height: calc(100vh - 12rem);
+  max-height: calc(100dvh - 12rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .table th {
   white-space: nowrap;
 }

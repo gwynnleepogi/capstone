@@ -156,19 +156,12 @@
 
                 <td>
                   <button
-                    class="btn btn-sm btn-outline-success me-2"
-                    @click="editReturn(itemReturn)"
-                    title="Edit"
+                    class="btn btn-sm btn-outline-primary"
+                    @click="viewReturnDetails(itemReturn)"
+                    title="View details"
                   >
-                    Edit
-                  </button>
-
-                  <button
-                    class="btn btn-sm btn-outline-danger"
-                    @click="deleteReturn(itemReturn.id)"
-                    title="Delete"
-                  >
-                    Delete
+                    <i class="bi bi-eye me-1"></i>
+                    Details
                   </button>
                 </td>
               </tr>
@@ -285,26 +278,41 @@
             <div class="modal-body">
               <div class="mb-3">
                 <label class="form-label">
-                  Item
+                  Issued Receipt
                 </label>
 
                 <select
+                  v-if="!editing"
                   class="form-select"
-                  v-model="form.item_id"
+                  v-model="form.property_receipt_id"
                   required
                 >
                   <option value="">
-                    Select Item
+                    Select an issued receipt
                   </option>
 
                   <option
-                    v-for="item in items"
-                    :key="item.id"
-                    :value="item.id"
+                    v-for="receipt in eligibleReceipts"
+                    :key="receipt.id"
+                    :value="receipt.id"
                   >
-                    {{ item.description }}
+                    {{ receipt.receipt_number }} — {{ receipt.items?.description || 'Item' }} ({{ receipt.quantity }})
                   </option>
                 </select>
+                <div v-else class="form-control-plaintext">
+                  {{ selectedReceipt?.receipt_number || 'Receipt details unavailable' }}
+                </div>
+                <div v-if="!editing && eligibleReceipts.length === 0" class="form-text text-warning">
+                  No unreturned issued receipts are available.
+                </div>
+              </div>
+
+              <div v-if="selectedReceipt" class="alert alert-light border">
+                <strong>{{ selectedReceipt.items?.description || 'Item' }}</strong>
+                <div>Property No.: {{ selectedReceipt.items?.property_number || '-' }}</div>
+                <div>Issued quantity to restore: {{ selectedReceipt.quantity }}</div>
+                <div>Current condition: {{ selectedReceipt.items?.condition || '-' }}</div>
+                <div>Current status: {{ selectedReceipt.items?.status || '-' }}</div>
               </div>
 
               <div class="mb-3">
@@ -436,6 +444,64 @@
         </div>
       </div>
     </div>
+
+    <div
+      class="modal fade"
+      id="returnDetailsModal"
+      tabindex="-1"
+      aria-labelledby="returnDetailsModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="returnDetailsModalLabel" class="modal-title">Returned Property Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div v-if="selectedReturn" class="modal-body">
+            <dl class="row mb-0">
+              <dt class="col-sm-4">Property Number</dt>
+              <dd class="col-sm-8">{{ selectedReturn.items?.property_number || '-' }}</dd>
+              <dt class="col-sm-4">Description</dt>
+              <dd class="col-sm-8">{{ selectedReturn.items?.description || '-' }}</dd>
+              <dt class="col-sm-4">Serial Number</dt>
+              <dd class="col-sm-8">{{ selectedReturn.items?.serial_number || '-' }}</dd>
+              <dt class="col-sm-4">Returned Receipt</dt>
+              <dd class="col-sm-8">{{ selectedReturn.property_receipts?.receipt_number || '-' }}</dd>
+              <dt class="col-sm-4">Quantity Restored to Stock</dt>
+              <dd class="col-sm-8">{{ selectedReturn.property_receipts?.quantity ?? '-' }}</dd>
+              <dt class="col-sm-4">Inventory Status</dt>
+              <dd class="col-sm-8"><span class="badge bg-info text-dark">{{ selectedReturn.items?.status || 'Returned' }}</span></dd>
+              <dt class="col-sm-4">Condition After Return</dt>
+              <dd class="col-sm-8">
+                <span class="badge" :class="selectedReturn.condition_after_return === 'Serviceable' ? 'bg-success' : 'bg-danger'">
+                  {{ selectedReturn.condition_after_return || '-' }}
+                </span>
+              </dd>
+              <dt class="col-sm-4">Returned By</dt>
+              <dd class="col-sm-8">{{ selectedReturn.users?.full_name || '-' }}</dd>
+              <dt class="col-sm-4">Office</dt>
+              <dd class="col-sm-8">{{ selectedReturn.offices?.office_name || '-' }}</dd>
+              <dt class="col-sm-4">Return Date</dt>
+              <dd class="col-sm-8">{{ selectedReturn.return_date || '-' }}</dd>
+              <dt class="col-sm-4">Reason</dt>
+              <dd class="col-sm-8">{{ selectedReturn.return_reason || '-' }}</dd>
+              <dt class="col-sm-4">Remarks</dt>
+              <dd class="col-sm-8">{{ selectedReturn.remarks || '-' }}</dd>
+            </dl>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-outline-warning" @click="editSelectedReturn">
+              <i class="bi bi-pencil me-1"></i>Edit
+            </button>
+            <button type="button" class="btn btn-outline-danger" @click="deleteSelectedReturn">
+              <i class="bi bi-trash me-1"></i>Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -448,9 +514,10 @@ export default {
   data() {
     return {
       returns: [],
-      items: [],
+      receipts: [],
       personnel: [],
       offices: [],
+      selectedReturn: null,
 
       search: '',
       conditionFilter: '',
@@ -467,7 +534,7 @@ export default {
 
       form: {
         id: null,
-        item_id: '',
+        property_receipt_id: '',
         returned_by: '',
         office_id: '',
         return_date: '',
@@ -479,6 +546,29 @@ export default {
   },
 
   computed: {
+    selectedReceipt() {
+      return this.receipts.find(
+        receipt => receipt.id === this.form.property_receipt_id
+      ) || null
+    },
+
+    eligibleReceipts() {
+      const returnedReceiptIds = new Set(
+        this.returns.map(itemReturn => itemReturn.property_receipt_id)
+      )
+      const itemsWithUnlinkedReturns = new Set(
+        this.returns
+          .filter(itemReturn => !itemReturn.property_receipt_id)
+          .map(itemReturn => itemReturn.item_id)
+      )
+
+      return this.receipts.filter(receipt =>
+        receipt.status === 'Issued' &&
+        !returnedReceiptIds.has(receipt.id) &&
+        !itemsWithUnlinkedReturns.has(receipt.item_id)
+      )
+    },
+
     filteredReturns() {
       const searchText = this.search.toLowerCase().trim()
 
@@ -597,7 +687,7 @@ export default {
 
   mounted() {
     this.getReturns()
-    this.getItems()
+    this.getReceipts()
     this.getPersonnel()
     this.getOffices()
   },
@@ -699,19 +789,21 @@ export default {
       }
     },
 
-    async getItems() {
+    async getReceipts() {
       try {
-        const response = await fetch(
-          'http://localhost:5000/api/items'
-        )
-
+        const response = await fetch('http://localhost:5000/api/receipts')
         const data = await response.json()
 
-        if (response.ok) {
-          this.items = data
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load issued receipts')
         }
+
+        this.receipts = Array.isArray(data) ? data : []
       } catch (error) {
         console.log(error)
+        window.dispatchEvent(
+          new CustomEvent('show-toast', { detail: error.message })
+        )
       }
     },
 
@@ -752,7 +844,7 @@ export default {
 
       this.form = {
         id: null,
-        item_id: '',
+        property_receipt_id: '',
         returned_by: '',
         office_id: '',
         return_date: new Date()
@@ -777,7 +869,7 @@ export default {
 
       this.form = {
         id: itemReturn.id,
-        item_id: itemReturn.item_id,
+        property_receipt_id: itemReturn.property_receipt_id || '',
         returned_by: itemReturn.returned_by || '',
         office_id: itemReturn.office_id || '',
         return_date: itemReturn.return_date || '',
@@ -794,6 +886,27 @@ export default {
         Modal.getOrCreateInstance(modalElement)
 
       modal.show()
+    },
+
+    viewReturnDetails(itemReturn) {
+      this.selectedReturn = itemReturn
+      Modal.getOrCreateInstance(
+        document.getElementById('returnDetailsModal')
+      ).show()
+    },
+
+    editSelectedReturn() {
+      if (!this.selectedReturn) return
+      const itemReturn = this.selectedReturn
+      Modal.getInstance(document.getElementById('returnDetailsModal'))?.hide()
+      this.editReturn(itemReturn)
+    },
+
+    deleteSelectedReturn() {
+      if (!this.selectedReturn) return
+      const id = this.selectedReturn.id
+      Modal.getInstance(document.getElementById('returnDetailsModal'))?.hide()
+      this.deleteReturn(id)
     },
 
     async saveReturn() {
@@ -820,7 +933,7 @@ export default {
           },
 
           body: JSON.stringify({
-            item_id: this.form.item_id,
+            property_receipt_id: this.form.property_receipt_id,
             returned_by: this.form.returned_by || null,
             office_id: this.form.office_id || null,
             return_date: this.form.return_date || null,
@@ -848,6 +961,7 @@ export default {
         modal.hide()
 
         await this.getReturns()
+        await this.getReceipts()
 
         window.dispatchEvent(
           new CustomEvent('show-toast', {
@@ -895,6 +1009,7 @@ export default {
         }
 
         await this.getReturns()
+        await this.getReceipts()
 
         window.dispatchEvent(
           new CustomEvent('show-toast', {

@@ -19,6 +19,8 @@ router.get('/', async (req, res) => {
           serial_number,
           cost,
           acquisition_date,
+          quantity,
+          condition,
           status,
           accountable_employee
         ),
@@ -30,6 +32,7 @@ router.get('/', async (req, res) => {
           id,
           request_number,
           item_description,
+          quantity,
           purpose,
           status,
           requested_by,
@@ -64,6 +67,7 @@ router.get('/:id', async (req, res) => {
           serial_number,
           cost,
           acquisition_date,
+          quantity,
           status,
           accountable_employee
         ),
@@ -75,6 +79,7 @@ router.get('/:id', async (req, res) => {
           id,
           request_number,
           item_description,
+          quantity,
           purpose,
           status,
           requested_by,
@@ -161,7 +166,7 @@ router.post('/', async (req, res) => {
 
     const { data: item, error: itemError } = await supabase
       .from('items')
-      .select('id, description, status, condition, accountable_employee, quantity, unit')
+      .select('id, description, status, condition, accountable_employee, quantity')
       .eq('id', request.item_id)
       .single()
 
@@ -192,7 +197,7 @@ router.post('/', async (req, res) => {
 
     if (availableQuantity < quantityToIssue) {
       return res.status(400).json({
-        error: `Insufficient stock. Available: ${availableQuantity} ${item.unit || 'unit'}, requested: ${quantityToIssue}.`
+        error: `Insufficient stock. Available: ${availableQuantity}, requested: ${quantityToIssue}.`
       })
     }
 

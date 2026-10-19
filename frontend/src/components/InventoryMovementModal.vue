@@ -31,6 +31,9 @@
           <label>To</label>
           <input type="date" v-model="dateTo" :disabled="period !== 'custom'">
         </div>
+        <p v-if="invalidDateRange" class="date-range-error">
+          The start date must be on or before the end date.
+        </p>
 
         <div class="filter-group">
           <label>Movement Type</label>
@@ -118,9 +121,17 @@
 
       <div class="modal-footer">
         <span>{{ filteredMovements.length }} record(s)</span>
-        <button class="close-footer-button" @click="$emit('close')">
-          Close
-        </button>
+        <div class="footer-actions">
+          <button
+            class="print-button"
+            :disabled="loading || Boolean(errorMessage) || !filteredMovements.length || invalidDateRange"
+            @click="printReport"
+          >
+            <i class="bi bi-printer"></i>
+            Print Movement Report
+          </button>
+          <button class="close-footer-button" @click="$emit('close')">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -151,6 +162,10 @@ export default {
   },
 
   computed: {
+    invalidDateRange() {
+      return Boolean(this.dateFrom && this.dateTo && this.dateFrom > this.dateTo);
+    },
+
     filteredMovements() {
       let result = this.movements;
 
@@ -186,7 +201,7 @@ export default {
       }
 
       return result.sort((a, b) => {
-        return new Date(b.date) - new Date(a.date);
+        return b.date.localeCompare(a.date);
       });
     },
 
@@ -208,6 +223,12 @@ export default {
       if (value) {
         this.loadMovements();
       }
+    }
+  },
+
+  mounted() {
+    if (this.show) {
+      this.loadMovements();
     }
   },
 
@@ -268,6 +289,91 @@ export default {
       }
 
       return parsedDate.toLocaleDateString();
+    },
+
+    escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[character]);
+    },
+
+    printReport() {
+      if (this.invalidDateRange) {
+        return;
+      }
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please allow pop-ups to print the movement report.'
+        }));
+        return;
+      }
+
+      const range = this.dateFrom || this.dateTo
+        ? `${this.dateFrom ? this.formatDate(this.dateFrom) : 'Beginning'} – ${this.dateTo ? this.formatDate(this.dateTo) : 'Present'}`
+        : 'All time';
+      const rows = this.filteredMovements.map(item => `
+        <tr>
+          <td>${this.escapeHtml(this.formatDate(item.date))}</td>
+          <td>${this.escapeHtml(item.propertyNumber || 'N/A')}</td>
+          <td>${this.escapeHtml(item.description || 'N/A')}</td>
+          <td class="${item.type === 'IN' ? 'in' : 'out'}">${this.escapeHtml(item.type)}</td>
+          <td class="number">${this.escapeHtml(item.quantity)}</td>
+          <td>${this.escapeHtml(item.reference || 'N/A')}</td>
+          <td>${this.escapeHtml(item.person || 'N/A')}</td>
+        </tr>
+      `).join('');
+
+      printWindow.document.write(`<!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Inventory Movement Report</title>
+            <style>
+              body { font: 12px Arial, sans-serif; color: #111; margin: 28px; }
+              h1 { margin: 0 0 6px; text-align: center; font-size: 20px; }
+              .range { margin: 0 0 18px; text-align: center; }
+              .summary { display: flex; gap: 24px; margin: 0 0 16px; }
+              table { width: 100%; border-collapse: collapse; }
+              th, td { border: 1px solid #777; padding: 7px; text-align: left; }
+              th { background: #eee; }
+              .in { color: #166534; font-weight: bold; }
+              .out { color: #991b1b; font-weight: bold; }
+              .number { text-align: right; }
+              .signatures { display: flex; justify-content: space-around; margin-top: 64px; }
+              .signature { width: 35%; border-top: 1px solid #111; padding-top: 6px; text-align: center; }
+              @media print { body { margin: 15mm; } }
+            </style>
+          </head>
+          <body>
+            <h1>INVENTORY MOVEMENT REPORT</h1>
+            <p class="range">Reporting period: ${this.escapeHtml(range)}</p>
+            <div class="summary">
+              <span>Total movements: <strong>${this.filteredMovements.length}</strong></span>
+              <span>Items IN: <strong>${this.totalIn}</strong></span>
+              <span>Items OUT: <strong>${this.totalOut}</strong></span>
+            </div>
+            <table>
+              <thead><tr>
+                <th>Date</th><th>Property No.</th><th>Description</th>
+                <th>Movement</th><th>Quantity</th><th>Reference</th>
+                <th>Recipient / Source</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+            <div class="signatures">
+              <div class="signature">Prepared by</div>
+              <div class="signature">Reviewed by</div>
+            </div>
+            <script>window.onload = () => window.print();<\/script>
+          </body>
+        </html>`);
+      printWindow.document.close();
     },
 
     async loadMovements() {
@@ -335,36 +441,36 @@ export default {
         const returns = returnResult ? returnResult.data : [];
 
         const itemMovements = items.map(item => ({
-          id: 'item-' + (item.id || item.item_id || Math.random()),
+          id: 'item-' + (item.id || item.item_id),
           date: this.getDate(item),
           propertyNumber: item.property_number || item.propertyNumber || item.property_no || '',
           description: item.description || item.item_name || item.name || '',
           type: 'IN',
-          quantity: Number(item.quantity || 1),
+          quantity: Number(item.quantity ?? 0),
           reference: item.reference_number || item.reference || '',
           person: item.source || item.supplier || ''
         }));
 
         const receiptMovements = receipts.map(receipt => ({
-          id: 'receipt-' + (receipt.id || receipt.receipt_id || Math.random()),
+          id: 'receipt-' + (receipt.id || receipt.receipt_id),
           date: this.getDate(receipt),
-          propertyNumber: receipt.property_number || receipt.propertyNumber || '',
-          description: receipt.description || receipt.item_name || receipt.name || '',
+          propertyNumber: receipt.items?.property_number || receipt.property_number || receipt.propertyNumber || '',
+          description: receipt.items?.description || receipt.description || receipt.item_name || receipt.name || '',
           type: 'OUT',
-          quantity: Number(receipt.quantity || 1),
+          quantity: Number(receipt.quantity ?? 0),
           reference: receipt.reference_number || receipt.reference || receipt.receipt_number || '',
-          person: receipt.recipient || receipt.received_by || receipt.person || ''
+          person: receipt.users?.full_name || receipt.item_requests?.users?.full_name || receipt.recipient || receipt.received_by || receipt.person || ''
         }));
 
         const returnMovements = returns.map(item => ({
-          id: 'return-' + (item.id || item.return_id || Math.random()),
+          id: 'return-' + (item.id || item.return_id),
           date: this.getDate(item),
-          propertyNumber: item.property_number || item.propertyNumber || '',
-          description: item.description || item.item_name || item.name || '',
+          propertyNumber: item.items?.property_number || item.property_number || item.propertyNumber || '',
+          description: item.items?.description || item.description || item.item_name || item.name || '',
           type: 'IN',
-          quantity: Number(item.quantity || 1),
-          reference: item.reference_number || item.reference || item.return_number || '',
-          person: item.returned_by || item.person || ''
+          quantity: Number(item.property_receipts?.quantity ?? item.quantity ?? 0),
+          reference: item.property_receipts?.receipt_number || item.reference_number || item.reference || item.return_number || '',
+          person: item.users?.full_name || item.returned_by || item.person || ''
         }));
 
         this.movements = [
@@ -382,13 +488,14 @@ export default {
 
     getDate(item) {
       const value =
+        item.return_date ||
+        item.date_issued ||
         item.date ||
-        item.created_at ||
-        item.createdAt ||
         item.acquisition_date ||
         item.acquisitionDate ||
+        item.created_at ||
+        item.createdAt ||
         item.receipt_date ||
-        item.return_date ||
         '';
 
       if (!value) {
@@ -468,6 +575,13 @@ export default {
 .filter-group label {
   font-size: 13px;
   font-weight: 600;
+}
+
+.date-range-error {
+  grid-column: 1 / -1;
+  margin: -8px 0 0;
+  color: #b91c1c;
+  font-size: 13px;
 }
 
 .filter-group input,
@@ -601,6 +715,12 @@ th {
   font-size: 13px;
 }
 
+.footer-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.print-button,
 .close-footer-button {
   padding: 10px 20px;
   border: none;
@@ -608,6 +728,20 @@ th {
   background: #1f2937;
   color: white;
   cursor: pointer;
+}
+
+.print-button {
+  background: #166534;
+  color: white;
+}
+
+.print-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.print-button i {
+  margin-right: 6px;
 }
 
 .close-footer-button:hover {
@@ -630,7 +764,8 @@ th {
   }
 
   .modal-header,
-  .filter-section {
+  .filter-section,
+  .modal-footer {
     padding: 16px;
   }
 
@@ -657,6 +792,11 @@ th {
 
   .table-container {
     padding: 0 16px 16px;
+  }
+
+  .modal-footer,
+  .footer-actions {
+    flex-wrap: wrap;
   }
 }
 </style>

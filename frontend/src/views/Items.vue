@@ -104,10 +104,6 @@
               <input v-model.number="newItem.quantity" type="number" min="0" step="1" class="form-control" required />
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Unit</label>
-              <input v-model.trim="newItem.unit" type="text" class="form-control" placeholder="e.g., piece, pack, box" required />
-            </div>
-            <div class="col-12 col-md-6">
               <label class="form-label">Cost</label>
               <div class="input-group">
                 <span class="input-group-text">₱</span>
@@ -185,7 +181,6 @@
               <th>Property No.</th>
               <th>Description</th>
               <th>Quantity</th>
-              <th>Unit</th>
               <th>Serial No.</th>
               <th>Cost</th>
               <th>Acquisition Date</th>
@@ -199,19 +194,18 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="13" class="text-center py-5">Loading items...</td>
+              <td colspan="12" class="text-center py-5">Loading items...</td>
             </tr>
             <tr v-else-if="error">
-              <td colspan="13" class="text-center text-danger py-5">{{ error }}</td>
+              <td colspan="12" class="text-center text-danger py-5">{{ error }}</td>
             </tr>
             <tr v-else-if="filteredItems.length === 0">
-              <td colspan="13" class="text-center text-secondary py-5">No items found.</td>
+              <td colspan="12" class="text-center text-secondary py-5">No items found.</td>
             </tr>
             <tr v-for="item in filteredItems" :key="item.id">
               <td>{{ item.property_number || '-' }}</td>
               <td>{{ item.description || '-' }}</td>
               <td>{{ item.quantity ?? 0 }}</td>
-              <td>{{ item.unit || '-' }}</td>
               <td>{{ item.serial_number || '-' }}</td>
               <td>₱{{ item.cost || 0 }}</td>
               <td>{{ item.acquisition_date || '-' }}</td>
@@ -237,9 +231,6 @@
                   <button class="btn btn-sm btn-outline-primary" @click="showItemDetails(item)" title="View item details">
                     <i class="bi bi-eye me-1"></i>
                     Details
-                  </button>
-                  <button class="btn btn-sm btn-outline-danger" @click="deleteItem(item)" :disabled="deletingItemId === item.id" title="Delete item">
-                    <i class="bi bi-trash"></i>
                   </button>
                 </div>
               </td>
@@ -276,7 +267,7 @@
                 <dt class="col-sm-5">Serial Number</dt>
                 <dd class="col-sm-7">{{ detailItem.serial_number || '-' }}</dd>
                 <dt class="col-sm-5">Quantity</dt>
-                <dd class="col-sm-7">{{ detailItem.quantity ?? 0 }} {{ detailItem.unit || '' }}</dd>
+                <dd class="col-sm-7">{{ detailItem.quantity ?? 0 }}</dd>
                 <dt class="col-sm-5">Cost</dt>
                 <dd class="col-sm-7">₱{{ detailItem.cost || 0 }}</dd>
                 <dt class="col-sm-5">Acquisition Date</dt>
@@ -314,9 +305,18 @@
             <i class="bi bi-download me-1"></i>
             {{ downloadingDocument ? 'Preparing document...' : 'Download DOCX' }}
           </button>
-          <button type="button" class="btn btn-success" @click="editItemFromDetails">
+          <button type="button" class="btn btn-outline-warning" @click="editItemFromDetails">
             <i class="bi bi-pencil me-1"></i>
             Edit Item
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-danger"
+            :disabled="deletingItemId === detailItem.id"
+            @click="deleteItem(detailItem)"
+          >
+            <i class="bi bi-trash me-1"></i>
+            {{ deletingItemId === detailItem.id ? 'Deleting...' : 'Delete Item' }}
           </button>
         </div>
       </section>
@@ -345,10 +345,6 @@
             <div class="mb-3">
               <label class="form-label">Quantity in Stock</label>
               <input v-model.number="editForm.quantity" type="number" min="0" step="1" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Unit</label>
-              <input v-model.trim="editForm.unit" type="text" class="form-control" required />
             </div>
             <div class="mb-3">
               <label class="form-label">Cost</label>
@@ -416,6 +412,7 @@
 
     <InventoryMovementModal
       v-if="showMovementModal"
+      :show="showMovementModal"
       @close="showMovementModal = false"
       @saved="handleMovementSaved"
     />
@@ -465,7 +462,6 @@ export default {
         property_number: '',
         description: '',
         quantity: 0,
-        unit: 'unit',
         serial_number: '',
         cost: 0,
         acquisition_date: '',
@@ -479,7 +475,6 @@ export default {
         property_number: '',
         description: '',
         quantity: 0,
-        unit: 'unit',
         serial_number: '',
         cost: 0,
         acquisition_date: '',
@@ -687,7 +682,6 @@ export default {
         property_number: item.property_number || '',
         description: item.description || '',
         quantity: Number(item.quantity ?? 0),
-        unit: item.unit || 'unit',
         serial_number: item.serial_number || '',
         cost: item.cost || 0,
         acquisition_date: item.acquisition_date || '',
@@ -776,7 +770,7 @@ export default {
           ['Property Number', item.property_number || '-'],
           ['Description', item.description || '-'],
           ['Serial Number', item.serial_number || '-'],
-          ['Quantity', `${item.quantity ?? 0} ${item.unit || ''}`.trim()],
+          ['Quantity', item.quantity ?? 0],
           [
             'Unit Cost',
             `PHP ${Number(item.cost || 0).toLocaleString('en-PH', {
@@ -1021,7 +1015,6 @@ export default {
         property_number: '',
         description: '',
         quantity: 0,
-        unit: 'unit',
         serial_number: '',
         cost: 0,
         acquisition_date: '',

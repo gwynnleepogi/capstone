@@ -274,19 +274,12 @@
 
               <td>
                 <button
-                  class="btn btn-sm btn-outline-success me-1"
-                  @click="startEdit(office)"
+                  class="btn btn-sm btn-outline-primary"
+                  @click="viewOfficeDetails(office)"
+                  title="View office details"
                 >
-                  <i class="bi bi-pencil"></i>
-                  Edit
-                </button>
-
-                <button
-                  class="btn btn-sm btn-outline-danger"
-                  @click="deleteOffice(office)"
-                >
-                  <i class="bi bi-trash"></i>
-                  Delete
+                  <i class="bi bi-eye me-1"></i>
+                  Details
                 </button>
               </td>
             </tr>
@@ -357,10 +350,42 @@
         </div>
       </div>
     </div>
+
+    <div class="modal fade" id="officeDetailsModal" tabindex="-1" aria-labelledby="officeDetailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="officeDetailsModalLabel" class="modal-title">Office Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div v-if="selectedOffice" class="modal-body">
+            <dl class="row mb-0">
+              <dt class="col-sm-4">Office Name</dt>
+              <dd class="col-sm-8">{{ selectedOffice.office_name || '-' }}</dd>
+              <dt class="col-sm-4">Office Code</dt>
+              <dd class="col-sm-8">{{ selectedOffice.office_code || '-' }}</dd>
+              <dt class="col-sm-4">Created At</dt>
+              <dd class="col-sm-8">{{ formatDate(selectedOffice.created_at) }}</dd>
+            </dl>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-outline-warning" @click="editSelectedOffice">
+              <i class="bi bi-pencil me-1"></i>Edit
+            </button>
+            <button type="button" class="btn btn-outline-danger" @click="deleteSelectedOffice">
+              <i class="bi bi-trash me-1"></i>Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+import { Modal } from 'bootstrap'
+
 export default {
   name: 'Offices',
 
@@ -373,6 +398,7 @@ export default {
       error: '',
       showAddForm: false,
       editingOffice: null,
+      selectedOffice: null,
 
       search: '',
       officeNameFilter: '',
@@ -665,6 +691,27 @@ export default {
         top: 0,
         behavior: 'smooth'
       })
+    },
+
+    viewOfficeDetails(office) {
+      this.selectedOffice = office
+      Modal.getOrCreateInstance(
+        document.getElementById('officeDetailsModal')
+      ).show()
+    },
+
+    editSelectedOffice() {
+      if (!this.selectedOffice) return
+      const office = this.selectedOffice
+      Modal.getInstance(document.getElementById('officeDetailsModal'))?.hide()
+      this.startEdit(office)
+    },
+
+    deleteSelectedOffice() {
+      if (!this.selectedOffice) return
+      const office = this.selectedOffice
+      Modal.getInstance(document.getElementById('officeDetailsModal'))?.hide()
+      this.deleteOffice(office)
     },
 
     async saveOffice() {

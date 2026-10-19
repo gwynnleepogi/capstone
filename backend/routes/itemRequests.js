@@ -141,6 +141,65 @@ router.get('/available-items', async (req, res) => {
   res.json(freeItems)
 })
 
+router.patch(
+  '/:id/status',
+  requireRole('Administrator', 'Personnel'),
+  async (req, res) => {
+    const { status } = req.body
+
+    if (!['Approved', 'Rejected'].includes(status)) {
+      return res.status(400).json({
+        error: 'Request status must be Approved or Rejected'
+      })
+    }
+
+    const { data: oldData, error: oldError } = await supabase
+      .from('item_requests')
+      .select('*')
+      .eq('id', req.params.id)
+      .single()
+
+    if (oldError || !oldData) {
+      return res.status(404).json({ error: 'Item request not found' })
+    }
+
+    if (oldData.status !== 'Pending') {
+      return res.status(400).json({
+        error: `Only pending requests can be accepted or rejected. Current status: ${oldData.status}`
+      })
+    }
+
+    const { data, error } = await supabase
+      .from('item_requests')
+      .update({ status })
+      .eq('id', req.params.id)
+      .eq('status', 'Pending')
+      .select()
+      .maybeSingle()
+
+    if (error) {
+      return res.status(500).json({ error: error.message })
+    }
+
+    if (!data) {
+      return res.status(409).json({
+        error: 'This request was already updated. Refresh and try again.'
+      })
+    }
+
+    await createAuditLog(
+      'Updated',
+      data.id,
+      JSON.stringify(oldData),
+      JSON.stringify(data),
+      `${status === 'Approved' ? 'Accepted' : 'Rejected'} item request: ${data.request_number}`,
+      req.profile.id
+    )
+
+    res.json(data)
+  }
+)
+
 async function getSelectedItem(itemId, excludeRequestId) {
   const { data, error } = await supabase
     .from('items')

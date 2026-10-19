@@ -90,7 +90,7 @@ router.get('/:itemId/:token', async (req, res) => {
       ['Property Number', item.property_number || '-'],
       ['Description', item.description || '-'],
       ['Serial Number', item.serial_number || '-'],
-      ['Quantity', `${item.quantity ?? 0} ${item.unit || ''}`.trim()],
+      ['Quantity', item.quantity ?? 0],
       [
         'Unit Cost',
         `PHP ${Number(item.cost || 0).toLocaleString('en-PH', {
