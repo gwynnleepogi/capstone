@@ -189,7 +189,7 @@ router.patch(
 
     await createAuditLog(
       'Updated',
-      data.id,
+      data.item_id,
       JSON.stringify(oldData),
       JSON.stringify(data),
       `${status === 'Approved' ? 'Accepted' : 'Rejected'} item request: ${data.request_number}`,
@@ -347,7 +347,7 @@ router.post('/', async (req, res) => {
 
   await createAuditLog(
     'Created',
-    data.id,
+    data.item_id,
     null,
     JSON.stringify(data),
     'Added item request: ' + data.request_number,
@@ -536,7 +536,7 @@ router.put(
 
     await createAuditLog(
       'Updated',
-      data.id,
+      data.item_id,
       JSON.stringify(oldData),
       JSON.stringify(data),
       'Updated item request: ' + data.request_number,
@@ -585,7 +585,7 @@ router.delete(
 
     await createAuditLog(
       'Deleted',
-      req.params.id,
+      oldData.item_id,
       JSON.stringify(oldData),
       null,
       'Deleted item request: ' + oldData.request_number,

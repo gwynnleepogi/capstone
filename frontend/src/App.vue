@@ -88,6 +88,15 @@
           Personnel
         </router-link>
 
+        <button
+          type="button"
+          class="nav-link scanner-nav-button"
+          @click="openQrScanner"
+        >
+          <i class="bi bi-qr-code-scan"></i>
+          Scan Item QR
+        </button>
+
         <router-link
           v-if="canAccess(['Administrator','Personnel',  'Teacher', 'Non-Teaching Staff'])"
           to="/request"
@@ -96,6 +105,13 @@
         >
           <i class="bi bi-file-earmark-text"></i>
           Requests
+          <span
+            v-if="canAccess(['Administrator', 'Personnel']) && pendingRequestCount > 0"
+            class="request-count-badge"
+            :aria-label="`${pendingRequestCount} pending requests`"
+          >
+            {{ pendingRequestCount > 99 ? '99+' : pendingRequestCount }}
+          </span>
         </router-link>
 
         <router-link
@@ -119,7 +135,7 @@
         </router-link>
 
         <router-link
-          v-if="canAccess(['Administrator', 'Personnel'])"
+          v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])"
           to="/audit-logs"
           class="nav-link"
           @click="menuOpen = false"
@@ -131,6 +147,12 @@
       </nav>
 
     </aside>
+
+    <ItemQrScanner
+      v-if="showQrScanner"
+      @close="showQrScanner = false"
+      @scanned="openScannedItem"
+    />
 
     <main class="content">
       <router-view v-slot="{ Component }">
@@ -155,17 +177,29 @@
 
 
 <script>
+import { defineAsyncComponent } from 'vue'
 import logo from './assets/LOGO.png'
+
+const ItemQrScanner = defineAsyncComponent(
+  () => import('./components/ItemQrScanner.vue')
+)
 
 export default {
 
   name: 'App',
+
+  components: {
+    ItemQrScanner
+  },
 
   data() {
     return {
       logo,
       menuOpen: false,
       currentUser: JSON.parse(localStorage.getItem('user') || 'null'),
+      pendingRequestCount: 0,
+      showQrScanner: false,
+      requestCountTimer: null,
       toast: {
         show: false,
         message: ''
@@ -178,18 +212,30 @@ export default {
     window.addEventListener('user-updated', this.handleUserUpdated)
     window.addEventListener('show-toast', this.handleToast)
     window.addEventListener('storage', this.handleStorageChange)
+    window.addEventListener('item-requests-updated', this.refreshPendingRequestCount)
+    this.refreshPendingRequestCount()
+    this.requestCountTimer = setInterval(this.refreshPendingRequestCount, 30000)
   },
 
   beforeUnmount() {
     window.removeEventListener('user-updated', this.handleUserUpdated)
     window.removeEventListener('show-toast', this.handleToast)
     window.removeEventListener('storage', this.handleStorageChange)
+    window.removeEventListener('item-requests-updated', this.refreshPendingRequestCount)
+    clearInterval(this.requestCountTimer)
+  },
+
+  watch: {
+    '$route.fullPath'() {
+      this.refreshPendingRequestCount()
+    }
   },
 
   methods: {
 
     handleUserUpdated(event) {
       this.currentUser = event.detail
+      this.refreshPendingRequestCount()
 
       this.showToast('Welcome back, ' + event.detail.role + '!')
 
@@ -225,6 +271,34 @@ export default {
     handleStorageChange(event) {
       if (event.key === 'user') {
         this.currentUser = JSON.parse(event.newValue || 'null')
+        this.refreshPendingRequestCount()
+      }
+    },
+
+    async refreshPendingRequestCount() {
+      if (
+        !this.canAccess(['Administrator', 'Personnel']) ||
+        !localStorage.getItem('accessToken')
+      ) {
+        this.pendingRequestCount = 0
+        return
+      }
+
+      try {
+        const response = await fetch('/api/item-requests')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load pending request count')
+        }
+
+        if (!Array.isArray(data)) {
+          throw new Error('The requests response was not a list')
+        }
+
+        this.pendingRequestCount = data.filter(request => request.status === 'Pending').length
+      } catch (error) {
+        console.error('Pending request count error:', error)
       }
     },
 
@@ -232,8 +306,23 @@ export default {
       return roles.includes(this.currentUser?.role)
     },
 
+    openQrScanner() {
+      this.menuOpen = false
+      this.showQrScanner = true
+    },
+
+    openScannedItem({ id, token }) {
+      this.showQrScanner = false
+      this.$router.push({
+        name: 'PublicItemDetails',
+        params: { id },
+        query: { token }
+      })
+    },
+
     logout() {
       this.currentUser = null
+      this.pendingRequestCount = 0
       this.menuOpen = false
 
       localStorage.removeItem('accessToken')
@@ -255,7 +344,7 @@ export default {
 /* Global */
 
 :root {
-  --ui-zoom: 1;
+  --ui-zoom: .8;
   --app-forest: #2f5d3a;
   --app-leaf: #4f7f52;
   --app-gold: #e8c547;
@@ -298,12 +387,16 @@ export default {
 
 html {
   min-height: 100%;
+  background: #f7f5e8;
 }
 
 body {
   font-family: Arial, sans-serif;
-  min-height: 100%;
+  min-height: 125vh;
+  min-height: 125dvh;
   overflow-x: hidden;
+  background: #f7f5e8;
+  zoom: var(--ui-zoom);
 }
 
 
@@ -311,8 +404,8 @@ body {
 
 .layout {
   display: flex;
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 125vh;
+  min-height: 125dvh;
   align-items: flex-start;
 }
 
@@ -325,10 +418,10 @@ body {
   left: 0;
 
   width: 250px;
-  height: 100vh;
-  height: 100dvh;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 125vh;
+  height: 125dvh;
+  min-height: 125vh;
+  min-height: 125dvh;
 
   padding: 25px 15px;
 
@@ -370,6 +463,30 @@ body {
   margin-right: 10px;
 }
 
+.sidebar .scanner-nav-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.sidebar .request-count-badge {
+  display: inline-flex;
+  min-width: 21px;
+  height: 21px;
+  margin-left: 8px;
+  padding: 0 6px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #b85c50;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+}
+
 .sidebar .nav-link:hover {
   background: #4F7F52;
 }
@@ -385,8 +502,8 @@ body {
 .content {
   flex: 1;
   min-width: 0;
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 125vh;
+  min-height: 125dvh;
   padding: clamp(16px, 2vw, 28px);
 
   background: #F7F5E8;
@@ -696,8 +813,8 @@ body {
 
   .layout {
     display: block;
-    min-height: 100vh;
-    min-height: 100dvh;
+    min-height: 125vh;
+    min-height: 125dvh;
   }
 
   .mobile-header {
@@ -805,8 +922,8 @@ body {
 
   .content {
     width: 100%;
-    min-height: calc(100vh - 60px);
-    min-height: calc(100dvh - 60px);
+    min-height: calc(125vh - 60px);
+    min-height: calc(125dvh - 60px);
     padding: clamp(16px, 3vw, 26px);
   }
 
@@ -860,13 +977,13 @@ body {
 
   .sidebar {
     top: 54px;
-    max-height: calc(100vh - 54px);
-    max-height: calc(100dvh - 54px);
+    max-height: calc(125vh - 54px);
+    max-height: calc(125dvh - 54px);
   }
 
   .content {
-    min-height: calc(100vh - 54px);
-    min-height: calc(100dvh - 54px);
+    min-height: calc(125vh - 54px);
+    min-height: calc(125dvh - 54px);
     padding: 14px 12px;
   }
 

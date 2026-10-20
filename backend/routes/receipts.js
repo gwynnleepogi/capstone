@@ -136,7 +136,7 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Item request not found' })
     }
 
-    if (request.status !== 'Approved') {
+    if (String(request.status || '').trim().toLowerCase() !== 'approved') {
       return res.status(400).json({
         error: 'Only approved requests can be issued'
       })

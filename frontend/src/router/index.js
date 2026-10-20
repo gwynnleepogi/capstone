@@ -93,7 +93,7 @@ const router = createRouter({
     path: '/audit-logs',
     name: 'AuditSLogs',
     component: AuditLogs,
-      meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'] }
   }
 ]
 })

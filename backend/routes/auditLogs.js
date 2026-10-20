@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     .order('created_at', { ascending: false })
 
   if (req.role === 'Teacher' || req.role === 'Non-Teaching Staff') {
-    query = query.eq('actor_user_id', req.profile.id)
+    query = query.eq('user_id', req.profile.id)
   }
 
   const { data, error } = await query

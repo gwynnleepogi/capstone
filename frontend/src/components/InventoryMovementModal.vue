@@ -467,6 +467,8 @@ export default {
     async loadMovements() {
       this.loading = true;
       this.errorMessage = '';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
         const token = localStorage.getItem('accessToken');
@@ -489,17 +491,11 @@ export default {
           endpoints.map(async endpoint => {
             const response = await fetch(endpoint.url, {
               method: 'GET',
-              headers: headers
+              headers: headers,
+              signal: controller.signal
             });
 
             if (!response.ok) {
-              if (response.status === 404) {
-                return {
-                  type: endpoint.type,
-                  data: []
-                };
-              }
-
               throw new Error(
                 'Unable to load ' + endpoint.type + '. HTTP ' + response.status
               );
@@ -567,9 +563,11 @@ export default {
           ...returnMovements
         ].filter(item => item.date);
       } catch (error) {
-        this.errorMessage =
-          error.message || 'An error occurred while loading movement records.';
+        this.errorMessage = error.name === 'AbortError'
+          ? 'Loading inventory movements timed out. Check your connection and try again.'
+          : error.message || 'An error occurred while loading movement records.';
       } finally {
+        clearTimeout(timeoutId);
         this.loading = false;
       }
     },

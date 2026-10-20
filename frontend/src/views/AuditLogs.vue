@@ -116,7 +116,7 @@
                       class="details-button"
                       @click="toggleDetails(log.id)"
                     >
-                      <span>View item details</span>
+                      <span>View activity details</span>
 
                       <i
                         class="bi bi-chevron-down"
@@ -133,7 +133,7 @@
                           <strong>
                             {{
                               log.action === 'Deleted'
-                                ? 'Deleted item'
+                                ? 'Deleted record'
                                 : 'Before'
                             }}
                           </strong>
@@ -159,7 +159,7 @@
                           <strong>
                             {{
                               log.action === 'Created'
-                                ? 'Added item'
+                                ? 'Added record'
                                 : 'After'
                             }}
                           </strong>
@@ -615,6 +615,17 @@ export default {
         )
       }
 
+      const values = this.parseLogValue(log.new_value) ||
+        this.parseLogValue(log.old_value)
+
+      if (values?.item_description) {
+        return values.item_description
+      }
+
+      if (values?.request_number) {
+        return values.request_number
+      }
+
       if (log.description) {
         const description = log.description
 
@@ -632,19 +643,25 @@ export default {
       return '-'
     },
 
+    parseLogValue(value) {
+      if (!value) {
+        return null
+      }
+
+      try {
+        return typeof value === 'string' ? JSON.parse(value) : value
+      } catch {
+        return null
+      }
+    },
+
     detailEntries(value) {
       if (!value) {
         return []
       }
 
-      let parsed = value
-
-      try {
-        parsed =
-          typeof value === 'string'
-            ? JSON.parse(value)
-            : value
-      } catch {
+      const parsed = this.parseLogValue(value)
+      if (!parsed || typeof parsed !== 'object') {
         return []
       }
 
@@ -659,7 +676,13 @@ export default {
         'condition',
         'status',
         'accountable_employee',
-        'responsibility_center'
+        'responsibility_center',
+        'request_number',
+        'item_description',
+        'quantity',
+        'purpose',
+        'requested_by',
+        'office_id'
       ]
 
       return Object.entries(parsed)
@@ -687,7 +710,13 @@ export default {
         condition: 'Condition',
         status: 'Status',
         accountable_employee: 'Accountable Employee',
-        responsibility_center: 'Responsibility Center'
+        responsibility_center: 'Responsibility Center',
+        request_number: 'Request Number',
+        item_description: 'Requested Item',
+        quantity: 'Quantity',
+        purpose: 'Purpose',
+        requested_by: 'Requested By',
+        office_id: 'Office ID'
       }
 
       return labels[key] || key

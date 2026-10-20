@@ -743,6 +743,7 @@ export default {
         }
 
         await this.getRequests()
+        this.notifyRequestCountChanged()
         this.showToast(
           status === 'Approved'
             ? 'Request accepted successfully'
@@ -1065,6 +1066,7 @@ export default {
 
         await this.getRequests()
         await this.getItems()
+        this.notifyRequestCountChanged()
 
         this.showToast(
           this.editing
@@ -1107,6 +1109,7 @@ export default {
 
         await this.getRequests()
         await this.getItems()
+        this.notifyRequestCountChanged()
 
         this.showToast(
           'Request deleted successfully'
@@ -1124,6 +1127,10 @@ export default {
           detail: message
         })
       )
+    },
+
+    notifyRequestCountChanged() {
+      window.dispatchEvent(new Event('item-requests-updated'))
     },
 
     getStatusClass(status) {

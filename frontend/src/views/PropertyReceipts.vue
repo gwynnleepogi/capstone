@@ -170,7 +170,11 @@
                   required
                 >
                   <option value="">
-                    Select Approved Item Request
+                    {{
+                      itemRequests.length
+                        ? 'Select Approved Item Request'
+                        : 'No approved requests available'
+                    }}
                   </option>
 
                   <option
@@ -182,6 +186,16 @@
                     {{ request.item_description }}
                   </option>
                 </select>
+                <small class="text-muted">
+                  Only approved requests with an assigned inventory item can be issued. Delivered requests already have a receipt.
+                  <button
+                    type="button"
+                    class="btn btn-link btn-sm p-0 ms-1"
+                    @click="getItemRequests"
+                  >
+                    Refresh list
+                  </button>
+                </small>
               </div>
 
               <!-- SELECTED ITEM DETAILS -->
@@ -640,6 +654,13 @@ export default {
     this.getItems()
     this.getPersonnel()
     this.getItemRequests()
+    window.addEventListener('focus', this.getItemRequests)
+    window.addEventListener('item-requests-updated', this.getItemRequests)
+  },
+
+  beforeUnmount() {
+    window.removeEventListener('focus', this.getItemRequests)
+    window.removeEventListener('item-requests-updated', this.getItemRequests)
   },
 
   methods: {
@@ -766,8 +787,7 @@ export default {
             []
 
         this.itemRequests = requests.filter(
-          request =>
-            request.status === 'Approved' &&
+          request => String(request.status || '').trim().toLowerCase() === 'approved' &&
             request.item_id
         )
       } catch (error) {
