@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import Login from '@/views/Login.vue'
-import PublicItemDetails from '@/views/PublicItemDetails.vue'
 import Dashboard from '@/views/Dashboard.vue'
 import Items from '@/views/Items.vue'
 import Offices from '@/views/Offices.vue'
@@ -26,8 +25,10 @@ const router = createRouter({
     {
       path: '/public-item/:id',
       name: 'PublicItemDetails',
-      component: PublicItemDetails,
-      meta: { public: true }
+      redirect: to => ({
+        name: 'Items',
+        query: { item: to.params.id }
+      })
     },
     {
     path: '/',

@@ -265,7 +265,17 @@
             <p><strong>Action:</strong> {{ selectedLog.action || '-' }}</p>
             <p><strong>Item:</strong> {{ getItemName(selectedLog) }}</p>
             <p><strong>Description:</strong> {{ selectedLog.description || '-' }}</p>
-            <div v-if="selectedLog.old_value" class="mb-3">
+            <button
+              v-if="canSeeDeleteButton"
+              type="button"
+              class="btn btn-outline-danger btn-sm mb-3"
+              :disabled="!isAdmin"
+              :title="isAdmin ? 'Delete this audit log' : 'Only administrators can delete audit logs'"
+              @click="deleteSelectedLog"
+            >
+              <i class="bi bi-trash me-1"></i>Delete this audit log
+            </button>
+            <div v-if="isItemLog(selectedLog) && selectedLog.old_value" class="mb-3">
               <strong>Before</strong>
               <div class="detail-grid">
                 <div v-for="entry in detailEntries(selectedLog.old_value)" :key="entry.key" class="detail-field">
@@ -274,7 +284,7 @@
                 </div>
               </div>
             </div>
-            <div v-if="selectedLog.new_value">
+            <div v-if="isItemLog(selectedLog) && selectedLog.new_value">
               <strong>After</strong>
               <div class="detail-grid">
                 <div v-for="entry in detailEntries(selectedLog.new_value)" :key="entry.key" class="detail-field">
@@ -286,9 +296,6 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button v-if="isAdmin" type="button" class="btn btn-outline-danger" @click="deleteSelectedLog">
-              <i class="bi bi-trash me-1"></i>Delete
-            </button>
           </div>
         </div>
       </div>
@@ -348,6 +355,14 @@ export default {
       )
 
       return user?.role === 'Administrator'
+    },
+
+    canSeeDeleteButton() {
+      const user = JSON.parse(
+        localStorage.getItem('user') || 'null'
+      )
+
+      return ['Administrator', 'Personnel'].includes(user?.role)
     },
 
     filteredLogs() {

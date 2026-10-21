@@ -116,6 +116,25 @@ export default {
         return
       }
 
+      const systemItemId = scannedUrl.searchParams.get('item')
+      const isSystemItemLink =
+        scannedUrl.pathname === '/items' &&
+        typeof systemItemId === 'string' &&
+        systemItemId.length > 0
+
+      if (
+        ['http:', 'https:'].includes(scannedUrl.protocol) &&
+        isSystemItemLink
+      ) {
+        this.hasScanned = true
+        this.stopScanner()
+        this.$emit('scanned', {
+          id: systemItemId,
+          destination: 'system'
+        })
+        return
+      }
+
       const match = scannedUrl.pathname.match(/^\/public-item\/([^/]+)\/?$/)
       const token = scannedUrl.searchParams.get('token')
 

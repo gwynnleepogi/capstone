@@ -119,7 +119,13 @@
                 aria-label="Inventory classification chart"
               >
                 <svg class="chart-ring" viewBox="0 0 100 100" aria-hidden="true">
-                  <circle class="chart-track" cx="50" cy="50" r="44" />
+                  <circle
+                    class="chart-track"
+                    :class="{ 'has-data': items.length > 0 }"
+                    cx="50"
+                    cy="50"
+                    r="44"
+                  />
                   <circle
                     v-for="segment in classificationChartSegments"
                     :key="segment.name"
@@ -211,7 +217,13 @@
                 aria-label="Inventory status chart"
               >
                 <svg class="chart-ring" viewBox="0 0 100 100" aria-hidden="true">
-                  <circle class="chart-track" cx="50" cy="50" r="44" />
+                  <circle
+                    class="chart-track"
+                    :class="{ 'has-data': items.length > 0 }"
+                    cx="50"
+                    cy="50"
+                    r="44"
+                  />
                   <circle
                     v-for="segment in statusChartSegments"
                     :key="segment.name"
@@ -413,7 +425,10 @@ export default {
 
       error: '',
 
-      chartCircumference: 2 * Math.PI * 44
+      chartCircumference: 2 * Math.PI * 44,
+
+      // White gap between segments (in ring units, circumference is ~276)
+      segmentGap: 2.5
 
     }
 
@@ -456,19 +471,27 @@ export default {
         (sum, definition) => sum + definition.count,
         0
       )
+
+      // Only add white gaps when more than one segment is visible
+      const visibleCount = definitions.filter(
+        definition => definition.count > 0
+      ).length
+      const gap = visibleCount > 1 ? this.segmentGap : 0
+
       let offset = 0
 
       return definitions.map(definition => {
-        const length = total
+        const fullLength = total
           ? (definition.count / total) * this.chartCircumference
           : 0
+        const length = Math.max(0, fullLength - gap)
         const segment = {
           ...definition,
           length,
-          offset
+          offset: offset + gap / 2
         }
 
-        offset += length
+        offset += fullLength
         return segment
       })
     },
@@ -662,7 +685,15 @@ h1 {
   padding: 11px 14px;
 }
 
+/* Both chart cards: same height, chart centered in the same spot */
+.analytics-card .card-body {
+  display: flex;
+  align-items: center;
+}
+
 .chart-layout {
+  width: 100%;
+  min-height: 190px;
   display: grid;
   grid-template-columns: minmax(110px, .7fr) minmax(0, 1.3fr);
   align-items: center;
@@ -701,6 +732,11 @@ h1 {
 
 .chart-track {
   stroke: #e5e5e5;
+}
+
+/* White shows through the gaps between segments */
+.chart-track.has-data {
+  stroke: #fff;
 }
 
 .chart-ring-segment {
@@ -889,6 +925,7 @@ h1 {
 
   .chart-layout {
     grid-template-columns: 1fr;
+    min-height: 0;
   }
 
   .doughnut-chart {

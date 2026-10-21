@@ -435,7 +435,7 @@
     >
       <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-          <form @submit.prevent="confirmPrintRIS">
+          <form class="receipt-print-details-form" @submit.prevent="confirmPrintRIS">
             <div class="modal-header">
               <h5 class="modal-title" id="risDetailsModalLabel">Complete RIS Details</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -447,6 +447,18 @@
                 <div class="col-md-6">
                   <label class="form-label">Fund Cluster <span class="text-danger">*</span></label>
                   <input class="form-control" v-model.trim="risForm.fundCluster" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Division</label>
+                  <input class="form-control" v-model.trim="risForm.division">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Office</label>
+                  <input class="form-control" v-model.trim="risForm.officeName">
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Purpose</label>
+                  <textarea class="form-control" v-model.trim="risForm.purpose" rows="2"></textarea>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Requested By <span class="text-danger">*</span></label>
@@ -1104,6 +1116,9 @@ this.$nextTick(() => {
       this.selectedRISReceipt = receipt
       this.risForm = {
         fundCluster: request.fund_cluster || receipt.fund_cluster || '',
+        division: request.division || receipt.division || '',
+        officeName: request.offices?.office_name || receipt.offices?.office_name || request.office_name || receipt.office_name || '',
+        purpose: request.purpose || receipt.purpose || request.remarks || '',
         requestedBy: request.requested_by_name || request.users?.full_name || '',
         requestedDesignation: request.requested_by_designation || '',
         approvedBy: receipt.approved_by_name || '',
@@ -1165,8 +1180,8 @@ this.$nextTick(() => {
 
       const receiptNumber = escape(receipt.receipt_number)
       const dateIssued = escape(receipt.date_issued)
-      const officeName = escape(office.office_name || request.office_name || receipt.office_name)
-      const division = escape(request.division || receipt.division)
+      const officeName = escape(details.officeName || office.office_name || request.office_name || receipt.office_name)
+      const division = escape(details.division || request.division || receipt.division)
       const responsibilityCenter = escape(request.responsibility_center || receipt.responsibility_center || item.responsibility_center)
       const fundCluster = escape(details.fundCluster || request.fund_cluster || receipt.fund_cluster)
       const description = escape(item.description || request.item_description)
@@ -1184,7 +1199,7 @@ this.$nextTick(() => {
         Number.isFinite(requestedQuantity) &&
         availableQuantity >= requestedQuantity
       )
-      const purpose = escape(request.purpose || receipt.purpose || request.remarks)
+      const purpose = escape(details.purpose || request.purpose || receipt.purpose || request.remarks)
       const remarks = escape(receipt.remarks || request.remarks)
 
       printWindow.document.write(`
@@ -1197,7 +1212,8 @@ this.$nextTick(() => {
             @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 8mm; }
             * { box-sizing: border-box; }
             body { font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 10px; margin: 0; }
-            .form-frame { border: 1px solid #000; padding: 5px; }
+            .header-frame { border: 1px solid #000; margin-bottom: 0; }
+            .content-frame { border: 1px solid #000; padding: 0; }
             .letterhead { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; border-bottom: 1px solid #000; min-height: 72px; }
             .logo-box { border-right: 1px solid #000; height: 72px; display: flex; align-items: center; justify-content: center; }
             .logo { width: 58px; height: 58px; object-fit: contain; }
@@ -1213,16 +1229,15 @@ this.$nextTick(() => {
             .items th { height: 29px; }
             .items td { height: 30px; }
             .center { text-align: center; }
-            .purpose { border: 1px solid #000; border-top: 0; padding: 7px 5px; min-height: 35px; }
-            .signature-table { margin-top: 7px; }
-            .signature-table th,
-            .signature-table td { border: 0; }
-            .signature-table th { text-align: left; height: 23px; }
-            .signature-table td { height: 48px; vertical-align: top; }
-            .signature-space { margin: 8px 8px 0; text-align: center; }
-            .signature-line { border-top: 0.5px solid #000; margin: 2px 0; }
+            .purpose { border: 1px solid #000; border-top: 0; border-bottom: 0; padding: 7px 5px; min-height: 35px; }
+            .signature-table { margin: 0; border-collapse: collapse; }
+            .signature-table td { width: 25%; border: 0.5px solid #777; padding: 4px; vertical-align: top; }
+            .signature-table tr:first-child td { border-top: 0.5px solid #777; }
+            .signature-heading { font-weight: bold; }
+            .signature-space { margin: 15px 2px 0; text-align: center; }
+            .signature-line { border-top: 0.5px solid #777; margin: 2px 0; }
             .small { font-size: 9px; }
-            .instructions { margin-top: 6px; border: 1px solid #000; padding: 5px 6px; font-size: 7px; line-height: 1.2; }
+            .instructions { margin-top: 0; padding: 5px 6px; font-size: 7px; line-height: 1.2; }
             .instructions-title { text-align: center; font-weight: bold; text-decoration: underline; margin-bottom: 4px; }
             .instructions p { margin: 0 0 3px; }
             .instructions .copies { margin-left: 10px; }
@@ -1231,7 +1246,7 @@ this.$nextTick(() => {
           </style>
         </head>
         <body>
-          <div class="form-frame">
+          <div class="header-frame">
             <div class="letterhead">
               <div class="logo-box"><img class="logo" src="${logoUrl}" alt="NVSU Logo"></div>
               <div class="letterhead-text">
@@ -1242,7 +1257,9 @@ this.$nextTick(() => {
             </div>
 
             <div class="document-title">REQUISITION AND ISSUE SLIP (RIS)</div>
+          </div>
 
+          <div class="content-frame">
             <table class="meta">
               <tbody>
                 <tr>
@@ -1304,20 +1321,22 @@ this.$nextTick(() => {
           <table class="signature-table">
             <tbody>
               <tr>
-                <th colspan="2">Requested by:</th>
-                <th colspan="2">Approved by:</th>
-              </tr>
-              <tr>
-                <td colspan="2"><div class="signature-space"><strong>${escape(details.requestedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.requestedDesignation)}</div></div></td>
-                <td colspan="2"><div class="signature-space"><strong>${escape(details.approvedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.approvedDesignation)}</div></div></td>
-              </tr>
-              <tr>
-                <th colspan="2">Issued by:</th>
-                <th colspan="2">Received by:</th>
-              </tr>
-              <tr>
-                <td colspan="2"><div class="signature-space"><strong>${escape(details.issuedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.issuedDesignation)}</div></div></td>
-                <td colspan="2"><div class="signature-space"><strong>${escape(details.receivedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.receivedDesignation)}</div></div></td>
+                <td>
+                  <div class="signature-heading">Requested by:</div>
+                  <div class="signature-space"><strong>${escape(details.requestedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.requestedDesignation)}</div></div>
+                </td>
+                <td>
+                  <div class="signature-heading">Approved by:</div>
+                  <div class="signature-space"><strong>${escape(details.approvedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.approvedDesignation)}</div></div>
+                </td>
+                <td>
+                  <div class="signature-heading">Issued by:</div>
+                  <div class="signature-space"><strong>${escape(details.issuedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.issuedDesignation)}</div></div>
+                </td>
+                <td>
+                  <div class="signature-heading">Received by:</div>
+                  <div class="signature-space"><strong>${escape(details.receivedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.receivedDesignation)}</div></div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -1719,10 +1738,16 @@ this.$nextTick(() => {
 
 <style scoped>
 .receipt-print-details-form .modal-body {
-  max-height: calc(100vh - 12rem);
-  max-height: calc(100dvh - 12rem);
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.receipt-print-details-form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .table th {

@@ -420,6 +420,9 @@
               <dt class="col-sm-4">Created</dt>
               <dd class="col-sm-8">{{ formatDate(selectedPersonnel.created_at) }}</dd>
             </dl>
+            <button type="button" class="btn btn-outline-danger btn-sm mt-3" @click="deleteSelectedPersonnel">
+              <i class="bi bi-trash me-1"></i>Delete this personnel
+            </button>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -428,9 +431,6 @@
             </button>
             <button type="button" class="btn btn-outline-warning" @click="editSelectedPersonnel">
               <i class="bi bi-pencil me-1"></i>Edit
-            </button>
-            <button type="button" class="btn btn-outline-danger" @click="deleteSelectedPersonnel">
-              <i class="bi bi-trash me-1"></i>Delete
             </button>
           </div>
         </div>

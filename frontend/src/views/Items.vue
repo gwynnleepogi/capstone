@@ -305,6 +305,15 @@
             <i class="bi bi-download me-1"></i>
             {{ downloadingDocument ? 'Preparing document...' : 'Download DOCX' }}
           </button>
+          <button
+            type="button"
+            class="btn btn-outline-primary"
+            :disabled="!detailQrCode"
+            @click="printPropertyTag"
+          >
+            <i class="bi bi-printer me-1"></i>
+            Print Property Tag
+          </button>
           <button type="button" class="btn btn-outline-warning" @click="editItemFromDetails">
             <i class="bi bi-pencil me-1"></i>
             Edit Item
@@ -421,6 +430,7 @@
 
 <script>
 import InventoryMovementModal from '@/components/InventoryMovementModal.vue'
+import logo from '@/assets/LOGO.png'
 import {
   AlignmentType,
   Document as DocxDocument,
@@ -525,6 +535,185 @@ export default {
     },
   },
   methods: {
+    printPropertyTag() {
+      const item = this.detailItem
+
+      if (!item || !this.detailQrCode) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'The item QR code is not ready yet.',
+          }),
+        )
+        return
+      }
+
+      const printWindow = window.open('', '_blank', 'width=900,height=700')
+
+      if (!printWindow) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Please allow pop-ups to print the property tag.',
+          }),
+        )
+        return
+      }
+
+      const escape = (value) =>
+        String(value ?? '-').replace(/[&<>"']/g, (character) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[character])
+      const cost = Number(item.cost)
+      const formattedCost = Number.isFinite(cost)
+        ? cost.toLocaleString('en-PH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        : '0.00'
+
+      printWindow.document.write(`
+        <!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Property Tag - ${escape(item.property_number || 'Item')}</title>
+            <style>
+              @page { size: 4in 2.8in; margin: 0; }
+              * { box-sizing: border-box; }
+              html, body { width: 4in; height: 2.8in; margin: 0; }
+              body { font-family: Arial, Helvetica, sans-serif; color: #111; }
+              .tag { width: 4in; height: 2.8in; padding: .07in; }
+              .grid {
+                display: grid;
+                width: 100%;
+                height: 100%;
+                grid-template-columns: 1.12in 1fr;
+                grid-template-rows: .42in .40in .36in .55in .44in .34in .15in;
+                border: 1px solid #222;
+              }
+              .cell {
+                min-width: 0;
+                padding: 2px 4px;
+                border-right: 1px solid #555;
+                border-bottom: 1px solid #555;
+                overflow: hidden;
+              }
+              .brand {
+                grid-row: span 3;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 3px;
+                text-align: center;
+                font-size: 8px;
+                font-weight: bold;
+              }
+              .brand img { width: .58in; height: .58in; object-fit: contain; }
+              .brand-name { font-size: 7px; }
+              .tag-name { font-size: 10px; }
+              .label { display: block; font-size: 7px; font-style: italic; }
+              .value { display: block; margin-top: 2px; font-size: 8px; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
+              .property-number .value { font-size: 11px; }
+              .two-col { display: grid; grid-template-columns: 1fr 1fr; }
+              .two-col > div:first-child { border-right: 1px solid #555; }
+              .description {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                text-align: center;
+              }
+              .description .value { font-size: 11px; }
+              .model-serial { display: grid; grid-template-columns: 1fr 1fr; }
+              .model-serial > div:first-child { border-right: 1px solid #555; }
+              .serial-qr { display: grid; grid-template-columns: 1fr .7in; align-items: center; }
+              .serial-qr img { width: .62in; height: .62in; justify-self: center; }
+              .inventory { grid-column: 1 / -1; }
+              .signature-slots { display: grid; grid-template-columns: repeat(3, 1fr); height: 100%; }
+              .signature-slots span { border-right: 1px solid #555; }
+              .signature-slots span:last-child { border-right: 0; }
+              .warning {
+                grid-column: 1 / -1;
+                border-bottom: 0;
+                color: #63343a;
+                font-size: 8px;
+                font-weight: 700;
+                text-align: center;
+              }
+              @media screen {
+                body { display: grid; place-items: center; background: #eee; }
+                .tag { background: #fff; box-shadow: 0 2px 12px #0003; }
+              }
+            </style>
+          </head>
+          <body>
+            <main class="tag">
+              <div class="grid">
+                <div class="cell brand">
+                  <img src="${logo}" alt="NVSU logo">
+                  <span class="brand-name">NVSU PROPERTY INVENTORY</span>
+                  <span>PROPERTY TAG</span>
+                </div>
+                <div class="cell property-number">
+                  <span class="label">Property Number</span>
+                  <strong class="value">${escape(item.property_number)}</strong>
+                </div>
+                <div class="cell two-col">
+                  <div>
+                    <span class="label">Office / Division</span>
+                    <strong class="value">${escape(item.responsibility_center)}</strong>
+                  </div>
+                  <div>
+                    <span class="label">Person Accountable</span>
+                    <strong class="value">${escape(item.accountable_employee)}</strong>
+                  </div>
+                </div>
+                <div class="cell two-col">
+                  <div>
+                    <span class="label">Acquisition Date</span>
+                    <strong class="value">${escape(item.acquisition_date)}</strong>
+                  </div>
+                  <div>
+                    <span class="label">Acquisition Cost</span>
+                    <strong class="value">₱${formattedCost}</strong>
+                  </div>
+                </div>
+                <div class="cell description">
+                  <span class="label">Description of Property</span>
+                  <strong class="value">${escape(item.description)}</strong>
+                </div>
+                <div class="cell model-serial">
+                  <div>
+                    <span class="label">Model Number</span>
+                    <strong class="value">&nbsp;</strong>
+                  </div>
+                  <div class="serial-qr">
+                    <div>
+                      <span class="label">Serial Number</span>
+                      <strong class="value">${escape(item.serial_number)}</strong>
+                    </div>
+                    <img src="${this.detailQrCode}" alt="Item QR code">
+                  </div>
+                </div>
+                <div class="cell inventory">
+                  <span class="label">Date of Inventory &amp; Signature of Inventory Team</span>
+                  <div class="signature-slots"><span></span><span></span><span></span></div>
+                </div>
+                <div class="cell warning">TAMPERING OF THIS LABEL IS STRICTLY PROHIBITED</div>
+              </div>
+            </main>
+            <script>
+              window.onload = () => window.setTimeout(() => window.print(), 250)
+            <\/script>
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+    },
+
     async fetchJson(url) {
       const response = await fetch(url)
 
@@ -704,7 +893,6 @@ export default {
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ origin: window.location.origin }),
           },
         )
 
@@ -726,7 +914,10 @@ export default {
           )
         }
 
-        if (typeof linkData.viewUrl !== 'string' || !linkData.viewUrl.startsWith('/public-item/')) {
+        if (
+          typeof linkData.viewUrl !== 'string' ||
+          !linkData.viewUrl.startsWith('/items?item=')
+        ) {
           throw new Error('The backend returned an invalid item details link.')
         }
 

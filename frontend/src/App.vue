@@ -2,7 +2,6 @@
   <router-view v-if="$route.name === 'Login' || $route.meta.public" />
 
   <div v-else class="layout">
-
     <div class="mobile-header">
       <div class="mobile-brand">
         <img :src="logo" alt="NVSU logo" class="mobile-brand-logo">
@@ -21,20 +20,23 @@
     </div>
 
     <aside class="sidebar" :class="{ 'show-menu': menuOpen }">
-
       <div class="sidebar-title">
         <img :src="logo" alt="NVSU logo" class="sidebar-logo">
         <h2>Property Inventory</h2>
-        <small class="text-white-50">{{ currentUser?.email }}</small>
-        <small class="d-block text-white-50">{{ currentUser?.role }}</small>
+
+        <div class="sidebar-user-info">
+          <small class="sidebar-email">
+            <i class="bi bi-envelope me-1" aria-hidden="true"></i>
+            {{ currentUser?.email }}
+          </small>
+          <span class="sidebar-role">{{ currentUser?.role }}</span>
+        </div>
       </div>
 
-      <button class="btn btn-sm btn-outline-light w-100 mb-3" @click="logout">
-        <i class="bi bi-box-arrow-right me-1"></i>
-        Sign out
-      </button>
-
-      <nav class="d-flex flex-column gap-2">
+      <nav class="sidebar-nav d-flex flex-column">
+        <div v-if="canAccess(['Administrator', 'Personnel'])" class="nav-section-label">
+          Overview
+        </div>
 
         <router-link
           v-if="canAccess(['Administrator', 'Personnel'])"
@@ -45,6 +47,10 @@
           <i class="bi bi-grid"></i>
           Dashboard
         </router-link>
+
+        <div v-if="canAccess(['Administrator', 'Personnel'])" class="nav-section-label">
+          Inventory
+        </div>
 
         <router-link
           v-if="canAccess(['Administrator', 'Personnel'])"
@@ -66,53 +72,9 @@
           Offices
         </router-link>
 
-        <!--
-        <router-link
-          v-if="canAccess(['Administrator', 'Personnel'])"
-          to="/suppliers"
-          class="nav-link"
-          @click="menuOpen = false"
-        >
-          <i class="bi bi-truck"></i>
-          Suppliers
-        </router-link>
-        -->
-
-        <router-link
-          v-if="canAccess(['Administrator'])"
-          to="/personnel"
-          class="nav-link"cd f
-          @click="menuOpen = false"
-        >
-          <i class="bi bi-people"></i>
-          Personnel
-        </router-link>
-
-        <button
-          type="button"
-          class="nav-link scanner-nav-button"
-          @click="openQrScanner"
-        >
-          <i class="bi bi-qr-code-scan"></i>
-          Scan Item QR
-        </button>
-
-        <router-link
-          v-if="canAccess(['Administrator','Personnel',  'Teacher', 'Non-Teaching Staff'])"
-          to="/request"
-          class="nav-link"
-          @click="menuOpen = false"
-        >
-          <i class="bi bi-file-earmark-text"></i>
-          Requests
-          <span
-            v-if="canAccess(['Administrator', 'Personnel']) && pendingRequestCount > 0"
-            class="request-count-badge"
-            :aria-label="`${pendingRequestCount} pending requests`"
-          >
-            {{ pendingRequestCount > 99 ? '99+' : pendingRequestCount }}
-          </span>
-        </router-link>
+        <div v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])" class="nav-section-label">
+          Operations
+        </div>
 
         <router-link
           v-if="canAccess(['Administrator', 'Personnel'])"
@@ -126,13 +88,46 @@
 
         <router-link
           v-if="canAccess(['Administrator', 'Personnel'])"
-          to="/returns-incidents"
+          to="/returns"
           class="nav-link"
           @click="menuOpen = false"
         >
           <i class="bi bi-arrow-return-left"></i>
           Returns &amp; Incidents
         </router-link>
+
+        <router-link
+          v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])"
+          to="/request"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-file-earmark-text"></i>
+          Requests
+
+          <span
+            v-if="canAccess(['Administrator', 'Personnel']) && pendingRequestCount > 0"
+            class="request-count-badge"
+            :aria-label="`${pendingRequestCount} pending requests`"
+          >
+            {{ pendingRequestCount > 99 ? '99+' : pendingRequestCount }}
+          </span>
+        </router-link>
+
+        <div v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])" class="nav-section-label">
+          Tools
+        </div>
+
+        <button
+          type="button"
+          class="nav-link scanner-nav-button"
+          :class="{ active: showQrScanner }"
+          :aria-pressed="showQrScanner"
+          @click="openQrScanner"
+        >
+          <i class="bi bi-qr-code-scan"></i>
+          Scan Item QR
+        </button>
 
         <router-link
           v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])"
@@ -144,8 +139,31 @@
           Audit Logs
         </router-link>
 
+        <div v-if="canAccess(['Administrator'])" class="nav-section-label">
+          Administration
+        </div>
+
+        <router-link
+          v-if="canAccess(['Administrator'])"
+          to="/personnel"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-people"></i>
+          Personnel
+        </router-link>
       </nav>
 
+      <div class="sidebar-bottom">
+        <button
+          type="button"
+          class="btn btn-sm sidebar-signout w-100"
+          @click="logout"
+        >
+          <i class="bi bi-box-arrow-right"></i>
+          <span>Sign out</span>
+        </button>
+      </div>
     </aside>
 
     <ItemQrScanner
@@ -164,7 +182,6 @@
         </Transition>
       </router-view>
     </main>
-
   </div>
 
   <Transition name="toast">
@@ -175,7 +192,6 @@
   </Transition>
 </template>
 
-
 <script>
 import { defineAsyncComponent } from 'vue'
 import logo from './assets/LOGO.png'
@@ -185,7 +201,6 @@ const ItemQrScanner = defineAsyncComponent(
 )
 
 export default {
-
   name: 'App',
 
   components: {
@@ -213,6 +228,7 @@ export default {
     window.addEventListener('show-toast', this.handleToast)
     window.addEventListener('storage', this.handleStorageChange)
     window.addEventListener('item-requests-updated', this.refreshPendingRequestCount)
+
     this.refreshPendingRequestCount()
     this.requestCountTimer = setInterval(this.refreshPendingRequestCount, 30000)
   },
@@ -222,7 +238,9 @@ export default {
     window.removeEventListener('show-toast', this.handleToast)
     window.removeEventListener('storage', this.handleStorageChange)
     window.removeEventListener('item-requests-updated', this.refreshPendingRequestCount)
+
     clearInterval(this.requestCountTimer)
+    clearTimeout(this.toastTimer)
   },
 
   watch: {
@@ -232,7 +250,6 @@ export default {
   },
 
   methods: {
-
     handleUserUpdated(event) {
       this.currentUser = event.detail
       this.refreshPendingRequestCount()
@@ -296,7 +313,9 @@ export default {
           throw new Error('The requests response was not a list')
         }
 
-        this.pendingRequestCount = data.filter(request => request.status === 'Pending').length
+        this.pendingRequestCount = data.filter(
+          request => request.status === 'Pending'
+        ).length
       } catch (error) {
         console.error('Pending request count error:', error)
       }
@@ -311,12 +330,12 @@ export default {
       this.showQrScanner = true
     },
 
-    openScannedItem({ id, token }) {
+    openScannedItem({ id, token, destination }) {
       this.showQrScanner = false
+
       this.$router.push({
-        name: 'PublicItemDetails',
-        params: { id },
-        query: { token }
+        name: 'Items',
+        query: { item: id }
       })
     },
 
@@ -332,24 +351,19 @@ export default {
 
       this.$router.push('/login')
     }
-
   }
-
 }
 </script>
 
-
 <style>
-
-/* Global */
-
 :root {
-  --ui-zoom: .8;
-  --app-forest: #2f5d3a;
-  --app-leaf: #4f7f52;
+  /* 0.75 = looks like 75% browser zoom while the browser stays at 100% */
+  --ui-zoom: .75;
+  --app-forest: #4f7f52;
+  --app-leaf: #6f9c70;
   --app-gold: #e8c547;
   --app-sage: #8dab91;
-  --app-alert-red: #b85c50;
+  --app-alert-red: #c93640;
   --app-alert-orange: #cf913d;
   --app-deep-red: #874b47;
   --app-status-gray: #858b84;
@@ -357,13 +371,13 @@ export default {
   --app-border: #e4e2d8;
   --app-ink: #26332a;
   --app-muted: #717a72;
-  --bs-primary: #2f5d3a;
-  --bs-primary-rgb: 47, 93, 58;
-  --bs-primary-text-emphasis: #1b3823;
+  --bs-primary: #4f7f52;
+  --bs-primary-rgb: 79, 127, 82;
+  --bs-primary-text-emphasis: #315535;
   --bs-primary-bg-subtle: #dce8dc;
   --bs-primary-border-subtle: #a8c3aa;
-  --bs-success: #2f5d3a;
-  --bs-success-rgb: 47, 93, 58;
+  --bs-success: #4f7f52;
+  --bs-success-rgb: 79, 127, 82;
   --bs-info: var(--app-sage);
   --bs-info-rgb: 141, 171, 145;
   --bs-info-text-emphasis: #385b3d;
@@ -374,139 +388,315 @@ export default {
   --bs-warning-text-emphasis: #5c4a0c;
   --bs-warning-bg-subtle: #fbf4d7;
   --bs-warning-border-subtle: #eedb8b;
-  --bs-link-color: #2f5d3a;
-  --bs-link-hover-color: #1f4129;
-  --bs-focus-ring-color: rgba(47, 93, 58, .25);
+  --bs-link-color: #4f7f52;
+  --bs-link-hover-color: #315535;
+  --bs-focus-ring-color: rgba(79, 127, 82, .25);
+}
+
+/* No shrinking on tablet and mobile */
+@media (max-width: 991.98px) {
+  :root {
+    --ui-zoom: 1;
+  }
 }
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
 html {
-  min-height: 100%;
+  zoom: var(--ui-zoom);
+  min-height: calc(100% / var(--ui-zoom));
   background: #f7f5e8;
 }
 
 body {
-  font-family: Arial, sans-serif;
-  min-height: 125vh;
-  min-height: 125dvh;
+  margin: 0;
+  padding: 0;
+  min-height: calc(100vh / var(--ui-zoom));
+  min-height: calc(100dvh / var(--ui-zoom));
   overflow-x: hidden;
+  font-family: Arial, sans-serif;
   background: #f7f5e8;
-  zoom: var(--ui-zoom);
 }
 
-
-/* Layout */
+/* Main Layout */
 
 .layout {
   display: flex;
-  min-height: 125vh;
-  min-height: 125dvh;
-  align-items: flex-start;
+  width: 100%;
+  min-height: calc(100vh / var(--ui-zoom));
+  min-height: calc(100dvh / var(--ui-zoom));
+  align-items: stretch;
+  padding-left: 270px;
 }
-
 
 /* Sidebar */
 
 .sidebar {
-  position: sticky;
+  position: fixed;
   top: 0;
   left: 0;
-
-  width: 250px;
-  height: 125vh;
-  height: 125dvh;
-  min-height: 125vh;
-  min-height: 125dvh;
-
-  padding: 25px 15px;
-
-  background: #2F5D3A;
-
-  flex-shrink: 0;
-
-  overflow-y: auto;
+  bottom: 0;
   z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  width: 270px;
+  height: calc(100vh / var(--ui-zoom));
+  height: calc(100dvh / var(--ui-zoom));
+  min-height: 0;
+  padding: 16px 13px;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse at 10% 0%,
+      rgba(232, 197, 71, .15),
+      transparent 38%
+    ),
+    linear-gradient(180deg, #75a477 0%, #56845b 100%);
+  border-right: 1px solid rgba(255, 255, 255, .2);
 }
 
 .sidebar-title {
+  flex: 0 0 auto;
+  margin: 0 0 14px;
+  padding: 14px 10px;
   text-align: center;
-  margin-bottom: 30px;
+  border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .1);
 }
 
 .sidebar-logo {
   display: block;
-  width: 84px;
-  height: 84px;
-  margin: 0 auto 12px;
+  width: 66px;
+  height: 66px;
+  margin: 0 auto 10px;
+  padding: 4px;
+  border: 2px solid #e8c547;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
   object-fit: contain;
 }
 
 .sidebar-title h2 {
-  color: white;
-  font-size: 20px;
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -.3px;
+}
+
+.sidebar-user-info {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.sidebar-email {
+  max-width: 100%;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.sidebar-role {
+  padding: 4px 11px;
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .14);
+  color: #fff8d5;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+}
+
+/* Sidebar Navigation */
+
+.sidebar-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 5px;
+  padding: 0 2px 12px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .5) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .5);
+}
+
+.sidebar .nav-section-label {
+  flex-shrink: 0;
+  margin: 8px 10px 2px;
+  padding: 8px 2px 4px;
+  border-top: 1px solid rgba(255, 255, 255, .25);
+  color: #f1f5e9;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .13em;
+  text-transform: uppercase;
 }
 
 .sidebar .nav-link {
-  color: white;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 41px;
+  padding: 9px 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 550;
   text-decoration: none;
-  padding: 11px 15px;
-  border-radius: 6px;
-  transition: .25s ease;
+  transition:
+    background-color .2s ease,
+    border-color .2s ease,
+    color .2s ease,
+    transform .2s ease;
 }
 
 .sidebar .nav-link i {
+  flex-shrink: 0;
+  width: 22px;
   margin-right: 10px;
+  color: #edf5e9;
+  font-size: 16px;
+  text-align: center;
+}
+
+.sidebar .nav-link:hover {
+  transform: translateX(2px);
+  border-color: rgba(255, 255, 255, .2);
+  background: rgba(255, 255, 255, .15);
+  color: #fff;
 }
 
 .sidebar .scanner-nav-button {
   width: 100%;
-  border: 0;
+  flex-shrink: 0;
   background: transparent;
   text-align: left;
+  cursor: pointer;
 }
 
 .sidebar .request-count-badge {
   display: inline-flex;
-  min-width: 21px;
-  height: 21px;
-  margin-left: 8px;
-  padding: 0 6px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
+  min-width: 21px;
+  height: 21px;
+  margin-left: auto;
+  padding: 0 6px;
   border-radius: 999px;
-  background: #b85c50;
+  background: #c93640;
   color: #fff;
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
-  vertical-align: middle;
 }
 
-.sidebar .nav-link:hover {
-  background: #4F7F52;
+.sidebar .nav-link.router-link-active,
+.sidebar .nav-link.active {
+  border-color: #e8c547;
+  background: linear-gradient(105deg, #f8e28b, #e8c547);
+  color: #315535;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .1);
 }
 
-.sidebar .nav-link.router-link-active {
-  background: #E8C547;
-  color: #2F5D3A;
+.sidebar .nav-link.router-link-active i,
+.sidebar .nav-link.active i {
+  color: #315535;
 }
 
+/* Sign Out at Bottom */
 
-/* Content */
+.sidebar-bottom {
+  flex: 0 0 auto;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, .3);
+}
+
+.sidebar .sidebar-signout {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 45px;
+  margin: 0 !important;
+  padding: 10px 12px;
+  border: 1px solid #f06469;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #c93640, #a91f2b);
+  color: #fff !important;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  box-shadow: 0 4px 10px rgba(116, 14, 24, .15);
+  transition:
+    background .2s ease,
+    transform .2s ease,
+    box-shadow .2s ease;
+}
+
+.sidebar .sidebar-signout i,
+.sidebar .sidebar-signout span {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  color: #fff !important;
+}
+
+.sidebar .sidebar-signout i {
+  flex-shrink: 0;
+  font-size: 17px;
+}
+
+.sidebar .sidebar-signout:hover,
+.sidebar .sidebar-signout:focus-visible,
+.sidebar .sidebar-signout:active {
+  border-color: #ff8b8f;
+  background: linear-gradient(135deg, #e34a53, #bd2935);
+  color: #fff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(116, 14, 24, .25);
+}
+
+.sidebar .sidebar-signout:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+/* Main Content */
 
 .content {
-  flex: 1;
+  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
-  min-height: 125vh;
-  min-height: 125dvh;
+  min-height: calc(100vh / var(--ui-zoom));
+  min-height: calc(100dvh / var(--ui-zoom));
   padding: clamp(16px, 2vw, 28px);
-
-  background: #F7F5E8;
+  overflow-x: hidden;
+  background: #f7f5e8;
+  color: var(--app-ink);
 }
 
 .content .row > * {
@@ -532,10 +722,6 @@ body {
   padding-bottom: 9px;
 }
 
-.content {
-  color: var(--app-ink);
-}
-
 .content h1,
 .content h2,
 .content h3 {
@@ -557,6 +743,8 @@ body {
   color: var(--app-muted) !important;
 }
 
+/* Cards */
+
 .content .card:not(.modal-content) {
   border-color: var(--app-border) !important;
   border-radius: 8px !important;
@@ -569,6 +757,8 @@ body {
   color: var(--app-forest);
 }
 
+/* Tables */
+
 .content .table {
   --bs-table-color: var(--app-ink);
   --bs-table-hover-bg: #fffdf6;
@@ -578,8 +768,8 @@ body {
 .content .table > thead > tr > th,
 .content .table > thead.table-dark > tr > th,
 .content .table.table-dark > thead > tr > th {
-  border-color: #54785b !important;
-  background-color: var(--app-forest) !important;
+  border-color: #6f9c70 !important;
+  background-color: #6f9c70 !important;
   color: #fff !important;
 }
 
@@ -591,10 +781,24 @@ body {
   background-color: #fffdf6;
 }
 
+.content .table-responsive {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.content .table-responsive > .table {
+  max-width: 100%;
+}
+
+/* Buttons */
+
 .content .btn-warning {
   border-color: var(--app-gold) !important;
   background-color: var(--app-gold) !important;
-  color: var(--app-forest) !important;
+  color: #315535 !important;
 }
 
 .content .btn-warning:hover:not(:disabled) {
@@ -611,6 +815,12 @@ body {
   --bs-btn-active-border-color: var(--app-forest);
 }
 
+.content .btn {
+  touch-action: manipulation;
+}
+
+/* Pagination */
+
 .content .pagination .page-link {
   border-color: var(--app-border);
   color: var(--app-forest) !important;
@@ -619,12 +829,14 @@ body {
 .content .pagination .page-item.active .page-link {
   border-color: var(--app-gold) !important;
   background-color: var(--app-gold) !important;
-  color: var(--app-forest) !important;
+  color: #315535 !important;
 }
 
 .content .pagination .page-link:focus {
-  box-shadow: 0 0 0 .2rem rgba(47, 93, 58, .18);
+  box-shadow: 0 0 0 .2rem rgba(79, 127, 82, .18);
 }
+
+/* Forms */
 
 .content .form-control,
 .content .form-select,
@@ -636,8 +848,16 @@ body {
 .content .form-control:focus,
 .content .form-select:focus {
   border-color: var(--app-leaf);
-  box-shadow: 0 0 0 .2rem rgba(47, 93, 58, .12);
+  box-shadow: 0 0 0 .2rem rgba(79, 127, 82, .12);
 }
+
+.content input,
+.content select,
+.content textarea {
+  max-width: 100%;
+}
+
+/* Modals */
 
 .content .modal-content {
   overflow: hidden;
@@ -660,10 +880,21 @@ body {
   background-color: #fffdf6;
 }
 
+.content .modal-dialog {
+  max-width: min(500px, calc(100% - 2rem)) !important;
+}
+
+.content .modal-dialog.modal-lg,
+.content .modal-dialog.modal-xl {
+  max-width: min(680px, calc(100% - 2rem)) !important;
+}
+
+/* Audit Logs */
+
 .content .audit-card {
+  padding: 16px;
   border-color: var(--app-border);
   border-radius: 8px;
-  padding: 16px;
   box-shadow: none;
 }
 
@@ -672,13 +903,8 @@ body {
   padding-bottom: 10px;
 }
 
-.content .table-toolbar {
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
 .content .audit-table thead th {
-  background-color: var(--app-forest);
+  background-color: #6f9c70;
 }
 
 .content .detail-field {
@@ -691,48 +917,30 @@ body {
   padding: 0;
 }
 
-.content .table-responsive {
-  max-width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
+/* Toolbars and Footer */
 
 .content .table-toolbar {
+  display: flex;
   flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+  margin-bottom: 14px;
 }
 
-.content .table-toolbar,
+.content .table-toolbar > * {
+  min-width: 0;
+}
+
 .content .table-footer,
 .content .pagination-controls {
   min-width: 0;
 }
 
-.content input,
-.content select,
-.content textarea {
-  max-width: 100%;
-}
-
-.content button,
-.content .btn {
-  touch-action: manipulation;
-}
-
-.content .modal-dialog {
-  max-width: min(500px, calc(100% - 2rem)) !important;
-}
-
-.content .modal-dialog.modal-lg,
-.content .modal-dialog.modal-xl {
-  max-width: min(680px, calc(100% - 2rem)) !important;
-}
-
-
-/* Page Transition */
+/* Page Transitions */
 
 .dashboard-fade-enter-active,
 .dashboard-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity .3s ease, transform .3s ease;
 }
 
 .dashboard-fade-enter-from {
@@ -745,41 +953,44 @@ body {
   transform: translateY(-10px);
 }
 
-
 /* Mobile Header */
 
 .mobile-header {
   display: none;
+  background: #75a477;
 }
 
+.mobile-header .hamburger {
+  border-radius: 8px;
+  transition: background .2s ease;
+}
 
-/* Toast */
+.mobile-header .hamburger:hover {
+  background: rgba(255, 255, 255, .15);
+}
+
+/* Toast Notification */
 
 .toast-notification {
   position: fixed;
   right: 25px;
   bottom: 25px;
-
   z-index: 9999;
-
   display: flex;
   align-items: center;
   gap: 10px;
-
+  max-width: min(420px, calc(100vw - 30px));
   padding: 14px 18px;
-
-  background: #2F5D3A;
-  color: white;
-
   border-radius: 8px;
-
+  background: #4f7f52;
+  color: #fff;
   box-shadow: 0 4px 15px rgba(0, 0, 0, .2);
-
   font-size: 14px;
 }
 
 .toast-notification i {
-  color: #E8C547;
+  flex-shrink: 0;
+  color: #e8c547;
   font-size: 18px;
 }
 
@@ -808,126 +1019,150 @@ body {
   transform: translateY(15px);
 }
 
+/* Tablet and Mobile (zoom is 1 here, so the original values still work) */
 
 @media (max-width: 991.98px) {
-
   .layout {
     display: block;
-    min-height: 125vh;
-    min-height: 125dvh;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-left: 0;
   }
 
   .mobile-header {
     position: sticky;
     top: 0;
-
+    z-index: 1100;
     display: flex;
     align-items: center;
     justify-content: space-between;
-
-    background: #2F5D3A;
-
+    width: 100%;
     min-height: 60px;
     padding: 10px 18px;
-
-    z-index: 1100;
   }
 
   .mobile-header h2 {
-    color: white;
-    font-size: 18px;
     margin: 0;
+    color: #fff;
+    font-size: 18px;
   }
 
   .mobile-brand {
     display: flex;
     align-items: center;
     gap: 9px;
+    min-width: 0;
   }
 
   .mobile-brand-logo {
+    flex-shrink: 0;
     width: 34px;
     height: 34px;
     object-fit: contain;
   }
 
   .hamburger {
-    background: none;
-    border: none;
-    color: white;
     display: grid;
+    flex-shrink: 0;
+    place-items: center;
     width: 42px;
     height: 42px;
-    place-items: center;
+    border: none;
+    background: transparent;
+    color: #fff;
     font-size: 25px;
     cursor: pointer;
   }
 
   .sidebar {
-    position: sticky;
+    position: fixed;
     top: 60px;
-
+    left: 0;
+    bottom: 0;
+    z-index: 1200;
     display: none;
-
-    width: 100%;
+    flex-direction: column;
+    width: min(320px, 88vw);
     height: auto;
-    min-height: auto;
-
-    max-height: calc(100vh - 60px);
-    max-height: calc(100dvh - 60px);
-
-    padding: 16px 20px 20px;
-
-    overflow-y: auto;
-
-    z-index: 1000;
-    box-shadow: 0 12px 20px rgba(0, 0, 0, .16);
+    min-height: 0;
+    padding: 16px 14px 14px;
+    overflow: hidden;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, .2);
   }
 
   .sidebar.show-menu {
-    display: block;
+    display: flex;
   }
 
   .sidebar-title {
     display: grid;
+    flex: 0 0 auto;
     grid-template-columns: 46px minmax(0, 1fr);
     column-gap: 12px;
     align-items: center;
-    margin-bottom: 18px;
+    margin: 0 0 14px;
+    padding: 12px;
     text-align: left;
   }
 
   .sidebar-logo {
-    grid-row: 1 / span 3;
+    grid-row: 1 / span 2;
     width: 46px;
     height: 46px;
     margin: 0;
   }
 
   .sidebar-title h2 {
+    margin: 0;
     font-size: 17px;
   }
 
-  .sidebar-title small {
+  .sidebar-user-info {
+    justify-items: start;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .sidebar-email {
     overflow-wrap: anywhere;
   }
 
-  .sidebar nav {
-    gap: 4px !important;
+  .sidebar-nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 4px;
+    padding-bottom: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .sidebar .nav-link {
     padding: 10px 12px;
   }
 
+  .sidebar-bottom {
+    flex: 0 0 auto;
+    margin-top: 8px;
+    padding-top: 12px;
+  }
+
+  .sidebar .sidebar-signout {
+    min-height: 46px;
+  }
+
   .content {
     width: 100%;
-    min-height: calc(125vh - 60px);
-    min-height: calc(125dvh - 60px);
+    min-width: 0;
+    min-height: calc(100vh - 60px);
+    min-height: calc(100dvh - 60px);
+    margin: 0;
     padding: clamp(16px, 3vw, 26px);
   }
 
   .content .table-footer {
+    display: flex;
+    flex-wrap: wrap;
     gap: 12px;
   }
 
@@ -950,13 +1185,14 @@ body {
     right: 15px;
     bottom: 15px;
     left: 15px;
+    width: auto;
+    max-width: none;
   }
-
 }
 
+/* Small Mobile */
 
 @media (max-width: 575.98px) {
-
   .mobile-header {
     min-height: 54px;
     padding: 8px 12px;
@@ -977,13 +1213,44 @@ body {
 
   .sidebar {
     top: 54px;
-    max-height: calc(125vh - 54px);
-    max-height: calc(125dvh - 54px);
+    bottom: 0;
+    width: min(300px, 90vw);
+    height: auto;
+    padding: 12px;
+  }
+
+  .sidebar-title {
+    margin-bottom: 10px;
+    padding: 10px;
+  }
+
+  .sidebar-logo {
+    width: 42px;
+    height: 42px;
+  }
+
+  .sidebar-title h2 {
+    font-size: 16px;
+  }
+
+  .sidebar .nav-link {
+    min-height: 38px;
+    padding: 8px 10px;
+  }
+
+  .sidebar .nav-section-label {
+    margin-top: 5px;
+    padding-top: 5px;
+    color: #f1f5e9;
+  }
+
+  .sidebar-bottom {
+    padding-top: 10px;
   }
 
   .content {
-    min-height: calc(125vh - 54px);
-    min-height: calc(125dvh - 54px);
+    min-height: calc(100vh - 54px);
+    min-height: calc(100dvh - 54px);
     padding: 14px 12px;
   }
 
@@ -1069,7 +1336,5 @@ body {
     left: 12px;
     padding: 12px 14px;
   }
-
 }
-
 </style>

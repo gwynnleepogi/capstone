@@ -4,7 +4,6 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
-const { createItemDocumentToken } = require('../itemDocumentToken')
 
 function getItemReferenceError(error, operation) {
   if (error.code !== '23503') {
@@ -56,19 +55,12 @@ router.post('/:id/document-link', async (req, res) => {
       return res.status(404).json({ error: 'Item not found' })
     }
 
-    const token = createItemDocumentToken(item.id, req.body?.origin)
-    const viewUrl =
-      `/public-item/${encodeURIComponent(item.id)}?token=${encodeURIComponent(token)}`
+    const viewUrl = `/items?item=${encodeURIComponent(item.id)}`
 
     res.json({
       viewUrl
     })
   } catch (error) {
-    if (error.code === 'QR_DOCUMENT_SECRET_MISSING') {
-      console.error('Public item QR links are unavailable: QR_DOCUMENT_SECRET is not configured')
-      return res.status(503).json({ error: 'Public item links are not configured' })
-    }
-
     console.error('Failed to create item document link:', error)
     res.status(500).json({ error: 'Failed to create item document link' })
   }
