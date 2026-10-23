@@ -1,4 +1,3 @@
-
 <template>
   <div class="container-fluid">
     <div class="row align-items-center mb-4">
@@ -37,10 +36,17 @@
               <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
             </select>
           </div>
-          <div class="col-12 col-md-3">
+          <div class="col-12 col-md-2">
+            <select v-model="selectedFundCluster" class="form-select">
+              <option value="">All Fund Cluster</option>
+              <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">{{ fc }}</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-2">
             <select v-model="selectedStatus" class="form-select">
               <option value="">All Status</option>
               <option value="Available">Available</option>
+              <option value="Assigned">Assigned</option>
               <option value="Issued">Issued</option>
               <option value="Returned">Returned</option>
               <option value="Lost">Lost</option>
@@ -88,31 +94,35 @@
         <div class="card-body">
           <div class="row g-3">
             <div class="col-12 col-md-6">
-              <label class="form-label">Property Number</label>
+              <label class="form-label">Property Number <span class="text-danger">*</span></label>
               <input v-model="newItem.property_number" type="text" class="form-control" required />
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Serial Number</label>
-              <input v-model="newItem.serial_number" type="text" class="form-control" />
+              <label class="form-label">Model Number <span class="text-danger">*</span></label>
+              <input v-model="newItem.model_number" type="text" class="form-control" required />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Serial Number <span class="text-danger">*</span></label>
+              <input v-model="newItem.serial_number" type="text" class="form-control" required />
             </div>
             <div class="col-12">
-              <label class="form-label">Description</label>
+              <label class="form-label">Description <span class="text-danger">*</span></label>
               <input v-model="newItem.description" type="text" class="form-control" required />
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Quantity in Stock</label>
+              <label class="form-label">Quantity in Stock <span class="text-danger">*</span></label>
               <input v-model.number="newItem.quantity" type="number" min="0" step="1" class="form-control" required />
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Cost</label>
+              <label class="form-label">Cost <span class="text-danger">*</span></label>
               <div class="input-group">
                 <span class="input-group-text">₱</span>
                 <input v-model="newItem.cost" type="number" min="0" step="0.01" class="form-control" required />
               </div>
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Acquisition Date</label>
-              <input v-model="newItem.acquisition_date" type="date" class="form-control" />
+              <label class="form-label">Acquisition Date <span class="text-danger">*</span></label>
+              <input v-model="newItem.acquisition_date" type="date" class="form-control" required />
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Accountable Employee</label>
@@ -132,8 +142,16 @@
                 </option>
               </select>
             </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Fund Cluster <span class="text-danger">*</span></label>
+              <select v-model="newItem.fund_cluster" class="form-select" required>
+                <option value="" disabled>Select fund cluster</option>
+                <option v-if="newItem.fund_cluster && !fundClusterOptions.includes(newItem.fund_cluster)" :value="newItem.fund_cluster">{{ newItem.fund_cluster }}</option>
+                <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">{{ fc }}</option>
+              </select>
+            </div>
             <div class="col-12 col-md-4">
-              <label class="form-label">Classification</label>
+              <label class="form-label">Classification <span class="text-danger">*</span></label>
               <select v-model="newItem.classification" class="form-select" required>
                 <option value="PAR">Property Acknowledgement Receipt</option>
                 <option value="ICS High">Inventory Custodian Slip - High Value</option>
@@ -141,16 +159,17 @@
               </select>
             </div>
             <div class="col-12 col-md-4">
-              <label class="form-label">Condition</label>
+              <label class="form-label">Condition <span class="text-danger">*</span></label>
               <select v-model="newItem.condition" class="form-select" required>
                 <option value="Serviceable">Serviceable</option>
                 <option value="Unserviceable">Unserviceable</option>
               </select>
             </div>
             <div class="col-12 col-md-4">
-              <label class="form-label">Status</label>
+              <label class="form-label">Status <span class="text-danger">*</span></label>
               <select v-model="newItem.status" class="form-select" required>
                 <option value="Available">Available</option>
+                <option value="Assigned">Assigned</option>
                 <option value="Issued">Issued</option>
                 <option value="Returned">Returned</option>
                 <option value="Lost">Lost</option>
@@ -178,29 +197,30 @@
         <table class="table table-hover mb-0">
           <thead>
             <tr>
-              <th>Property No.</th>
-              <th>Description</th>
-              <th>Quantity</th>
-              <th>Serial No.</th>
-              <th>Cost</th>
-              <th>Acquisition Date</th>
-              <th>Classification</th>
-              <th>Condition</th>
-              <th>Status</th>
-              <th>Accountable Employee</th>
-              <th>Responsibility Center</th>
+              <th><button type="button" class="sort-header" @click="sortBy('property_number')">Property No. <i :class="sortIcon('property_number')"></i></button></th>
+              <th><button type="button" class="sort-header" @click="sortBy('description')">Description <i :class="sortIcon('description')"></i></button></th>
+              <th><button type="button" class="sort-header" @click="sortBy('quantity')">Quantity <i :class="sortIcon('quantity')"></i></button></th>
+              <th><button type="button" class="sort-header" @click="sortBy('serial_number')">Serial No. <i :class="sortIcon('serial_number')"></i></button></th>
+              <th><button type="button" class="sort-header" @click="sortBy('cost')">Cost <i :class="sortIcon('cost')"></i></button></th>
+              <th><button type="button" class="sort-header" @click="sortBy('acquisition_date')">Acquisition Date <i :class="sortIcon('acquisition_date')"></i></button></th>
+              <th><button type="button" class="sort-header" @click="sortBy('classification')">Classification <i :class="sortIcon('classification')"></i></button></th>
+              <th><button type="button" class="sort-header" @click="sortBy('fund_cluster')">Fund Cluster <i :class="sortIcon('fund_cluster')"></i></button></th>
+              <th><button type="button" class="sort-header" @click="sortBy('condition')">Condition <i :class="sortIcon('condition')"></i></button></th>
+              <th><button type="button" class="sort-header" @click="sortBy('status')">Status <i :class="sortIcon('status')"></i></button></th>
+              <th><button type="button" class="sort-header" @click="sortBy('accountable_employee')">Accountable Employee <i :class="sortIcon('accountable_employee')"></i></button></th>
+              <th><button type="button" class="sort-header" @click="sortBy('responsibility_center')">Responsibility Center <i :class="sortIcon('responsibility_center')"></i></button></th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="12" class="text-center py-5">Loading items...</td>
+              <td colspan="13" class="text-center py-5">Loading items...</td>
             </tr>
             <tr v-else-if="error">
-              <td colspan="12" class="text-center text-danger py-5">{{ error }}</td>
+              <td colspan="13" class="text-center text-danger py-5">{{ error }}</td>
             </tr>
             <tr v-else-if="filteredItems.length === 0">
-              <td colspan="12" class="text-center text-secondary py-5">No items found.</td>
+              <td colspan="13" class="text-center text-secondary py-5">No items found.</td>
             </tr>
             <tr v-for="item in filteredItems" :key="item.id">
               <td>{{ item.property_number || '-' }}</td>
@@ -214,6 +234,7 @@
                   {{ displayClassification(item.classification) }}
                 </span>
               </td>
+              <td>{{ item.fund_cluster || '-' }}</td>
               <td>
                 <span class="badge" :class="getConditionClass(item.condition)">
                   {{ item.condition || '-' }}
@@ -264,6 +285,8 @@
               <dl class="row mb-0 item-detail-list">
                 <dt class="col-sm-5">Description</dt>
                 <dd class="col-sm-7">{{ detailItem.description || '-' }}</dd>
+                <dt class="col-sm-5">Model Number</dt>
+                <dd class="col-sm-7">{{ detailItem.model_number || '-' }}</dd>
                 <dt class="col-sm-5">Serial Number</dt>
                 <dd class="col-sm-7">{{ detailItem.serial_number || '-' }}</dd>
                 <dt class="col-sm-5">Quantity</dt>
@@ -290,6 +313,8 @@
                 <dd class="col-sm-7">{{ detailItem.accountable_employee || '-' }}</dd>
                 <dt class="col-sm-5">Responsibility Center</dt>
                 <dd class="col-sm-7">{{ detailItem.responsibility_center || '-' }}</dd>
+                <dt class="col-sm-5">Fund Cluster</dt>
+                <dd class="col-sm-7">{{ detailItem.fund_cluster || '-' }}</dd>
               </dl>
             </div>
           </div>
@@ -340,31 +365,35 @@
         <form class="edit-sidebar-form" @submit.prevent="updateItem">
           <div class="edit-sidebar-body">
             <div class="mb-3">
-              <label class="form-label">Property Number</label>
+              <label class="form-label">Property Number <span class="text-danger">*</span></label>
               <input v-model="editForm.property_number" type="text" class="form-control" required />
             </div>
             <div class="mb-3">
-              <label class="form-label">Serial Number</label>
-              <input v-model="editForm.serial_number" type="text" class="form-control" />
+              <label class="form-label">Model Number <span class="text-danger">*</span></label>
+              <input v-model="editForm.model_number" type="text" class="form-control" required />
             </div>
             <div class="mb-3">
-              <label class="form-label">Description</label>
+              <label class="form-label">Serial Number <span class="text-danger">*</span></label>
+              <input v-model="editForm.serial_number" type="text" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description <span class="text-danger">*</span></label>
               <input v-model="editForm.description" type="text" class="form-control" required />
             </div>
             <div class="mb-3">
-              <label class="form-label">Quantity in Stock</label>
+              <label class="form-label">Quantity in Stock <span class="text-danger">*</span></label>
               <input v-model.number="editForm.quantity" type="number" min="0" step="1" class="form-control" required />
             </div>
             <div class="mb-3">
-              <label class="form-label">Cost</label>
+              <label class="form-label">Cost <span class="text-danger">*</span></label>
               <input v-model="editForm.cost" type="number" min="0" step="0.01" class="form-control" required />
             </div>
             <div class="mb-3">
-              <label class="form-label">Acquisition Date</label>
-              <input v-model="editForm.acquisition_date" type="date" class="form-control" />
+              <label class="form-label">Acquisition Date <span class="text-danger">*</span></label>
+              <input v-model="editForm.acquisition_date" type="date" class="form-control" required />
             </div>
             <div class="mb-3">
-              <label class="form-label">Classification</label>
+              <label class="form-label">Classification <span class="text-danger">*</span></label>
               <select v-model="editForm.classification" class="form-select" required>
                 <option value="PAR">Property Acknowledgement Receipt</option>
                 <option value="ICS High">Inventory Custodian Slip - High Value</option>
@@ -372,16 +401,17 @@
               </select>
             </div>
             <div class="mb-3">
-              <label class="form-label">Condition</label>
+              <label class="form-label">Condition <span class="text-danger">*</span></label>
               <select v-model="editForm.condition" class="form-select" required>
                 <option value="Serviceable">Serviceable</option>
                 <option value="Unserviceable">Unserviceable</option>
               </select>
             </div>
             <div class="mb-3">
-              <label class="form-label">Status</label>
+              <label class="form-label">Status <span class="text-danger">*</span></label>
               <select v-model="editForm.status" class="form-select" required>
                 <option value="Available">Available</option>
+                <option value="Assigned">Assigned</option>
                 <option value="Issued">Issued</option>
                 <option value="Returned">Returned</option>
                 <option value="Lost">Lost</option>
@@ -406,6 +436,14 @@
                 <option v-for="office in officeOptions" :key="office.id" :value="office.office_name">
                   {{ office.office_name }}
                 </option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Fund Cluster <span class="text-danger">*</span></label>
+              <select v-model="editForm.fund_cluster" class="form-select" required>
+                <option value="" disabled>Select fund cluster</option>
+                <option v-if="editForm.fund_cluster && !fundClusterOptions.includes(editForm.fund_cluster)" :value="editForm.fund_cluster">{{ editForm.fund_cluster }}</option>
+                <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">{{ fc }}</option>
               </select>
             </div>
           </div>
@@ -442,6 +480,68 @@ import {
 } from 'docx'
 import QRCode from 'qrcode'
 
+const QR_SIZE = 400
+const QR_LOGO_RATIO = 0.22 // logo box = 22% of QR width (keep under ~0.25)
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('Failed to load image'))
+    image.src = src
+  })
+}
+
+async function createQrWithLogo(text) {
+  const qrDataUrl = await QRCode.toDataURL(text, {
+    errorCorrectionLevel: 'H',
+    margin: 2,
+    width: QR_SIZE,
+  })
+
+  const [qrImage, logoImage] = await Promise.all([loadImage(qrDataUrl), loadImage(logo)])
+
+  const canvas = document.createElement('canvas')
+  canvas.width = QR_SIZE
+  canvas.height = QR_SIZE
+  const ctx = canvas.getContext('2d')
+
+  ctx.drawImage(qrImage, 0, 0, QR_SIZE, QR_SIZE)
+
+  // White rounded box behind the logo so the QR modules don't clash with it
+  const boxSize = Math.round(QR_SIZE * QR_LOGO_RATIO)
+  const boxX = (QR_SIZE - boxSize) / 2
+  const boxY = (QR_SIZE - boxSize) / 2
+  const radius = 10
+
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  ctx.moveTo(boxX + radius, boxY)
+  ctx.arcTo(boxX + boxSize, boxY, boxX + boxSize, boxY + boxSize, radius)
+  ctx.arcTo(boxX + boxSize, boxY + boxSize, boxX, boxY + boxSize, radius)
+  ctx.arcTo(boxX, boxY + boxSize, boxX, boxY, radius)
+  ctx.arcTo(boxX, boxY, boxX + boxSize, boxY, radius)
+  ctx.closePath()
+  ctx.fill()
+
+  // Draw the logo inside the box, keeping its aspect ratio
+  const padding = 6
+  const maxLogo = boxSize - padding * 2
+  const scale = Math.min(maxLogo / logoImage.width, maxLogo / logoImage.height)
+  const logoWidth = logoImage.width * scale
+  const logoHeight = logoImage.height * scale
+
+  ctx.drawImage(
+    logoImage,
+    (QR_SIZE - logoWidth) / 2,
+    (QR_SIZE - logoHeight) / 2,
+    logoWidth,
+    logoHeight,
+  )
+
+  return canvas.toDataURL('image/png')
+}
+
 export default {
   name: 'Items',
   components: {
@@ -460,8 +560,19 @@ export default {
       search: '',
       selectedClassification: '',
       selectedStatus: '',
+      selectedFundCluster: '',
+      sortKey: '',
+      sortDirection: 'asc',
       showAddForm: false,
       showMovementModal: false,
+      fundClusterOptions: [
+        'AF-1', 'AF-2', 'AF-3', 'AF-DBM PS/BID',
+        'GF-1', 'GF-2', 'GF-3', 'GF-DBM PS/BID',
+        'RF-1', 'RF-2', 'RF-DBM PS/BID',
+        'STF-1', 'STF-2', 'STF-3', 'STF-DBM PS/BID',
+        'TF-1', 'TF-2', 'TF-3', 'TF-DBM PS/BID',
+        'TR-1', 'TR-2', 'TR-DBM PS/BID'
+      ],
       detailItem: null,
       detailQrCode: '',
       qrCodeError: '',
@@ -472,6 +583,7 @@ export default {
         property_number: '',
         description: '',
         quantity: 0,
+        model_number: '',
         serial_number: '',
         cost: 0,
         acquisition_date: '',
@@ -480,11 +592,13 @@ export default {
         status: 'Available',
         accountable_employee: '',
         responsibility_center: '',
+        fund_cluster: '',
       },
       editForm: {
         property_number: '',
         description: '',
         quantity: 0,
+        model_number: '',
         serial_number: '',
         cost: 0,
         acquisition_date: '',
@@ -493,6 +607,7 @@ export default {
         status: 'Available',
         accountable_employee: '',
         responsibility_center: '',
+        fund_cluster: '',
       },
     }
   },
@@ -500,7 +615,7 @@ export default {
     filteredItems() {
       const searchValue = this.search.toLowerCase().trim()
 
-      return this.items.filter((item) => {
+      const filtered = this.items.filter((item) => {
         const matchesSearch =
           !searchValue ||
           (item.property_number || '').toLowerCase().includes(searchValue) ||
@@ -512,7 +627,31 @@ export default {
 
         const matchesStatus = !this.selectedStatus || item.status === this.selectedStatus
 
-        return matchesSearch && matchesClassification && matchesStatus
+        const matchesFundCluster =
+          !this.selectedFundCluster || item.fund_cluster === this.selectedFundCluster
+
+        return matchesSearch && matchesClassification && matchesStatus && matchesFundCluster
+      })
+
+      if (!this.sortKey) {
+        return filtered
+      }
+
+      return filtered.sort((a, b) => {
+        const first = a[this.sortKey]
+        const second = b[this.sortKey]
+        let comparison = 0
+
+        if (['quantity', 'cost'].includes(this.sortKey)) {
+          comparison = Number(first || 0) - Number(second || 0)
+        } else {
+          comparison = String(first ?? '').localeCompare(String(second ?? ''), undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          })
+        }
+
+        return this.sortDirection === 'asc' ? comparison : -comparison
       })
     },
     personnelOptions() {
@@ -535,6 +674,23 @@ export default {
     },
   },
   methods: {
+    sortBy(key) {
+      if (this.sortKey === key) {
+        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc'
+      } else {
+        this.sortKey = key
+        this.sortDirection = 'asc'
+      }
+    },
+    sortIcon(key) {
+      if (this.sortKey !== key) {
+        return 'bi bi-arrow-down-up sort-icon'
+      }
+
+      return this.sortDirection === 'asc'
+        ? 'bi bi-arrow-up sort-icon'
+        : 'bi bi-arrow-down sort-icon'
+    },
     printPropertyTag() {
       const item = this.detailItem
 
@@ -688,7 +844,7 @@ export default {
                 <div class="cell model-serial">
                   <div>
                     <span class="label">Model Number</span>
-                    <strong class="value">&nbsp;</strong>
+                    <strong class="value">${escape(item.model_number)}</strong>
                   </div>
                   <div class="serial-qr">
                     <div>
@@ -871,6 +1027,7 @@ export default {
         property_number: item.property_number || '',
         description: item.description || '',
         quantity: Number(item.quantity ?? 0),
+        model_number: item.model_number || '',
         serial_number: item.serial_number || '',
         cost: item.cost || 0,
         acquisition_date: item.acquisition_date || '',
@@ -879,6 +1036,7 @@ export default {
         status: item.status || 'Available',
         accountable_employee: item.accountable_employee || '',
         responsibility_center: item.responsibility_center || '',
+        fund_cluster: item.fund_cluster || '',
       }
     },
 
@@ -923,10 +1081,7 @@ export default {
 
         const itemDetailsUrl = new URL(linkData.viewUrl, window.location.origin).toString()
 
-        const qrCode = await QRCode.toDataURL(
-          itemDetailsUrl,
-          { errorCorrectionLevel: 'L', margin: 2, width: 400 },
-        )
+        const qrCode = await createQrWithLogo(itemDetailsUrl)
 
         if (this.detailItem?.id === item.id) {
           this.detailQrCode = qrCode
@@ -966,6 +1121,7 @@ export default {
         const itemDetails = [
           ['Property Number', item.property_number || '-'],
           ['Description', item.description || '-'],
+          ['Model Number', item.model_number || '-'],
           ['Serial Number', item.serial_number || '-'],
           ['Quantity', item.quantity ?? 0],
           [
@@ -981,6 +1137,7 @@ export default {
           ['Status', item.status || '-'],
           ['Accountable Employee', item.accountable_employee || '-'],
           ['Responsibility Center / Office', item.responsibility_center || '-'],
+          ['Fund Cluster', item.fund_cluster || '-'],
         ]
         const documentFile = new DocxDocument({
           sections: [
@@ -1212,6 +1369,7 @@ export default {
         property_number: '',
         description: '',
         quantity: 0,
+        model_number: '',
         serial_number: '',
         cost: 0,
         acquisition_date: '',
@@ -1220,6 +1378,7 @@ export default {
         status: 'Available',
         accountable_employee: '',
         responsibility_center: '',
+        fund_cluster: '',
       }
     },
 
@@ -1243,6 +1402,10 @@ export default {
     getStatusClass(status) {
       if (status === 'Available') {
         return 'bg-success'
+      }
+
+      if (status === 'Assigned') {
+        return 'bg-primary'
       }
 
       if (status === 'Issued') {
@@ -1295,6 +1458,35 @@ h1 {
   background-color: #2f5d3a;
   color: white;
   white-space: nowrap;
+}
+
+.sort-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sort-header:hover {
+  color: #e8c547;
+}
+
+.sort-header:focus-visible {
+  outline: 2px solid #e8c547;
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.sort-icon {
+  font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
 .table td {

@@ -63,7 +63,7 @@ router.get('/:itemId/:token/details', async (req, res) => {
   try {
     const { data: item, error } = await supabase
       .from('items')
-      .select('id, property_number, description, serial_number, quantity, cost, acquisition_date, classification, condition, status, accountable_employee, responsibility_center')
+      .select('id, property_number, description, model_number, serial_number, quantity, cost, acquisition_date, classification, condition, status, accountable_employee, responsibility_center')
       .eq('id', req.params.itemId)
       .maybeSingle()
 
@@ -132,6 +132,7 @@ router.get('/:itemId/:token', async (req, res) => {
     const itemDetails = [
       ['Property Number', item.property_number || '-'],
       ['Description', item.description || '-'],
+      ['Model Number', item.model_number || '-'],
       ['Serial Number', item.serial_number || '-'],
       ['Quantity', item.quantity ?? 0],
       [

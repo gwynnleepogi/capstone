@@ -4,7 +4,6 @@
     <div class="row align-items-center mb-4">
       <div class="col">
         <h1 class="h3 mb-1">Item Requests</h1>
-
         <p class="text-secondary mb-0">
           {{
             canManageRequests
@@ -15,10 +14,7 @@
       </div>
 
       <div class="col-auto">
-        <button
-          class="btn btn-warning"
-          @click="openAddModal"
-        >
+        <button class="btn btn-warning" @click="openAddModal">
           <i class="bi bi-plus-lg me-1"></i>
           Add Request
         </button>
@@ -39,10 +35,7 @@
             placeholder="Search item requests..."
           />
 
-          <select
-            v-model="statusFilter"
-            class="form-select filter-select"
-          >
+          <select v-model="statusFilter" class="form-select filter-select">
             <option value="">All Statuses</option>
             <option value="Pending">Pending</option>
             <option value="Approved">Approved</option>
@@ -74,49 +67,32 @@
                   <i :class="getSortIcon('request_number')"></i>
                 </th>
 
-                <th
-                  class="sortable"
-                  @click="sortBy('item_description')"
-                >
+                <th class="sortable" @click="sortBy('item_description')">
                   Property Description
                   <i :class="getSortIcon('item_description')"></i>
                 </th>
 
-                <th
-                  class="sortable"
-                  @click="sortBy('quantity')"
-                >
+                <th class="sortable" @click="sortBy('quantity')">
                   Quantity
                   <i :class="getSortIcon('quantity')"></i>
                 </th>
 
-                <th
-                  class="sortable"
-                  @click="sortBy('requested_by')"
-                >
+                <th class="sortable" @click="sortBy('requested_by')">
                   Requested By
                   <i :class="getSortIcon('requested_by')"></i>
                 </th>
 
-                <th
-                  class="sortable"
-                  @click="sortBy('office_id')"
-                >
+                <th class="sortable" @click="sortBy('office_id')">
                   Office
                   <i :class="getSortIcon('office_id')"></i>
                 </th>
 
-                <th
-                  class="sortable"
-                  @click="sortBy('status')"
-                >
+                <th class="sortable" @click="sortBy('status')">
                   Status
                   <i :class="getSortIcon('status')"></i>
                 </th>
 
-                <th>
-                  Actions
-                </th>
+                <th>Actions</th>
               </tr>
             </thead>
 
@@ -129,13 +105,8 @@
                   {{ request.request_number || '-' }}
                 </td>
 
-                <td>
-                  {{ request.item_description || '-' }}
-                </td>
-
-                <td>
-                  {{ request.quantity || 0 }}
-                </td>
+                <td>{{ request.item_description || '-' }}</td>
+                <td>{{ request.quantity || 0 }}</td>
 
                 <td>
                   {{
@@ -145,9 +116,7 @@
                   }}
                 </td>
 
-                <td>
-                  {{ request.offices?.office_name || '-' }}
-                </td>
+                <td>{{ request.offices?.office_name || '-' }}</td>
 
                 <td>
                   <span
@@ -160,34 +129,41 @@
 
                 <td class="request-actions-cell">
                   <div class="request-actions">
-                  <button
-                    class="btn btn-sm btn-outline-primary"
-                    @click="viewRequestDetails(request)"
-                    title="View request details"
-                  >
-                    <i class="bi bi-eye me-1"></i>
-                    Details
-                  </button>
-                  <template v-if="canManageRequests && request.status === 'Pending'">
                     <button
-                      class="btn btn-sm btn-outline-success"
-                      :disabled="updatingRequestId === request.id"
-                      @click="updateRequestStatus(request, 'Approved')"
-                      title="Accept request"
+                      class="btn btn-sm btn-outline-primary"
+                      @click="viewRequestDetails(request)"
+                      title="View request details"
                     >
-                      <i class="bi bi-check-lg me-1"></i>
-                      Accept
+                      <i class="bi bi-eye me-1"></i>
+                      Details
                     </button>
-                    <button
-                      class="btn btn-sm btn-outline-danger"
-                      :disabled="updatingRequestId === request.id"
-                      @click="updateRequestStatus(request, 'Rejected')"
-                      title="Reject request"
+
+                    <template
+                      v-if="
+                        canManageRequests &&
+                        request.status === 'Pending'
+                      "
                     >
-                      <i class="bi bi-x-lg me-1"></i>
-                      Reject
-                    </button>
-                  </template>
+                      <button
+                        class="btn btn-sm btn-outline-success"
+                        :disabled="updatingRequestId === request.id"
+                        @click="updateRequestStatus(request, 'Approved')"
+                        title="Accept request"
+                      >
+                        <i class="bi bi-check-lg me-1"></i>
+                        Accept
+                      </button>
+
+                      <button
+                        class="btn btn-sm btn-outline-danger"
+                        :disabled="updatingRequestId === request.id"
+                        @click="updateRequestStatus(request, 'Rejected')"
+                        title="Reject request"
+                      >
+                        <i class="bi bi-x-lg me-1"></i>
+                        Reject
+                      </button>
+                    </template>
                   </div>
                 </td>
               </tr>
@@ -204,10 +180,7 @@
           </table>
         </div>
 
-        <div
-          v-if="filteredRequests.length > 0"
-          class="table-footer"
-        >
+        <div v-if="filteredRequests.length > 0" class="table-footer">
           <span>
             Showing {{ firstRequestNumber }} to
             {{ lastRequestNumber }} of
@@ -245,11 +218,7 @@
       </div>
     </div>
 
-    <div
-      class="modal fade"
-      id="requestModal"
-      tabindex="-1"
-    >
+    <div class="modal fade" id="requestModal" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
@@ -267,32 +236,25 @@
           <form @submit.prevent="saveRequest">
             <div class="modal-body">
               <div class="mb-3">
-                <label class="form-label">
-                  Request Number
-                </label>
-
+                <label class="form-label">Request Number</label>
                 <input
+                  v-model="form.request_number"
                   type="text"
                   class="form-control"
-                  v-model="form.request_number"
                   placeholder="Enter request number"
                   required
                 />
               </div>
 
               <div class="mb-3">
-                <label class="form-label">
-                  Item (from Inventory)
-                </label>
+                <label class="form-label">Item (from Inventory)</label>
 
                 <select
-                  class="form-select"
                   v-model="form.item_id"
+                  class="form-select"
                   required
                 >
-                  <option value="">
-                    Select Inventory Item
-                  </option>
+                  <option value="">Select Inventory Item</option>
 
                   <option
                     v-for="item in items"
@@ -303,10 +265,7 @@
                   </option>
                 </select>
 
-                <small
-                  v-if="items.length === 0"
-                  class="text-danger"
-                >
+                <small v-if="items.length === 0" class="text-danger">
                   No available inventory items found.
                 </small>
 
@@ -315,42 +274,37 @@
                   class="border rounded p-2 mt-2 small bg-light"
                 >
                   <div><strong>{{ selectedItem.description }}</strong></div>
-                  <div>Property No.: {{ selectedItem.property_number || '-' }}</div>
-                  <div>Serial No.: {{ selectedItem.serial_number || '-' }}</div>
-                  <div>Classification: {{ selectedItem.classification || '-' }}</div>
-                  <div>Condition: {{ selectedItem.condition || '-' }}</div>
+                  <div>
+                    Property No.: {{ selectedItem.property_number || '-' }}
+                  </div>
+                  <div>
+                    Serial No.: {{ selectedItem.serial_number || '-' }}
+                  </div>
+                  <div>
+                    Classification: {{ selectedItem.classification || '-' }}
+                  </div>
+                  <div>
+                    Condition: {{ selectedItem.condition || '-' }}
+                  </div>
                 </div>
               </div>
 
               <div class="mb-3">
-                <label class="form-label">
-                  Quantity
-                </label>
-
+                <label class="form-label">Quantity</label>
                 <input
+                  v-model.number="form.quantity"
                   type="number"
                   class="form-control"
-                  v-model.number="form.quantity"
                   min="1"
                   required
                 />
               </div>
 
-              <div
-                v-if="canManageRequests"
-                class="mb-3"
-              >
-                <label class="form-label">
-                  Requested By
-                </label>
+              <div v-if="canManageRequests" class="mb-3">
+                <label class="form-label">Requested By</label>
 
-                <select
-                  class="form-select"
-                  v-model="form.requested_by"
-                >
-                  <option value="">
-                    Select Personnel
-                  </option>
+                <select v-model="form.requested_by" class="form-select">
+                  <option value="">Select Personnel</option>
 
                   <option
                     v-for="person in personnel"
@@ -362,21 +316,11 @@
                 </select>
               </div>
 
-              <div
-                v-if="canManageRequests"
-                class="mb-3"
-              >
-                <label class="form-label">
-                  Office
-                </label>
+              <div v-if="canManageRequests" class="mb-3">
+                <label class="form-label">Office</label>
 
-                <select
-                  class="form-select"
-                  v-model="form.office_id"
-                >
-                  <option value="">
-                    Select Office
-                  </option>
+                <select v-model="form.office_id" class="form-select">
+                  <option value="">Select Office</option>
 
                   <option
                     v-for="office in offices"
@@ -389,46 +333,24 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">
-                  Purpose
-                </label>
-
+                <label class="form-label">Purpose</label>
                 <textarea
+                  v-model="form.purpose"
                   class="form-control"
                   rows="3"
-                  v-model="form.purpose"
                   placeholder="Enter the purpose of the request"
                   required
                 ></textarea>
               </div>
 
-              <div
-                v-if="canManageRequests"
-                class="mb-3"
-              >
-                <label class="form-label">
-                  Status
-                </label>
+              <div v-if="canManageRequests" class="mb-3">
+                <label class="form-label">Status</label>
 
-                <select
-                  class="form-select"
-                  v-model="form.status"
-                >
-                  <option value="Pending">
-                    Pending
-                  </option>
-
-                  <option value="Approved">
-                    Approved
-                  </option>
-
-                  <option value="Delivered">
-                    Delivered
-                  </option>
-
-                  <option value="Rejected">
-                    Rejected
-                  </option>
+                <select v-model="form.status" class="form-select">
+                  <option value="Pending">Pending</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Delivered">Delivered</option>
+                  <option value="Rejected">Rejected</option>
                 </select>
               </div>
             </div>
@@ -455,40 +377,105 @@
       </div>
     </div>
 
-    <div class="modal fade" id="requestDetailsModal" tabindex="-1" aria-labelledby="requestDetailsModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div
+      class="modal fade"
+      id="requestDetailsModal"
+      tabindex="-1"
+      aria-labelledby="requestDetailsModalLabel"
+      aria-hidden="true"
+    >
+      <div
+        class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
+      >
         <div class="modal-content">
           <div class="modal-header">
-            <h5 id="requestDetailsModalLabel" class="modal-title">Request Details</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <h5 id="requestDetailsModalLabel" class="modal-title">
+              Request Details
+            </h5>
+
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
+
           <div v-if="requestDetails" class="modal-body">
             <dl class="row mb-0">
               <dt class="col-sm-4">Request Number</dt>
-              <dd class="col-sm-8">{{ requestDetails.request_number || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ requestDetails.request_number || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Property</dt>
-              <dd class="col-sm-8">{{ requestDetails.item_description || requestDetails.items?.description || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{
+                  requestDetails.item_description ||
+                  requestDetails.items?.description ||
+                  '-'
+                }}
+              </dd>
+
               <dt class="col-sm-4">Quantity</dt>
-              <dd class="col-sm-8">{{ requestDetails.quantity ?? 0 }}</dd>
+              <dd class="col-sm-8">
+                {{ requestDetails.quantity ?? 0 }}
+              </dd>
+
               <dt class="col-sm-4">Requested By</dt>
-              <dd class="col-sm-8">{{ requestDetails.users?.full_name || requestDetails.personnel?.full_name || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{
+                  requestDetails.users?.full_name ||
+                  requestDetails.personnel?.full_name ||
+                  '-'
+                }}
+              </dd>
+
               <dt class="col-sm-4">Office</dt>
-              <dd class="col-sm-8">{{ requestDetails.offices?.office_name || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ requestDetails.offices?.office_name || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Purpose</dt>
-              <dd class="col-sm-8">{{ requestDetails.purpose || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ requestDetails.purpose || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Status</dt>
-              <dd class="col-sm-8">{{ requestDetails.status || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ requestDetails.status || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Created</dt>
-              <dd class="col-sm-8">{{ requestDetails.created_at || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ requestDetails.created_at || '-' }}
+              </dd>
             </dl>
           </div>
+
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+
             <template v-if="canManageRequests">
-              <button type="button" class="btn btn-outline-warning" @click="editSelectedRequest">
+              <button
+                type="button"
+                class="btn btn-outline-warning"
+                @click="editSelectedRequest"
+              >
                 <i class="bi bi-pencil me-1"></i>Edit
               </button>
-              <button type="button" class="btn btn-outline-danger" @click="deleteSelectedRequest">
+
+              <button
+                type="button"
+                class="btn btn-outline-danger"
+                @click="deleteSelectedRequest"
+              >
                 <i class="bi bi-trash me-1"></i>Delete
               </button>
             </template>
@@ -630,15 +617,11 @@ export default {
           }
 
           if (firstValue < secondValue) {
-            return this.sortDirection === 'asc'
-              ? -1
-              : 1
+            return this.sortDirection === 'asc' ? -1 : 1
           }
 
           if (firstValue > secondValue) {
-            return this.sortDirection === 'asc'
-              ? 1
-              : -1
+            return this.sortDirection === 'asc' ? 1 : -1
           }
 
           return 0
@@ -648,15 +631,13 @@ export default {
 
     totalPages() {
       return Math.ceil(
-        this.filteredRequests.length /
-        this.itemsPerPage
+        this.filteredRequests.length / this.itemsPerPage
       ) || 1
     },
 
     paginatedRequests() {
       const start =
-        (this.currentPage - 1) *
-        this.itemsPerPage
+        (this.currentPage - 1) * this.itemsPerPage
 
       return this.filteredRequests.slice(
         start,
@@ -670,8 +651,7 @@ export default {
       }
 
       return (
-        (this.currentPage - 1) *
-        this.itemsPerPage + 1
+        (this.currentPage - 1) * this.itemsPerPage + 1
       )
     },
 
@@ -696,6 +676,7 @@ export default {
   methods: {
     viewRequestDetails(request) {
       this.requestDetails = request
+
       Modal.getOrCreateInstance(
         document.getElementById('requestDetailsModal')
       ).show()
@@ -703,24 +684,41 @@ export default {
 
     editSelectedRequest() {
       if (!this.requestDetails || !this.canManageRequests) return
+
       const request = this.requestDetails
-      Modal.getInstance(document.getElementById('requestDetailsModal'))?.hide()
+
+      Modal.getInstance(
+        document.getElementById('requestDetailsModal')
+      )?.hide()
+
       this.editRequest(request)
     },
 
     deleteSelectedRequest() {
       if (!this.requestDetails || !this.canManageRequests) return
+
       const id = this.requestDetails.id
-      Modal.getInstance(document.getElementById('requestDetailsModal'))?.hide()
+
+      Modal.getInstance(
+        document.getElementById('requestDetailsModal')
+      )?.hide()
+
       this.deleteRequest(id)
     },
 
     async updateRequestStatus(request, status) {
-      if (!this.canManageRequests || request.status !== 'Pending') return
+      if (
+        !this.canManageRequests ||
+        request.status !== 'Pending'
+      ) {
+        return
+      }
 
       if (
         status === 'Rejected' &&
-        !window.confirm(`Reject request ${request.request_number || ''}?`)
+        !window.confirm(
+          `Reject request ${request.request_number || ''}?`
+        )
       ) {
         return
       }
@@ -732,25 +730,46 @@ export default {
           `/api/item-requests/${request.id}/status`,
           {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json'
+            },
             body: JSON.stringify({ status })
           }
         )
+
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(data.error || `Failed to ${status.toLowerCase()} request`)
+          throw new Error(
+            data.error ||
+            `Failed to ${status.toLowerCase()} request`
+          )
         }
 
         await this.getRequests()
+        await this.getItems()
+
         this.notifyRequestCountChanged()
+
+        window.dispatchEvent(
+          new Event('items-updated')
+        )
+
+        window.dispatchEvent(
+          new Event('property-status-updated')
+        )
+
         this.showToast(
           status === 'Approved'
-            ? 'Request accepted successfully'
-            : 'Request rejected successfully'
+            ? 'Request approved successfully. The property inventory has been refreshed.'
+            : 'Request rejected successfully.'
         )
       } catch (error) {
-        console.log('Update request status error:', error)
+        console.log(
+          'Update request status error:',
+          error
+        )
+
         this.showToast(error.message)
       } finally {
         this.updatingRequestId = null
@@ -795,9 +814,7 @@ export default {
     sortBy(column) {
       if (this.sortColumn === column) {
         this.sortDirection =
-          this.sortDirection === 'asc'
-            ? 'desc'
-            : 'asc'
+          this.sortDirection === 'asc' ? 'desc' : 'asc'
       } else {
         this.sortColumn = column
         this.sortDirection = 'asc'
@@ -817,10 +834,7 @@ export default {
     },
 
     goToPage(page) {
-      if (
-        page >= 1 &&
-        page <= this.totalPages
-      ) {
+      if (page >= 1 && page <= this.totalPages) {
         this.currentPage = page
       }
     },
@@ -839,10 +853,7 @@ export default {
 
     async getRequests() {
       try {
-        const response = await fetch(
-          '/api/item-requests'
-        )
-
+        const response = await fetch('/api/item-requests')
         const data = await response.json()
 
         if (!response.ok) {
@@ -851,12 +862,9 @@ export default {
           )
         }
 
-        this.requests = Array.isArray(data)
-          ? data
-          : [] 
+        this.requests = Array.isArray(data) ? data : []
       } catch (error) {
         console.log('Requests error:', error)
-
         this.showToast(error.message)
       }
     },
@@ -876,13 +884,18 @@ export default {
         }
 
         const availableItems = Array.isArray(data) ? data : []
+
         const selectedItem = this.editing
-          ? this.items.find(item => item.id === this.form.item_id)
+          ? this.items.find(
+              item => item.id === this.form.item_id
+            )
           : null
 
         if (
           selectedItem &&
-          !availableItems.some(item => item.id === selectedItem.id)
+          !availableItems.some(
+            item => item.id === selectedItem.id
+          )
         ) {
           availableItems.push(selectedItem)
         }
@@ -890,19 +903,14 @@ export default {
         this.items = availableItems
       } catch (error) {
         console.log('Inventory items error:', error)
-
         this.items = []
-
         this.showToast(error.message)
       }
     },
 
     async getPersonnel() {
       try {
-        const response = await fetch(
-          '/api/personnel'
-        )
-
+        const response = await fetch('/api/personnel')
         const data = await response.json()
 
         if (!response.ok) {
@@ -911,22 +919,16 @@ export default {
           )
         }
 
-        this.personnel = Array.isArray(data)
-          ? data
-          : []
+        this.personnel = Array.isArray(data) ? data : []
       } catch (error) {
         console.log('Personnel error:', error)
-
         this.showToast(error.message)
       }
     },
 
     async getOffices() {
       try {
-        const response = await fetch(
-          '/api/offices'
-        )
-
+        const response = await fetch('/api/offices')
         const data = await response.json()
 
         if (!response.ok) {
@@ -935,12 +937,9 @@ export default {
           )
         }
 
-        this.offices = Array.isArray(data)
-          ? data
-          : []
+        this.offices = Array.isArray(data) ? data : []
       } catch (error) {
         console.log('Offices error:', error)
-
         this.showToast(error.message)
       }
     },
@@ -959,11 +958,9 @@ export default {
         status: 'Pending'
       }
 
-      const modal = Modal.getOrCreateInstance(
+      Modal.getOrCreateInstance(
         document.getElementById('requestModal')
-      )
-
-      modal.show()
+      ).show()
     },
 
     editRequest(request) {
@@ -971,82 +968,56 @@ export default {
 
       this.form = {
         id: request.id,
-        request_number:
-          request.request_number || '',
-        requested_by:
-          request.requested_by || '',
-        office_id:
-          request.office_id || '',
-        item_id:
-          request.item_id || '',
-        quantity:
-          request.quantity || 1,
-        purpose:
-          request.purpose || '',
-        status:
-          request.status || 'Pending'
+        request_number: request.request_number || '',
+        requested_by: request.requested_by || '',
+        office_id: request.office_id || '',
+        item_id: request.item_id || '',
+        quantity: request.quantity || 1,
+        purpose: request.purpose || '',
+        status: request.status || 'Pending'
       }
 
       if (
         request.items &&
-        !this.items.some(item => item.id === request.items.id)
+        !this.items.some(
+          item => item.id === request.items.id
+        )
       ) {
         this.items.push(request.items)
       }
 
-      const modal = Modal.getOrCreateInstance(
+      Modal.getOrCreateInstance(
         document.getElementById('requestModal')
-      )
-
-      modal.show()
+      ).show()
     },
 
     async saveRequest() {
       this.saving = true
 
       try {
-        let url =
-          '/api/item-requests'
-
+        let url = '/api/item-requests'
         let method = 'POST'
 
         if (this.editing) {
-          url =
-            `/api/item-requests/${this.form.id}`
-
+          url = `/api/item-requests/${this.form.id}`
           method = 'PUT'
         }
 
         const response = await fetch(url, {
-          method: method,
-
+          method,
           headers: {
             'Content-Type': 'application/json'
           },
-
           body: JSON.stringify({
-            request_number:
-              this.form.request_number,
-
-            requested_by:
-              this.form.requested_by || null,
-
-            office_id:
-              this.form.office_id || null,
-
-            item_id:
-              this.form.item_id,
-
-            quantity:
-              Number(this.form.quantity),
-
-            purpose:
-              this.form.purpose,
-
-            status:
-              this.canManageRequests
-                ? this.form.status
-                : 'Pending'
+            request_number: this.form.request_number,
+            requested_by: this.form.requested_by || null,
+            office_id: this.form.office_id || null,
+            item_id: this.form.item_id,
+            quantity: Number(this.form.quantity),
+            purpose: this.form.purpose,
+            status: this.canManageRequests
+              ? this.form.status
+              : 'Pending'
           })
         })
 
@@ -1058,11 +1029,9 @@ export default {
           )
         }
 
-        const modal = Modal.getOrCreateInstance(
+        Modal.getOrCreateInstance(
           document.getElementById('requestModal')
-        )
-
-        modal.hide()
+        ).hide()
 
         await this.getRequests()
         await this.getItems()
@@ -1075,7 +1044,6 @@ export default {
         )
       } catch (error) {
         console.log('Save request error:', error)
-
         this.showToast(error.message)
       } finally {
         this.saving = false
@@ -1084,7 +1052,7 @@ export default {
 
     async deleteRequest(id) {
       if (
-        !confirm(
+        !window.confirm(
           'Are you sure you want to delete this request?'
         )
       ) {
@@ -1111,12 +1079,9 @@ export default {
         await this.getItems()
         this.notifyRequestCountChanged()
 
-        this.showToast(
-          'Request deleted successfully'
-        )
+        this.showToast('Request deleted successfully')
       } catch (error) {
         console.log('Delete request error:', error)
-
         this.showToast(error.message)
       }
     },
@@ -1130,7 +1095,9 @@ export default {
     },
 
     notifyRequestCountChanged() {
-      window.dispatchEvent(new Event('item-requests-updated'))
+      window.dispatchEvent(
+        new Event('item-requests-updated')
+      )
     },
 
     getStatusClass(status) {

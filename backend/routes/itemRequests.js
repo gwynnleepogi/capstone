@@ -12,6 +12,92 @@ const {
 
 router.use(requireAuth)
 
+async function setItemStatus(itemId, newStatus, fromStatuses) {
+  if (!itemId) {
+    return {
+      success: false,
+      error: 'The inventory item ID is missing.'
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('items')
+    .update({ status: newStatus })
+    .eq('id', itemId)
+    .in('status', fromStatuses)
+    .select('id, status')
+    .maybeSingle()
+
+  if (error) {
+    console.log(
+      'Failed to update item status:',
+      itemId,
+      error.message
+    )
+
+    return {
+      success: false,
+      error: error.message
+    }
+  }
+
+  if (data) {
+    return {
+      success: true,
+      status: data.status
+    }
+  }
+
+  const { data: currentItem, error: currentItemError } =
+    await supabase
+      .from('items')
+      .select('id, status')
+      .eq('id', itemId)
+      .maybeSingle()
+
+  if (currentItemError) {
+    return {
+      success: false,
+      error: currentItemError.message
+    }
+  }
+
+  if (!currentItem) {
+    return {
+      success: false,
+      error: 'The inventory item was not found.'
+    }
+  }
+
+  if (currentItem.status === newStatus) {
+    return {
+      success: true,
+      status: currentItem.status
+    }
+  }
+
+  return {
+    success: false,
+    error:
+      'The item status was not changed. Current status: ' +
+      currentItem.status
+  }
+}
+
+const assignItem = (itemId) =>
+  setItemStatus(
+    itemId,
+    'Assigned',
+    ['Available', 'Returned']
+  )
+
+const releaseItem = (itemId) =>
+  setItemStatus(
+    itemId,
+    'Available',
+    ['Assigned']
+  )
+
 const allowedStatuses = [
   'Pending',
   'Approved',
@@ -46,6 +132,7 @@ router.get('/', async (req, res) => {
         description,
         quantity,
         unit,
+        model_number,
         serial_number,
         classification,
         condition,
@@ -71,7 +158,9 @@ router.get('/', async (req, res) => {
 
   if (error) {
     console.log(error)
-    return res.status(500).json({ error: error.message })
+    return res.status(500).json({
+      error: error.message
+    })
   }
 
   res.json(data)
@@ -86,6 +175,7 @@ async function getActiveRequestedItemIds() {
 
   if (error) {
     console.log(error)
+
     return {
       ids: new Set(),
       error: error.message
@@ -107,6 +197,7 @@ router.get('/available-items', async (req, res) => {
       description,
       quantity,
       unit,
+      model_number,
       serial_number,
       classification,
       condition,
@@ -118,11 +209,16 @@ router.get('/available-items', async (req, res) => {
     `)
     .in('status', ['Available', 'Returned'])
     .eq('condition', 'Serviceable')
-    .order('description', { ascending: true })
+    .order('description', {
+      ascending: true
+    })
 
   if (error) {
     console.log(error)
-    return res.status(500).json({ error: error.message })
+
+    return res.status(500).json({
+      error: error.message
+    })
   }
 
   const {
@@ -131,7 +227,9 @@ router.get('/available-items', async (req, res) => {
   } = await getActiveRequestedItemIds()
 
   if (requestedError) {
-    return res.status(500).json({ error: requestedError })
+    return res.status(500).json({
+      error: requestedError
+    })
   }
 
   const freeItems = data.filter(
@@ -153,23 +251,33 @@ router.patch(
       })
     }
 
-    const { data: oldData, error: oldError } = await supabase
+    const {
+      data: oldData,
+      error: oldError
+    } = await supabase
       .from('item_requests')
       .select('*')
       .eq('id', req.params.id)
       .single()
 
     if (oldError || !oldData) {
-      return res.status(404).json({ error: 'Item request not found' })
+      return res.status(404).json({
+        error: 'Item request not found'
+      })
     }
 
     if (oldData.status !== 'Pending') {
       return res.status(400).json({
-        error: `Only pending requests can be accepted or rejected. Current status: ${oldData.status}`
+        error:
+          'Only pending requests can be accepted or rejected. Current status: ' +
+          oldData.status
       })
     }
 
-    const { data, error } = await supabase
+    const {
+      data,
+      error
+    } = await supabase
       .from('item_requests')
       .update({ status })
       .eq('id', req.params.id)
@@ -178,13 +286,47 @@ router.patch(
       .maybeSingle()
 
     if (error) {
-      return res.status(500).json({ error: error.message })
+      return res.status(500).json({
+        error: error.message
+      })
     }
 
     if (!data) {
       return res.status(409).json({
-        error: 'This request was already updated. Refresh and try again.'
+        error:
+          'This request was already updated. Refresh and try again.'
       })
+    }
+
+    if (status === 'Approved') {
+      const itemResult = await assignItem(data.item_id)
+
+      if (!itemResult.success) {
+        console.log(
+          'Could not assign item:',
+          data.item_id,
+          itemResult.error
+        )
+
+        const { error: rollbackError } = await supabase
+          .from('item_requests')
+          .update({ status: 'Pending' })
+          .eq('id', data.id)
+          .eq('status', 'Approved')
+
+        if (rollbackError) {
+          console.log(
+            'Could not reset request status:',
+            rollbackError.message
+          )
+        }
+
+        return res.status(500).json({
+          error:
+            'The request could not be approved because the property status could not be changed to Assigned.',
+          details: itemResult.error
+        })
+      }
     }
 
     await createAuditLog(
@@ -192,11 +334,44 @@ router.patch(
       data.item_id,
       JSON.stringify(oldData),
       JSON.stringify(data),
-      `${status === 'Approved' ? 'Accepted' : 'Rejected'} item request: ${data.request_number}`,
+      (
+        status === 'Approved'
+          ? 'Accepted'
+          : 'Rejected'
+      ) + ' item request: ' + data.request_number,
       req.profile.id
     )
 
-    res.json(data)
+    const { data: updatedRequest, error: refreshError } =
+      await supabase
+        .from('item_requests')
+        .select(`
+          *,
+          items (
+            id,
+            property_number,
+            description,
+            quantity,
+            unit,
+            model_number,
+            serial_number,
+            classification,
+            condition,
+            status,
+            cost,
+            acquisition_date,
+            accountable_employee,
+            responsibility_center
+          )
+        `)
+        .eq('id', data.id)
+        .single()
+
+    if (refreshError) {
+      return res.json(data)
+    }
+
+    res.json(updatedRequest)
   }
 )
 
@@ -234,7 +409,8 @@ async function getSelectedItem(itemId, excludeRequestId) {
   if (data.condition !== 'Serviceable') {
     return {
       item: null,
-      error: 'This item is Unserviceable and cannot be assigned until it is marked Serviceable again'
+      error:
+        'This item is Unserviceable and cannot be assigned until it is marked Serviceable again'
     }
   }
 
@@ -245,7 +421,10 @@ async function getSelectedItem(itemId, excludeRequestId) {
     .in('status', ['Pending', 'Approved'])
 
   if (excludeRequestId) {
-    activeQuery = activeQuery.neq('id', excludeRequestId)
+    activeQuery = activeQuery.neq(
+      'id',
+      excludeRequestId
+    )
   }
 
   const {
@@ -263,7 +442,8 @@ async function getSelectedItem(itemId, excludeRequestId) {
   if (activeRequests && activeRequests.length > 0) {
     return {
       item: null,
-      error: 'This item has already been requested by someone else'
+      error:
+        'This item has already been requested by someone else'
     }
   }
 
@@ -284,7 +464,9 @@ router.post('/', async (req, res) => {
   } = req.body
 
   if (!req.profile) {
-    return res.status(401).json({ error: 'Please log in' })
+    return res.status(401).json({
+      error: 'Please log in'
+    })
   }
 
   let requestOwner = req.profile.id
@@ -342,7 +524,10 @@ router.post('/', async (req, res) => {
 
   if (error) {
     console.log(error)
-    return res.status(500).json({ error: error.message })
+
+    return res.status(500).json({
+      error: error.message
+    })
   }
 
   await createAuditLog(
@@ -406,12 +591,14 @@ router.put(
 
     if (oldError || !oldData) {
       console.log(oldError)
+
       return res.status(404).json({
         error: 'Item request not found'
       })
     }
 
-    const requestOwner = requested_by || oldData.requested_by
+    const requestOwner =
+      requested_by || oldData.requested_by
 
     if (
       oldData.status === 'Delivered' &&
@@ -428,8 +615,11 @@ router.put(
 
       if (!allowedNextStatuses.includes(status)) {
         return res.status(400).json({
-          error: 'Invalid status change from ' +
-            oldData.status + ' to ' + status
+          error:
+            'Invalid status change from ' +
+            oldData.status +
+            ' to ' +
+            status
         })
       }
     }
@@ -437,7 +627,10 @@ router.put(
     const {
       item: selectedItem,
       error: selectedItemError
-    } = await getSelectedItem(item_id, req.params.id)
+    } = await getSelectedItem(
+      item_id,
+      req.params.id
+    )
 
     if (
       selectedItemError &&
@@ -474,7 +667,9 @@ router.put(
       }
 
       const requesterOfficeId =
-        office_id || oldData.office_id || requester.office_id
+        office_id ||
+        oldData.office_id ||
+        requester.office_id
 
       let responsibilityCenter = ''
 
@@ -490,7 +685,8 @@ router.put(
 
         if (officeError || !office) {
           return res.status(400).json({
-            error: 'The request owner office could not be found'
+            error:
+              'The request owner office could not be found'
           })
         }
 
@@ -507,6 +703,7 @@ router.put(
 
       if (itemUpdateError) {
         console.log(itemUpdateError)
+
         return res.status(500).json({
           error: itemUpdateError.message
         })
@@ -531,7 +728,60 @@ router.put(
 
     if (error) {
       console.log(error)
-      return res.status(500).json({ error: error.message })
+
+      return res.status(500).json({
+        error: error.message
+      })
+    }
+
+    if (
+      oldData.item_id &&
+      oldData.item_id !== data.item_id &&
+      oldData.status === 'Approved'
+    ) {
+      const releaseResult = await releaseItem(
+        oldData.item_id
+      )
+
+      if (!releaseResult.success) {
+        console.log(
+          'Could not release previous item:',
+          releaseResult.error
+        )
+      }
+    }
+
+    if (status === 'Approved') {
+      const itemResult = await assignItem(data.item_id)
+
+      if (!itemResult.success) {
+        console.log(
+          'Could not assign item:',
+          data.item_id,
+          itemResult.error
+        )
+
+        return res.status(500).json({
+          error:
+            'The request was updated, but the property status could not be changed to Assigned.',
+          details: itemResult.error
+        })
+      }
+    } else if (
+      status === 'Rejected' &&
+      oldData.status === 'Approved'
+    ) {
+      const releaseResult = await releaseItem(
+        data.item_id
+      )
+
+      if (!releaseResult.success) {
+        console.log(
+          'Could not release item:',
+          data.item_id,
+          releaseResult.error
+        )
+      }
     }
 
     await createAuditLog(
@@ -562,6 +812,7 @@ router.delete(
 
     if (oldError || !oldData) {
       console.log(oldError)
+
       return res.status(404).json({
         error: 'Item request not found'
       })
@@ -580,7 +831,24 @@ router.delete(
 
     if (error) {
       console.log(error)
-      return res.status(500).json({ error: error.message })
+
+      return res.status(500).json({
+        error: error.message
+      })
+    }
+
+    if (oldData.status === 'Approved') {
+      const releaseResult = await releaseItem(
+        oldData.item_id
+      )
+
+      if (!releaseResult.success) {
+        console.log(
+          'Could not release item:',
+          oldData.item_id,
+          releaseResult.error
+        )
+      }
     }
 
     await createAuditLog(
@@ -592,7 +860,9 @@ router.delete(
       req.profile.id
     )
 
-    res.json({ message: 'Request deleted successfully' })
+    res.json({
+      message: 'Request deleted successfully'
+    })
   }
 )
 

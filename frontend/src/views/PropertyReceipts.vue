@@ -225,6 +225,14 @@
                 </p>
 
                 <p class="mb-1">
+                  <strong>Model Number:</strong>
+                  {{
+                    getRequestItem(selectedRequest).model_number ||
+                    '-'
+                  }}
+                </p>
+
+                <p class="mb-1">
                   <strong>Serial Number:</strong>
                   {{
                     getRequestItem(selectedRequest).serial_number ||
@@ -344,7 +352,11 @@
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">Fund Cluster</label>
-                  <input class="form-control" v-model.trim="receiptPrintForm.fundCluster">
+                  <select class="form-select" v-model="receiptPrintForm.fundCluster">
+                    <option value="">Select Fund Cluster</option>
+                    <option v-if="receiptPrintForm.fundCluster && !fundClusterOptions.includes(receiptPrintForm.fundCluster)" :value="receiptPrintForm.fundCluster">{{ receiptPrintForm.fundCluster }}</option>
+                    <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">{{ fc }}</option>
+                  </select>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Purpose</label>
@@ -446,7 +458,11 @@
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">Fund Cluster <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.fundCluster" required>
+                  <select class="form-select" v-model="risForm.fundCluster" required>
+                    <option value="" disabled>Select Fund Cluster</option>
+                    <option v-if="risForm.fundCluster && !fundClusterOptions.includes(risForm.fundCluster)" :value="risForm.fundCluster">{{ risForm.fundCluster }}</option>
+                    <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">{{ fc }}</option>
+                  </select>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Division</label>
@@ -585,6 +601,15 @@ export default {
       items: [],
       personnel: [],
       itemRequests: [],
+
+      fundClusterOptions: [
+        'AF-1', 'AF-2', 'AF-3', 'AF-DBM PS/BID',
+        'GF-1', 'GF-2', 'GF-3', 'GF-DBM PS/BID',
+        'RF-1', 'RF-2', 'RF-DBM PS/BID',
+        'STF-1', 'STF-2', 'STF-3', 'STF-DBM PS/BID',
+        'TF-1', 'TF-2', 'TF-3', 'TF-DBM PS/BID',
+        'TR-1', 'TR-2', 'TR-DBM PS/BID'
+      ],
 
       editing: false,
       saving: false,
@@ -1407,6 +1432,11 @@ this.$nextTick(() => {
           item.property_number || '-'
         )
 
+      const modelNumber =
+        this.escapeHtml(
+          item.model_number || '-'
+        )
+
       const serialNumber =
         this.escapeHtml(
           item.serial_number || '-'
@@ -1505,13 +1535,14 @@ this.$nextTick(() => {
             .main-table th { background: #fff; color: #000; text-align: center; font-size: 9px; font-weight: bold; border-bottom: 0.5px solid #000; }
             .main-table td { height: 35px; font-size: 9px; }
             .main-table tbody tr:first-child td { border-bottom: 0.5px solid #000; }
-            .sn { width: 7%; text-align: center; }
-            .qty { width: 6%; text-align: center; }
-            .article { width: 30%; }
-            .property { width: 14%; text-align: center; }
-            .serial { width: 13%; text-align: center; }
-            .date { width: 13%; text-align: center; }
-            .amount { width: 17%; text-align: right; }
+            .sn { width: 6%; text-align: center; }
+            .qty { width: 5%; text-align: center; }
+            .article { width: 24%; }
+            .property { width: 13%; text-align: center; }
+            .model { width: 12%; text-align: center; }
+            .serial { width: 12%; text-align: center; }
+            .date { width: 12%; text-align: center; }
+            .amount { width: 16%; text-align: right; }
             .total-row td { height: 28px; font-weight: bold; }
             .total-label, .total-amount { color: #b22222; font-weight: bold; }
             .total-label { text-align: right; }
@@ -1592,6 +1623,10 @@ this.$nextTick(() => {
                     Property Number
                   </th>
 
+                  <th class="model">
+                    Model Number
+                  </th>
+
                   <th class="serial">
                     Serial Number
                   </th>
@@ -1624,6 +1659,10 @@ this.$nextTick(() => {
                     ${propertyNumber}
                   </td>
 
+                  <td class="model">
+                    ${modelNumber}
+                  </td>
+
                   <td class="serial">
                     ${serialNumber}
                   </td>
@@ -1639,7 +1678,7 @@ this.$nextTick(() => {
 
                 <tr class="total-row">
                   <td
-                    colspan="6"
+                    colspan="7"
                     class="total-label"
                   >
                     Total

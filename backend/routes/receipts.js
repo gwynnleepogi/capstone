@@ -1,4 +1,3 @@
-
 const express = require('express')
 
 const router = express.Router()
@@ -16,6 +15,7 @@ router.get('/', async (req, res) => {
           id,
           property_number,
           description,
+          model_number,
           serial_number,
           cost,
           acquisition_date,
@@ -64,10 +64,12 @@ router.get('/:id', async (req, res) => {
           id,
           property_number,
           description,
+          model_number,
           serial_number,
           cost,
           acquisition_date,
           quantity,
+          condition,
           status,
           accountable_employee
         ),
@@ -174,7 +176,7 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Item not found' })
     }
 
-    if (item.status !== 'Available') {
+    if (item.status !== 'Available' && item.status !== 'Assigned') {
       return res.status(400).json({
         error: `This item cannot be issued. Current status: ${item.status}`
       })
@@ -237,10 +239,8 @@ router.post('/', async (req, res) => {
       .from('items')
       .update({
         quantity: remainingQuantity,
-        status: remainingQuantity > 0 ? 'Available' : 'Issued',
-        accountable_employee: remainingQuantity > 0
-          ? item.accountable_employee
-          : recipient.full_name
+        status: 'Issued',
+        accountable_employee: recipient.full_name
       })
       .eq('id', request.item_id)
       .select()
@@ -278,6 +278,30 @@ router.post('/', async (req, res) => {
       return res.status(500).json({ error: updateRequestError.message })
     }
 
+    const { data: finalItem, error: finalItemError } = await supabase
+      .from('items')
+      .update({
+        quantity: remainingQuantity,
+        status: 'Issued',
+        accountable_employee: recipient.full_name
+      })
+      .eq('id', request.item_id)
+      .select('id, property_number, status, quantity, accountable_employee')
+      .single()
+
+    if (finalItemError || !finalItem || finalItem.status !== 'Issued') {
+      console.error(
+        'Failed to confirm Issued property status:',
+        finalItemError ? finalItemError.message : finalItem
+      )
+
+      return res.status(500).json({
+        error: 'Receipt was created, but the property status could not be confirmed as Issued.'
+      })
+    }
+
+    console.log('Property status confirmed:', finalItem)
+
     try {
       await createAuditLog({
         user_id: req.profile?.id || null,
@@ -301,7 +325,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({
       message: 'Receipt created successfully',
       receipt,
-      item: updatedItem
+      item: finalItem
     })
   } catch (error) {
     console.log(error)
@@ -311,7 +335,13 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
-    const { receipt_type, receipt_number, date_issued, remarks } = req.body
+    const {
+      receipt_type,
+      receipt_number,
+      date_issued,
+      remarks,
+      status
+    } = req.body
 
     if (!receipt_type || !['PAR', 'ICS'].includes(receipt_type)) {
       return res.status(400).json({
@@ -333,20 +363,43 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Receipt not found' })
     }
 
+    const receiptUpdates = {
+      receipt_type,
+      receipt_number: String(receipt_number).trim(),
+      date_issued: date_issued || null,
+      remarks: remarks || null
+    }
+
+    if (status !== undefined) {
+      receiptUpdates.status = status
+    }
+
     const { data: updatedReceipt, error: updateReceiptError } = await supabase
       .from('property_receipts')
-      .update({
-        receipt_type,
-        receipt_number: String(receipt_number).trim(),
-        date_issued: date_issued || null,
-        remarks: remarks || null
-      })
+      .update(receiptUpdates)
       .eq('id', req.params.id)
       .select()
       .single()
 
     if (updateReceiptError) {
       return res.status(500).json({ error: updateReceiptError.message })
+    }
+
+    if (
+      String(updatedReceipt.status || '').trim().toLowerCase() === 'issued' &&
+      existingReceipt.item_id
+    ) {
+      const { error: updateItemError } = await supabase
+        .from('items')
+        .update({ status: 'Issued' })
+        .eq('id', existingReceipt.item_id)
+
+      if (updateItemError) {
+        console.log('Item status update error:', updateItemError.message)
+        return res.status(500).json({
+          error: 'Receipt was updated, but the property status could not be updated.'
+        })
+      }
     }
 
     try {
@@ -385,18 +438,22 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Receipt not found' })
     }
 
+    let currentItem = null
+
     if (existingReceipt.item_id) {
-      const { data: currentItem, error: currentItemError } = await supabase
+      const { data, error: currentItemError } = await supabase
         .from('items')
         .select('id, quantity, status, accountable_employee')
         .eq('id', existingReceipt.item_id)
         .single()
 
-      if (currentItemError || !currentItem) {
+      if (currentItemError || !data) {
         return res.status(409).json({
           error: 'The linked item was not found. Receipt was not deleted.'
         })
       }
+
+      currentItem = data
 
       const quantityToRestore = Number(existingReceipt.quantity)
 
@@ -430,8 +487,19 @@ router.delete('/:id', async (req, res) => {
       .eq('id', req.params.id)
 
     if (deleteError) {
+      if (currentItem) {
+        await supabase
+          .from('items')
+          .update({
+            quantity: Number(currentItem.quantity || 0),
+            status: currentItem.status,
+            accountable_employee: currentItem.accountable_employee
+          })
+          .eq('id', currentItem.id)
+      }
+
       return res.status(500).json({
-        error: 'Stock was restored, but the receipt could not be deleted. Please check the inventory before retrying.'
+        error: 'The receipt could not be deleted. Inventory changes were rolled back where possible.'
       })
     }
 

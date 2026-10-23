@@ -1,4 +1,3 @@
-
 const express = require('express')
 const router = express.Router()
 
@@ -122,6 +121,7 @@ router.post('/', async (req, res) => {
     const {
       property_number,
       description,
+      model_number,
       serial_number,
       cost,
       quantity,
@@ -130,8 +130,13 @@ router.post('/', async (req, res) => {
       condition,
       status,
       accountable_employee,
-      responsibility_center
+      responsibility_center,
+      fund_cluster
     } = req.body
+
+    if (!fund_cluster || !String(fund_cluster).trim()) {
+      return res.status(400).json({ error: 'Fund Cluster is required.' })
+    }
 
     const itemQuantity = Number(quantity ?? 0)
 
@@ -146,6 +151,7 @@ router.post('/', async (req, res) => {
       .insert([{
         property_number,
         description,
+        model_number,
         serial_number,
         cost,
         quantity: itemQuantity,
@@ -155,6 +161,7 @@ router.post('/', async (req, res) => {
         condition,
         accountable_employee,
         responsibility_center,
+        fund_cluster: String(fund_cluster).trim(),
         status: status || 'Available'
       }])
       .select()
@@ -190,6 +197,7 @@ router.put('/:id', async (req, res) => {
     const {
       property_number,
       description,
+      model_number,
       serial_number,
       cost,
       quantity,
@@ -198,8 +206,13 @@ router.put('/:id', async (req, res) => {
       condition,
       status,
       accountable_employee,
-      responsibility_center
+      responsibility_center,
+      fund_cluster
     } = req.body
+
+    if (!fund_cluster || !String(fund_cluster).trim()) {
+      return res.status(400).json({ error: 'Fund Cluster is required.' })
+    }
 
     const itemQuantity = Number(quantity ?? 0)
 
@@ -224,6 +237,7 @@ router.put('/:id', async (req, res) => {
       .update({
         property_number,
         description,
+        model_number,
         serial_number,
         cost,
         quantity: itemQuantity,
@@ -232,7 +246,8 @@ router.put('/:id', async (req, res) => {
         condition,
         status,
         accountable_employee,
-        responsibility_center
+        responsibility_center,
+        fund_cluster: String(fund_cluster).trim()
       })
       .eq('id', req.params.id)
       .select()
