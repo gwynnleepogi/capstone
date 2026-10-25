@@ -4,39 +4,36 @@
       <div class="modal-header">
         <div>
           <h2>Inventory Movement History</h2>
-          <p>Track property items moving in and out of inventory.</p>
+          <p>Track property acquisitions, issuances and returns.</p>
         </div>
         <button class="close-button" @click="$emit('close')">&times;</button>
       </div>
 
       <div class="filter-section">
-        <div class="filter-group">
-          <label for="movement-report-period">Report Period <span aria-hidden="true">*</span></label>
-          <select id="movement-report-period" v-model="period" @change="applyPeriod">
-            <option value="" disabled>Select a report period</option>
-            <option value="day">Daily</option>
-            <option value="month">Monthly</option>
-            <option value="quarter">Quarterly</option>
-            <option value="semi">Semi-Annual</option>
-            <option value="year">Annual</option>
-            <option value="custom">Custom Date Range</option>
+        <div class="filter-group report-group">
+          <label for="movement-report">Report to Print</label>
+          <select id="movement-report" v-model="reportToPrint">
+            <option value="acquisition">Acquisition of Office Properties</option>
+            <option value="issuance">Report of Supplies and Materials Issued</option>
           </select>
         </div>
 
         <div class="filter-group">
-          <label for="movement-date-from">{{ dateFromLabel }}</label>
-          <input
-            id="movement-date-from"
-            type="date"
-            v-model="dateFrom"
-            :disabled="!period"
-            @change="updatePeriodFromDate"
-          >
+          <label for="movement-fund-cluster">Fund Cluster</label>
+          <select id="movement-fund-cluster" v-model="selectedFundCluster">
+            <option value="ALL">(ALL)</option>
+            <option v-for="cluster in fundClusters" :key="cluster" :value="cluster">{{ cluster }}</option>
+          </select>
         </div>
 
         <div class="filter-group">
-          <label for="movement-date-to">{{ dateToLabel }}</label>
-          <input id="movement-date-to" type="date" v-model="dateTo" :disabled="period !== 'custom'">
+          <label for="movement-date-from">Date From</label>
+          <input id="movement-date-from" type="date" v-model="dateFrom">
+        </div>
+
+        <div class="filter-group">
+          <label for="movement-date-to">Date To</label>
+          <input id="movement-date-to" type="date" v-model="dateTo">
         </div>
         <p v-if="invalidDateRange" class="date-range-error">
           {{ dateRangeError }}
@@ -46,8 +43,9 @@
           <label>Movement Type</label>
           <select v-model="movementType">
             <option value="all">All Movements</option>
-            <option value="IN">IN</option>
-            <option value="OUT">OUT</option>
+            <option value="Acquisition">Acquisition</option>
+            <option value="Issuance">Issuance</option>
+            <option value="Return">Return</option>
           </select>
         </div>
 
@@ -61,18 +59,22 @@
         </div>
       </div>
 
-      <div v-if="period" class="summary-section">
+      <div v-if="!invalidDateRange" class="summary-section">
         <div class="summary-card">
           <span>Total Movements</span>
           <strong>{{ filteredMovements.length }}</strong>
         </div>
         <div class="summary-card">
-          <span>Items IN</span>
-          <strong class="in-count">{{ totalIn }}</strong>
+          <span>Acquisitions</span>
+          <strong class="acq-count">{{ totalAcquired }}</strong>
         </div>
         <div class="summary-card">
-          <span>Items OUT</span>
-          <strong class="out-count">{{ totalOut }}</strong>
+          <span>Issuances</span>
+          <strong class="out-count">{{ totalIssued }}</strong>
+        </div>
+        <div class="summary-card">
+          <span>Returns</span>
+          <strong class="in-count">{{ totalReturned }}</strong>
         </div>
       </div>
 
@@ -107,9 +109,9 @@
               <td>
                 <span
                   class="movement-badge"
-                  :class="item.type === 'IN' ? 'badge-in' : 'badge-out'"
+                  :class="badgeClass(item)"
                 >
-                  {{ item.type }}
+                  {{ item.category }}
                 </span>
               </td>
               <td>{{ item.quantity }}</td>
@@ -131,11 +133,11 @@
         <div class="footer-actions">
           <button
             class="print-button"
-            :disabled="loading || Boolean(errorMessage) || !filteredMovements.length || !period || invalidDateRange"
+            :disabled="loading || Boolean(errorMessage) || !printRows.length || invalidDateRange"
             @click="printReport"
           >
             <i class="bi bi-printer"></i>
-            Print Movement Report
+            Print Report
           </button>
           <button class="close-footer-button" @click="$emit('close')">Close</button>
         </div>
@@ -160,66 +162,52 @@ export default {
       movements: [],
       loading: false,
       errorMessage: '',
-      period: '',
       dateFrom: '',
       dateTo: '',
+      selectedFundCluster: 'ALL',
+      fundClusters: [
+        'AF-1', 'AF-2', 'AF-3', 'AF-DBM PS/BID',
+        'GF-1', 'GF-2', 'GF-3', 'GF-DBM PS/BID',
+        'RF-1', 'RF-2', 'RF-DBM PS/BID',
+        'STF-1', 'STF-2', 'STF-3', 'STF-DBM PS/BID',
+        'TF-1', 'TF-2', 'TF-3', 'TF-DBM PS/BID',
+        'TR-1', 'TR-2', 'TR-DBM PS/BID'
+      ],
       movementType: 'all',
+      reportToPrint: 'acquisition',
       search: ''
     };
   },
 
   computed: {
     invalidDateRange() {
-      if (!this.period) {
-        return false;
-      }
-
-      if (this.period === 'custom') {
-        return !this.dateFrom || !this.dateTo || this.dateFrom > this.dateTo;
-      }
-
-      return false;
+      return !this.dateFrom || !this.dateTo || this.dateFrom > this.dateTo;
     },
 
     dateRangeError() {
       if (!this.dateFrom || !this.dateTo) {
-        return 'Choose both a start date and an end date for the custom report.';
+        return 'Choose both a start date and an end date.';
       }
 
       return 'The start date must be on or before the end date.';
     },
 
     periodLabel() {
-      const labels = {
-        day: 'Daily',
-        month: 'Monthly',
-        quarter: 'Quarterly',
-        semi: 'Semi-Annual',
-        year: 'Annual',
-        custom: 'Custom Date Range'
-      };
-
-      return labels[this.period] || '';
-    },
-
-    dateFromLabel() {
-      if (this.period === 'custom') {
-        return 'From';
-      }
-
-      return this.period === 'day' ? 'Select Day' : 'Select Date in Period';
-    },
-
-    dateToLabel() {
-      return this.period === 'custom' ? 'To' : 'Through';
+      return 'Custom Date Range';
     },
 
     filteredMovements() {
-      if (!this.period || this.invalidDateRange) {
+      if (this.invalidDateRange) {
         return [];
       }
 
       let result = this.movements;
+
+      if (this.selectedFundCluster !== 'ALL') {
+        result = result.filter(item => {
+          return String(item.fundCluster || '').trim().toUpperCase() === this.selectedFundCluster.toUpperCase();
+        });
+      }
 
       if (this.dateFrom) {
         result = result.filter(item => {
@@ -235,7 +223,7 @@ export default {
 
       if (this.movementType !== 'all') {
         result = result.filter(item => {
-          return item.type === this.movementType;
+          return item.category === this.movementType;
         });
       }
 
@@ -246,6 +234,7 @@ export default {
           return (
             String(item.propertyNumber || '').toLowerCase().includes(keyword) ||
             String(item.description || '').toLowerCase().includes(keyword) ||
+            String(item.category || '').toLowerCase().includes(keyword) ||
             String(item.reference || '').toLowerCase().includes(keyword) ||
             String(item.person || '').toLowerCase().includes(keyword)
           );
@@ -257,15 +246,45 @@ export default {
       });
     },
 
-    totalIn() {
+    printRows() {
+      if (this.invalidDateRange) {
+        return [];
+      }
+
+      const category = this.reportToPrint === 'issuance' ? 'Issuance' : 'Acquisition';
+
+      return this.movements
+        .filter(item => {
+          if (item.category !== category) return false;
+          if (item.date < this.dateFrom || item.date > this.dateTo) return false;
+
+          if (this.selectedFundCluster !== 'ALL') {
+            return String(item.fundCluster || '').trim().toUpperCase() === this.selectedFundCluster.toUpperCase();
+          }
+
+          return true;
+        })
+        .sort((a, b) => {
+          return a.date.localeCompare(b.date) ||
+            String(a.reference || '').localeCompare(String(b.reference || ''));
+        });
+    },
+
+    totalAcquired() {
       return this.filteredMovements
-        .filter(item => item.type === 'IN')
+        .filter(item => item.category === 'Acquisition')
         .reduce((total, item) => total + Number(item.quantity || 0), 0);
     },
 
-    totalOut() {
+    totalIssued() {
       return this.filteredMovements
-        .filter(item => item.type === 'OUT')
+        .filter(item => item.category === 'Issuance')
+        .reduce((total, item) => total + Number(item.quantity || 0), 0);
+    },
+
+    totalReturned() {
+      return this.filteredMovements
+        .filter(item => item.category === 'Return')
         .reduce((total, item) => total + Number(item.quantity || 0), 0);
     }
   },
@@ -273,6 +292,7 @@ export default {
   watch: {
     show(value) {
       if (value) {
+        this.setDefaultDates();
         this.loadMovements();
       }
     }
@@ -280,82 +300,17 @@ export default {
 
   mounted() {
     if (this.show) {
+      this.setDefaultDates();
       this.loadMovements();
     }
   },
 
   methods: {
-    updatePeriodFromDate() {
-      if (!this.dateFrom || this.period === 'custom') {
-        return;
-      }
-
-      const selectedDate = new Date(this.dateFrom + 'T00:00:00');
-
-      if (Number.isNaN(selectedDate.getTime())) {
-        return;
-      }
-
-      const year = selectedDate.getFullYear();
-      const month = selectedDate.getMonth();
-
-      if (this.period === 'day') {
-        this.dateTo = this.dateFrom;
-      } else if (this.period === 'month') {
-        this.dateFrom = this.toDateString(new Date(year, month, 1));
-        this.dateTo = this.toDateString(new Date(year, month + 1, 0));
-      } else if (this.period === 'quarter') {
-        const quarterStartMonth = Math.floor(month / 3) * 3;
-        this.dateFrom = this.toDateString(new Date(year, quarterStartMonth, 1));
-        this.dateTo = this.toDateString(new Date(year, quarterStartMonth + 3, 0));
-      } else if (this.period === 'semi') {
-        const halfStartMonth = month < 6 ? 0 : 6;
-        this.dateFrom = this.toDateString(new Date(year, halfStartMonth, 1));
-        this.dateTo = this.toDateString(new Date(year, halfStartMonth + 6, 0));
-      } else if (this.period === 'year') {
-        this.dateFrom = this.toDateString(new Date(year, 0, 1));
-        this.dateTo = this.toDateString(new Date(year, 12, 0));
-      }
-    },
-
-    applyPeriod() {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = today.getMonth();
-
-      if (this.period === 'day') {
-        const date = this.toDateString(today);
-        this.dateFrom = date;
-        this.dateTo = date;
-      } else if (this.period === 'month') {
-        this.dateFrom = this.toDateString(
-          new Date(year, month, 1)
-        );
-        this.dateTo = this.toDateString(
-          new Date(year, month + 1, 0)
-        );
-      } else if (this.period === 'quarter') {
-        const quarterStartMonth = Math.floor(month / 3) * 3;
-        this.dateFrom = this.toDateString(
-          new Date(year, quarterStartMonth, 1)
-        );
-        this.dateTo = this.toDateString(
-          new Date(year, quarterStartMonth + 3, 0)
-        );
-      } else if (this.period === 'semi') {
-        if (month < 6) {
-          this.dateFrom = year + '-01-01';
-          this.dateTo = year + '-06-30';
-        } else {
-          this.dateFrom = year + '-07-01';
-          this.dateTo = year + '-12-31';
-        }
-      } else if (this.period === 'year') {
-        this.dateFrom = year + '-01-01';
-        this.dateTo = year + '-12-31';
-      } else if (this.period === 'custom') {
-        this.dateFrom = '';
-        this.dateTo = '';
+    setDefaultDates() {
+      if (!this.dateFrom || !this.dateTo) {
+        const today = new Date();
+        this.dateTo = this.toDateString(today);
+        this.dateFrom = this.toDateString(new Date(today.getFullYear(), 0, 1));
       }
     },
 
@@ -381,6 +336,12 @@ export default {
       return parsedDate.toLocaleDateString();
     },
 
+    badgeClass(item) {
+      if (item.category === 'Acquisition') return 'badge-acquisition';
+      if (item.category === 'Return') return 'badge-return';
+      return 'badge-out';
+    },
+
     escapeHtml(value) {
       return String(value ?? '').replace(/[&<>"']/g, character => ({
         '&': '&amp;',
@@ -391,77 +352,275 @@ export default {
       })[character]);
     },
 
+    formatLongDate(date) {
+      const parsed = new Date(date + 'T00:00:00');
+
+      if (isNaN(parsed.getTime())) {
+        return date;
+      }
+
+      return parsed
+        .toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })
+        .replace(',', '');
+    },
+
+    formatMoney(value) {
+      return Number(value || 0).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    },
+
+    cleanUnit(value) {
+      const unit = String(value ?? '').trim();
+      return unit && unit.toLowerCase() !== 'unit' ? unit : '';
+    },
+
     printReport() {
       if (this.invalidDateRange) {
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: this.dateRangeError }));
         return;
       }
 
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
+      if (!this.printRows.length) {
         window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: 'Please allow pop-ups to print the movement report.'
+          detail: 'There are no records for the selected report, fund cluster and date range.'
         }));
         return;
       }
 
-      const range = `${this.periodLabel}: ${this.formatDate(this.dateFrom)} – ${this.formatDate(this.dateTo)}`;
-      const rows = this.filteredMovements.map(item => `
-        <tr>
-          <td>${this.escapeHtml(this.formatDate(item.date))}</td>
-          <td>${this.escapeHtml(item.propertyNumber || 'N/A')}</td>
-          <td>${this.escapeHtml(item.description || 'N/A')}</td>
-          <td class="${item.type === 'IN' ? 'in' : 'out'}">${this.escapeHtml(item.type)}</td>
-          <td class="number">${this.escapeHtml(item.quantity)}</td>
-          <td>${this.escapeHtml(item.reference || 'N/A')}</td>
-          <td>${this.escapeHtml(item.person || 'N/A')}</td>
-        </tr>
-      `).join('');
+      if (this.reportToPrint === 'issuance') {
+        this.printIssuanceReport();
+      } else {
+        this.printAcquisitionReport();
+      }
+    },
+
+    buildReportHeader(title, options = {}) {
+      const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href;
+
+      return `
+        <div class="appendix">${options.appendix ? this.escapeHtml(options.appendix) : ''}</div>
+        <div class="header">
+          <div class="logo-box"><img class="logo" src="${logoUrl}" alt="NVSU Logo"></div>
+          <div class="school">
+            <div>Republic of the Philippines</div>
+            <div class="name">NUEVA VIZCAYA STATE UNIVERSITY</div>
+            <div>3700 Bayombong, Nueva Vizcaya</div>
+          </div>
+          <div class="title">${this.escapeHtml(title)}</div>
+          <div class="period">For the Period Covered ${this.escapeHtml(this.formatLongDate(this.dateFrom))} to ${this.escapeHtml(this.formatLongDate(this.dateTo))}</div>
+        </div>`;
+    },
+
+    openReportWindow(title, bodyHtml, lineColor) {
+      const printWindow = window.open('', '_blank');
+
+      if (!printWindow) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please allow pop-ups to print the report.'
+        }));
+        return;
+      }
 
       printWindow.document.write(`<!doctype html>
         <html>
           <head>
             <meta charset="utf-8">
-            <title>Inventory Movement Report</title>
+            <title>${this.escapeHtml(title)}</title>
             <style>
-              body { font: 12px Arial, sans-serif; color: #111; margin: 28px; }
-              h1 { margin: 0 0 6px; text-align: center; font-size: 20px; }
-              .range { margin: 0 0 18px; text-align: center; }
-              .summary { display: flex; gap: 24px; margin: 0 0 16px; }
-              table { width: 100%; border-collapse: collapse; }
-              th, td { border: 1px solid #777; padding: 7px; text-align: left; }
-              th { background: #eee; }
-              .in { color: #166534; font-weight: bold; }
-              .out { color: #991b1b; font-weight: bold; }
+              @page { size: landscape; margin: 12mm; }
+              * { box-sizing: border-box; }
+              body { font-family: Calibri, Arial, sans-serif; color: #000; font-size: 10px; margin: 0; }
+              .appendix { text-align: right; font-style: italic; font-size: 11px; height: 14px; }
+              .header { position: relative; text-align: center; min-height: 70px; margin-bottom: 6px; }
+              .logo-box { position: absolute; left: 0; top: 0; border: 1px solid #999; padding: 3px; }
+              .logo { width: 56px; height: 56px; object-fit: contain; display: block; }
+              .school { color: #b3262b; font-weight: bold; line-height: 1.35; font-size: 13px; }
+              .school .name { font-size: 15px; }
+              .title { margin-top: 8px; font-weight: bold; font-size: 14px; }
+              .period { font-size: 12px; }
+              .fund { margin: 8px 0 4px; font-size: 11px; font-weight: bold; }
+              .fund span { margin-left: 6px; }
+              table.report { width: 100%; border-collapse: collapse; table-layout: fixed; }
+              .report th, .report td { border: 0.5px solid ${lineColor}; padding: 3px 4px; vertical-align: middle; overflow-wrap: anywhere; }
+              .report th { font-weight: bold; text-align: center; }
+              .center { text-align: center; }
               .number { text-align: right; }
-              .signatures { display: flex; justify-content: space-around; margin-top: 64px; }
-              .signature { width: 35%; border-top: 1px solid #111; padding-top: 6px; text-align: center; }
-              @media print { body { margin: 15mm; } }
+              .total-row td { font-weight: bold; font-size: 11px; }
+              .specs { display: block; font-size: 8px; color: #333; }
+              .certify { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; page-break-inside: avoid; }
+              .certify td { border: 0.5px solid #777; padding: 6px 8px; vertical-align: top; height: 92px; }
+              .certify .lead { font-weight: bold; font-size: 11px; }
+              .certify .sig-label { margin-top: 52px; font-weight: bold; font-style: italic; text-align: center; border-top: 0.5px solid #777; padding-top: 3px; }
+              @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } thead { display: table-header-group; } tr { page-break-inside: avoid; } }
             </style>
           </head>
           <body>
-            <h1>INVENTORY MOVEMENT REPORT</h1>
-            <p class="range">Reporting period: ${this.escapeHtml(range)}</p>
-            <div class="summary">
-              <span>Total movements: <strong>${this.filteredMovements.length}</strong></span>
-              <span>Items IN: <strong>${this.totalIn}</strong></span>
-              <span>Items OUT: <strong>${this.totalOut}</strong></span>
-            </div>
-            <table>
-              <thead><tr>
-                <th>Date</th><th>Property No.</th><th>Description</th>
-                <th>Movement</th><th>Quantity</th><th>Reference</th>
-                <th>Recipient / Source</th>
-              </tr></thead>
-              <tbody>${rows}</tbody>
-            </table>
-            <div class="signatures">
-              <div class="signature">Prepared by</div>
-              <div class="signature">Reviewed by</div>
-            </div>
-            <script>window.onload = () => window.print();<\/script>
+            ${bodyHtml}
+            <script>
+              window.onload = function () {
+                var logo = document.querySelector('.logo');
+                if (logo && !logo.complete) {
+                  logo.onload = function () { window.print(); };
+                  logo.onerror = function () { window.print(); };
+                } else {
+                  window.print();
+                }
+              };
+            <\/script>
           </body>
         </html>`);
       printWindow.document.close();
+    },
+
+    // Property Acquisition Report
+    printAcquisitionReport() {
+      const title = 'ACQUISITION OF OFFICE PROPERTIES';
+      const e = value => this.escapeHtml(value === null || value === undefined || value === '' ? '' : value);
+      const fundCluster = this.selectedFundCluster === 'ALL' ? 'ALL' : this.selectedFundCluster;
+      const valueOf = item => Number(item.quantity || 0) * Number(item.unitCost || 0);
+      const grandTotal = this.printRows.reduce((sum, item) => sum + valueOf(item), 0);
+
+      const rows = this.printRows.map((item, index) => `
+        <tr>
+          <td>${e(item.article)}</td>
+          <td>${e([item.description, item.specs].filter(Boolean).join(' / '))}</td>
+          <td class="center">${index + 1}</td>
+          <td class="center">${e(item.unit)}</td>
+          <td class="number">${this.formatMoney(item.unitCost)}</td>
+          <td class="center">${e(item.drNumber)}</td>
+          <td class="center">${e(item.poNumber)}</td>
+          <td class="number">${this.escapeHtml(item.quantity)}</td>
+          <td class="number">${this.formatMoney(valueOf(item))}</td>
+          <td>${e(item.supplier)}</td>
+          <td>${e(item.remarks)}</td>
+        </tr>
+      `).join('');
+
+      const body = `
+        ${this.buildReportHeader(title)}
+        <div class="fund">FUND CLUSTER:<span>${this.escapeHtml(fundCluster)}</span></div>
+        <table class="report">
+          <colgroup>
+            <col style="width: 9%">
+            <col style="width: 17%">
+            <col style="width: 5%">
+            <col style="width: 7%">
+            <col style="width: 7%">
+            <col style="width: 9%">
+            <col style="width: 9%">
+            <col style="width: 5%">
+            <col style="width: 8%">
+            <col style="width: 12%">
+            <col style="width: 12%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>ARTICLE</th>
+              <th>DESCRIPTION</th>
+              <th>ITEM NO.</th>
+              <th>UNIT OF MEASURE</th>
+              <th>COST PER UNIT</th>
+              <th>DR/CI/SI NUMBER</th>
+              <th>PO NO.</th>
+              <th>QTY</th>
+              <th>VALUE</th>
+              <th>SUPPLIER</th>
+              <th>REMARKS</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+            <tr class="total-row">
+              <td colspan="8">GRAND TOTAL</td>
+              <td class="number">${this.formatMoney(grandTotal)}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tbody>
+        </table>`;
+
+      this.openReportWindow(title, body, '#000');
+    },
+
+    // Report of Supplies and Materials Issued (Appendix 64)
+    printIssuanceReport() {
+      const title = 'REPORT OF SUPPLIES AND MATERIALS ISSUED';
+      const e = value => this.escapeHtml(value === null || value === undefined || value === '' ? '' : value);
+      const fundCluster = this.selectedFundCluster === 'ALL' ? '(ALL)' : this.selectedFundCluster;
+      const amountOf = item => Number(item.quantity || 0) * Number(item.unitCost || 0);
+      const total = this.printRows.reduce((sum, item) => sum + amountOf(item), 0);
+
+      const rows = this.printRows.map((item, index) => `
+        <tr>
+          <td class="center">${e(item.reference)}</td>
+          <td class="center">${e(item.rcCode)}</td>
+          <td class="center">${index + 1}</td>
+          <td>${e([item.propertyNumber, item.description].filter(Boolean).join(' '))}</td>
+          <td>${e(item.specs)}</td>
+          <td class="center">${e(item.unit)}</td>
+          <td class="number">${this.escapeHtml(item.quantity)}</td>
+          <td class="number">${this.formatMoney(item.unitCost)}</td>
+          <td class="number">${this.formatMoney(amountOf(item))}</td>
+        </tr>
+      `).join('');
+
+      const body = `
+        ${this.buildReportHeader(title, { appendix: 'Appendix 64' })}
+        <div class="fund">Fund Cluster:<span>${this.escapeHtml(fundCluster)}</span></div>
+        <table class="report">
+          <colgroup>
+            <col style="width: 11%">
+            <col style="width: 10%">
+            <col style="width: 5%">
+            <col style="width: 24%">
+            <col style="width: 20%">
+            <col style="width: 6%">
+            <col style="width: 6%">
+            <col style="width: 8%">
+            <col style="width: 10%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th><i>RIS No.</i></th>
+              <th><i>RC Code</i></th>
+              <th><i>SN</i></th>
+              <th><i>Item</i></th>
+              <th><i>Description</i></th>
+              <th><i>Unit</i></th>
+              <th><i>QTY</i></th>
+              <th><i>U-Cost</i></th>
+              <th><i>Amount</i></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+            <tr class="total-row">
+              <td colspan="8" class="center">TOTAL</td>
+              <td class="number">${this.formatMoney(total)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table class="certify">
+          <tbody>
+            <tr>
+              <td>
+                <div class="lead">I hereby certify to the correctness of the above information.</div>
+                <div class="sig-label">Signature over Printed Name of Supply/Property Custodian</div>
+              </td>
+              <td>
+                <div class="lead">Posted by:</div>
+                <div class="sig-label">Signature over Printed Name of Designated Accounting Staff</div>
+              </td>
+              <td style="width: 16%">
+                <div class="lead">Date</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>`;
+
+      this.openReportWindow(title, body, '#999');
     },
 
     async loadMovements() {
@@ -529,10 +688,21 @@ export default {
           date: this.getDate(item),
           propertyNumber: item.property_number || item.propertyNumber || item.property_no || '',
           description: item.description || item.item_name || item.name || '',
-          type: 'IN',
+          category: 'Acquisition',
           quantity: Number(item.quantity ?? 0),
           reference: item.reference_number || item.reference || '',
-          person: item.source || item.supplier || ''
+          person: item.source || item.supplier || '',
+          rcCode: item.responsibility_center || '',
+          unit: this.cleanUnit(item.unit || item.unit_of_measure),
+          unitCost: Number(item.cost ?? 0),
+          specs: [item.model_number, item.serial_number].filter(Boolean).join(' / '),
+          article: item.article || '',
+          propertyId: item.property_tag_identifier || item.unique_property_id || item.uniquePropertyId || '',
+          drNumber: item.dr_ci_si_number || '',
+          poNumber: item.po_number || '',
+          supplier: item.supplier || '',
+          remarks: item.remarks || '',
+          fundCluster: item.fund_cluster || item.fundCluster || item.fund_cluster_code || ''
         }));
 
         const receiptMovements = receipts.map(receipt => ({
@@ -540,10 +710,15 @@ export default {
           date: this.getDate(receipt),
           propertyNumber: receipt.items?.property_number || receipt.property_number || receipt.propertyNumber || '',
           description: receipt.items?.description || receipt.description || receipt.item_name || receipt.name || '',
-          type: 'OUT',
+          category: 'Issuance',
           quantity: Number(receipt.quantity ?? 0),
           reference: receipt.reference_number || receipt.reference || receipt.receipt_number || '',
-          person: receipt.users?.full_name || receipt.item_requests?.users?.full_name || receipt.recipient || receipt.received_by || receipt.person || ''
+          person: receipt.users?.full_name || receipt.item_requests?.users?.full_name || receipt.recipient || receipt.received_by || receipt.person || '',
+          rcCode: receipt.items?.responsibility_center || receipt.responsibility_center || '',
+          unit: this.cleanUnit(receipt.items?.unit || receipt.items?.unit_of_measure),
+          unitCost: Number(receipt.items?.cost ?? 0),
+          specs: [receipt.items?.model_number, receipt.items?.serial_number].filter(Boolean).join(' / '),
+          fundCluster: receipt.fund_cluster || receipt.fundCluster || receipt.fund_cluster_code || receipt.items?.fund_cluster || receipt.item_requests?.fund_cluster || ''
         }));
 
         const returnMovements = returns.map(item => ({
@@ -551,10 +726,15 @@ export default {
           date: this.getDate(item),
           propertyNumber: item.items?.property_number || item.property_number || item.propertyNumber || '',
           description: item.items?.description || item.description || item.item_name || item.name || '',
-          type: 'IN',
+          category: 'Return',
           quantity: Number(item.property_receipts?.quantity ?? item.quantity ?? 0),
           reference: item.property_receipts?.receipt_number || item.reference_number || item.reference || item.return_number || '',
-          person: item.users?.full_name || item.returned_by || item.person || ''
+          person: item.users?.full_name || item.returned_by || item.person || '',
+          rcCode: item.items?.responsibility_center || '',
+          unit: this.cleanUnit(item.items?.unit || item.items?.unit_of_measure),
+          unitCost: Number(item.items?.cost ?? 0),
+          specs: [item.items?.model_number, item.items?.serial_number].filter(Boolean).join(' / '),
+          fundCluster: item.fund_cluster || item.fundCluster || item.fund_cluster_code || item.items?.fund_cluster || item.property_receipts?.fund_cluster || ''
         }));
 
         this.movements = [
@@ -608,7 +788,7 @@ export default {
 
 .modal-container {
   width: 100%;
-  max-width: 680px;
+  max-width: 860px;
   max-height: 90vh;
   max-height: 90dvh;
   overflow-y: auto;
@@ -686,13 +866,17 @@ export default {
   font-size: 13px;
 }
 
+.report-group {
+  grid-column: 1 / -1;
+}
+
 .search-group {
   grid-column: span 2;
 }
 
 .summary-section {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   padding: 0 24px 24px;
 }
@@ -767,6 +951,17 @@ th {
 .badge-out {
   background: #fee2e2;
   color: #991b1b;
+}
+.badge-acquisition {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.badge-return {
+  background: #fef3c7;
+  color: #92400e;
+}
+.acq-count {
+  color: #1d4ed8;
 }
 
 .empty-message {

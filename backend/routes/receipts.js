@@ -22,7 +22,10 @@ router.get('/', async (req, res) => {
           quantity,
           condition,
           status,
-          accountable_employee
+          accountable_employee,
+          responsibility_center,
+          fund_cluster,
+          unit
         ),
         users (
           id,
@@ -71,7 +74,10 @@ router.get('/:id', async (req, res) => {
           quantity,
           condition,
           status,
-          accountable_employee
+          accountable_employee,
+          responsibility_center,
+          fund_cluster,
+          unit
         ),
         users (
           id,

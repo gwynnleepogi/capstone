@@ -1237,32 +1237,38 @@ this.$nextTick(() => {
             @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 8mm; }
             * { box-sizing: border-box; }
             body { font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 10px; margin: 0; }
-            .header-frame { border: 1px solid #000; margin-bottom: 0; }
-            .content-frame { border: 1px solid #000; padding: 0; }
-            .letterhead { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; border-bottom: 1px solid #000; min-height: 72px; }
-            .logo-box { border-right: 1px solid #000; height: 72px; display: flex; align-items: center; justify-content: center; }
+            .header-frame { border: 0.5px solid #000; margin-bottom: 0; }
+            .content-frame { border: 0.5px solid #000; padding: 0; }
+            .letterhead { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; border-bottom: 0.5px solid #000; min-height: 72px; }
+            .logo-box { border-right: 0.5px solid #000; height: 72px; display: flex; align-items: center; justify-content: center; }
             .logo { width: 58px; height: 58px; object-fit: contain; }
             .letterhead-text { line-height: 1.25; padding: 3px; }
             .letterhead-text p { margin: 1px 0; }
             .school-name { font-size: 14px; font-weight: bold; }
-            .document-title { text-align: center; font-size: 14px; font-weight: bold; padding: 5px 0; border-bottom: 1px solid #000; }
+            .document-title { text-align: center; font-size: 14px; font-weight: bold; padding: 5px 0; border-bottom: 0.5px solid #000; }
             table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            th, td { border: 1px solid #000; padding: 4px 4px; vertical-align: middle; overflow-wrap: anywhere; }
+            th, td { border: 0.5px solid #000; padding: 4px 4px; vertical-align: middle; overflow-wrap: anywhere; }
             th { text-align: center; font-weight: bold; }
             .meta td { height: 23px; }
             .items { margin-top: 0; }
             .items th { height: 29px; }
             .items td { height: 30px; }
             .center { text-align: center; }
-            .purpose { border: 1px solid #000; border-top: 0; border-bottom: 0; padding: 7px 5px; min-height: 35px; }
-            .signature-table { margin: 0; border-collapse: collapse; }
-            .signature-table td { width: 25%; border: 0.5px solid #777; padding: 4px; vertical-align: top; }
-            .signature-table tr:first-child td { border-top: 0.5px solid #777; }
-            .signature-heading { font-weight: bold; }
-            .signature-space { margin: 15px 2px 0; text-align: center; }
-            .signature-line { border-top: 0.5px solid #777; margin: 2px 0; }
+            .sign-table { margin: 0; border-collapse: collapse; table-layout: fixed; }
+            .sign-table td { border: 0.5px solid #000; padding: 4px 6px; vertical-align: middle; font-size: 10px; }
+            .sign-table .sign-label { text-align: left; font-weight: normal; }
+            .sign-table .purpose-row td { height: 38px; }
+            .sign-table .purpose-value { text-align: left; }
+            .sign-table .sign-head-row td { height: 44px; vertical-align: top; text-align: left; }
+            .sign-table .blank-cell { border-top: 0.5px solid #000; }
+            .sign-table .signature-row td { height: 40px; }
+            .sign-table .name-row td { height: 26px; }
+            .sign-table .sign-name { text-align: center; font-weight: bold; text-transform: uppercase; }
+            .sign-table .designation-row td { height: 26px; }
+            .sign-table .sign-designation { text-align: center; font-style: italic; }
+            .sign-table .date-row td { height: 26px; }
             .small { font-size: 9px; }
-            .instructions { margin-top: 0; padding: 5px 6px; font-size: 7px; line-height: 1.2; }
+            .instructions { margin-top: 0; border-top: 0.5px solid #000; padding: 5px 6px; font-size: 7px; line-height: 1.2; }
             .instructions-title { text-align: center; font-weight: bold; text-decoration: underline; margin-bottom: 4px; }
             .instructions p { margin: 0 0 3px; }
             .instructions .copies { margin-left: 10px; }
@@ -1341,30 +1347,56 @@ this.$nextTick(() => {
               </tbody>
             </table>
 
-            <div class="purpose"><strong>Purpose:</strong> ${purpose}</div>
-
-          <table class="signature-table">
-            <tbody>
-              <tr>
-                <td>
-                  <div class="signature-heading">Requested by:</div>
-                  <div class="signature-space"><strong>${escape(details.requestedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.requestedDesignation)}</div></div>
-                </td>
-                <td>
-                  <div class="signature-heading">Approved by:</div>
-                  <div class="signature-space"><strong>${escape(details.approvedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.approvedDesignation)}</div></div>
-                </td>
-                <td>
-                  <div class="signature-heading">Issued by:</div>
-                  <div class="signature-space"><strong>${escape(details.issuedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.issuedDesignation)}</div></div>
-                </td>
-                <td>
-                  <div class="signature-heading">Received by:</div>
-                  <div class="signature-space"><strong>${escape(details.receivedBy)}</strong><div class="signature-line"></div><div class="small">${escape(details.receivedDesignation)}</div></div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+            <table class="sign-table">
+              <colgroup>
+                <col style="width: 20%">
+                <col style="width: 20%">
+                <col style="width: 20%">
+                <col style="width: 20%">
+                <col style="width: 20%">
+              </colgroup>
+              <tbody>
+                <tr class="purpose-row">
+                  <td class="sign-label">Purpose:</td>
+                  <td colspan="4" class="purpose-value">${purpose}</td>
+                </tr>
+                <tr class="sign-head-row">
+                  <td class="blank-cell"></td>
+                  <td><strong>Requested by:</strong></td>
+                  <td><strong>Approved by:</strong></td>
+                  <td><strong>Issued by:</strong></td>
+                  <td><strong>Received by:</strong></td>
+                </tr>
+                <tr class="signature-row">
+                  <td class="sign-label">Signature:</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+                <tr class="name-row">
+                  <td class="sign-label">Printed Name:</td>
+                  <td class="sign-name">${escape(details.requestedBy)}</td>
+                  <td class="sign-name">${escape(details.approvedBy)}</td>
+                  <td class="sign-name">${escape(details.issuedBy)}</td>
+                  <td class="sign-name">${escape(details.receivedBy)}</td>
+                </tr>
+                <tr class="designation-row">
+                  <td class="sign-label">Designation:</td>
+                  <td class="sign-designation">${escape(details.requestedDesignation)}</td>
+                  <td class="sign-designation">${escape(details.approvedDesignation)}</td>
+                  <td class="sign-designation">${escape(details.issuedDesignation)}</td>
+                  <td class="sign-designation">${escape(details.receivedDesignation)}</td>
+                </tr>
+                <tr class="date-row">
+                  <td class="sign-label">Date:</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
 
           <div class="instructions">
             <div class="instructions-title">INSTRUCTIONS</div>

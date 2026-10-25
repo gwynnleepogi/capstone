@@ -1,4 +1,3 @@
-
 const express = require('express')
 const router = express.Router()
 const supabase = require('../supabase')
@@ -33,11 +32,15 @@ router.get('/', async (req, res) => {
           id,
           description,
           property_number,
+          model_number,
           serial_number,
+          cost,
           quantity,
           condition,
           status,
-          accountable_employee
+          accountable_employee,
+          responsibility_center,
+          fund_cluster
         ),
         property_receipts (
           id,

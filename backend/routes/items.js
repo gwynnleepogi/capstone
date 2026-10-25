@@ -131,7 +131,13 @@ router.post('/', async (req, res) => {
       status,
       accountable_employee,
       responsibility_center,
-      fund_cluster
+      fund_cluster,
+      unit,
+      article,
+      dr_ci_si_number,
+      po_number,
+      supplier,
+      remarks
     } = req.body
 
     if (!fund_cluster || !String(fund_cluster).trim()) {
@@ -155,7 +161,12 @@ router.post('/', async (req, res) => {
         serial_number,
         cost,
         quantity: itemQuantity,
-        unit: 'unit',
+        unit: String(unit || '').trim() || 'unit',
+        article: String(article || '').trim() || null,
+        dr_ci_si_number: String(dr_ci_si_number || '').trim() || null,
+        po_number: String(po_number || '').trim() || null,
+        supplier: String(supplier || '').trim() || null,
+        remarks: String(remarks || '').trim() || null,
         acquisition_date,
         classification,
         condition,
@@ -207,7 +218,13 @@ router.put('/:id', async (req, res) => {
       status,
       accountable_employee,
       responsibility_center,
-      fund_cluster
+      fund_cluster,
+      unit,
+      article,
+      dr_ci_si_number,
+      po_number,
+      supplier,
+      remarks
     } = req.body
 
     if (!fund_cluster || !String(fund_cluster).trim()) {
@@ -247,7 +264,13 @@ router.put('/:id', async (req, res) => {
         status,
         accountable_employee,
         responsibility_center,
-        fund_cluster: String(fund_cluster).trim()
+        fund_cluster: String(fund_cluster).trim(),
+        unit: String(unit || '').trim() || 'unit',
+        article: String(article || '').trim() || null,
+        dr_ci_si_number: String(dr_ci_si_number || '').trim() || null,
+        po_number: String(po_number || '').trim() || null,
+        supplier: String(supplier || '').trim() || null,
+        remarks: String(remarks || '').trim() || null
       })
       .eq('id', req.params.id)
       .select()

@@ -25,7 +25,7 @@
               <span class="input-group-text">
                 <i class="bi bi-search"></i>
               </span>
-              <input v-model="search" type="text" class="form-control" placeholder="Search property number or description" />
+              <input v-model="search" type="text" class="form-control" placeholder="Search unique ID, property number, description, or serial number" />
             </div>
           </div>
           <div class="col-12 col-md-3">
@@ -86,12 +86,14 @@
       </div>
     </div>
 
-    <div v-if="showAddForm" class="card mb-4">
-      <div class="card-header bg-white">
-        <strong>Add New Item</strong>
+    <div v-if="showAddForm" class="add-overlay" tabindex="-1" @keydown.esc="cancelAdd">
+      <section class="add-dialog card" role="dialog" aria-modal="true" aria-labelledby="add-item-title">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <strong id="add-item-title">Add New Item</strong>
+        <button type="button" class="btn-close" aria-label="Close" @click="cancelAdd"></button>
       </div>
-      <form @submit.prevent="addItem">
-        <div class="card-body">
+      <form class="add-dialog-form" @submit.prevent="addItem">
+        <div class="card-body add-dialog-body">
           <div class="row g-3">
             <div class="col-12 col-md-6">
               <label class="form-label">Property Number <span class="text-danger">*</span></label>
@@ -123,6 +125,30 @@
             <div class="col-12 col-md-6">
               <label class="form-label">Acquisition Date <span class="text-danger">*</span></label>
               <input v-model="newItem.acquisition_date" type="date" class="form-control" required />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Article</label>
+              <input v-model.trim="newItem.article" type="text" class="form-control" placeholder="e.g. BAG" />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Unit of Measure</label>
+              <input v-model.trim="newItem.unit" type="text" class="form-control" list="unit-options" placeholder="e.g. PC" />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">DR/CI/SI Number</label>
+              <input v-model.trim="newItem.dr_ci_si_number" type="text" class="form-control" placeholder="e.g. DR 000051" />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">PO No.</label>
+              <input v-model.trim="newItem.po_number" type="text" class="form-control" />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Supplier</label>
+              <input v-model.trim="newItem.supplier" type="text" class="form-control" list="supplier-options" />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Remarks</label>
+              <input v-model.trim="newItem.remarks" type="text" class="form-control" />
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Accountable Employee</label>
@@ -187,6 +213,7 @@
           </button>
         </div>
       </form>
+      </section>
     </div>
 
     <div class="card">
@@ -197,6 +224,7 @@
         <table class="table table-hover mb-0">
           <thead>
             <tr>
+              <th><button type="button" class="sort-header" @click="sortBy('property_tag_identifier')">Unique ID <i :class="sortIcon('property_tag_identifier')"></i></button></th>
               <th><button type="button" class="sort-header" @click="sortBy('property_number')">Property No. <i :class="sortIcon('property_number')"></i></button></th>
               <th><button type="button" class="sort-header" @click="sortBy('description')">Description <i :class="sortIcon('description')"></i></button></th>
               <th><button type="button" class="sort-header" @click="sortBy('quantity')">Quantity <i :class="sortIcon('quantity')"></i></button></th>
@@ -214,15 +242,22 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="13" class="text-center py-5">Loading items...</td>
+              <td colspan="14" class="text-center py-5">Loading items...</td>
             </tr>
             <tr v-else-if="error">
-              <td colspan="13" class="text-center text-danger py-5">{{ error }}</td>
+              <td colspan="14" class="text-center text-danger py-5">{{ error }}</td>
             </tr>
             <tr v-else-if="filteredItems.length === 0">
-              <td colspan="13" class="text-center text-secondary py-5">No items found.</td>
+              <td colspan="14" class="text-center text-secondary py-5">No items found.</td>
             </tr>
             <tr v-for="item in filteredItems" :key="item.id">
+              <td>
+                {{
+                  item.property_tag_identifier !== null && item.property_tag_identifier !== undefined
+                    ? 'PROP-' + String(item.property_tag_identifier).padStart(6, '0')
+                    : 'NOT ASSIGNED'
+                }}
+              </td>
               <td>{{ item.property_number || '-' }}</td>
               <td>{{ item.description || '-' }}</td>
               <td>{{ item.quantity ?? 0 }}</td>
@@ -315,6 +350,18 @@
                 <dd class="col-sm-7">{{ detailItem.responsibility_center || '-' }}</dd>
                 <dt class="col-sm-5">Fund Cluster</dt>
                 <dd class="col-sm-7">{{ detailItem.fund_cluster || '-' }}</dd>
+                <dt class="col-sm-5">Article</dt>
+                <dd class="col-sm-7">{{ detailItem.article || '-' }}</dd>
+                <dt class="col-sm-5">Unit of Measure</dt>
+                <dd class="col-sm-7">{{ detailItem.unit && detailItem.unit !== 'unit' ? detailItem.unit : '-' }}</dd>
+                <dt class="col-sm-5">DR/CI/SI Number</dt>
+                <dd class="col-sm-7">{{ detailItem.dr_ci_si_number || '-' }}</dd>
+                <dt class="col-sm-5">PO No.</dt>
+                <dd class="col-sm-7">{{ detailItem.po_number || '-' }}</dd>
+                <dt class="col-sm-5">Supplier</dt>
+                <dd class="col-sm-7">{{ detailItem.supplier || '-' }}</dd>
+                <dt class="col-sm-5">Remarks</dt>
+                <dd class="col-sm-7">{{ detailItem.remarks || '-' }}</dd>
               </dl>
             </div>
           </div>
@@ -393,6 +440,30 @@
               <input v-model="editForm.acquisition_date" type="date" class="form-control" required />
             </div>
             <div class="mb-3">
+              <label class="form-label">Article</label>
+              <input v-model.trim="editForm.article" type="text" class="form-control" placeholder="e.g. BAG" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Unit of Measure</label>
+              <input v-model.trim="editForm.unit" type="text" class="form-control" list="unit-options" placeholder="e.g. PC" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">DR/CI/SI Number</label>
+              <input v-model.trim="editForm.dr_ci_si_number" type="text" class="form-control" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">PO No.</label>
+              <input v-model.trim="editForm.po_number" type="text" class="form-control" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Supplier</label>
+              <input v-model.trim="editForm.supplier" type="text" class="form-control" list="supplier-options" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Remarks</label>
+              <input v-model.trim="editForm.remarks" type="text" class="form-control" />
+            </div>
+            <div class="mb-3">
               <label class="form-label">Classification <span class="text-danger">*</span></label>
               <select v-model="editForm.classification" class="form-select" required>
                 <option value="PAR">Property Acknowledgement Receipt</option>
@@ -456,6 +527,13 @@
         </form>
       </div>
     </div>
+
+    <datalist id="unit-options">
+      <option v-for="u in unitOptions" :key="u" :value="u"></option>
+    </datalist>
+    <datalist id="supplier-options">
+      <option v-for="name in supplierOptions" :key="name" :value="name"></option>
+    </datalist>
 
     <InventoryMovementModal
       v-if="showMovementModal"
@@ -553,6 +631,8 @@ export default {
       itemsLoaded: false,
       personnel: [],
       offices: [],
+      suppliers: [],
+      unitOptions: ['PC', 'PCS', 'PAX', 'BOX', 'PACK', 'SET', 'LOT', 'REAM', 'ROLL', 'BOTTLE', 'CAN', 'UNIT'],
       loading: false,
       saving: false,
       updating: false,
@@ -593,6 +673,12 @@ export default {
         accountable_employee: '',
         responsibility_center: '',
         fund_cluster: '',
+        article: '',
+        unit: '',
+        dr_ci_si_number: '',
+        po_number: '',
+        supplier: '',
+        remarks: '',
       },
       editForm: {
         property_number: '',
@@ -608,6 +694,12 @@ export default {
         accountable_employee: '',
         responsibility_center: '',
         fund_cluster: '',
+        article: '',
+        unit: '',
+        dr_ci_si_number: '',
+        po_number: '',
+        supplier: '',
+        remarks: '',
       },
     }
   },
@@ -616,8 +708,15 @@ export default {
       const searchValue = this.search.toLowerCase().trim()
 
       const filtered = this.items.filter((item) => {
+        const uniquePropertyId =
+          item.property_tag_identifier !== null && item.property_tag_identifier !== undefined
+            ? 'PROP-' + String(item.property_tag_identifier).padStart(6, '0')
+            : ''
+
         const matchesSearch =
           !searchValue ||
+          uniquePropertyId.toLowerCase().includes(searchValue) ||
+          String(item.property_tag_identifier ?? '').toLowerCase().includes(searchValue) ||
           (item.property_number || '').toLowerCase().includes(searchValue) ||
           (item.description || '').toLowerCase().includes(searchValue) ||
           (item.serial_number || '').toLowerCase().includes(searchValue)
@@ -656,6 +755,11 @@ export default {
     },
     personnelOptions() {
       return this.personnel.filter((person) => person && person.full_name)
+    },
+    supplierOptions() {
+      return this.suppliers
+        .map((supplier) => supplier && supplier.supplier_name)
+        .filter(Boolean)
     },
     officeOptions() {
       return this.offices.filter((office) => office && office.office_name)
@@ -770,6 +874,12 @@ export default {
               }
               .brand img { width: .58in; height: .58in; object-fit: contain; }
               .brand-name { font-size: 7px; }
+              .unique-property-id {
+                font-size: 7px;
+                font-weight: 700;
+                overflow-wrap: anywhere;
+                text-align: center;
+              }
               .tag-name { font-size: 10px; }
               .label { display: block; font-size: 7px; font-style: italic; }
               .value { display: block; margin-top: 2px; font-size: 8px; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
@@ -812,6 +922,12 @@ export default {
                   <img src="${logo}" alt="NVSU logo">
                   <span class="brand-name">NVSU PROPERTY INVENTORY</span>
                   <span>PROPERTY TAG</span>
+                  <span class="unique-property-id">UNIQUE ID: ${escape(
+                    item.property_tag_identifier !== null &&
+                    item.property_tag_identifier !== undefined
+                      ? 'PROP-' + String(item.property_tag_identifier).padStart(6, '0')
+                      : 'NOT ASSIGNED'
+                  )}</span>
                 </div>
                 <div class="cell property-number">
                   <span class="label">Property Number</span>
@@ -884,6 +1000,7 @@ export default {
       const results = await Promise.allSettled([
         this.fetchJson('/api/personnel'),
         this.fetchJson('/api/offices'),
+        this.fetchJson('/api/suppliers'),
       ])
 
       if (results[0].status === 'fulfilled') {
@@ -894,7 +1011,11 @@ export default {
         this.offices = Array.isArray(results[1].value) ? results[1].value : []
       }
 
-      if (results.some((result) => result.status === 'rejected')) {
+      if (results[2].status === 'fulfilled') {
+        this.suppliers = Array.isArray(results[2].value) ? results[2].value : []
+      }
+
+      if (results.slice(0, 2).some((result) => result.status === 'rejected')) {
         window.dispatchEvent(
           new CustomEvent('show-toast', {
             detail: 'Failed to load personnel and office options',
@@ -1037,6 +1158,12 @@ export default {
         accountable_employee: item.accountable_employee || '',
         responsibility_center: item.responsibility_center || '',
         fund_cluster: item.fund_cluster || '',
+        article: item.article || '',
+        unit: item.unit && item.unit !== 'unit' ? item.unit : '',
+        dr_ci_si_number: item.dr_ci_si_number || '',
+        po_number: item.po_number || '',
+        supplier: item.supplier || '',
+        remarks: item.remarks || '',
       }
     },
 
@@ -1379,6 +1506,12 @@ export default {
         accountable_employee: '',
         responsibility_center: '',
         fund_cluster: '',
+        article: '',
+        unit: '',
+        dr_ci_si_number: '',
+        po_number: '',
+        supplier: '',
+        remarks: '',
       }
     },
 
@@ -1512,6 +1645,40 @@ h1 {
 .classification-default {
   background-color: #6c757d;
   color: white;
+}
+
+.add-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+.add-dialog {
+  width: min(820px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.add-dialog-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.add-dialog-body {
+  overflow-y: auto;
+}
+
+.add-dialog .card-footer {
+  text-align: right;
 }
 
 .edit-overlay {
