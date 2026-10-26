@@ -97,6 +97,16 @@
         </router-link>
 
         <router-link
+          v-if="canAccess(['Administrator', 'Personnel'])"
+          to="/transfers"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-arrow-left-right"></i>
+          Transfers
+        </router-link>
+
+        <router-link
           v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])"
           to="/request"
           class="nav-link"

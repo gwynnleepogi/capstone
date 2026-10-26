@@ -408,6 +408,12 @@
                   <label class="form-label">Designation</label>
                   <input class="form-control" v-model.trim="receiptPrintForm.receivedFromDesignation">
                 </div>
+                <div class="col-12">
+                  <label class="form-label">Signature Image (optional)</label>
+                  <input class="form-control" type="file" accept="image/png,image/jpeg,image/webp" @change="handlePrintSignatureChange">
+                  <small class="text-muted">Choose an image for this print only. It will not be saved with the receipt.</small>
+                  <img v-if="printSignatureImage" :src="printSignatureImage" alt="Signature preview" style="display:block;max-width:220px;max-height:90px;object-fit:contain;margin-top:10px;">
+                </div>
                 <div class="col-md-6">
                   <label class="form-label">Paper Size</label>
                   <select class="form-select" v-model="receiptPrintForm.paperSize">
@@ -507,6 +513,12 @@
                 <div class="col-md-6">
                   <label class="form-label">Received By Designation <span class="text-danger">*</span></label>
                   <input class="form-control" v-model.trim="risForm.receivedDesignation" required>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Signature Image (optional)</label>
+                  <input class="form-control" type="file" accept="image/png,image/jpeg,image/webp" @change="handlePrintSignatureChange">
+                  <small class="text-muted">Choose an image for this print only. It will not be saved with the receipt.</small>
+                  <img v-if="printSignatureImage" :src="printSignatureImage" alt="Signature preview" style="display:block;max-width:220px;max-height:90px;object-fit:contain;margin-top:10px;">
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Paper Size</label>
@@ -613,6 +625,7 @@ export default {
 
       editing: false,
       saving: false,
+      printSignatureImage: '',
       selectedRISReceipt: null,
       selectedPrintReceipt: null,
       selectedDetailsReceipt: null,
@@ -720,6 +733,36 @@ export default {
       const id = this.selectedDetailsReceipt.id
       Modal.getInstance(document.getElementById('receiptDetailsModal'))?.hide()
       this.deleteReceipt(id)
+    },
+
+    handlePrintSignatureChange(event) {
+      const file = event.target.files && event.target.files[0]
+      this.printSignatureImage = ''
+
+      if (!file) return
+
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/webp']
+      if (!allowedTypes.includes(file.type)) {
+        this.showToast('Choose a PNG, JPG, or WEBP signature image')
+        event.target.value = ''
+        return
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        this.showToast('The signature image must be 5 MB or smaller')
+        event.target.value = ''
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = () => {
+        this.printSignatureImage = typeof reader.result === 'string' ? reader.result : ''
+      }
+      reader.onerror = () => {
+        this.showToast('Could not read the signature image')
+        event.target.value = ''
+      }
+      reader.readAsDataURL(file)
     },
 
     printSelectedReceipt() {
@@ -1105,6 +1148,7 @@ this.$nextTick(() => {
     },
 
     openReceiptPrintModal(receipt) {
+      this.printSignatureImage = ''
       this.selectedPrintReceipt = receipt
       const item = this.getReceiptItem(receipt)
       this.receiptPrintForm = {
@@ -1132,10 +1176,11 @@ this.$nextTick(() => {
       if (!this.selectedPrintReceipt) return
       const modal = Modal.getOrCreateInstance(document.getElementById('receiptPrintDetailsModal'))
       modal.hide()
-      this.printReceipt(this.selectedPrintReceipt, { ...this.receiptPrintForm })
+      this.printReceipt(this.selectedPrintReceipt, { ...this.receiptPrintForm, signatureImage: this.printSignatureImage })
     },
 
     openRISModal(receipt) {
+      this.printSignatureImage = ''
       const request = receipt.item_requests || {}
       const issuedTo = this.getIssuedToName(receipt)
       this.selectedRISReceipt = receipt
@@ -1164,7 +1209,7 @@ this.$nextTick(() => {
       if (!this.selectedRISReceipt) return
       const modal = Modal.getOrCreateInstance(document.getElementById('risDetailsModal'))
       modal.hide()
-      this.printRIS(this.selectedRISReceipt, { ...this.risForm })
+      this.printRIS(this.selectedRISReceipt, { ...this.risForm, signatureImage: this.printSignatureImage })
     },
 
     getPrintPageSize(details) {
@@ -1196,6 +1241,9 @@ this.$nextTick(() => {
       const office = request.offices || receipt.offices || {}
       const escape = value => this.escapeHtml(value === null || value === undefined || value === '' ? '-' : value)
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
+      const signatureImageMarkup = details.signatureImage
+        ? `<img class="print-signature" src="${details.signatureImage}" alt="Signature">`
+        : ''
 
       const printWindow = window.open('', '_blank')
       if (!printWindow) {
@@ -1262,6 +1310,7 @@ this.$nextTick(() => {
             .sign-table .sign-head-row td { height: 44px; vertical-align: top; text-align: left; }
             .sign-table .blank-cell { border-top: 0.5px solid #000; }
             .sign-table .signature-row td { height: 40px; }
+            .print-signature { display: block; max-width: 100px; max-height: 34px; object-fit: contain; margin: 0 auto; }
             .sign-table .name-row td { height: 26px; }
             .sign-table .sign-name { text-align: center; font-weight: bold; text-transform: uppercase; }
             .sign-table .designation-row td { height: 26px; }
@@ -1372,7 +1421,7 @@ this.$nextTick(() => {
                   <td></td>
                   <td></td>
                   <td></td>
-                  <td></td>
+                  <td>${signatureImageMarkup}</td>
                 </tr>
                 <tr class="name-row">
                   <td class="sign-label">Printed Name:</td>
@@ -1433,6 +1482,9 @@ this.$nextTick(() => {
 
       const item = this.getReceiptItem(receipt)
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
+      const signatureImageMarkup = details.signatureImage
+        ? `<img class="print-signature" src="${details.signatureImage}" alt="Signature">`
+        : ''
 
       const receiptType =
         this.escapeHtml(
@@ -1590,6 +1642,7 @@ this.$nextTick(() => {
             .signature-box { display: flex; flex-direction: column; font-size: 9px; }
             .signature-heading { font-weight: bold; }
             .signature-name { margin-top: 18px; text-align: center; font-weight: bold; }
+            .print-signature { display: block; max-width: 120px; max-height: 38px; object-fit: contain; margin: 2px auto -14px; }
             .signature-label, .signature-date { text-align: center; }
             .signature-label { margin-top: 2px; }
             .signature-date { margin-top: 2px; }
@@ -1769,6 +1822,7 @@ this.$nextTick(() => {
               <div class="signature">
                 <div class="signature-box">
                   <div class="signature-heading">RECEIVED BY</div>
+                  ${signatureImageMarkup}
                   <div class="signature-name">${personnelName}</div>
                   <div class="signature-label">${this.escapeHtml(details.receivedByDesignation || '')}</div>
                   <div class="signature-label">Signature over Printed Name</div>

@@ -14,7 +14,7 @@
           <label for="movement-report">Report to Print</label>
           <select id="movement-report" v-model="reportToPrint">
             <option value="acquisition">Acquisition of Office Properties</option>
-            <option value="issuance">Report of Supplies and Materials Issued</option>
+            <option value="issuance">Report of Properties Issued</option>
           </select>
         </div>
 
@@ -131,6 +131,15 @@
       <div class="modal-footer">
         <span>{{ filteredMovements.length }} record(s)</span>
         <div class="footer-actions">
+          <button
+            v-if="reportToPrint === 'acquisition'"
+            class="print-button excel-button"
+            :disabled="loading || Boolean(errorMessage) || !printRows.length || invalidDateRange"
+            @click="exportAcquisitionExcel"
+          >
+            <i class="bi bi-file-earmark-excel"></i>
+            Export Excel
+          </button>
           <button
             class="print-button"
             :disabled="loading || Boolean(errorMessage) || !printRows.length || invalidDateRange"
@@ -376,6 +385,116 @@ export default {
       return unit && unit.toLowerCase() !== 'unit' ? unit : '';
     },
 
+    async exportAcquisitionExcel() {
+      if (this.invalidDateRange || !this.printRows.length) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: this.invalidDateRange ? this.dateRangeError : 'There are no acquisition records to export.'
+        }));
+        return;
+      }
+
+      try {
+        const imported = await import('exceljs');
+        const ExcelJS = imported.default || imported;
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Office Property Acquisition', {
+          pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+          views: [{ state: 'frozen', ySplit: 5 }]
+        });
+
+        worksheet.mergeCells('A1:K1');
+        worksheet.getCell('A1').value = 'REPUBLIC OF THE PHILIPPINES';
+        worksheet.mergeCells('A2:K2');
+        worksheet.getCell('A2').value = 'NUEVA VIZCAYA STATE UNIVERSITY';
+        worksheet.mergeCells('A3:K3');
+        worksheet.getCell('A3').value = '3702 Bambang, Nueva Vizcaya';
+        worksheet.mergeCells('A4:K4');
+        worksheet.getCell('A4').value = 'ACQUISITION OF OFFICE PROPERTIES';
+        worksheet.mergeCells('A5:K5');
+        worksheet.getCell('A5').value = 'For the Period Covered ' + this.formatLongDate(this.dateFrom) + ' to ' + this.formatLongDate(this.dateTo);
+        worksheet.mergeCells('A6:K6');
+        worksheet.getCell('A6').value = 'FUND CLUSTER: ' + (this.selectedFundCluster === 'ALL' ? 'ALL' : this.selectedFundCluster);
+
+        ['A1', 'A2', 'A3', 'A4', 'A5', 'A6'].forEach(address => {
+          worksheet.getCell(address).alignment = { horizontal: 'center', vertical: 'middle' };
+          worksheet.getCell(address).font = { bold: address === 'A2' || address === 'A4', size: address === 'A4' ? 14 : 11 };
+        });
+
+        const headers = ['Article', 'Description', 'Item No.', 'Unit of Measure', 'Cost per Unit / Cost/Unit', 'DR/CI/SI Number', 'Property Order No.', 'Qty', 'Value', 'Supplier', 'Remarks'];
+        worksheet.addRow([]);
+        const headerRow = worksheet.addRow(headers);
+        headerRow.font = { bold: true };
+        headerRow.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        headerRow.eachCell(cell => {
+          cell.border = {
+            top: { style: 'thin' }, bottom: { style: 'thin' },
+            left: { style: 'thin' }, right: { style: 'thin' }
+          };
+        });
+
+        let grandTotal = 0;
+        this.printRows.forEach((item, index) => {
+          const quantity = Number(item.quantity || 0);
+          const unitCost = Number(item.unitCost || 0);
+          const amount = quantity * unitCost;
+          grandTotal += amount;
+          const row = worksheet.addRow([
+            item.article || '',
+            item.description || item.item_name || item.name || '',
+            item.itemNo || item.itemNumber || item.item_number || item.stockNo || item.stock_no || index + 1,
+            item.unit || '',
+            unitCost,
+            item.drNumber || '',
+            item.poNumber || item.propertyNumber || '',
+            quantity,
+            amount,
+            item.supplier || '',
+            item.remarks || ''
+          ]);
+          row.eachCell(cell => {
+            cell.border = {
+              top: { style: 'thin' }, bottom: { style: 'thin' },
+              left: { style: 'thin' }, right: { style: 'thin' }
+            };
+          });
+          row.getCell(5).numFmt = '#,##0.00';
+          row.getCell(9).numFmt = '#,##0.00';
+        });
+
+        const totalRow = worksheet.addRow(['GRAND TOTAL', '', '', '', '', '', '', '', grandTotal, '', '']);
+        totalRow.font = { bold: true };
+        totalRow.getCell(9).numFmt = '#,##0.00';
+        totalRow.eachCell(cell => {
+          cell.border = {
+            top: { style: 'thin' }, bottom: { style: 'thin' },
+            left: { style: 'thin' }, right: { style: 'thin' }
+          };
+        });
+
+        worksheet.columns = [
+          { width: 18 }, { width: 30 }, { width: 14 }, { width: 16 }, { width: 20 },
+          { width: 20 }, { width: 24 }, { width: 10 }, { width: 16 }, { width: 22 }, { width: 24 }
+        ];
+        worksheet.getRow(8).height = 34;
+        worksheet.autoFilter = { from: 'A8', to: 'K8' };
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'Acquisition_of_Office_Properties_' + this.dateFrom + '_to_' + this.dateTo + '.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Unable to export Excel report: ' + (error.message || 'Unknown error')
+        }));
+      }
+    },
+
     printReport() {
       if (this.invalidDateRange) {
         window.dispatchEvent(new CustomEvent('show-toast', { detail: this.dateRangeError }));
@@ -406,7 +525,7 @@ export default {
           <div class="school">
             <div>Republic of the Philippines</div>
             <div class="name">NUEVA VIZCAYA STATE UNIVERSITY</div>
-            <div>3700 Bayombong, Nueva Vizcaya</div>
+            <div>3702 Bambang, Nueva Vizcaya</div>
           </div>
           <div class="title">${this.escapeHtml(title)}</div>
           <div class="period">For the Period Covered ${this.escapeHtml(this.formatLongDate(this.dateFrom))} to ${this.escapeHtml(this.formatLongDate(this.dateTo))}</div>
@@ -429,7 +548,16 @@ export default {
             <meta charset="utf-8">
             <title>${this.escapeHtml(title)}</title>
             <style>
-              @page { size: landscape; margin: 12mm; }
+              @page {
+                size: landscape;
+                margin: 12mm;
+                @bottom-right {
+                  content: "Page " counter(page) " of " counter(pages);
+                  font-family: Arial, sans-serif;
+                  font-size: 9px;
+                  color: #000;
+                }
+              }
               * { box-sizing: border-box; }
               body { font-family: Calibri, Arial, sans-serif; color: #000; font-size: 10px; margin: 0; }
               .appendix { text-align: right; font-style: italic; font-size: 11px; height: 14px; }
@@ -450,9 +578,13 @@ export default {
               .total-row td { font-weight: bold; font-size: 11px; }
               .specs { display: block; font-size: 8px; color: #333; }
               .certify { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; page-break-inside: avoid; }
-              .certify td { border: 0.5px solid #777; padding: 6px 8px; vertical-align: top; height: 92px; }
-              .certify .lead { font-weight: bold; font-size: 11px; }
-              .certify .sig-label { margin-top: 52px; font-weight: bold; font-style: italic; text-align: center; border-top: 0.5px solid #777; padding-top: 3px; }
+              .certify td { border: 1px solid #555; padding: 8px 10px; vertical-align: top; }
+              .certify .certification-text { height: auto; padding: 9px 10px; text-align: center; vertical-align: middle; }
+              .certify .lead { font-weight: bold; font-size: 11px; text-align: center; }
+              .certify .signature-cell { height: 96px; vertical-align: bottom; text-align: center; }
+              .certify .signature-line { width: 92%; height: 43px; margin: 0 auto 5px; border-bottom: 1px solid #000; }
+              .certify .sig-label { margin: 0; font-weight: bold; font-style: italic; text-align: center; font-size: 9px; line-height: 1.25; }
+              .certify .date-cell .signature-line { width: 90%; height: 43px; }
               @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } thead { display: table-header-group; } tr { page-break-inside: avoid; } }
             </style>
           </head>
@@ -485,12 +617,12 @@ export default {
       const rows = this.printRows.map((item, index) => `
         <tr>
           <td>${e(item.article)}</td>
-          <td>${e([item.description, item.specs].filter(Boolean).join(' / '))}</td>
-          <td class="center">${index + 1}</td>
+          <td>${e(item.description || item.item_name || item.name || '')}</td>
+          <td class="center">${e(item.itemNo || item.itemNumber || item.item_number || item.stockNo || item.stock_no || index + 1)}</td>
           <td class="center">${e(item.unit)}</td>
           <td class="number">${this.formatMoney(item.unitCost)}</td>
           <td class="center">${e(item.drNumber)}</td>
-          <td class="center">${e(item.poNumber)}</td>
+          <td class="center">${e(item.poNumber || item.propertyNumber)}</td>
           <td class="number">${this.escapeHtml(item.quantity)}</td>
           <td class="number">${this.formatMoney(valueOf(item))}</td>
           <td>${e(item.supplier)}</td>
@@ -521,9 +653,9 @@ export default {
               <th>DESCRIPTION</th>
               <th>ITEM NO.</th>
               <th>UNIT OF MEASURE</th>
-              <th>COST PER UNIT</th>
+              <th>COST PER UNIT / COST/UNIT</th>
               <th>DR/CI/SI NUMBER</th>
-              <th>PO NO.</th>
+              <th>PROPERTY ORDER NO.</th>
               <th>QTY</th>
               <th>VALUE</th>
               <th>SUPPLIER</th>
@@ -538,14 +670,43 @@ export default {
               <td colspan="2"></td>
             </tr>
           </tbody>
+        </table>
+
+        <table class="certify">
+          <colgroup>
+            <col style="width: 40%">
+            <col style="width: 40%">
+            <col style="width: 20%">
+          </colgroup>
+          <tbody>
+            <tr>
+              <td colspan="3" class="certification-text">
+                <div class="lead">I hereby certify to the correctness of the above information.</div>
+              </td>
+            </tr>
+            <tr>
+              <td class="signature-cell">
+                <div class="signature-line"></div>
+                <div class="sig-label">Signature over Printed Name of Supply/Property Custodian</div>
+              </td>
+              <td class="signature-cell">
+                <div class="signature-line"></div>
+                <div class="sig-label">Signature over Printed Name of Designated Accounting Staff</div>
+              </td>
+              <td class="signature-cell date-cell">
+                <div class="signature-line"></div>
+                <div class="sig-label">Date</div>
+              </td>
+            </tr>
+          </tbody>
         </table>`;
 
       this.openReportWindow(title, body, '#000');
     },
 
-    // Report of Supplies and Materials Issued (Appendix 64)
+    // Report of Properties Issued (Appendix 64)
     printIssuanceReport() {
-      const title = 'REPORT OF SUPPLIES AND MATERIALS ISSUED';
+      const title = 'REPORT OF PROPERTIES ISSUED';
       const e = value => this.escapeHtml(value === null || value === undefined || value === '' ? '' : value);
       const fundCluster = this.selectedFundCluster === 'ALL' ? '(ALL)' : this.selectedFundCluster;
       const amountOf = item => Number(item.quantity || 0) * Number(item.unitCost || 0);
@@ -685,7 +846,7 @@ export default {
 
         const itemMovements = items.map(item => ({
           id: 'item-' + (item.id || item.item_id),
-          date: this.getDate(item),
+          date: this.getAcquisitionDate(item),
           propertyNumber: item.property_number || item.propertyNumber || item.property_no || '',
           description: item.description || item.item_name || item.name || '',
           category: 'Acquisition',
@@ -697,6 +858,7 @@ export default {
           unitCost: Number(item.cost ?? 0),
           specs: [item.model_number, item.serial_number].filter(Boolean).join(' / '),
           article: item.article || '',
+          itemNo: item.item_no || item.item_number || item.itemNo || item.stock_no || item.stock_number || '',
           propertyId: item.property_tag_identifier || item.unique_property_id || item.uniquePropertyId || '',
           drNumber: item.dr_ci_si_number || '',
           poNumber: item.po_number || '',
@@ -750,6 +912,24 @@ export default {
         clearTimeout(timeoutId);
         this.loading = false;
       }
+    },
+
+    getAcquisitionDate(item) {
+      const value =
+        item.acquisition_date ||
+        item.acquisitionDate ||
+        item.created_at ||
+        item.createdAt ||
+        item.date_added ||
+        item.dateAdded ||
+        item.date ||
+        '';
+
+      if (!value) {
+        return '';
+      }
+
+      return String(value).substring(0, 10);
     },
 
     getDate(item) {
@@ -1020,6 +1200,10 @@ th {
 .print-button {
   background: #2f5d3a;
   color: white;
+}
+
+.excel-button {
+  background: #217346;
 }
 
 .print-button:disabled {

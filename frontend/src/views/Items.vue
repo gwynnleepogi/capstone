@@ -139,7 +139,7 @@
               <input v-model.trim="newItem.dr_ci_si_number" type="text" class="form-control" placeholder="e.g. DR 000051" />
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">PO No.</label>
+              <label class="form-label">Property Order No.</label>
               <input v-model.trim="newItem.po_number" type="text" class="form-control" />
             </div>
             <div class="col-12 col-md-6">
@@ -231,6 +231,7 @@
               <th><button type="button" class="sort-header" @click="sortBy('serial_number')">Serial No. <i :class="sortIcon('serial_number')"></i></button></th>
               <th><button type="button" class="sort-header" @click="sortBy('cost')">Cost <i :class="sortIcon('cost')"></i></button></th>
               <th><button type="button" class="sort-header" @click="sortBy('acquisition_date')">Acquisition Date <i :class="sortIcon('acquisition_date')"></i></button></th>
+              <th><button type="button" class="sort-header" @click="sortBy('created_at')">Date Inputted <i :class="sortIcon('created_at')"></i></button></th>
               <th><button type="button" class="sort-header" @click="sortBy('classification')">Classification <i :class="sortIcon('classification')"></i></button></th>
               <th><button type="button" class="sort-header" @click="sortBy('fund_cluster')">Fund Cluster <i :class="sortIcon('fund_cluster')"></i></button></th>
               <th><button type="button" class="sort-header" @click="sortBy('condition')">Condition <i :class="sortIcon('condition')"></i></button></th>
@@ -242,13 +243,13 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="14" class="text-center py-5">Loading items...</td>
+              <td colspan="15" class="text-center py-5">Loading items...</td>
             </tr>
             <tr v-else-if="error">
-              <td colspan="14" class="text-center text-danger py-5">{{ error }}</td>
+              <td colspan="15" class="text-center text-danger py-5">{{ error }}</td>
             </tr>
             <tr v-else-if="filteredItems.length === 0">
-              <td colspan="14" class="text-center text-secondary py-5">No items found.</td>
+              <td colspan="15" class="text-center text-secondary py-5">No items found.</td>
             </tr>
             <tr v-for="item in filteredItems" :key="item.id">
               <td>
@@ -264,6 +265,7 @@
               <td>{{ item.serial_number || '-' }}</td>
               <td>₱{{ item.cost || 0 }}</td>
               <td>{{ item.acquisition_date || '-' }}</td>
+              <td>{{ item.created_at ? item.created_at.slice(0, 10) : '-' }}</td>
               <td>
                 <span class="badge" :class="getClassificationClass(item.classification)">
                   {{ displayClassification(item.classification) }}
@@ -330,6 +332,8 @@
                 <dd class="col-sm-7">₱{{ detailItem.cost || 0 }}</dd>
                 <dt class="col-sm-5">Acquisition Date</dt>
                 <dd class="col-sm-7">{{ detailItem.acquisition_date || '-' }}</dd>
+                <dt class="col-sm-5">Date Inputted</dt>
+                <dd class="col-sm-7">{{ detailItem.created_at ? detailItem.created_at.slice(0, 10) : '-' }}</dd>
                 <dt class="col-sm-5">Classification</dt>
                 <dd class="col-sm-7">{{ displayClassification(detailItem.classification) }}</dd>
                 <dt class="col-sm-5">Condition</dt>
@@ -356,7 +360,7 @@
                 <dd class="col-sm-7">{{ detailItem.unit && detailItem.unit !== 'unit' ? detailItem.unit : '-' }}</dd>
                 <dt class="col-sm-5">DR/CI/SI Number</dt>
                 <dd class="col-sm-7">{{ detailItem.dr_ci_si_number || '-' }}</dd>
-                <dt class="col-sm-5">PO No.</dt>
+                <dt class="col-sm-5">Property Order No.</dt>
                 <dd class="col-sm-7">{{ detailItem.po_number || '-' }}</dd>
                 <dt class="col-sm-5">Supplier</dt>
                 <dd class="col-sm-7">{{ detailItem.supplier || '-' }}</dd>
@@ -452,7 +456,7 @@
               <input v-model.trim="editForm.dr_ci_si_number" type="text" class="form-control" />
             </div>
             <div class="mb-3">
-              <label class="form-label">PO No.</label>
+              <label class="form-label">Property Order No.</label>
               <input v-model.trim="editForm.po_number" type="text" class="form-control" />
             </div>
             <div class="mb-3">
@@ -662,7 +666,7 @@ export default {
       newItem: {
         property_number: '',
         description: '',
-        quantity: 0,
+        quantity: 1,
         model_number: '',
         serial_number: '',
         cost: 0,
@@ -683,7 +687,7 @@ export default {
       editForm: {
         property_number: '',
         description: '',
-        quantity: 0,
+        quantity: 1,
         model_number: '',
         serial_number: '',
         cost: 0,
@@ -1495,7 +1499,7 @@ export default {
       this.newItem = {
         property_number: '',
         description: '',
-        quantity: 0,
+        quantity: 1,
         model_number: '',
         serial_number: '',
         cost: 0,

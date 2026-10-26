@@ -9,6 +9,7 @@ import Personnel from '@/views/Personnel.vue'
 import ItemRequests from '@/views/ItemRequests.vue'
 import PropertyReceipts from '@/views/PropertyReceipts.vue'
 import Returns from '@/views/Returns.vue'
+import Transfers from '@/views/Transfers.vue'
 import Incidents from '@/views/Incidents.vue'
 import AuditLogs from '@/views/AuditLogs.vue'
 
@@ -76,6 +77,12 @@ const router = createRouter({
     path: '/returns',
     name: 'Returns',
     component: Returns,
+      meta: { roles: ['Administrator', 'Personnel'] }
+  },
+  {
+    path: '/transfers',
+    name: 'Transfers',
+    component: Transfers,
       meta: { roles: ['Administrator', 'Personnel'] }
   },
   {
