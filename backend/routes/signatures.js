@@ -48,6 +48,15 @@ router.post('/:userId', upload.single('signature'), async function (req, res) {
 
     const userId = req.params.userId;
 
+    if (
+      req.profile &&
+      req.profile.id !== userId &&
+      !['Administrator', 'Personnel'].includes(req.role)
+    ) {
+      fs.unlinkSync(req.file.path);
+      return res.status(403).json({ error: 'You can only update your own signature.' });
+    }
+
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, signature_path')
@@ -91,6 +100,14 @@ router.post('/:userId', upload.single('signature'), async function (req, res) {
 
 router.get('/:userId', async function (req, res) {
   try {
+    if (
+      req.profile &&
+      req.profile.id !== req.params.userId &&
+      !['Administrator', 'Personnel'].includes(req.role)
+    ) {
+      return res.status(403).json({ error: 'You can only view your own signature.' });
+    }
+
     const { data, error } = await supabase
       .from('users')
       .select('id, signature_path')

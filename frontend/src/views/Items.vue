@@ -132,7 +132,7 @@
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Unit of Measure</label>
-              <input v-model.trim="newItem.unit" type="text" class="form-control" list="unit-options" placeholder="e.g. PC" />
+              <input v-model.trim="newItem.unit" type="text" class="form-control" list="unit-options" placeholder="e.g. PC" required />
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">DR/CI/SI Number</label>
@@ -678,7 +678,7 @@ export default {
         responsibility_center: '',
         fund_cluster: '',
         article: '',
-        unit: '',
+        unit: 'PC',
         dr_ci_si_number: '',
         po_number: '',
         supplier: '',
@@ -699,7 +699,7 @@ export default {
         responsibility_center: '',
         fund_cluster: '',
         article: '',
-        unit: '',
+        unit: 'PC',
         dr_ci_si_number: '',
         po_number: '',
         supplier: '',
@@ -1029,6 +1029,14 @@ export default {
     },
 
     autoFillOffice(form) {
+      if (!form.accountable_employee) {
+        form.status = 'Available'
+        form.responsibility_center = ''
+        return
+      }
+
+      form.status = 'Issued'
+
       const person = this.personnel.find((p) => p.full_name === form.accountable_employee)
 
       if (!person || !person.office_id) {
@@ -1511,7 +1519,7 @@ export default {
         responsibility_center: '',
         fund_cluster: '',
         article: '',
-        unit: '',
+        unit: 'PC',
         dr_ci_si_number: '',
         po_number: '',
         supplier: '',

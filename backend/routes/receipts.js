@@ -29,7 +29,8 @@ router.get('/', async (req, res) => {
         ),
         users (
           id,
-          full_name
+          full_name,
+          signature_path
         ),
         item_requests (
           id,
@@ -40,7 +41,7 @@ router.get('/', async (req, res) => {
           status,
           requested_by,
           office_id,
-          users (id, full_name),
+          users (id, full_name, signature_path),
           offices (id, office_name)
         )
       `)
@@ -81,7 +82,8 @@ router.get('/:id', async (req, res) => {
         ),
         users (
           id,
-          full_name
+          full_name,
+          signature_path
         ),
         item_requests (
           id,
@@ -92,7 +94,7 @@ router.get('/:id', async (req, res) => {
           status,
           requested_by,
           office_id,
-          users (id, full_name),
+          users (id, full_name, signature_path),
           offices (id, office_name)
         )
       `)

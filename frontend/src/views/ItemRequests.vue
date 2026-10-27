@@ -241,9 +241,12 @@
                   v-model="form.request_number"
                   type="text"
                   class="form-control"
-                  placeholder="Enter request number"
-                  required
+                  :placeholder="editing ? 'Request number' : 'Generated automatically when saved'"
+                  readonly
                 />
+                <small v-if="!editing" class="text-muted">
+                  The system will assign the next number automatically.
+                </small>
               </div>
 
               <div class="mb-3">

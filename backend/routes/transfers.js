@@ -38,13 +38,23 @@ router.get('/eligible-receipts', async (req, res) => {
  
     if (returnsError) return res.status(500).json({ error: returnsError.message })
  
+    const { data: pendingRequests, error: pendingError } = await supabase
+      .from('return_requests')
+      .select('property_receipt_id')
+      .eq('status', 'Pending')
+
+    if (pendingError) return res.status(500).json({ error: pendingError.message })
+
+    const pendingReceiptIds = new Set((pendingRequests || []).map(r => r.property_receipt_id))
     const returnedReceiptIds = new Set((returns || []).map(r => r.property_receipt_id).filter(Boolean))
     const itemsWithLegacyReturns = new Set(
       (returns || []).filter(r => !r.property_receipt_id).map(r => r.item_id)
     )
  
     const open = (receipts || []).filter(r =>
-      !returnedReceiptIds.has(r.id) && !itemsWithLegacyReturns.has(r.item_id)
+      !returnedReceiptIds.has(r.id) &&
+      !pendingReceiptIds.has(r.id) &&
+      !itemsWithLegacyReturns.has(r.item_id)
     )
  
     const items = await lookup(
@@ -141,6 +151,20 @@ router.post('/', async (req, res) => {
     if (existingReturnError) return res.status(500).json({ error: existingReturnError.message })
     if (existingReturn) {
       return res.status(409).json({ error: 'This receipt has already been returned' })
+    }
+
+    const { data: pendingRequest, error: pendingRequestError } = await supabase
+      .from('return_requests')
+      .select('id')
+      .eq('property_receipt_id', receipt.id)
+      .eq('status', 'Pending')
+      .maybeSingle()
+
+    if (pendingRequestError) return res.status(500).json({ error: pendingRequestError.message })
+    if (pendingRequest) {
+      return res.status(409).json({
+        error: 'This property has a pending return request. Accept or reject it in Return Requests first.'
+      })
     }
  
     const { data: item, error: itemError } = await supabase

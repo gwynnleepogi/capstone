@@ -122,6 +122,23 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ error: 'This receipt has already been returned' })
     }
 
+    const { data: pendingRequest, error: pendingRequestError } = await supabase
+      .from('return_requests')
+      .select('id')
+      .eq('property_receipt_id', receipt.id)
+      .eq('status', 'Pending')
+      .maybeSingle()
+
+    if (pendingRequestError) {
+      return res.status(500).json({ error: pendingRequestError.message })
+    }
+
+    if (pendingRequest) {
+      return res.status(409).json({
+        error: 'This property has a pending return request. Accept or reject it in Return Requests first.'
+      })
+    }
+
     const { data: legacyReturn, error: legacyReturnError } = await supabase
       .from('item_returns')
       .select('id')

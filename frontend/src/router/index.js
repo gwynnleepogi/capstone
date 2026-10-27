@@ -11,6 +11,8 @@ import PropertyReceipts from '@/views/PropertyReceipts.vue'
 import Returns from '@/views/Returns.vue'
 import Transfers from '@/views/Transfers.vue'
 import Incidents from '@/views/Incidents.vue'
+import ReturnProperty from '@/views/ReturnProperty.vue'
+import ItemDetails from '@/views/ItemDetails.vue'
 import AuditLogs from '@/views/AuditLogs.vue'
 
 
@@ -74,6 +76,18 @@ const router = createRouter({
       meta: { roles: ['Administrator', 'Personnel'] }
   },
   {
+    path: '/my-returns',
+    name: 'ReturnProperty',
+    component: ReturnProperty,
+      meta: { roles: ['Teacher', 'Non-Teaching Staff'] }
+  },
+  {
+    path: '/item-details/:id',
+    name: 'ItemDetails',
+    component: ItemDetails,
+      meta: { roles: ['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'] }
+  },
+  {
     path: '/returns',
     name: 'Returns',
     component: Returns,
@@ -128,6 +142,17 @@ router.beforeEach((to) => {
     }
 
     return { name: 'Dashboard' }
+  }
+
+  // Scanned item links point to /items?item=ID, but only Administrator / Personnel
+  // can open the Items page. Everyone else gets the read-only details page.
+  if (
+    to.name === 'Items' &&
+    typeof to.query.item === 'string' &&
+    to.query.item &&
+    (user?.role === 'Teacher' || user?.role === 'Non-Teaching Staff')
+  ) {
+    return { name: 'ItemDetails', params: { id: to.query.item } }
   }
 
   if (to.meta.roles && !to.meta.roles.includes(user?.role)) {

@@ -48,8 +48,44 @@
           Dashboard
         </router-link>
 
+        <div v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])" class="nav-section-label">
+          Requests &amp; Approvals
+        </div>
+
+        <router-link
+          v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])"
+          to="/request"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-file-earmark-text"></i>
+          Requests
+
+          <span
+            v-if="canAccess(['Administrator', 'Personnel']) && pendingRequestCount > 0"
+            class="request-count-badge"
+            :aria-label="`${pendingRequestCount} pending requests`"
+          >
+            {{ pendingRequestCount > 99 ? '99+' : pendingRequestCount }}
+          </span>
+        </router-link>
+
         <div v-if="canAccess(['Administrator', 'Personnel'])" class="nav-section-label">
-          Inventory
+          Acquisition &amp; Issuance
+        </div>
+
+        <router-link
+          v-if="canAccess(['Administrator', 'Personnel'])"
+          to="/receipts"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-receipt"></i>
+          Acquisitions &amp; Issuance
+        </router-link>
+
+        <div v-if="canAccess(['Administrator', 'Personnel'])" class="nav-section-label">
+          Inventory Management
         </div>
 
         <router-link
@@ -72,20 +108,6 @@
           Offices
         </router-link>
 
-        <div v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])" class="nav-section-label">
-          Operations
-        </div>
-
-        <router-link
-          v-if="canAccess(['Administrator', 'Personnel'])"
-          to="/receipts"
-          class="nav-link"
-          @click="menuOpen = false"
-        >
-          <i class="bi bi-receipt"></i>
-          Acquisitions
-        </router-link>
-
         <router-link
           v-if="canAccess(['Administrator', 'Personnel'])"
           to="/returns"
@@ -94,6 +116,24 @@
         >
           <i class="bi bi-arrow-return-left"></i>
           Returns &amp; Incidents
+
+          <span
+            v-if="pendingReturnCount > 0"
+            class="request-count-badge"
+            :aria-label="`${pendingReturnCount} pending return requests`"
+          >
+            {{ pendingReturnCount > 99 ? '99+' : pendingReturnCount }}
+          </span>
+        </router-link>
+
+        <router-link
+          v-if="canAccess(['Teacher', 'Non-Teaching Staff'])"
+          to="/my-returns"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-arrow-return-left"></i>
+          Return Property
         </router-link>
 
         <router-link
@@ -106,26 +146,8 @@
           Transfers
         </router-link>
 
-        <router-link
-          v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])"
-          to="/request"
-          class="nav-link"
-          @click="menuOpen = false"
-        >
-          <i class="bi bi-file-earmark-text"></i>
-          Requests
-
-          <span
-            v-if="canAccess(['Administrator', 'Personnel']) && pendingRequestCount > 0"
-            class="request-count-badge"
-            :aria-label="`${pendingRequestCount} pending requests`"
-          >
-            {{ pendingRequestCount > 99 ? '99+' : pendingRequestCount }}
-          </span>
-        </router-link>
-
         <div v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])" class="nav-section-label">
-          Tools
+          Monitoring &amp; Tools
         </div>
 
         <button
@@ -224,6 +246,7 @@ export default {
       currentUser: JSON.parse(localStorage.getItem('user') || 'null'),
       pendingRequestCount: 0,
       showQrScanner: false,
+      pendingReturnCount: 0,
       requestCountTimer: null,
       toast: {
         show: false,
@@ -238,6 +261,8 @@ export default {
     window.addEventListener('show-toast', this.handleToast)
     window.addEventListener('storage', this.handleStorageChange)
     window.addEventListener('item-requests-updated', this.refreshPendingRequestCount)
+    window.addEventListener('return-requests-updated', this.refreshPendingRequestCount)
+    window.addEventListener('open-qr-scanner', this.openQrScanner)
 
     this.refreshPendingRequestCount()
     this.requestCountTimer = setInterval(this.refreshPendingRequestCount, 30000)
@@ -248,6 +273,8 @@ export default {
     window.removeEventListener('show-toast', this.handleToast)
     window.removeEventListener('storage', this.handleStorageChange)
     window.removeEventListener('item-requests-updated', this.refreshPendingRequestCount)
+    window.removeEventListener('return-requests-updated', this.refreshPendingRequestCount)
+    window.removeEventListener('open-qr-scanner', this.openQrScanner)
 
     clearInterval(this.requestCountTimer)
     clearTimeout(this.toastTimer)
@@ -308,8 +335,11 @@ export default {
         !localStorage.getItem('accessToken')
       ) {
         this.pendingRequestCount = 0
+        this.pendingReturnCount = 0
         return
       }
+
+      this.refreshPendingReturnCount()
 
       try {
         const response = await fetch('/api/item-requests')
@@ -331,6 +361,19 @@ export default {
       }
     },
 
+    async refreshPendingReturnCount() {
+      try {
+        const response = await fetch('/api/return-requests/pending-count')
+        const data = await response.json()
+
+        if (response.ok) {
+          this.pendingReturnCount = Number(data.count) || 0
+        }
+      } catch (error) {
+        console.error('Pending return count error:', error)
+      }
+    },
+
     canAccess(roles) {
       return roles.includes(this.currentUser?.role)
     },
@@ -340,12 +383,22 @@ export default {
       this.showQrScanner = true
     },
 
-    openScannedItem({ id, token, destination }) {
+    openScannedItem({ id }) {
       this.showQrScanner = false
 
+      // Only Administrator / Personnel can open the Items page.
+      // Teacher and Non-Teaching Staff get the read-only details page.
+      if (this.canAccess(['Administrator', 'Personnel'])) {
+        this.$router.push({
+          name: 'Items',
+          query: { item: id }
+        })
+        return
+      }
+
       this.$router.push({
-        name: 'Items',
-        query: { item: id }
+        name: 'ItemDetails',
+        params: { id }
       })
     },
 
@@ -549,15 +602,29 @@ body {
 }
 
 .sidebar .nav-section-label {
+  display: flex;
   flex-shrink: 0;
-  margin: 8px 10px 2px;
-  padding: 8px 2px 4px;
-  border-top: 1px solid rgba(255, 255, 255, .25);
-  color: #f1f5e9;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 10px 3px;
+  padding: 9px 2px 4px;
+  border-top: 1px solid rgba(255, 255, 255, .28);
+  color: #fff2b8;
   font-size: 10px;
-  font-weight: 750;
-  letter-spacing: .13em;
+  font-weight: 800;
+  letter-spacing: .11em;
+  line-height: 1.35;
   text-transform: uppercase;
+}
+
+.sidebar .nav-section-label::before {
+  content: '';
+  display: inline-block;
+  flex: 0 0 3px;
+  width: 3px;
+  height: 13px;
+  border-radius: 3px;
+  background: #e8c547;
 }
 
 .sidebar .nav-link {

@@ -23,6 +23,10 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
+      '/signatures': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
     },
   },
 })

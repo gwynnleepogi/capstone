@@ -12,6 +12,8 @@
       </button>
     </div>
 
+    <ReturnRequestsPanel @changed="getReturns" />
+
     <div class="card mb-4">
       <div class="card-body">
         <div class="row g-3">
@@ -513,9 +515,14 @@
 
 <script>
 import { Modal } from 'bootstrap'
+import ReturnRequestsPanel from '@/components/ReturnRequestsPanel.vue'
 
 export default {
   name: 'Returns',
+
+  components: {
+    ReturnRequestsPanel
+  },
 
   data() {
     return {

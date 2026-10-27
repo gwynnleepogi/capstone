@@ -27,7 +27,6 @@
                 <th>Issued To</th>
                 <th>Date Issued</th>
                 <th>Status</th>
-                <th>Remarks</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -73,10 +72,6 @@
                 </td>
 
                 <td>
-                  {{ receipt.remarks || '-' }}
-                </td>
-
-                <td>
                   <button
                     class="btn btn-sm btn-outline-success"
                     @click="viewReceiptDetails(receipt)"
@@ -90,7 +85,7 @@
 
               <tr v-if="receipts.length === 0">
                 <td
-                  colspan="8"
+                  colspan="7"
                   class="text-center text-muted py-4"
                 >
                   No receipts found.
@@ -136,8 +131,8 @@
                   v-model="form.receipt_type"
                   required
                 >
-                  <option value="PAR">PAR</option>
-                  <option value="ICS">ICS</option>
+                  <option value="PAR">PAR — ₱50,000 and above</option>
+                  <option value="ICS">ICS — below ₱50,000</option>
                 </select>
               </div>
 
@@ -167,6 +162,7 @@
                 <select
                   class="form-select"
                   v-model="form.item_request_id"
+                  @change="updateReceiptTypeForSelectedRequest"
                   required
                 >
                   <option value="">
@@ -186,8 +182,10 @@
                     {{ request.item_description }}
                   </option>
                 </select>
+
                 <small class="text-muted">
                   Only approved requests with an assigned inventory item can be issued. Delivered requests already have a receipt.
+
                   <button
                     type="button"
                     class="btn btn-link btn-sm p-0 ms-1"
@@ -333,6 +331,7 @@
       </div>
     </div>
 
+    <!-- PAR / ICS PRINT DETAILS MODAL -->
     <div
       class="modal fade"
       id="receiptPrintDetailsModal"
@@ -342,108 +341,265 @@
     >
       <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-          <form class="receipt-print-details-form" @submit.prevent="confirmPrintReceipt">
+          <form
+            class="receipt-print-details-form"
+            @submit.prevent="confirmPrintReceipt"
+          >
             <div class="modal-header">
-              <h5 class="modal-title" id="receiptPrintDetailsModalLabel">Complete PAR / ICS Print Details</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <h5
+                class="modal-title"
+                id="receiptPrintDetailsModalLabel"
+              >
+                Complete PAR / ICS Print Details
+              </h5>
+
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
             </div>
+
             <div class="modal-body">
-              <p class="text-muted small">Complete the details below before printing. The item information will be filled in automatically.</p>
+              <p class="text-muted small">
+                Complete the details below before printing. The item information will be filled in automatically.
+              </p>
+
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">Fund Cluster</label>
-                  <select class="form-select" v-model="receiptPrintForm.fundCluster">
+
+                  <select
+                    class="form-select"
+                    v-model="receiptPrintForm.fundCluster"
+                  >
                     <option value="">Select Fund Cluster</option>
-                    <option v-if="receiptPrintForm.fundCluster && !fundClusterOptions.includes(receiptPrintForm.fundCluster)" :value="receiptPrintForm.fundCluster">{{ receiptPrintForm.fundCluster }}</option>
-                    <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">{{ fc }}</option>
+
+                    <option
+                      v-if="receiptPrintForm.fundCluster && !fundClusterOptions.includes(receiptPrintForm.fundCluster)"
+                      :value="receiptPrintForm.fundCluster"
+                    >
+                      {{ receiptPrintForm.fundCluster }}
+                    </option>
+
+                    <option
+                      v-for="fc in fundClusterOptions"
+                      :key="fc"
+                      :value="fc"
+                    >
+                      {{ fc }}
+                    </option>
                   </select>
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">Purpose</label>
-                  <input class="form-control" v-model.trim="receiptPrintForm.purpose">
+                  <input
+                    class="form-control"
+                    v-model.trim="receiptPrintForm.purpose"
+                  >
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">Unit / Office</label>
-                  <input class="form-control" v-model.trim="receiptPrintForm.unitOffice">
+                  <input
+                    class="form-control"
+                    v-model.trim="receiptPrintForm.unitOffice"
+                  >
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">PO No.</label>
-                  <input class="form-control" v-model.trim="receiptPrintForm.poNumber">
+                  <input
+                    class="form-control"
+                    v-model.trim="receiptPrintForm.poNumber"
+                  >
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">UACS</label>
-                  <input class="form-control" v-model.trim="receiptPrintForm.uacs">
+                  <input
+                    class="form-control"
+                    v-model.trim="receiptPrintForm.uacs"
+                  >
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">BUR No.</label>
-                  <input class="form-control" v-model.trim="receiptPrintForm.burNumber">
+                  <input
+                    class="form-control"
+                    v-model.trim="receiptPrintForm.burNumber"
+                  >
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">IAR No.</label>
-                  <input class="form-control" v-model.trim="receiptPrintForm.iarNumber">
+                  <input
+                    class="form-control"
+                    v-model.trim="receiptPrintForm.iarNumber"
+                  >
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">Appendix</label>
-                  <input class="form-control" v-model.trim="receiptPrintForm.appendix" required>
+                  <input
+                    class="form-control"
+                    v-model.trim="receiptPrintForm.appendix"
+                    required
+                  >
                 </div>
+
                 <div class="col-12">
                   <strong>Received By</strong>
                 </div>
+
                 <div class="col-md-6">
-                  <label class="form-label">Received By Name <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="receiptPrintForm.receivedBy" required>
+                  <label class="form-label">
+                    Received By Name
+                    <span class="text-danger">*</span>
+                  </label>
+
+                  <input
+                    class="form-control"
+                    v-model.trim="receiptPrintForm.receivedBy"
+                    required
+                  >
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">Designation</label>
-                  <input class="form-control" v-model.trim="receiptPrintForm.receivedByDesignation">
+                  <input
+                    class="form-control"
+                    v-model.trim="receiptPrintForm.receivedByDesignation"
+                  >
                 </div>
+
                 <div class="col-12">
                   <strong>Received From</strong>
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">Received From Name</label>
-                  <input class="form-control" v-model.trim="receiptPrintForm.receivedFrom">
+                  <input
+                    class="form-control"
+                    v-model.trim="receiptPrintForm.receivedFrom"
+                  >
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">Designation</label>
-                  <input class="form-control" v-model.trim="receiptPrintForm.receivedFromDesignation">
+                  <input
+                    class="form-control"
+                    v-model.trim="receiptPrintForm.receivedFromDesignation"
+                  >
                 </div>
+
                 <div class="col-12">
-                  <label class="form-label">Signature Image (optional)</label>
-                  <input class="form-control" type="file" accept="image/png,image/jpeg,image/webp" @change="handlePrintSignatureChange">
-                  <small class="text-muted">Choose an image for this print only. It will not be saved with the receipt.</small>
-                  <img v-if="printSignatureImage" :src="printSignatureImage" alt="Signature preview" style="display:block;max-width:220px;max-height:90px;object-fit:contain;margin-top:10px;">
+                  <label class="form-label">
+                    Signature Image (optional)
+                  </label>
+
+                  <input
+                    class="form-control"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    @change="handlePrintSignatureChange"
+                  >
+
+                  <small class="text-muted">
+                    A saved signature loads automatically when available. You can choose another image for this print.
+                  </small>
+
+                  <div class="form-check mt-2">
+                    <input
+                      id="saveSignatureForFuture"
+                      v-model="saveSignatureForFuture"
+                      class="form-check-input"
+                      type="checkbox"
+                    >
+                    <label class="form-check-label" for="saveSignatureForFuture">
+                      Save this signature for future PAR/ICS prints
+                    </label>
+                  </div>
+
+                  <img
+                    v-if="printSignatureImage"
+                    :src="printSignatureImage"
+                    alt="Signature preview"
+                    style="display:block;max-width:220px;max-height:90px;object-fit:contain;margin-top:10px;"
+                  >
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">Paper Size</label>
-                  <select class="form-select" v-model="receiptPrintForm.paperSize">
+
+                  <select
+                    class="form-select"
+                    v-model="receiptPrintForm.paperSize"
+                  >
                     <option value="short">Short (8.5 × 11 in)</option>
                     <option value="long">Long (8.5 × 13 in)</option>
                     <option value="custom">Custom</option>
                   </select>
                 </div>
+
                 <template v-if="receiptPrintForm.paperSize === 'custom'">
                   <div class="col-md-3">
                     <label class="form-label">Paper Width (in)</label>
-                    <input class="form-control" type="number" min="1" step="0.1" v-model.number="receiptPrintForm.paperWidth" required>
+
+                    <input
+                      class="form-control"
+                      type="number"
+                      min="1"
+                      step="0.1"
+                      v-model.number="receiptPrintForm.paperWidth"
+                      required
+                    >
                   </div>
+
                   <div class="col-md-3">
                     <label class="form-label">Paper Height (in)</label>
-                    <input class="form-control" type="number" min="1" step="0.1" v-model.number="receiptPrintForm.paperHeight" required>
+
+                    <input
+                      class="form-control"
+                      type="number"
+                      min="1"
+                      step="0.1"
+                      v-model.number="receiptPrintForm.paperHeight"
+                      required
+                    >
                   </div>
                 </template>
               </div>
-              <p class="text-muted small mt-3 mb-0">Choose the same paper size in your printer settings.</p>
+
+              <p class="text-muted small mt-3 mb-0">
+                Choose the same paper size in your printer settings.
+              </p>
             </div>
+
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-success">Continue to Print</button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                class="btn btn-success"
+              >
+                Continue to Print
+              </button>
             </div>
           </form>
         </div>
       </div>
     </div>
 
+    <!-- RIS DETAILS MODAL -->
     <div
       class="modal fade"
       id="risDetailsModal"
@@ -453,146 +609,426 @@
     >
       <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-          <form class="receipt-print-details-form" @submit.prevent="confirmPrintRIS">
+          <form
+            class="receipt-print-details-form"
+            @submit.prevent="confirmPrintRIS"
+          >
             <div class="modal-header">
-              <h5 class="modal-title" id="risDetailsModalLabel">Complete RIS Details</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <h5
+                class="modal-title"
+                id="risDetailsModalLabel"
+              >
+                Complete RIS Details
+              </h5>
+
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
             </div>
 
             <div class="modal-body">
-              <p class="text-muted small">Existing request and item details will be filled in automatically. Complete the required fields before printing.</p>
+              <p class="text-muted small">
+                Existing request and item details will be filled in automatically. Complete the required fields before printing.
+              </p>
+
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Fund Cluster <span class="text-danger">*</span></label>
-                  <select class="form-select" v-model="risForm.fundCluster" required>
-                    <option value="" disabled>Select Fund Cluster</option>
-                    <option v-if="risForm.fundCluster && !fundClusterOptions.includes(risForm.fundCluster)" :value="risForm.fundCluster">{{ risForm.fundCluster }}</option>
-                    <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">{{ fc }}</option>
+                  <label class="form-label">
+                    Fund Cluster
+                    <span class="text-danger">*</span>
+                  </label>
+
+                  <select
+                    class="form-select"
+                    v-model="risForm.fundCluster"
+                    required
+                  >
+                    <option value="" disabled>
+                      Select Fund Cluster
+                    </option>
+
+                    <option
+                      v-if="risForm.fundCluster && !fundClusterOptions.includes(risForm.fundCluster)"
+                      :value="risForm.fundCluster"
+                    >
+                      {{ risForm.fundCluster }}
+                    </option>
+
+                    <option
+                      v-for="fc in fundClusterOptions"
+                      :key="fc"
+                      :value="fc"
+                    >
+                      {{ fc }}
+                    </option>
                   </select>
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">Division</label>
-                  <input class="form-control" v-model.trim="risForm.division">
+                  <input
+                    class="form-control"
+                    v-model.trim="risForm.division"
+                  >
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">Office</label>
-                  <input class="form-control" v-model.trim="risForm.officeName">
+                  <input
+                    class="form-control"
+                    v-model.trim="risForm.officeName"
+                  >
                 </div>
+
                 <div class="col-12">
                   <label class="form-label">Purpose</label>
-                  <textarea class="form-control" v-model.trim="risForm.purpose" rows="2"></textarea>
+                  <textarea
+                    class="form-control"
+                    v-model.trim="risForm.purpose"
+                    rows="2"
+                  ></textarea>
                 </div>
+
                 <div class="col-md-6">
-                  <label class="form-label">Requested By <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.requestedBy" required>
+                  <label class="form-label">
+                    Requested By
+                    <span class="text-danger">*</span>
+                  </label>
+
+                  <input
+                    class="form-control"
+                    v-model.trim="risForm.requestedBy"
+                    required
+                  >
                 </div>
+
                 <div class="col-md-6">
-                  <label class="form-label">Requested By Designation <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.requestedDesignation" required>
+                  <label class="form-label">
+                    Requested By Designation
+                    <span class="text-danger">*</span>
+                  </label>
+
+                  <input
+                    class="form-control"
+                    v-model.trim="risForm.requestedDesignation"
+                    required
+                  >
                 </div>
+
                 <div class="col-md-6">
-                  <label class="form-label">Approved By <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.approvedBy" required>
+                  <label class="form-label">
+                    Approved By
+                    <span class="text-danger">*</span>
+                  </label>
+
+                  <input
+                    class="form-control"
+                    v-model.trim="risForm.approvedBy"
+                    required
+                  >
                 </div>
+
                 <div class="col-md-6">
-                  <label class="form-label">Approved By Designation <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.approvedDesignation" required>
+                  <label class="form-label">
+                    Approved By Designation
+                    <span class="text-danger">*</span>
+                  </label>
+
+                  <input
+                    class="form-control"
+                    v-model.trim="risForm.approvedDesignation"
+                    required
+                  >
                 </div>
+
                 <div class="col-md-6">
-                  <label class="form-label">Issued By <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.issuedBy" required>
+                  <label class="form-label">
+                    Issued By
+                    <span class="text-danger">*</span>
+                  </label>
+
+                  <input
+                    class="form-control"
+                    v-model.trim="risForm.issuedBy"
+                    required
+                  >
                 </div>
+
                 <div class="col-md-6">
-                  <label class="form-label">Issued By Designation <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.issuedDesignation" required>
+                  <label class="form-label">
+                    Issued By Designation
+                    <span class="text-danger">*</span>
+                  </label>
+
+                  <input
+                    class="form-control"
+                    v-model.trim="risForm.issuedDesignation"
+                    required
+                  >
                 </div>
+
                 <div class="col-md-6">
-                  <label class="form-label">Received By <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.receivedBy" required>
+                  <label class="form-label">
+                    Received By
+                    <span class="text-danger">*</span>
+                  </label>
+
+                  <input
+                    class="form-control"
+                    v-model.trim="risForm.receivedBy"
+                    required
+                  >
                 </div>
+
                 <div class="col-md-6">
-                  <label class="form-label">Received By Designation <span class="text-danger">*</span></label>
-                  <input class="form-control" v-model.trim="risForm.receivedDesignation" required>
+                  <label class="form-label">
+                    Received By Designation
+                    <span class="text-danger">*</span>
+                  </label>
+
+                  <input
+                    class="form-control"
+                    v-model.trim="risForm.receivedDesignation"
+                    required
+                  >
                 </div>
+
                 <div class="col-12">
-                  <label class="form-label">Signature Image (optional)</label>
-                  <input class="form-control" type="file" accept="image/png,image/jpeg,image/webp" @change="handlePrintSignatureChange">
-                  <small class="text-muted">Choose an image for this print only. It will not be saved with the receipt.</small>
-                  <img v-if="printSignatureImage" :src="printSignatureImage" alt="Signature preview" style="display:block;max-width:220px;max-height:90px;object-fit:contain;margin-top:10px;">
+                  <label class="form-label">
+                    Signature Image (optional)
+                  </label>
+
+                  <input
+                    class="form-control"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    @change="handlePrintSignatureChange"
+                  >
+
+                  <small class="text-muted">
+                    A saved signature loads automatically when available. You can choose another image for this print.
+                  </small>
+
+                  <div class="form-check mt-2">
+                    <input
+                      id="saveSignatureForFutureRis"
+                      v-model="saveSignatureForFuture"
+                      class="form-check-input"
+                      type="checkbox"
+                    >
+                    <label class="form-check-label" for="saveSignatureForFutureRis">
+                      Save this signature for future PAR/ICS prints
+                    </label>
+                  </div>
+
+                  <img
+                    v-if="printSignatureImage"
+                    :src="printSignatureImage"
+                    alt="Signature preview"
+                    style="display:block;max-width:220px;max-height:90px;object-fit:contain;margin-top:10px;"
+                  >
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">Paper Size</label>
-                  <select class="form-select" v-model="risForm.paperSize">
+
+                  <select
+                    class="form-select"
+                    v-model="risForm.paperSize"
+                  >
                     <option value="short">Short (8.5 × 11 in)</option>
                     <option value="long">Long (8.5 × 13 in)</option>
                     <option value="custom">Custom</option>
                   </select>
                 </div>
+
                 <template v-if="risForm.paperSize === 'custom'">
                   <div class="col-md-3">
                     <label class="form-label">Paper Width (in)</label>
-                    <input class="form-control" type="number" min="1" step="0.1" v-model.number="risForm.paperWidth" required>
+
+                    <input
+                      class="form-control"
+                      type="number"
+                      min="1"
+                      step="0.1"
+                      v-model.number="risForm.paperWidth"
+                      required
+                    >
                   </div>
+
                   <div class="col-md-3">
                     <label class="form-label">Paper Height (in)</label>
-                    <input class="form-control" type="number" min="1" step="0.1" v-model.number="risForm.paperHeight" required>
+
+                    <input
+                      class="form-control"
+                      type="number"
+                      min="1"
+                      step="0.1"
+                      v-model.number="risForm.paperHeight"
+                      required
+                    >
                   </div>
                 </template>
               </div>
-              <p class="text-muted small mt-3 mb-0">Choose the same paper size in your printer settings.</p>
+
+              <p class="text-muted small mt-3 mb-0">
+                Choose the same paper size in your printer settings.
+              </p>
             </div>
 
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-success">Continue to Print</button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                class="btn btn-success"
+              >
+                Continue to Print
+              </button>
             </div>
           </form>
         </div>
       </div>
     </div>
 
-    <div class="modal fade" id="receiptDetailsModal" tabindex="-1" aria-labelledby="receiptDetailsModalLabel" aria-hidden="true">
+    <!-- RECEIPT DETAILS MODAL -->
+    <div
+      class="modal fade"
+      id="receiptDetailsModal"
+      tabindex="-1"
+      aria-labelledby="receiptDetailsModalLabel"
+      aria-hidden="true"
+    >
       <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 id="receiptDetailsModalLabel" class="modal-title">Receipt Details</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <h5
+              id="receiptDetailsModalLabel"
+              class="modal-title"
+            >
+              Receipt Details
+            </h5>
+
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
-          <div v-if="selectedDetailsReceipt" class="modal-body">
+
+          <div
+            v-if="selectedDetailsReceipt"
+            class="modal-body"
+          >
             <dl class="row mb-0">
               <dt class="col-sm-4">Receipt Number</dt>
-              <dd class="col-sm-8">{{ selectedDetailsReceipt.receipt_number || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ selectedDetailsReceipt.receipt_number || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Type</dt>
-              <dd class="col-sm-8">{{ selectedDetailsReceipt.receipt_type || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ selectedDetailsReceipt.receipt_type || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Property</dt>
-              <dd class="col-sm-8">{{ getReceiptItem(selectedDetailsReceipt).description || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ getReceiptItem(selectedDetailsReceipt).description || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Property Number</dt>
-              <dd class="col-sm-8">{{ getReceiptItem(selectedDetailsReceipt).property_number || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ getReceiptItem(selectedDetailsReceipt).property_number || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Quantity Issued</dt>
-              <dd class="col-sm-8">{{ selectedDetailsReceipt.quantity ?? '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ getQuantityIssued(selectedDetailsReceipt) || '-' }}
+              </dd>
+
+              <dt class="col-sm-4">Unit of Measure</dt>
+              <dd class="col-sm-8">
+                {{ getReceiptItem(selectedDetailsReceipt).unit || 'PC' }}
+              </dd>
+
               <dt class="col-sm-4">Issued To</dt>
-              <dd class="col-sm-8">{{ getIssuedToName(selectedDetailsReceipt) }}</dd>
+              <dd class="col-sm-8">
+                {{ getIssuedToName(selectedDetailsReceipt) }}
+              </dd>
+
               <dt class="col-sm-4">Date Issued</dt>
-              <dd class="col-sm-8">{{ selectedDetailsReceipt.date_issued || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ selectedDetailsReceipt.date_issued || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Status</dt>
-              <dd class="col-sm-8">{{ selectedDetailsReceipt.status || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ selectedDetailsReceipt.status || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Remarks</dt>
-              <dd class="col-sm-8">{{ selectedDetailsReceipt.remarks || '-' }}</dd>
+              <dd
+                class="col-sm-8 text-break"
+                style="white-space: pre-wrap;"
+              >
+                {{ getReceiptRemarks(selectedDetailsReceipt) }}
+              </dd>
             </dl>
           </div>
+
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-outline-warning" @click="editSelectedReceipt">
-              <i class="bi bi-pencil me-1"></i>Edit
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
             </button>
-            <button type="button" class="btn btn-outline-danger" @click="deleteSelectedReceipt">
-              <i class="bi bi-trash me-1"></i>Delete
+
+            <button
+              type="button"
+              class="btn btn-outline-warning"
+              @click="editSelectedReceipt"
+            >
+              <i class="bi bi-pencil me-1"></i>
+              Edit
             </button>
-            <button type="button" class="btn btn-outline-success" @click="printSelectedReceipt">
-              <i class="bi bi-printer me-1"></i>Print PAR / ICS
+
+            <button
+              type="button"
+              class="btn btn-outline-danger"
+              @click="deleteSelectedReceipt"
+            >
+              <i class="bi bi-trash me-1"></i>
+              Delete
             </button>
-            <button type="button" class="btn btn-outline-dark" @click="printSelectedRIS">
-              <i class="bi bi-file-earmark-text me-1"></i>Print RIS
+
+            <button
+              type="button"
+              class="btn btn-outline-success"
+              @click="printSelectedReceipt"
+            >
+              <i class="bi bi-printer me-1"></i>
+              Print Acquisition Receipt
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-outline-dark"
+              @click="printSelectedRIS"
+            >
+              <i class="bi bi-file-earmark-text me-1"></i>
+              Print Issuance Receiptt init
             </button>
           </div>
         </div>
@@ -626,9 +1062,12 @@ export default {
       editing: false,
       saving: false,
       printSignatureImage: '',
+      selectedSignatureFile: null,
+      saveSignatureForFuture: false,
       selectedRISReceipt: null,
       selectedPrintReceipt: null,
       selectedDetailsReceipt: null,
+
       receiptPrintForm: {
         fundCluster: 'TF-2',
         appendix: '71',
@@ -646,6 +1085,7 @@ export default {
         paperWidth: 8.5,
         paperHeight: 11
       },
+
       risForm: {
         fundCluster: '',
         requestedBy: '',
@@ -704,6 +1144,7 @@ export default {
     this.getItems()
     this.getPersonnel()
     this.getItemRequests()
+
     window.addEventListener('focus', this.getItemRequests)
     window.addEventListener('item-requests-updated', this.getItemRequests)
   },
@@ -716,6 +1157,7 @@ export default {
   methods: {
     viewReceiptDetails(receipt) {
       this.selectedDetailsReceipt = receipt
+
       Modal.getOrCreateInstance(
         document.getElementById('receiptDetailsModal')
       ).show()
@@ -723,25 +1165,41 @@ export default {
 
     editSelectedReceipt() {
       if (!this.selectedDetailsReceipt) return
+
       const receipt = this.selectedDetailsReceipt
-      Modal.getInstance(document.getElementById('receiptDetailsModal'))?.hide()
+
+      Modal.getInstance(
+        document.getElementById('receiptDetailsModal')
+      )?.hide()
+
       this.editReceipt(receipt)
     },
 
     deleteSelectedReceipt() {
       if (!this.selectedDetailsReceipt) return
+
       const id = this.selectedDetailsReceipt.id
-      Modal.getInstance(document.getElementById('receiptDetailsModal'))?.hide()
+
+      Modal.getInstance(
+        document.getElementById('receiptDetailsModal')
+      )?.hide()
+
       this.deleteReceipt(id)
     },
 
     handlePrintSignatureChange(event) {
       const file = event.target.files && event.target.files[0]
       this.printSignatureImage = ''
+      this.selectedSignatureFile = file || null
 
       if (!file) return
 
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/webp']
+      const allowedTypes = [
+        'image/png',
+        'image/jpeg',
+        'image/webp'
+      ]
+
       if (!allowedTypes.includes(file.type)) {
         this.showToast('Choose a PNG, JPG, or WEBP signature image')
         event.target.value = ''
@@ -755,36 +1213,49 @@ export default {
       }
 
       const reader = new FileReader()
+
       reader.onload = () => {
-        this.printSignatureImage = typeof reader.result === 'string' ? reader.result : ''
+        this.printSignatureImage =
+          typeof reader.result === 'string'
+            ? reader.result
+            : ''
       }
+
       reader.onerror = () => {
         this.showToast('Could not read the signature image')
         event.target.value = ''
       }
+
       reader.readAsDataURL(file)
     },
 
     printSelectedReceipt() {
       if (!this.selectedDetailsReceipt) return
+
       const receipt = this.selectedDetailsReceipt
-      Modal.getInstance(document.getElementById('receiptDetailsModal'))?.hide()
+
+      Modal.getInstance(
+        document.getElementById('receiptDetailsModal')
+      )?.hide()
+
       this.openReceiptPrintModal(receipt)
     },
 
     printSelectedRIS() {
       if (!this.selectedDetailsReceipt) return
+
       const receipt = this.selectedDetailsReceipt
-      Modal.getInstance(document.getElementById('receiptDetailsModal'))?.hide()
+
+      Modal.getInstance(
+        document.getElementById('receiptDetailsModal')
+      )?.hide()
+
       this.openRISModal(receipt)
     },
 
     async getReceipts() {
       try {
-        const response = await fetch(
-          '/api/receipts'
-        )
-
+        const response = await fetch('/api/receipts')
         const data = await response.json()
 
         if (!response.ok) {
@@ -804,10 +1275,7 @@ export default {
 
     async getItems() {
       try {
-        const response = await fetch(
-          '/api/items'
-        )
-
+        const response = await fetch('/api/items')
         const data = await response.json()
 
         if (!response.ok) {
@@ -826,10 +1294,7 @@ export default {
 
     async getPersonnel() {
       try {
-        const response = await fetch(
-          '/api/personnel'
-        )
-
+        const response = await fetch('/api/personnel')
         const data = await response.json()
 
         if (!response.ok) {
@@ -848,10 +1313,7 @@ export default {
 
     async getItemRequests() {
       try {
-        const response = await fetch(
-          '/api/item-requests'
-        )
-
+        const response = await fetch('/api/item-requests')
         const data = await response.json()
 
         if (!response.ok) {
@@ -867,7 +1329,8 @@ export default {
             []
 
         this.itemRequests = requests.filter(
-          request => String(request.status || '').trim().toLowerCase() === 'approved' &&
+          request =>
+            String(request.status || '').trim().toLowerCase() === 'approved' &&
             request.item_id
         )
       } catch (error) {
@@ -884,15 +1347,13 @@ export default {
         item_request_id: '',
         receipt_type: 'PAR',
         receipt_number: '',
-        date_issued:
-          new Date().toISOString().split('T')[0],
+        date_issued: new Date().toISOString().split('T')[0],
         remarks: ''
       }
 
-      const modal =
-        Modal.getOrCreateInstance(
-          document.getElementById('receiptModal')
-        )
+      const modal = Modal.getOrCreateInstance(
+        document.getElementById('receiptModal')
+      )
 
       modal.show()
     },
@@ -903,13 +1364,13 @@ export default {
       this.form = {
         id: receipt.id,
         item_request_id: '',
-        receipt_type: receipt.receipt_type || 'PAR',
+        receipt_type: this.getReceiptTypeForItem(this.getReceiptItem(receipt)),
         receipt_number: receipt.receipt_number || '',
         date_issued: receipt.date_issued || '',
-        remarks: receipt.remarks || ''
+        remarks: this.getReceiptRemarks(receipt, '')
       }
 
-this.$nextTick(() => {
+      this.$nextTick(() => {
         const modalElement = document.getElementById('receiptModal')
 
         if (modalElement) {
@@ -923,42 +1384,34 @@ this.$nextTick(() => {
       this.saving = true
 
       try {
-        let url =
-          '/api/receipts'
-
+        let url = '/api/receipts'
         let method = 'POST'
 
+        const receiptItem = this.editing
+          ? this.editingItem
+          : this.getRequestItem(this.selectedRequest)
+        const automaticReceiptType = this.getReceiptTypeForItem(receiptItem)
+        this.form.receipt_type = automaticReceiptType
+
         const body = {
-          receipt_type:
-            this.form.receipt_type,
-
-          receipt_number:
-            this.form.receipt_number,
-
-          date_issued:
-            this.form.date_issued || null,
-
-          remarks:
-            this.form.remarks || null
+          receipt_type: automaticReceiptType,
+          receipt_number: this.form.receipt_number,
+          date_issued: this.form.date_issued || null,
+          remarks: this.form.remarks || null
         }
 
         if (this.editing) {
-          url =
-            `/api/receipts/${this.form.id}`
-
+          url = `/api/receipts/${this.form.id}`
           method = 'PUT'
         } else {
-          body.item_request_id =
-            this.form.item_request_id
+          body.item_request_id = this.form.item_request_id
         }
 
         const response = await fetch(url, {
           method: method,
-
           headers: {
             'Content-Type': 'application/json'
           },
-
           body: JSON.stringify(body)
         })
 
@@ -970,10 +1423,9 @@ this.$nextTick(() => {
           )
         }
 
-        const modal =
-          Modal.getOrCreateInstance(
-            document.getElementById('receiptModal')
-          )
+        const modal = Modal.getOrCreateInstance(
+          document.getElementById('receiptModal')
+        )
 
         modal.hide()
 
@@ -993,8 +1445,7 @@ this.$nextTick(() => {
         this.saving = false
       }
     },
-
-    async deleteReceipt(id) {
+        async deleteReceipt(id) {
       const confirmed = confirm(
         'Are you sure you want to delete this receipt?'
       )
@@ -1023,13 +1474,116 @@ this.$nextTick(() => {
         await this.getItems()
         await this.getItemRequests()
 
-        this.showToast(
-          'Receipt deleted successfully'
-        )
+        this.showToast('Receipt deleted successfully')
       } catch (error) {
         console.log(error)
         this.showToast(error.message)
       }
+    },
+
+    getReceiptRemarks(receipt, fallback = '-') {
+      if (!receipt) {
+        return fallback
+      }
+
+      const request = Array.isArray(receipt.item_requests)
+        ? receipt.item_requests[0]
+        : receipt.item_requests
+
+      const values = [
+        receipt.remarks,
+        request?.remarks,
+        request?.purpose,
+        receipt.purpose
+      ]
+
+      for (const value of values) {
+        if (
+          value !== null &&
+          value !== undefined &&
+          String(value).trim() !== ''
+        ) {
+          return String(value).trim()
+        }
+      }
+
+      return fallback
+    },
+
+    async saveSignatureIfRequested(receipt) {
+      if (!this.saveSignatureForFuture) return
+
+      if (!this.selectedSignatureFile) {
+        this.showToast('Choose a signature image before saving it for future prints.')
+        return
+      }
+
+      const userId =
+        receipt?.issued_to ||
+        receipt?.item_requests?.requested_by
+
+      if (!userId) {
+        this.showToast('The recipient account could not be found for this signature.')
+        return
+      }
+
+      try {
+        const formData = new FormData()
+        formData.append('signature', this.selectedSignatureFile)
+
+        const response = await fetch(`/api/signatures/${encodeURIComponent(userId)}`, {
+          method: 'POST',
+          body: formData
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Could not save the signature.')
+        }
+
+        if (receipt.users) {
+          receipt.users.signature_path = data.signature_path
+        }
+
+        if (receipt.item_requests?.users) {
+          receipt.item_requests.users.signature_path = data.signature_path
+        }
+
+        this.showToast('Signature saved for future PAR/ICS prints.')
+      } catch (error) {
+        this.showToast(error.message || 'Could not save the signature.')
+      }
+    },
+
+    getAutoSignatureUrl(receipt) {
+      const signaturePath =
+        receipt?.users?.signature_path ||
+        receipt?.item_requests?.users?.signature_path ||
+        ''
+
+      return signaturePath || ''
+    },
+
+    getQuantityIssued(receipt) {
+      if (!receipt) return 0
+
+      const quantities = [
+        receipt.quantity,
+        receipt.quantity_issued,
+        receipt.item_requests?.quantity,
+        receipt.quantity_requested
+      ]
+
+      for (const quantity of quantities) {
+        const value = Number(quantity)
+
+        if (Number.isFinite(value) && value > 0) {
+          return value
+        }
+      }
+
+      return 0
     },
 
     getReceiptItem(receipt) {
@@ -1048,21 +1602,35 @@ this.$nextTick(() => {
       }
 
       if (receipt.item_requests?.items) {
-        return Array.isArray(
-          receipt.item_requests.items
-        )
+        return Array.isArray(receipt.item_requests.items)
           ? receipt.item_requests.items[0] || {}
           : receipt.item_requests.items
       }
 
       if (receipt.item_id) {
         return this.items.find(
-          item =>
-            item.id === receipt.item_id
+          item => item.id === receipt.item_id
         ) || {}
       }
 
       return {}
+    },
+
+    getReceiptTypeForItem(item) {
+      const cost = Number(
+        item?.cost ??
+        item?.unit_cost ??
+        item?.price ??
+        item?.acquisition_cost ??
+        item?.unit_price ??
+        0
+      )
+      return cost >= 50000 ? 'PAR' : 'ICS'
+    },
+
+    updateReceiptTypeForSelectedRequest() {
+      const item = this.getRequestItem(this.selectedRequest)
+      this.form.receipt_type = this.getReceiptTypeForItem(item)
     },
 
     getRequestItem(request) {
@@ -1081,8 +1649,7 @@ this.$nextTick(() => {
       }
 
       return this.items.find(
-        item =>
-          item.id === request.item_id
+        item => item.id === request.item_id
       ) || {}
     },
 
@@ -1095,16 +1662,13 @@ this.$nextTick(() => {
         return receipt.users.full_name
       }
 
-      if (
-        receipt.item_requests?.users?.full_name
-      ) {
+      if (receipt.item_requests?.users?.full_name) {
         return receipt.item_requests.users.full_name
       }
 
       if (receipt.issued_to) {
         const person = this.personnel.find(
-          person =>
-            person.id === receipt.issued_to
+          person => person.id === receipt.issued_to
         )
 
         return person?.full_name || '-'
@@ -1148,48 +1712,90 @@ this.$nextTick(() => {
     },
 
     openReceiptPrintModal(receipt) {
-      this.printSignatureImage = ''
-      this.selectedPrintReceipt = receipt
+      this.printSignatureImage = this.getAutoSignatureUrl(receipt)
+      this.selectedSignatureFile = null
+      this.saveSignatureForFuture = false
       const item = this.getReceiptItem(receipt)
+      receipt.receipt_type = this.getReceiptTypeForItem(item)
+      this.selectedPrintReceipt = receipt
+
       this.receiptPrintForm = {
         fundCluster: receipt.fund_cluster || 'TF-2',
         appendix: receipt.appendix || '71',
         purpose: receipt.remarks || '',
-        unitOffice: item.responsibility_center || receipt.offices?.office_name || '',
+        unitOffice: item.responsibility_center ||
+          receipt.offices?.office_name || '',
         poNumber: receipt.po_number || '',
         uacs: receipt.uacs || '',
         burNumber: receipt.bur_number || '',
         iarNumber: receipt.iar_number || '',
-        receivedBy: this.getIssuedToName(receipt) === '-' ? '' : this.getIssuedToName(receipt),
+        receivedBy: this.getIssuedToName(receipt) === '-'
+          ? ''
+          : this.getIssuedToName(receipt),
         receivedByDesignation: receipt.received_by_designation || '',
         receivedFrom: receipt.received_from_name || '',
-        receivedFromDesignation: receipt.received_from_designation || 'Administrative Officer V',
+        receivedFromDesignation:
+          receipt.received_from_designation || 'Administrative Officer V',
         paperSize: 'short',
         paperWidth: 8.5,
         paperHeight: 11
       }
-      const modal = Modal.getOrCreateInstance(document.getElementById('receiptPrintDetailsModal'))
+
+      const modal = Modal.getOrCreateInstance(
+        document.getElementById('receiptPrintDetailsModal')
+      )
+
       modal.show()
     },
 
-    confirmPrintReceipt() {
+    async confirmPrintReceipt() {
       if (!this.selectedPrintReceipt) return
-      const modal = Modal.getOrCreateInstance(document.getElementById('receiptPrintDetailsModal'))
+
+      await this.saveSignatureIfRequested(this.selectedPrintReceipt)
+
+      const modal = Modal.getOrCreateInstance(
+        document.getElementById('receiptPrintDetailsModal')
+      )
+
       modal.hide()
-      this.printReceipt(this.selectedPrintReceipt, { ...this.receiptPrintForm, signatureImage: this.printSignatureImage })
+
+      this.printReceipt(
+        this.selectedPrintReceipt,
+        {
+          ...this.receiptPrintForm,
+          signatureImage: this.printSignatureImage || this.getAutoSignatureUrl(this.selectedPrintReceipt)
+        }
+      )
     },
 
     openRISModal(receipt) {
-      this.printSignatureImage = ''
+      this.printSignatureImage = this.getAutoSignatureUrl(receipt)
+      this.selectedSignatureFile = null
+      this.saveSignatureForFuture = false
+
       const request = receipt.item_requests || {}
       const issuedTo = this.getIssuedToName(receipt)
+
       this.selectedRISReceipt = receipt
+
       this.risForm = {
         fundCluster: request.fund_cluster || receipt.fund_cluster || '',
         division: request.division || receipt.division || '',
-        officeName: request.offices?.office_name || receipt.offices?.office_name || request.office_name || receipt.office_name || '',
-        purpose: request.purpose || receipt.purpose || request.remarks || '',
-        requestedBy: request.requested_by_name || request.users?.full_name || '',
+        officeName:
+          request.offices?.office_name ||
+          receipt.offices?.office_name ||
+          request.office_name ||
+          receipt.office_name ||
+          '',
+        purpose:
+          request.purpose ||
+          receipt.purpose ||
+          request.remarks ||
+          '',
+        requestedBy:
+          request.requested_by_name ||
+          request.users?.full_name ||
+          '',
         requestedDesignation: request.requested_by_designation || '',
         approvedBy: receipt.approved_by_name || '',
         approvedDesignation: receipt.approved_by_designation || '',
@@ -1201,15 +1807,32 @@ this.$nextTick(() => {
         paperWidth: 8.5,
         paperHeight: 13
       }
-      const modal = Modal.getOrCreateInstance(document.getElementById('risDetailsModal'))
+
+      const modal = Modal.getOrCreateInstance(
+        document.getElementById('risDetailsModal')
+      )
+
       modal.show()
     },
 
-    confirmPrintRIS() {
+    async confirmPrintRIS() {
       if (!this.selectedRISReceipt) return
-      const modal = Modal.getOrCreateInstance(document.getElementById('risDetailsModal'))
+
+      await this.saveSignatureIfRequested(this.selectedRISReceipt)
+
+      const modal = Modal.getOrCreateInstance(
+        document.getElementById('risDetailsModal')
+      )
+
       modal.hide()
-      this.printRIS(this.selectedRISReceipt, { ...this.risForm, signatureImage: this.printSignatureImage })
+
+      this.printRIS(
+        this.selectedRISReceipt,
+        {
+          ...this.risForm,
+          signatureImage: this.printSignatureImage
+        }
+      )
     },
 
     getPrintPageSize(details) {
@@ -1224,15 +1847,22 @@ this.$nextTick(() => {
       const width = Number(details.paperWidth)
       const height = Number(details.paperHeight)
 
-      if (!Number.isFinite(width) || width < 1 || !Number.isFinite(height) || height < 1) {
-        this.showToast('Enter a valid custom paper width and height of at least 1 inch.')
+      if (
+        !Number.isFinite(width) ||
+        width < 1 ||
+        !Number.isFinite(height) ||
+        height < 1
+      ) {
+        this.showToast(
+          'Enter a valid custom paper width and height of at least 1 inch.'
+        )
+
         return null
       }
 
       return { width, height }
     },
-
-    printRIS(receipt, details = {}) {
+        printRIS(receipt, details = {}) {
       const pageSize = this.getPrintPageSize(details)
       if (!pageSize) return
 
@@ -1260,8 +1890,8 @@ this.$nextTick(() => {
       const description = escape(item.description || request.item_description)
       const stockNumber = escape(item.stock_number || item.property_number || item.stock_no)
       const quantityRequested = escape(request.quantity ?? request.quantity_requested ?? receipt.quantity_requested ?? receipt.quantity)
-      const quantityIssued = escape(receipt.quantity ?? receipt.quantity_issued ?? request.quantity_issued ?? request.quantity)
-      const requestedQuantity = Number(request.quantity ?? request.quantity_requested ?? receipt.quantity_requested)
+      const quantityIssued = escape(this.getQuantityIssued(receipt) || request.quantity_issued || request.quantity || '-')
+      const requestedQuantity = Number(request.quantity ?? request.quantity_requested ?? receipt.quantity_requested ?? this.getQuantityIssued(receipt))
       const availableQuantity = Number(item.quantity_available ?? item.quantity ?? item.stock_balance)
       const stockWasAvailableWhenIssued =
         ['Issued', 'Delivered'].includes(receipt.status) ||
@@ -1447,16 +2077,16 @@ this.$nextTick(() => {
               </tbody>
             </table>
 
-          <div class="instructions">
-            <div class="instructions-title">INSTRUCTIONS</div>
-            <p><strong>A.</strong> The RIS shall be prepared by the authorized officer or employee to request needed Property/Supply, by the Supervisor of the requesting unit to approve the request, by the Property/Supply Custodian to verify the availability of stocks and issuance of the item/s, and by the end user or authorized personnel of the requesting unit to receive the item/s as an accountable/responsible officer or employee.</p>
-            <p><strong>B.</strong> For requested item/s other than the category of consumable property/supply, the approved RIS (GAM Appendix 63) shall be the basis of the SMO Staff in preparing and processing the Inventory Custodian Slip (GAM Appendix 69) for semi-expendable property and/or Property Acknowledgement Receipt (GAM Appendix 71) for non-expendable property prior to issuance if the item/s is available on stock; and</p>
-            <p><strong>C.</strong> This form shall be prepared in three (3) copies and in 8.5&quot; x 13&quot; paper. It will be distributed as follows:</p>
-            <div class="copies">Original - Accounting Office</div>
-            <div class="copies">Copy 2 - Requesting Office</div>
-            <div class="copies">Copy 3 - Supply Management Office</div>
-            <div class="form-code">NVSU-FR-SMO-08-00 (031022)</div>
-          </div>
+            <div class="instructions">
+              <div class="instructions-title">INSTRUCTIONS</div>
+              <p><strong>A.</strong> The RIS shall be prepared by the authorized officer or employee to request needed Property/Supply, by the Supervisor of the requesting unit to approve the request, by the Property/Supply Custodian to verify the availability of stocks and issuance of the item/s, and by the end user or authorized personnel of the requesting unit to receive the item/s as an accountable/responsible officer or employee.</p>
+              <p><strong>B.</strong> For requested item/s other than the category of consumable property/supply, the approved RIS (GAM Appendix 63) shall be the basis of the SMO Staff in preparing and processing the Inventory Custodian Slip (GAM Appendix 69) for semi-expendable property and/or Property Acknowledgement Receipt (GAM Appendix 71) for non-expendable property prior to issuance if the item/s is available on stock; and</p>
+              <p><strong>C.</strong> This form shall be prepared in three (3) copies and in 8.5&quot; x 13&quot; paper. It will be distributed as follows:</p>
+              <div class="copies">Original - Accounting Office</div>
+              <div class="copies">Copy 2 - Requesting Office</div>
+              <div class="copies">Copy 3 - Supply Management Office</div>
+              <div class="form-code">NVSU-FR-SMO-08-00 (031022)</div>
+            </div>
           </div>
 
           <script>
@@ -1486,103 +2116,32 @@ this.$nextTick(() => {
         ? `<img class="print-signature" src="${details.signatureImage}" alt="Signature">`
         : ''
 
-      const receiptType =
-        this.escapeHtml(
-          receipt.receipt_type || 'PAR'
-        )
-
-      const receiptNumber =
-        this.escapeHtml(
-          receipt.receipt_number || '-'
-        )
-
-      const personnelName =
-        this.escapeHtml(
-          details.receivedBy || this.getIssuedToName(receipt)
-        )
-
-      const description =
-        this.escapeHtml(
-          item.description || '-'
-        )
-
-      const quantity =
-        this.escapeHtml(
-          receipt.quantity ?? 1
-        )
-
-      const propertyNumber =
-        this.escapeHtml(
-          item.property_number || '-'
-        )
-
-      const modelNumber =
-        this.escapeHtml(
-          item.model_number || '-'
-        )
-
-      const serialNumber =
-        this.escapeHtml(
-          item.serial_number || '-'
-        )
-
-      const dateAcquired =
-        this.escapeHtml(
-          item.acquisition_date ||
-          item.date_acquired ||
-          '-'
-        )
-
-      const dateIssued =
-        this.escapeHtml(
-          receipt.date_issued || '-'
-        )
-
-      const classification =
-        this.escapeHtml(
-          item.classification ||
-          receipt.receipt_type ||
-          '-'
-        )
-
-      const condition =
-        this.escapeHtml(
-          item.condition || '-'
-        )
-
-      const responsibilityCenter =
-        this.escapeHtml(
-          details.unitOffice || item.responsibility_center || '-'
-        )
-
-      const cost =
-        Number(item.cost || 0)
-
-      const amount =
-        this.formatAmount(cost * Number(receipt.quantity ?? 1))
-
-      const remarks =
-        this.escapeHtml(
-          details.purpose || receipt.remarks || '-'
-        )
-
-      const officeName =
-        this.escapeHtml(
-          receipt.item_requests?.offices?.office_name ||
-          receipt.offices?.office_name ||
-          '-'
-        )
-
-      const printWindow = window.open(
-        '',
-        '_blank'
+      const receiptType = this.escapeHtml(receipt.receipt_type || 'PAR')
+      const receiptNumber = this.escapeHtml(receipt.receipt_number || '-')
+      const personnelName = this.escapeHtml(details.receivedBy || this.getIssuedToName(receipt))
+      const description = this.escapeHtml(item.description || '-')
+      const quantity = this.escapeHtml(this.getQuantityIssued(receipt) || 1)
+      const propertyNumber = this.escapeHtml(item.property_number || '-')
+      const modelNumber = this.escapeHtml(item.model_number || '-')
+      const serialNumber = this.escapeHtml(item.serial_number || '-')
+      const dateAcquired = this.escapeHtml(item.acquisition_date || item.date_acquired || '-')
+      const dateIssued = this.escapeHtml(receipt.date_issued || '-')
+      const classification = this.escapeHtml(item.classification || receipt.receipt_type || '-')
+      const condition = this.escapeHtml(item.condition || '-')
+      const responsibilityCenter = this.escapeHtml(details.unitOffice || item.responsibility_center || '-')
+      const cost = Number(item.cost || 0)
+      const amount = this.formatAmount(cost * Number(this.getQuantityIssued(receipt) || 1))
+      const remarks = this.escapeHtml(details.purpose || receipt.remarks || '-')
+      const officeName = this.escapeHtml(
+        receipt.item_requests?.offices?.office_name ||
+        receipt.offices?.office_name ||
+        '-'
       )
 
-      if (!printWindow) {
-        this.showToast(
-          'Please allow pop-ups to print the receipt'
-        )
+      const printWindow = window.open('', '_blank')
 
+      if (!printWindow) {
+        this.showToast('Please allow pop-ups to print the receipt')
         return
       }
 
@@ -1590,10 +2149,7 @@ this.$nextTick(() => {
         <!DOCTYPE html>
         <html>
         <head>
-          <title>
-            ${receiptType} - ${receiptNumber}
-          </title>
-
+          <title>${receiptType} - ${receiptNumber}</title>
           <style>
             @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 8mm; }
             * { box-sizing: border-box; }
@@ -1649,7 +2205,6 @@ this.$nextTick(() => {
             @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
           </style>
         </head>
-
         <body>
           <div class="page">
             <div class="header">
@@ -1675,7 +2230,6 @@ this.$nextTick(() => {
               </span>
             </div>
 
-            <!-- FUND CLUSTER AND PAR NUMBER -->
             <div class="receipt-info">
               <div class="fund-cluster">
                 <strong>FUND CLUSTER:</strong>
@@ -1688,132 +2242,49 @@ this.$nextTick(() => {
               </div>
             </div>
 
-            <!-- MAIN PROPERTY TABLE -->
             <table class="main-table">
               <thead>
                 <tr>
-                  <th class="sn">
-                    SN
-                  </th>
-
-                  <th class="qty">
-                    Qty.
-                  </th>
-
-                  <th class="article">
-                    Article and Description
-                  </th>
-
-                  <th class="property">
-                    Property Number
-                  </th>
-
-                  <th class="model">
-                    Model Number
-                  </th>
-
-                  <th class="serial">
-                    Serial Number
-                  </th>
-
-                  <th class="date">
-                    Date Acquired
-                  </th>
-
-                  <th class="amount">
-                    Amount
-                  </th>
+                  <th class="sn">SN</th>
+                  <th class="qty">Qty.</th>
+                  <th class="article">Article and Description</th>
+                  <th class="property">Property Number</th>
+                  <th class="model">Model Number</th>
+                  <th class="serial">Serial Number</th>
+                  <th class="date">Date Acquired</th>
+                  <th class="amount">Amount</th>
                 </tr>
               </thead>
-
               <tbody>
                 <tr>
-                  <td class="sn">
-                    1
-                  </td>
-
-                  <td class="qty">
-                    ${quantity}
-                  </td>
-
-                  <td class="article">
-                    ${description}
-                  </td>
-
-                  <td class="property">
-                    ${propertyNumber}
-                  </td>
-
-                  <td class="model">
-                    ${modelNumber}
-                  </td>
-
-                  <td class="serial">
-                    ${serialNumber}
-                  </td>
-
-                  <td class="date">
-                    ${dateAcquired}
-                  </td>
-
-                  <td class="amount">
-                    ${amount}
-                  </td>
+                  <td class="sn">1</td>
+                  <td class="qty">${quantity}</td>
+                  <td class="article">${description}</td>
+                  <td class="property">${propertyNumber}</td>
+                  <td class="model">${modelNumber}</td>
+                  <td class="serial">${serialNumber}</td>
+                  <td class="date">${dateAcquired}</td>
+                  <td class="amount">${amount}</td>
                 </tr>
-
                 <tr class="total-row">
-                  <td
-                    colspan="7"
-                    class="total-label"
-                  >
-                    Total
-                  </td>
-
-                  <td class="total-amount">
-                    ${amount}
-                  </td>
+                  <td colspan="7" class="total-label">Total</td>
+                  <td class="total-amount">${amount}</td>
                 </tr>
               </tbody>
             </table>
 
-            <!-- DETAILS BELOW THE MAIN TABLE -->
             <div class="lower-details">
               <div class="lower-left">
-                <p>
-                  <strong>UNIT/OFFICE:</strong>
-                  ${this.escapeHtml(details.unitOffice || responsibilityCenter || '-')}
-                </p>
-
-                <p>
-                  <strong>PO NO.:</strong>
-                  ${this.escapeHtml(details.poNumber || '-')}
-                </p>
-
-                <p>
-                  <strong>UACS:</strong>
-                  ${this.escapeHtml(details.uacs || '-')}
-                </p>
-
-                <p>
-                  <strong>BUR NO.:</strong>
-                  ${this.escapeHtml(details.burNumber || '-')}
-                </p>
-
-                <p>
-                  <strong>IAR NO.:</strong>
-                  ${this.escapeHtml(details.iarNumber || '-')}
-                </p>
+                <p><strong>UNIT/OFFICE:</strong> ${this.escapeHtml(details.unitOffice || responsibilityCenter || '-')}</p>
+                <p><strong>PO NO.:</strong> ${this.escapeHtml(details.poNumber || '-')}</p>
+                <p><strong>UACS:</strong> ${this.escapeHtml(details.uacs || '-')}</p>
+                <p><strong>BUR NO.:</strong> ${this.escapeHtml(details.burNumber || '-')}</p>
+                <p><strong>IAR NO.:</strong> ${this.escapeHtml(details.iarNumber || '-')}</p>
               </div>
 
               <div class="lower-right">
-                <p>
-                  <strong>PURPOSE:</strong>
-                </p>
-
-                <p>
-                  ${remarks}
-                </p>
-
+                <p><strong>PURPOSE:</strong></p>
+                <p>${remarks}</p>
               </div>
             </div>
 

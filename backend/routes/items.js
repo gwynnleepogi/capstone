@@ -161,7 +161,7 @@ router.post('/', async (req, res) => {
         serial_number,
         cost,
         quantity: itemQuantity,
-        unit: String(unit || '').trim() || 'unit',
+        unit: String(unit || '').trim() || 'PC',
         article: String(article || '').trim() || null,
         dr_ci_si_number: String(dr_ci_si_number || '').trim() || null,
         po_number: String(po_number || '').trim() || null,
@@ -170,10 +170,12 @@ router.post('/', async (req, res) => {
         acquisition_date,
         classification,
         condition,
-        accountable_employee,
-        responsibility_center,
+        accountable_employee: String(accountable_employee || '').trim() || null,
+        responsibility_center: String(accountable_employee || '').trim()
+          ? (String(responsibility_center || '').trim() || null)
+          : null,
         fund_cluster: String(fund_cluster).trim(),
-        status: status || 'Available'
+        status: String(accountable_employee || '').trim() ? 'Issued' : 'Available'
       }])
       .select()
       .single()
@@ -261,11 +263,15 @@ router.put('/:id', async (req, res) => {
         acquisition_date,
         classification,
         condition,
-        status,
-        accountable_employee,
-        responsibility_center,
+        status: String(accountable_employee || '').trim()
+          ? (['Available', 'Assigned'].includes(status) ? 'Issued' : (status || 'Issued'))
+          : 'Available',
+        accountable_employee: String(accountable_employee || '').trim() || null,
+        responsibility_center: String(accountable_employee || '').trim()
+          ? (String(responsibility_center || '').trim() || null)
+          : null,
         fund_cluster: String(fund_cluster).trim(),
-        unit: String(unit || '').trim() || 'unit',
+        unit: String(unit || '').trim() || 'PC',
         article: String(article || '').trim() || null,
         dr_ci_si_number: String(dr_ci_si_number || '').trim() || null,
         po_number: String(po_number || '').trim() || null,

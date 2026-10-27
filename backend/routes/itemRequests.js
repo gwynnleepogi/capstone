@@ -452,6 +452,29 @@ async function getSelectedItem(itemId, excludeRequestId) {
   }
 }
 
+async function generateRequestNumber() {
+  const { data, error } = await supabase
+    .from('item_requests')
+    .select('request_number')
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  let highestNumber = 0
+
+  for (const request of data || []) {
+    const match = String(request.request_number || '').match(/(\d+)\s*$/)
+    const number = Number(match ? match[1] : 0)
+
+    if (Number.isSafeInteger(number) && number > highestNumber) {
+      highestNumber = number
+    }
+  }
+
+  return String(highestNumber + 1).padStart(7, '0')
+}
+
 router.post('/', async (req, res) => {
   const {
     request_number,
@@ -506,10 +529,20 @@ router.post('/', async (req, res) => {
     })
   }
 
+  let generatedRequestNumber
+
+  try {
+    generatedRequestNumber = await generateRequestNumber()
+  } catch (numberError) {
+    return res.status(500).json({
+      error: 'Could not generate a request number: ' + numberError.message
+    })
+  }
+
   const { data, error } = await supabase
     .from('item_requests')
     .insert([{
-      request_number,
+      request_number: generatedRequestNumber,
       requested_by: requestOwner,
       office_id: office_id || null,
       item_id,
