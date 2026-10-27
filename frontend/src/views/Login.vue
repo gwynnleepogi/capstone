@@ -129,30 +129,34 @@
               <strong>{{ preferredRole }}</strong>
             </div>
 
-            <label for="login-email">Email address</label>
-            <div class="input-wrap">
-              <i class="bi bi-envelope"></i>
-              <input
-                id="login-email"
-                v-model="email"
-                type="email"
-                autocomplete="username"
-                placeholder="you@example.com"
-                required
-              >
+            <div class="field">
+              <label for="login-email">Email address</label>
+              <div class="input-wrap">
+                <i class="bi bi-envelope"></i>
+                <input
+                  id="login-email"
+                  v-model="email"
+                  type="email"
+                  autocomplete="username"
+                  placeholder="you@example.com"
+                  required
+                >
+              </div>
             </div>
 
-            <label for="login-password">Password</label>
-            <div class="input-wrap">
-              <i class="bi bi-lock"></i>
-              <input
-                id="login-password"
-                v-model="password"
-                type="password"
-                autocomplete="current-password"
-                placeholder="Enter your password"
-                required
-              >
+            <div class="field">
+              <label for="login-password">Password</label>
+              <div class="input-wrap">
+                <i class="bi bi-lock"></i>
+                <input
+                  id="login-password"
+                  v-model="password"
+                  type="password"
+                  autocomplete="current-password"
+                  placeholder="Enter your password"
+                  required
+                >
+              </div>
             </div>
 
             <button type="submit" class="primary-button" :disabled="loading">
@@ -166,54 +170,62 @@
           </template>
 
           <template v-if="signingUp">
-            <label for="signup-name">Full name</label>
-            <div class="input-wrap">
-              <i class="bi bi-person"></i>
-              <input
-                id="signup-name"
-                v-model="fullName"
-                type="text"
-                autocomplete="name"
-                placeholder="Enter your full name"
-                required
-              >
+            <div class="field">
+              <label for="signup-name">Full name</label>
+              <div class="input-wrap">
+                <i class="bi bi-person"></i>
+                <input
+                  id="signup-name"
+                  v-model="fullName"
+                  type="text"
+                  autocomplete="name"
+                  placeholder="Enter your full name"
+                  required
+                >
+              </div>
             </div>
 
-            <label for="signup-email">Email address</label>
-            <div class="input-wrap">
-              <i class="bi bi-envelope"></i>
-              <input
-                id="signup-email"
-                v-model="email"
-                type="email"
-                autocomplete="email"
-                placeholder="you@example.com"
-                required
-              >
+            <div class="field">
+              <label for="signup-email">Email address</label>
+              <div class="input-wrap">
+                <i class="bi bi-envelope"></i>
+                <input
+                  id="signup-email"
+                  v-model="email"
+                  type="email"
+                  autocomplete="email"
+                  placeholder="you@example.com"
+                  required
+                >
+              </div>
             </div>
 
-            <label for="signup-password">Password</label>
-            <div class="input-wrap">
-              <i class="bi bi-lock"></i>
-              <input
-                id="signup-password"
-                v-model="password"
-                type="password"
-                autocomplete="new-password"
-                placeholder="Create a password"
-                required
-              >
+            <div class="field">
+              <label for="signup-password">Password</label>
+              <div class="input-wrap">
+                <i class="bi bi-lock"></i>
+                <input
+                  id="signup-password"
+                  v-model="password"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="Create a password"
+                  required
+                >
+              </div>
             </div>
 
-            <label for="signup-role">Personnel type</label>
-            <div class="input-wrap select-wrap">
-              <i class="bi bi-people"></i>
-              <select id="signup-role" v-model="role" required>
-                <option value="">Choose personnel type</option>
-                <option value="Personnel">Personnel</option>
-                <option value="Teacher">Teacher</option>
-                <option value="Non-Teaching Staff">Non-Teaching Staff</option>
-              </select>
+            <div class="field">
+              <label for="signup-role">Personnel type</label>
+              <div class="input-wrap select-wrap">
+                <i class="bi bi-people"></i>
+                <select id="signup-role" v-model="role" required>
+                  <option value="">Choose personnel type</option>
+                  <option value="Personnel">Personnel</option>
+                  <option value="Teacher">Teacher</option>
+                  <option value="Non-Teaching Staff">Non-Teaching Staff</option>
+                </select>
+              </div>
             </div>
 
             <button type="submit" class="primary-button" :disabled="loading">
@@ -410,10 +422,9 @@ export default {
   --ink: #26332a;
   --muted: #717a72;
 
-  display: grid;
+  display: flex;
   min-height: 100vh;
   min-height: 100dvh;
-  place-items: center;
   padding: clamp(16px, 4vw, 48px);
   background: #f7f5e8;
 }
@@ -422,6 +433,7 @@ export default {
   display: grid;
   grid-template-columns: minmax(300px, .88fr) minmax(400px, 1.12fr);
   width: min(960px, 100%);
+  margin: auto;
   min-height: min(620px, calc(100dvh - 64px));
   overflow: hidden;
   border: 1px solid #e6e7dc;
@@ -470,14 +482,13 @@ export default {
 }
 
 .visual-circle {
-  position: absolute;
-  top: 39%;
-  left: 50%;
+  position: relative;
   display: grid;
-  width: clamp(200px, 22vw, 270px);
+  width: min(100%, clamp(200px, 22vw, 270px));
+  flex: 0 0 auto;
+  margin: auto 0;
   aspect-ratio: 1;
   place-items: center;
-  transform: translate(-50%, -50%);
   border: 2px solid rgba(232, 197, 71, .76);
   border-radius: 50%;
   background: rgba(255, 255, 255, .08);
@@ -505,6 +516,7 @@ export default {
   z-index: 1;
   width: 100%;
   max-width: 360px;
+  margin-top: 28px;
 }
 
 .visual-kicker,
@@ -607,7 +619,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .section-heading h2 {
@@ -632,16 +644,18 @@ export default {
   position: relative;
   display: flex;
   min-width: 0;
-  min-height: 66px;
+  min-height: 104px;
+  flex-direction: column;
   align-items: center;
-  gap: 11px;
-  padding: 13px;
+  justify-content: center;
+  gap: 9px;
+  padding: 16px 10px;
   border: 1px solid #e1e5db;
   border-radius: 8px;
   background: #fff;
   color: var(--ink);
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   transition: border-color .18s ease, background .18s ease;
 }
 
@@ -663,7 +677,6 @@ export default {
 }
 
 .role-label {
-  padding-right: 16px;
   font-size: 13px;
   font-weight: 650;
   line-height: 1.3;
@@ -671,8 +684,8 @@ export default {
 
 .role-check {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 8px;
+  right: 8px;
   color: var(--green);
   opacity: 0;
   transform: scale(.8);
@@ -694,9 +707,19 @@ export default {
   transform: scale(1);
 }
 
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  min-width: 0;
+}
+
 .auth-form label {
   display: block;
-  margin: 16px 0 7px;
+  margin: 0 0 7px;
   color: #35453b;
   font-size: 13px;
   font-weight: 650;
@@ -770,7 +793,7 @@ export default {
   justify-content: center;
   gap: 10px;
   padding: 12px 18px;
-  margin-top: 24px;
+  margin-top: 8px;
   border: 0;
   border-radius: 7px;
   background: #e8c547;
@@ -818,8 +841,8 @@ export default {
 
 .text-button {
   display: block;
-  padding: 10px;
-  margin: 8px auto 0;
+  padding: 8px 10px;
+  margin: 0 auto;
   border: 0;
   background: transparent;
   color: var(--green);
@@ -892,9 +915,10 @@ export default {
   }
 
   .login-visual {
-    min-height: 238px;
-    flex: 0 0 238px;
-    padding: 18px 22px 24px;
+    min-height: 0;
+    flex: 0 0 auto;
+    justify-content: center;
+    padding: 28px 22px 26px;
   }
 
   .login-visual::before {
@@ -912,9 +936,8 @@ export default {
   }
 
   .visual-circle {
-    top: 78px;
-    width: 114px;
-    transform: translate(-50%, -50%);
+    width: 104px;
+    margin: 0;
   }
 
   .logo-medallion {
@@ -922,6 +945,7 @@ export default {
   }
 
   .visual-copy {
+    margin-top: 16px;
     text-align: center;
   }
 
@@ -965,8 +989,11 @@ export default {
 
 @media (max-width: 380px) {
   .login-visual {
-    min-height: 218px;
-    flex-basis: 218px;
+    padding: 22px 18px;
+  }
+
+  .visual-circle {
+    width: 92px;
   }
 
   .login-panel {
@@ -978,9 +1005,9 @@ export default {
   }
 
   .role-button {
-    min-height: 70px;
-    gap: 8px;
-    padding: 10px 8px;
+    min-height: 92px;
+    gap: 7px;
+    padding: 12px 8px;
   }
 
   .role-icon {

@@ -2,7 +2,7 @@
   <div class="container-fluid">
     <div class="row align-items-center mb-4">
       <div class="col">
-        <h1 class="h3 mb-1">Items</h1>
+        <h1 class="h3 mb-1">Properties</h1>
         <p class="text-secondary mb-0">Property and inventory records</p>
       </div>
       <div class="col-auto d-flex gap-2">
@@ -12,7 +12,7 @@
         </button>
         <button class="btn btn-warning" @click="showAddForm = true">
           <i class="bi bi-plus-lg me-1"></i>
-          Add Item
+          Add Property
         </button>
       </div>
     </div>
@@ -62,7 +62,7 @@
     <div class="row g-3 mb-3">
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
-          <small class="text-secondary">Total Items</small>
+          <small class="text-secondary">Total Properties</small>
           <h4 class="mb-0 mt-1">{{ items.length }}</h4>
         </div>
       </div>
@@ -89,7 +89,7 @@
     <div v-if="showAddForm" class="add-overlay" tabindex="-1" @keydown.esc="cancelAdd">
       <section class="add-dialog card" role="dialog" aria-modal="true" aria-labelledby="add-item-title">
       <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <strong id="add-item-title">Add New Item</strong>
+        <strong id="add-item-title">Add New Property</strong>
         <button type="button" class="btn-close" aria-label="Close" @click="cancelAdd"></button>
       </div>
       <form class="add-dialog-form" @submit.prevent="addItem">
@@ -209,7 +209,7 @@
         <div class="card-footer bg-white">
           <button type="button" class="btn btn-secondary me-2" @click="cancelAdd">Cancel</button>
           <button type="submit" class="btn btn-success" :disabled="saving">
-            {{ saving ? 'Saving...' : 'Save Item' }}
+            {{ saving ? 'Saving...' : 'Save Property' }}
           </button>
         </div>
       </form>
@@ -218,7 +218,7 @@
 
     <div class="card">
       <div class="card-header bg-white">
-        <strong>Inventory Items</strong>
+        <strong>Inventory Properties</strong>
       </div>
       <div class="table-responsive">
         <table class="table table-hover mb-0">
@@ -243,13 +243,13 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="15" class="text-center py-5">Loading items...</td>
+              <td colspan="15" class="text-center py-5">Loading properties...</td>
             </tr>
             <tr v-else-if="error">
               <td colspan="15" class="text-center text-danger py-5">{{ error }}</td>
             </tr>
             <tr v-else-if="filteredItems.length === 0">
-              <td colspan="15" class="text-center text-secondary py-5">No items found.</td>
+              <td colspan="15" class="text-center text-secondary py-5">No properties found.</td>
             </tr>
             <tr v-for="item in filteredItems" :key="item.id">
               <td>
@@ -286,7 +286,7 @@
               <td>{{ item.responsibility_center || '-' }}</td>
               <td>
                 <div class="d-flex gap-1">
-                  <button class="btn btn-sm btn-outline-primary" @click="showItemDetails(item)" title="View item details">
+                  <button class="btn btn-sm btn-outline-primary" @click="showItemDetails(item)" title="View property details">
                     <i class="bi bi-eye me-1"></i>
                     Details
                   </button>
@@ -301,7 +301,7 @@
     <div v-if="detailItem" class="detail-overlay" @click.self="closeItemDetails">
       <section class="detail-dialog card" role="dialog" aria-modal="true" aria-labelledby="item-details-title">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <h2 id="item-details-title" class="h5 mb-0">Item Details</h2>
+          <h2 id="item-details-title" class="h5 mb-0">Property Details</h2>
           <button type="button" class="btn-close" aria-label="Close" @click="closeItemDetails"></button>
         </div>
         <div class="card-body">
@@ -313,7 +313,7 @@
               <div v-else-if="qrCodeError" class="text-danger small">{{ qrCodeError }}</div>
               <div v-else class="text-secondary">Generating QR code...</div>
               <div class="fw-semibold mt-2">{{ detailItem.property_number || 'No property number' }}</div>
-              <small class="text-secondary d-block">Scan to view item details</small>
+              <small class="text-secondary d-block">Scan to view property details</small>
               <small v-if="isLocalDevelopmentHost" class="text-warning d-block mt-2">
                 For phone scanning, open this app using your laptop's Wi-Fi address, not localhost.
               </small>
@@ -392,7 +392,7 @@
           </button>
           <button type="button" class="btn btn-outline-warning" @click="editItemFromDetails">
             <i class="bi bi-pencil me-1"></i>
-            Edit Item
+            Edit Property
           </button>
           <button
             type="button"
@@ -401,7 +401,7 @@
             @click="deleteItem(detailItem)"
           >
             <i class="bi bi-trash me-1"></i>
-            {{ deletingItemId === detailItem.id ? 'Deleting...' : 'Delete Item' }}
+            {{ deletingItemId === detailItem.id ? 'Deleting...' : 'Delete Property' }}
           </button>
         </div>
       </section>
@@ -410,7 +410,7 @@
     <div v-if="editingItem" class="edit-overlay" @click.self="cancelEdit">
       <div class="edit-sidebar">
         <div class="edit-sidebar-header">
-          <h5 class="mb-0">Edit Item</h5>
+          <h5 class="mb-0">Edit Property</h5>
           <button type="button" class="btn-close" aria-label="Close" @click="cancelEdit"></button>
         </div>
         <form class="edit-sidebar-form" @submit.prevent="updateItem">
@@ -525,7 +525,7 @@
           <div class="edit-sidebar-footer">
             <button type="button" class="btn btn-secondary" @click="cancelEdit">Cancel</button>
             <button type="submit" class="btn btn-success" :disabled="updating">
-              {{ updating ? 'Updating...' : 'Update Item' }}
+              {{ updating ? 'Updating...' : 'Update Property' }}
             </button>
           </div>
         </form>
@@ -625,7 +625,7 @@ async function createQrWithLogo(text) {
 }
 
 export default {
-  name: 'Items',
+  name: 'Properties',
   components: {
     InventoryMovementModal,
   },
@@ -805,7 +805,7 @@ export default {
       if (!item || !this.detailQrCode) {
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: 'The item QR code is not ready yet.',
+            detail: 'The property QR code is not ready yet.',
           }),
         )
         return
@@ -1057,7 +1057,7 @@ export default {
         const response = await fetch('/api/items')
 
         if (!response.ok) {
-          throw new Error('Failed to get items')
+          throw new Error('Failed to get properties')
         }
 
         this.items = await response.json()
@@ -1129,7 +1129,7 @@ export default {
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to add item')
+          throw new Error(data.error || 'Failed to add property')
         }
 
         this.items.unshift(data)
@@ -1138,7 +1138,7 @@ export default {
 
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: 'Item added successfully',
+            detail: 'Property added successfully',
           }),
         )
       } catch (error) {
@@ -1195,19 +1195,19 @@ export default {
 
         if (!response.headers.get('content-type')?.includes('application/json')) {
           throw new Error(
-            'The backend needs to be restarted to enable item QR links. Restart it, then reload the app.',
+            'The backend needs to be restarted to enable property QR links. Restart it, then reload the app.',
           )
         }
 
         const linkData = await response.json()
 
         if (!response.ok) {
-          throw new Error(linkData.error || 'Failed to create the item document link.')
+          throw new Error(linkData.error || 'Failed to create the property document link.')
         }
 
         if (typeof linkData.downloadUrl === 'string' && !linkData.viewUrl) {
           throw new Error(
-            'Restart the backend to enable QR codes that open item details, then reload the app.',
+            'Restart the backend to enable QR codes that open property details, then reload the app.',
           )
         }
 
@@ -1215,7 +1215,7 @@ export default {
           typeof linkData.viewUrl !== 'string' ||
           !linkData.viewUrl.startsWith('/items?item=')
         ) {
-          throw new Error('The backend returned an invalid item details link.')
+          throw new Error('The backend returned an invalid property details link.')
         }
 
         const itemDetailsUrl = new URL(linkData.viewUrl, window.location.origin).toString()
@@ -1226,7 +1226,7 @@ export default {
           this.detailQrCode = qrCode
         }
       } catch (error) {
-        console.error('Failed to generate item QR code:', error)
+        console.error('Failed to generate property QR code:', error)
         if (this.detailItem?.id === item.id) {
           this.qrCodeError = error.message || 'Unable to generate the QR code.'
         }
@@ -1239,7 +1239,7 @@ export default {
       if (!item || !this.detailQrCode) {
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: 'The item QR code is not ready yet.',
+            detail: 'The property QR code is not ready yet.',
           }),
         )
         return
@@ -1251,7 +1251,7 @@ export default {
         const base64QrCode = this.detailQrCode.split(',')[1]
 
         if (!base64QrCode) {
-          throw new Error('The item QR code is unavailable.')
+          throw new Error('The property QR code is unavailable.')
         }
 
         const qrImage = Uint8Array.from(atob(base64QrCode), (character) =>
@@ -1283,7 +1283,7 @@ export default {
             {
               children: [
                 new Paragraph({
-                  text: 'Property Item Details',
+                  text: 'Property Details',
                   heading: HeadingLevel.TITLE,
                 }),
                 ...itemDetails.map(
@@ -1311,14 +1311,14 @@ export default {
         const blob = await Packer.toBlob(documentFile)
         const downloadUrl = URL.createObjectURL(blob)
         const downloadLink = document.createElement('a')
-        const safePropertyNumber = (item.property_number || 'item')
+        const safePropertyNumber = (item.property_number || 'property')
           .trim()
           .replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
           .replace(/\s+/g, '-')
           .replace(/[. ]+$/g, '')
 
         downloadLink.href = downloadUrl
-        downloadLink.download = `property-${safePropertyNumber || 'item'}.docx`
+        downloadLink.download = `property-${safePropertyNumber || 'property'}.docx`
         document.body.appendChild(downloadLink)
         downloadLink.click()
         downloadLink.remove()
@@ -1326,14 +1326,14 @@ export default {
 
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: 'Item document downloaded successfully.',
+            detail: 'Property document downloaded successfully.',
           }),
         )
       } catch (error) {
-        console.error('Failed to create item document:', error)
+        console.error('Failed to create property document:', error)
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: 'Failed to create the item document.',
+            detail: 'Failed to create the property document.',
           }),
         )
       } finally {
@@ -1351,7 +1351,7 @@ export default {
       if (!item) {
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: 'The item linked by this QR code could not be found.',
+            detail: 'The property linked by this QR code could not be found.',
           }),
         )
         return
@@ -1368,7 +1368,7 @@ export default {
       if (this.$route.query.item) {
         const query = { ...this.$route.query }
         delete query.item
-        this.$router.replace({ name: 'Items', query })
+        this.$router.replace({ name: 'Properties', query })
       }
     },
 
@@ -1404,7 +1404,7 @@ export default {
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to update item')
+          throw new Error(data.error || 'Failed to update property')
         }
 
         const index = this.items.findIndex((item) => item.id === this.editingItem.id)
@@ -1421,7 +1421,7 @@ export default {
 
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: 'Item updated successfully',
+            detail: 'Property updated successfully',
           }),
         )
       } catch (error) {
@@ -1440,7 +1440,7 @@ export default {
     async deleteItem(item) {
       const confirmed = window.confirm(
         'Are you sure you want to delete "' +
-          (item.description || item.property_number || 'this item') +
+          (item.description || item.property_number || 'this property') +
           '"? This action cannot be undone.',
       )
 
@@ -1462,12 +1462,12 @@ export default {
           try {
             data = JSON.parse(responseText)
           } catch (parseError) {
-            throw new Error('The server returned an invalid response while deleting the item.')
+            throw new Error('The server returned an invalid response while deleting the property.')
           }
         }
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to delete item. Please try again.')
+          throw new Error(data.error || 'Failed to delete property. Please try again.')
         }
 
         this.items = this.items.filter((currentItem) => currentItem.id !== item.id)
@@ -1478,7 +1478,7 @@ export default {
 
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: data.message || 'Item deleted successfully',
+            detail: data.message || 'Property deleted successfully',
           }),
         )
       } catch (error) {
@@ -1486,7 +1486,7 @@ export default {
 
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: error.message || 'Unable to delete this item.',
+            detail: error.message || 'Unable to delete this property.',
           }),
         )
       } finally {
