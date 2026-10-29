@@ -1,3 +1,4 @@
+
 <template>
   <div class="item-details-page">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -11,6 +12,7 @@
           <i class="bi bi-arrow-left me-1"></i>
           Back
         </button>
+
         <button type="button" class="btn btn-success" @click="scanAgain">
           <i class="bi bi-qr-code-scan me-1"></i>
           Scan Another
@@ -21,7 +23,10 @@
     <div class="card">
       <div class="card-body">
         <div v-if="loading" class="text-center py-5 text-muted">
-          <span class="spinner-border spinner-border-sm text-success me-2" role="status"></span>
+          <span
+            class="spinner-border spinner-border-sm text-success me-2"
+            role="status"
+          ></span>
           Loading item details...
         </div>
 
@@ -29,7 +34,12 @@
           <i class="bi bi-exclamation-circle fs-1 text-danger"></i>
           <h5 class="mt-2">Details unavailable</h5>
           <p class="text-muted mb-3">{{ error }}</p>
-          <button type="button" class="btn btn-outline-success" @click="loadItem">
+
+          <button
+            type="button"
+            class="btn btn-outline-success"
+            @click="loadItem"
+          >
             Try again
           </button>
         </div>
@@ -37,10 +47,17 @@
         <template v-else-if="item">
           <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
             <div>
-              <div class="property-number">{{ item.property_number || 'No property number' }}</div>
-              <h4 class="mb-0">{{ item.description || 'Unnamed item' }}</h4>
+              <div class="property-number">
+                {{ item.property_number || 'No property number' }}
+              </div>
+              <h4 class="mb-0">
+                {{ item.description || 'Unnamed item' }}
+              </h4>
             </div>
-            <span class="badge fs-6" :class="statusBadgeClass">{{ item.status || 'Unknown' }}</span>
+
+            <span class="badge fs-6" :class="statusBadgeClass">
+              {{ item.status || 'Unknown' }}
+            </span>
           </div>
 
           <dl class="row detail-list mb-0">
@@ -50,14 +67,13 @@
             <dt class="col-sm-4">Model Number</dt>
             <dd class="col-sm-8">{{ item.model_number || '-' }}</dd>
 
-            <dt class="col-sm-4">Quantity</dt>
-            <dd class="col-sm-8">{{ item.issued_quantity ?? item.quantity ?? 0 }}</dd>
-
             <dt class="col-sm-4">Unit of Measure</dt>
             <dd class="col-sm-8">{{ unitLabel }}</dd>
 
             <dt class="col-sm-4">Classification</dt>
-            <dd class="col-sm-8">{{ displayClassification(item.classification) }}</dd>
+            <dd class="col-sm-8">
+              {{ displayClassification(item.classification) }}
+            </dd>
 
             <dt class="col-sm-4">Condition</dt>
             <dd class="col-sm-8">{{ item.condition || '-' }}</dd>
@@ -214,7 +230,10 @@ export default {
       const amount = Number(cost)
 
       return Number.isFinite(amount)
-        ? amount.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })
+        ? amount.toLocaleString('en-PH', {
+            style: 'currency',
+            currency: 'PHP'
+          })
         : '-'
     }
   }

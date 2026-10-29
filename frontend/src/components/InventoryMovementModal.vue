@@ -22,7 +22,9 @@
           <label for="movement-fund-cluster">Fund Cluster</label>
           <select id="movement-fund-cluster" v-model="selectedFundCluster">
             <option value="ALL">(ALL)</option>
-            <option v-for="cluster in fundClusters" :key="cluster" :value="cluster">{{ cluster }}</option>
+            <option v-for="cluster in fundClusters" :key="cluster" :value="cluster">
+              {{ cluster }}
+            </option>
           </select>
         </div>
 
@@ -35,6 +37,7 @@
           <label for="movement-date-to">Date To</label>
           <input id="movement-date-to" type="date" v-model="dateTo">
         </div>
+
         <p v-if="invalidDateRange" class="date-range-error">
           {{ dateRangeError }}
         </p>
@@ -107,10 +110,7 @@
               <td>{{ item.propertyNumber || 'N/A' }}</td>
               <td>{{ item.description || 'N/A' }}</td>
               <td>
-                <span
-                  class="movement-badge"
-                  :class="badgeClass(item)"
-                >
+                <span class="movement-badge" :class="badgeClass(item)">
                   {{ item.category }}
                 </span>
               </td>
@@ -130,9 +130,9 @@
 
       <div class="modal-footer">
         <span>{{ filteredMovements.length }} record(s)</span>
+
         <div class="footer-actions">
           <button
-            v-if="reportToPrint === 'acquisition'"
             class="print-button excel-button"
             :disabled="loading || Boolean(errorMessage) || !printRows.length || invalidDateRange"
             @click="exportAcquisitionExcel"
@@ -140,6 +140,7 @@
             <i class="bi bi-file-earmark-excel"></i>
             Export Excel
           </button>
+
           <button
             class="print-button"
             :disabled="loading || Boolean(errorMessage) || !printRows.length || invalidDateRange"
@@ -148,7 +149,10 @@
             <i class="bi bi-printer"></i>
             Print Report
           </button>
-          <button class="close-footer-button" @click="$emit('close')">Close</button>
+
+          <button class="close-footer-button" @click="$emit('close')">
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -174,6 +178,7 @@ export default {
       dateFrom: '',
       dateTo: '',
       selectedFundCluster: 'ALL',
+
       fundClusters: [
         'AF-1', 'AF-2', 'AF-3', 'AF-DBM PS/BID',
         'GF-1', 'GF-2', 'GF-3', 'GF-DBM PS/BID',
@@ -182,6 +187,7 @@ export default {
         'TF-1', 'TF-2', 'TF-3', 'TF-DBM PS/BID',
         'TR-1', 'TR-2', 'TR-DBM PS/BID'
       ],
+
       movementType: 'all',
       reportToPrint: 'acquisition',
       search: ''
@@ -201,39 +207,24 @@ export default {
       return 'The start date must be on or before the end date.';
     },
 
-    periodLabel() {
-      return 'Custom Date Range';
-    },
-
     filteredMovements() {
       if (this.invalidDateRange) {
         return [];
       }
 
-      let result = this.movements;
+      let result = this.movements.filter(item => {
+        return item.date >= this.dateFrom && item.date <= this.dateTo;
+      });
 
       if (this.selectedFundCluster !== 'ALL') {
         result = result.filter(item => {
-          return String(item.fundCluster || '').trim().toUpperCase() === this.selectedFundCluster.toUpperCase();
-        });
-      }
-
-      if (this.dateFrom) {
-        result = result.filter(item => {
-          return item.date >= this.dateFrom;
-        });
-      }
-
-      if (this.dateTo) {
-        result = result.filter(item => {
-          return item.date <= this.dateTo;
+          return String(item.fundCluster || '').trim().toUpperCase() ===
+            this.selectedFundCluster.toUpperCase();
         });
       }
 
       if (this.movementType !== 'all') {
-        result = result.filter(item => {
-          return item.category === this.movementType;
-        });
+        result = result.filter(item => item.category === this.movementType);
       }
 
       if (this.search.trim()) {
@@ -250,9 +241,7 @@ export default {
         });
       }
 
-      return result.sort((a, b) => {
-        return b.date.localeCompare(a.date);
-      });
+      return result.slice().sort((a, b) => b.date.localeCompare(a.date));
     },
 
     printRows() {
@@ -260,23 +249,29 @@ export default {
         return [];
       }
 
-      const category = this.reportToPrint === 'issuance' ? 'Issuance' : 'Acquisition';
+      const category = this.reportToPrint === 'issuance'
+        ? 'Issuance'
+        : 'Acquisition';
 
-      return this.movements
-        .filter(item => {
-          if (item.category !== category) return false;
-          if (item.date < this.dateFrom || item.date > this.dateTo) return false;
+      let result = this.movements.filter(item => {
+        return (
+          item.category === category &&
+          item.date >= this.dateFrom &&
+          item.date <= this.dateTo
+        );
+      });
 
-          if (this.selectedFundCluster !== 'ALL') {
-            return String(item.fundCluster || '').trim().toUpperCase() === this.selectedFundCluster.toUpperCase();
-          }
-
-          return true;
-        })
-        .sort((a, b) => {
-          return a.date.localeCompare(b.date) ||
-            String(a.reference || '').localeCompare(String(b.reference || ''));
+      if (this.selectedFundCluster !== 'ALL') {
+        result = result.filter(item => {
+          return String(item.fundCluster || '').trim().toUpperCase() ===
+            this.selectedFundCluster.toUpperCase();
         });
+      }
+
+      return result.slice().sort((a, b) => {
+        return a.date.localeCompare(b.date) ||
+          String(a.reference || '').localeCompare(String(b.reference || ''));
+      });
     },
 
     totalAcquired() {
@@ -316,10 +311,14 @@ export default {
 
   methods: {
     setDefaultDates() {
-      if (!this.dateFrom || !this.dateTo) {
-        const today = new Date();
+      const today = new Date();
+
+      if (!this.dateFrom) {
+        this.dateFrom = '2000-01-01';
+      }
+
+      if (!this.dateTo) {
         this.dateTo = this.toDateString(today);
-        this.dateFrom = this.toDateString(new Date(today.getFullYear(), 0, 1));
       }
     },
 
@@ -351,6 +350,14 @@ export default {
       return 'badge-out';
     },
 
+    getRelatedRecord(value) {
+      if (Array.isArray(value)) {
+        return value[0] || {};
+      }
+
+      return value || {};
+    },
+
     escapeHtml(value) {
       return String(value ?? '').replace(/[&<>"']/g, character => ({
         '&': '&amp;',
@@ -362,6 +369,8 @@ export default {
     },
 
     formatLongDate(date) {
+      if (!date) return '';
+
       const parsed = new Date(date + 'T00:00:00');
 
       if (isNaN(parsed.getTime())) {
@@ -369,7 +378,11 @@ export default {
       }
 
       return parsed
-        .toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })
+        .toLocaleDateString('en-US', {
+          month: 'long',
+          day: '2-digit',
+          year: 'numeric'
+        })
         .replace(',', '');
     },
 
@@ -388,7 +401,9 @@ export default {
     async exportAcquisitionExcel() {
       if (this.invalidDateRange || !this.printRows.length) {
         window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: this.invalidDateRange ? this.dateRangeError : 'There are no acquisition records to export.'
+          detail: this.invalidDateRange
+            ? this.dateRangeError
+            : 'There are no records to export for the selected report.'
         }));
         return;
       }
@@ -397,107 +412,226 @@ export default {
         const imported = await import('exceljs');
         const ExcelJS = imported.default || imported;
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Office Property Acquisition', {
-          pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
-          views: [{ state: 'frozen', ySplit: 5 }]
-        });
 
-        worksheet.mergeCells('A1:K1');
+        const isIssuance = this.reportToPrint === 'issuance';
+        const title = isIssuance
+          ? 'REPORT OF PROPERTIES ISSUED'
+          : 'ACQUISITION OF OFFICE PROPERTIES';
+
+        const lastColumn = isIssuance ? 'K' : 'L';
+
+        const worksheet = workbook.addWorksheet(
+          isIssuance ? 'Properties Issued' : 'Office Property Acquisition',
+          {
+            pageSetup: {
+              paperSize: 9,
+              orientation: 'landscape',
+              fitToPage: true,
+              fitToWidth: 1,
+              fitToHeight: 0
+            },
+            views: [{ state: 'frozen', ySplit: 8 }]
+          }
+        );
+
+        worksheet.mergeCells('A1:' + lastColumn + '1');
         worksheet.getCell('A1').value = 'REPUBLIC OF THE PHILIPPINES';
-        worksheet.mergeCells('A2:K2');
+
+        worksheet.mergeCells('A2:' + lastColumn + '2');
         worksheet.getCell('A2').value = 'NUEVA VIZCAYA STATE UNIVERSITY';
-        worksheet.mergeCells('A3:K3');
+
+        worksheet.mergeCells('A3:' + lastColumn + '3');
         worksheet.getCell('A3').value = '3702 Bambang, Nueva Vizcaya';
-        worksheet.mergeCells('A4:K4');
-        worksheet.getCell('A4').value = 'ACQUISITION OF OFFICE PROPERTIES';
-        worksheet.mergeCells('A5:K5');
-        worksheet.getCell('A5').value = 'For the Period Covered ' + this.formatLongDate(this.dateFrom) + ' to ' + this.formatLongDate(this.dateTo);
-        worksheet.mergeCells('A6:K6');
-        worksheet.getCell('A6').value = 'FUND CLUSTER: ' + (this.selectedFundCluster === 'ALL' ? 'ALL' : this.selectedFundCluster);
+
+        worksheet.mergeCells('A4:' + lastColumn + '4');
+        worksheet.getCell('A4').value = title;
+
+        worksheet.mergeCells('A5:' + lastColumn + '5');
+        worksheet.getCell('A5').value =
+          'For the Period Covered ' +
+          this.formatLongDate(this.dateFrom) +
+          ' to ' +
+          this.formatLongDate(this.dateTo);
+
+        worksheet.mergeCells('A6:' + lastColumn + '6');
+        worksheet.getCell('A6').value =
+          'FUND CLUSTER: ' + this.selectedFundCluster;
 
         ['A1', 'A2', 'A3', 'A4', 'A5', 'A6'].forEach(address => {
-          worksheet.getCell(address).alignment = { horizontal: 'center', vertical: 'middle' };
-          worksheet.getCell(address).font = { bold: address === 'A2' || address === 'A4', size: address === 'A4' ? 14 : 11 };
+          worksheet.getCell(address).alignment = {
+            horizontal: 'center',
+            vertical: 'middle'
+          };
+
+          worksheet.getCell(address).font = {
+            bold: address === 'A2' || address === 'A4',
+            size: address === 'A4' ? 14 : 11
+          };
         });
 
-        const headers = ['Article', 'Description', 'Item No.', 'Unit of Measure', 'Cost per Unit / Cost/Unit', 'DR/CI/SI Number', 'Property Order No.', 'Qty', 'Value', 'Supplier', 'Remarks'];
+        const headers = isIssuance
+          ? [
+              'Date Delivered', 'Reference No.', 'RC Code', 'SN',
+              'Property No.', 'Description', 'Unit', 'Qty',
+              'Unit Cost', 'Amount', 'Recipient'
+            ]
+          : [
+              'Acquisition Date', 'Article', 'Description', 'Item No.',
+              'Unit of Measure', 'Cost per Unit', 'DR/CI/SI Number',
+              'Property Order No.', 'Qty', 'Value', 'Supplier', 'Remarks'
+            ];
+
         worksheet.addRow([]);
+
         const headerRow = worksheet.addRow(headers);
         headerRow.font = { bold: true };
-        headerRow.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        headerRow.alignment = {
+          horizontal: 'center',
+          vertical: 'middle',
+          wrapText: true
+        };
+
         headerRow.eachCell(cell => {
           cell.border = {
-            top: { style: 'thin' }, bottom: { style: 'thin' },
-            left: { style: 'thin' }, right: { style: 'thin' }
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' }
           };
         });
 
         let grandTotal = 0;
+
         this.printRows.forEach((item, index) => {
           const quantity = Number(item.quantity || 0);
           const unitCost = Number(item.unitCost || 0);
           const amount = quantity * unitCost;
+
           grandTotal += amount;
-          const row = worksheet.addRow([
-            item.article || '',
-            item.description || item.item_name || item.name || '',
-            item.itemNo || item.itemNumber || item.item_number || item.stockNo || item.stock_no || index + 1,
-            item.unit || '',
-            unitCost,
-            item.drNumber || '',
-            item.poNumber || item.propertyNumber || '',
-            quantity,
-            amount,
-            item.supplier || '',
-            item.remarks || ''
-          ]);
+
+          let values;
+
+          if (isIssuance) {
+            values = [
+              item.date || '',
+              item.reference || '',
+              item.rcCode || '',
+              index + 1,
+              item.propertyNumber || '',
+              item.description || '',
+              item.unit || '',
+              quantity,
+              unitCost,
+              amount,
+              item.person || ''
+            ];
+          } else {
+            values = [
+              item.date || '',
+              item.article || '',
+              item.description || '',
+              item.itemNo || index + 1,
+              item.unit || '',
+              unitCost,
+              item.drNumber || '',
+              item.poNumber || '',
+              quantity,
+              amount,
+              item.supplier || '',
+              item.remarks || ''
+            ];
+          }
+
+          const row = worksheet.addRow(values);
+
           row.eachCell(cell => {
             cell.border = {
-              top: { style: 'thin' }, bottom: { style: 'thin' },
-              left: { style: 'thin' }, right: { style: 'thin' }
+              top: { style: 'thin' },
+              bottom: { style: 'thin' },
+              left: { style: 'thin' },
+              right: { style: 'thin' }
             };
           });
-          row.getCell(5).numFmt = '#,##0.00';
-          row.getCell(9).numFmt = '#,##0.00';
+
+          if (isIssuance) {
+            row.getCell(1).numFmt = 'yyyy-mm-dd';
+            row.getCell(9).numFmt = '#,##0.00';
+            row.getCell(10).numFmt = '#,##0.00';
+          } else {
+            row.getCell(1).numFmt = 'yyyy-mm-dd';
+            row.getCell(6).numFmt = '#,##0.00';
+            row.getCell(10).numFmt = '#,##0.00';
+          }
         });
 
-        const totalRow = worksheet.addRow(['GRAND TOTAL', '', '', '', '', '', '', '', grandTotal, '', '']);
+        const totalRow = worksheet.addRow(
+          isIssuance
+            ? ['TOTAL', '', '', '', '', '', '', '', '', grandTotal, '']
+            : ['GRAND TOTAL', '', '', '', '', '', '', '', '', grandTotal, '', '']
+        );
+
         totalRow.font = { bold: true };
-        totalRow.getCell(9).numFmt = '#,##0.00';
+        totalRow.getCell(isIssuance ? 10 : 10).numFmt = '#,##0.00';
+
         totalRow.eachCell(cell => {
           cell.border = {
-            top: { style: 'thin' }, bottom: { style: 'thin' },
-            left: { style: 'thin' }, right: { style: 'thin' }
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' }
           };
         });
 
-        worksheet.columns = [
-          { width: 18 }, { width: 30 }, { width: 14 }, { width: 16 }, { width: 20 },
-          { width: 20 }, { width: 24 }, { width: 10 }, { width: 16 }, { width: 22 }, { width: 24 }
-        ];
+        worksheet.columns = isIssuance
+          ? [
+              { width: 16 }, { width: 18 }, { width: 16 }, { width: 8 },
+              { width: 18 }, { width: 30 }, { width: 12 }, { width: 10 },
+              { width: 16 }, { width: 16 }, { width: 24 }
+            ]
+          : [
+              { width: 16 }, { width: 18 }, { width: 30 }, { width: 14 },
+              { width: 16 }, { width: 18 }, { width: 20 }, { width: 24 },
+              { width: 10 }, { width: 16 }, { width: 22 }, { width: 24 }
+            ];
+
         worksheet.getRow(8).height = 34;
-        worksheet.autoFilter = { from: 'A8', to: 'K8' };
+        worksheet.autoFilter = {
+          from: 'A8',
+          to: lastColumn + '8'
+        };
 
         const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
+
         link.href = url;
-        link.download = 'Acquisition_of_Office_Properties_' + this.dateFrom + '_to_' + this.dateTo + '.xlsx';
+        link.download =
+          (isIssuance ? 'Properties_Issued_' : 'Office_Property_Acquisition_') +
+          this.dateFrom + '_to_' + this.dateTo + '.xlsx';
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       } catch (error) {
         window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: 'Unable to export Excel report: ' + (error.message || 'Unknown error')
+          detail: 'Unable to export Excel report: ' +
+            (error.message || 'Unknown error')
         }));
       }
     },
 
     printReport() {
       if (this.invalidDateRange) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: this.dateRangeError }));
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: this.dateRangeError
+        }));
         return;
       }
 
@@ -521,14 +655,20 @@ export default {
       return `
         <div class="appendix">${options.appendix ? this.escapeHtml(options.appendix) : ''}</div>
         <div class="header">
-          <div class="logo-box"><img class="logo" src="${logoUrl}" alt="NVSU Logo"></div>
+          <div class="logo-box">
+            <img class="logo" src="${logoUrl}" alt="NVSU Logo">
+          </div>
           <div class="school">
             <div>Republic of the Philippines</div>
             <div class="name">NUEVA VIZCAYA STATE UNIVERSITY</div>
             <div>3702 Bambang, Nueva Vizcaya</div>
           </div>
           <div class="title">${this.escapeHtml(title)}</div>
-          <div class="period">For the Period Covered ${this.escapeHtml(this.formatLongDate(this.dateFrom))} to ${this.escapeHtml(this.formatLongDate(this.dateTo))}</div>
+          <div class="period">
+            For the Period Covered
+            ${this.escapeHtml(this.formatLongDate(this.dateFrom))}
+            to ${this.escapeHtml(this.formatLongDate(this.dateTo))}
+          </div>
         </div>`;
     },
 
@@ -558,34 +698,160 @@ export default {
                   color: #000;
                 }
               }
+
               * { box-sizing: border-box; }
-              body { font-family: Calibri, Arial, sans-serif; color: #000; font-size: 10px; margin: 0; }
-              .appendix { text-align: right; font-style: italic; font-size: 11px; height: 14px; }
-              .header { position: relative; text-align: center; min-height: 70px; margin-bottom: 6px; }
-              .logo-box { position: absolute; left: 0; top: 0; border: 1px solid #999; padding: 3px; }
-              .logo { width: 56px; height: 56px; object-fit: contain; display: block; }
-              .school { color: #b3262b; font-weight: bold; line-height: 1.35; font-size: 13px; }
+
+              body {
+                font-family: Calibri, Arial, sans-serif;
+                color: #000;
+                font-size: 10px;
+                margin: 0;
+              }
+
+              .appendix {
+                text-align: right;
+                font-style: italic;
+                font-size: 11px;
+                height: 14px;
+              }
+
+              .header {
+                position: relative;
+                text-align: center;
+                min-height: 70px;
+                margin-bottom: 6px;
+              }
+
+              .logo-box {
+                position: absolute;
+                left: 0;
+                top: 0;
+                border: 1px solid #999;
+                padding: 3px;
+              }
+
+              .logo {
+                width: 56px;
+                height: 56px;
+                object-fit: contain;
+                display: block;
+              }
+
+              .school {
+                color: #b3262b;
+                font-weight: bold;
+                line-height: 1.35;
+                font-size: 13px;
+              }
+
               .school .name { font-size: 15px; }
-              .title { margin-top: 8px; font-weight: bold; font-size: 14px; }
+
+              .title {
+                margin-top: 8px;
+                font-weight: bold;
+                font-size: 14px;
+              }
+
               .period { font-size: 12px; }
-              .fund { margin: 8px 0 4px; font-size: 11px; font-weight: bold; }
+
+              .fund {
+                margin: 8px 0 4px;
+                font-size: 11px;
+                font-weight: bold;
+              }
+
               .fund span { margin-left: 6px; }
-              table.report { width: 100%; border-collapse: collapse; table-layout: fixed; }
-              .report th, .report td { border: 0.5px solid ${lineColor}; padding: 3px 4px; vertical-align: middle; overflow-wrap: anywhere; }
-              .report th { font-weight: bold; text-align: center; }
+
+              table.report {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+              }
+
+              .report th,
+              .report td {
+                border: 0.5px solid ${lineColor};
+                padding: 3px 4px;
+                vertical-align: middle;
+                overflow-wrap: anywhere;
+              }
+
+              .report th {
+                font-weight: bold;
+                text-align: center;
+              }
+
               .center { text-align: center; }
               .number { text-align: right; }
-              .total-row td { font-weight: bold; font-size: 11px; }
-              .specs { display: block; font-size: 8px; color: #333; }
-              .certify { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; page-break-inside: avoid; }
-              .certify td { border: 1px solid #555; padding: 8px 10px; vertical-align: top; }
-              .certify .certification-text { height: auto; padding: 9px 10px; text-align: center; vertical-align: middle; }
-              .certify .lead { font-weight: bold; font-size: 11px; text-align: center; }
-              .certify .signature-cell { height: 96px; vertical-align: bottom; text-align: center; }
-              .certify .signature-line { width: 92%; height: 43px; margin: 0 auto 5px; border-bottom: 1px solid #000; }
-              .certify .sig-label { margin: 0; font-weight: bold; font-style: italic; text-align: center; font-size: 9px; line-height: 1.25; }
-              .certify .date-cell .signature-line { width: 90%; height: 43px; }
-              @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } thead { display: table-header-group; } tr { page-break-inside: avoid; } }
+
+              .total-row td {
+                font-weight: bold;
+                font-size: 11px;
+              }
+
+              .certify {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+                table-layout: fixed;
+                page-break-inside: avoid;
+              }
+
+              .certify td {
+                border: 1px solid #555;
+                padding: 8px 10px;
+                vertical-align: top;
+              }
+
+              .certify .certification-text {
+                height: auto;
+                padding: 9px 10px;
+                text-align: center;
+                vertical-align: middle;
+              }
+
+              .certify .lead {
+                font-weight: bold;
+                font-size: 11px;
+                text-align: center;
+              }
+
+              .certify .signature-cell {
+                height: 96px;
+                vertical-align: bottom;
+                text-align: center;
+              }
+
+              .certify .signature-line {
+                width: 92%;
+                height: 43px;
+                margin: 0 auto 5px;
+                border-bottom: 1px solid #000;
+              }
+
+              .certify .sig-label {
+                margin: 0;
+                font-weight: bold;
+                font-style: italic;
+                text-align: center;
+                font-size: 9px;
+                line-height: 1.25;
+              }
+
+              .certify .date-cell .signature-line {
+                width: 90%;
+                height: 43px;
+              }
+
+              @media print {
+                body {
+                  print-color-adjust: exact;
+                  -webkit-print-color-adjust: exact;
+                }
+
+                thead { display: table-header-group; }
+                tr { page-break-inside: avoid; }
+              }
             </style>
           </head>
           <body>
@@ -593,6 +859,7 @@ export default {
             <script>
               window.onload = function () {
                 var logo = document.querySelector('.logo');
+
                 if (logo && !logo.complete) {
                   logo.onload = function () { window.print(); };
                   logo.onerror = function () { window.print(); };
@@ -603,27 +870,39 @@ export default {
             <\/script>
           </body>
         </html>`);
+
       printWindow.document.close();
     },
 
-    // Property Acquisition Report
     printAcquisitionReport() {
       const title = 'ACQUISITION OF OFFICE PROPERTIES';
-      const e = value => this.escapeHtml(value === null || value === undefined || value === '' ? '' : value);
-      const fundCluster = this.selectedFundCluster === 'ALL' ? 'ALL' : this.selectedFundCluster;
-      const valueOf = item => Number(item.quantity || 0) * Number(item.unitCost || 0);
-      const grandTotal = this.printRows.reduce((sum, item) => sum + valueOf(item), 0);
+      const e = value => this.escapeHtml(
+        value === null || value === undefined || value === '' ? '' : value
+      );
+
+      const fundCluster = this.selectedFundCluster === 'ALL'
+        ? 'ALL'
+        : this.selectedFundCluster;
+
+      const valueOf = item =>
+        Number(item.quantity || 0) * Number(item.unitCost || 0);
+
+      const grandTotal = this.printRows.reduce(
+        (sum, item) => sum + valueOf(item),
+        0
+      );
 
       const rows = this.printRows.map((item, index) => `
         <tr>
+          <td class="center">${e(this.formatDate(item.date))}</td>
           <td>${e(item.article)}</td>
-          <td>${e(item.description || item.item_name || item.name || '')}</td>
-          <td class="center">${e(item.itemNo || item.itemNumber || item.item_number || item.stockNo || item.stock_no || index + 1)}</td>
+          <td>${e(item.description)}</td>
+          <td class="center">${e(item.itemNo || index + 1)}</td>
           <td class="center">${e(item.unit)}</td>
           <td class="number">${this.formatMoney(item.unitCost)}</td>
           <td class="center">${e(item.drNumber)}</td>
-          <td class="center">${e(item.poNumber || item.propertyNumber)}</td>
-          <td class="number">${this.escapeHtml(item.quantity)}</td>
+          <td class="center">${e(item.poNumber)}</td>
+          <td class="number">${e(item.quantity)}</td>
           <td class="number">${this.formatMoney(valueOf(item))}</td>
           <td>${e(item.supplier)}</td>
           <td>${e(item.remarks)}</td>
@@ -632,28 +911,33 @@ export default {
 
       const body = `
         ${this.buildReportHeader(title)}
-        <div class="fund">FUND CLUSTER:<span>${this.escapeHtml(fundCluster)}</span></div>
+        <div class="fund">
+          FUND CLUSTER:<span>${this.escapeHtml(fundCluster)}</span>
+        </div>
+
         <table class="report">
           <colgroup>
             <col style="width: 9%">
-            <col style="width: 17%">
+            <col style="width: 8%">
+            <col style="width: 15%">
             <col style="width: 5%">
             <col style="width: 7%">
             <col style="width: 7%">
-            <col style="width: 9%">
-            <col style="width: 9%">
+            <col style="width: 8%">
+            <col style="width: 8%">
             <col style="width: 5%">
             <col style="width: 8%">
-            <col style="width: 12%">
-            <col style="width: 12%">
+            <col style="width: 10%">
+            <col style="width: 10%">
           </colgroup>
           <thead>
             <tr>
+              <th>ACQUISITION DATE</th>
               <th>ARTICLE</th>
               <th>DESCRIPTION</th>
               <th>ITEM NO.</th>
               <th>UNIT OF MEASURE</th>
-              <th>COST PER UNIT / COST/UNIT</th>
+              <th>COST PER UNIT</th>
               <th>DR/CI/SI NUMBER</th>
               <th>PROPERTY ORDER NO.</th>
               <th>QTY</th>
@@ -665,7 +949,7 @@ export default {
           <tbody>
             ${rows}
             <tr class="total-row">
-              <td colspan="8">GRAND TOTAL</td>
+              <td colspan="9">GRAND TOTAL</td>
               <td class="number">${this.formatMoney(grandTotal)}</td>
               <td colspan="2"></td>
             </tr>
@@ -681,17 +965,23 @@ export default {
           <tbody>
             <tr>
               <td colspan="3" class="certification-text">
-                <div class="lead">I hereby certify to the correctness of the above information.</div>
+                <div class="lead">
+                  I hereby certify to the correctness of the above information.
+                </div>
               </td>
             </tr>
             <tr>
               <td class="signature-cell">
                 <div class="signature-line"></div>
-                <div class="sig-label">Signature over Printed Name of Supply/Property Custodian</div>
+                <div class="sig-label">
+                  Signature over Printed Name of Supply/Property Custodian
+                </div>
               </td>
               <td class="signature-cell">
                 <div class="signature-line"></div>
-                <div class="sig-label">Signature over Printed Name of Designated Accounting Staff</div>
+                <div class="sig-label">
+                  Signature over Printed Name of Designated Accounting Staff
+                </div>
               </td>
               <td class="signature-cell date-cell">
                 <div class="signature-line"></div>
@@ -704,61 +994,81 @@ export default {
       this.openReportWindow(title, body, '#000');
     },
 
-    // Report of Properties Issued (Appendix 64)
     printIssuanceReport() {
       const title = 'REPORT OF PROPERTIES ISSUED';
-      const e = value => this.escapeHtml(value === null || value === undefined || value === '' ? '' : value);
-      const fundCluster = this.selectedFundCluster === 'ALL' ? '(ALL)' : this.selectedFundCluster;
-      const amountOf = item => Number(item.quantity || 0) * Number(item.unitCost || 0);
-      const total = this.printRows.reduce((sum, item) => sum + amountOf(item), 0);
+      const e = value => this.escapeHtml(
+        value === null || value === undefined || value === '' ? '' : value
+      );
+
+      const fundCluster = this.selectedFundCluster === 'ALL'
+        ? '(ALL)'
+        : this.selectedFundCluster;
+
+      const amountOf = item =>
+        Number(item.quantity || 0) * Number(item.unitCost || 0);
+
+      const total = this.printRows.reduce(
+        (sum, item) => sum + amountOf(item),
+        0
+      );
 
       const rows = this.printRows.map((item, index) => `
         <tr>
+          <td class="center">${e(this.formatDate(item.date))}</td>
           <td class="center">${e(item.reference)}</td>
           <td class="center">${e(item.rcCode)}</td>
           <td class="center">${index + 1}</td>
-          <td>${e([item.propertyNumber, item.description].filter(Boolean).join(' '))}</td>
-          <td>${e(item.specs)}</td>
+          <td>${e(item.propertyNumber)}</td>
+          <td>${e(item.description + (item.specs ? ' / ' + item.specs : ''))}</td>
           <td class="center">${e(item.unit)}</td>
-          <td class="number">${this.escapeHtml(item.quantity)}</td>
+          <td class="number">${e(item.quantity)}</td>
           <td class="number">${this.formatMoney(item.unitCost)}</td>
           <td class="number">${this.formatMoney(amountOf(item))}</td>
+          <td>${e(item.person)}</td>
         </tr>
       `).join('');
 
       const body = `
         ${this.buildReportHeader(title, { appendix: 'Appendix 64' })}
-        <div class="fund">Fund Cluster:<span>${this.escapeHtml(fundCluster)}</span></div>
+        <div class="fund">
+          Fund Cluster:<span>${this.escapeHtml(fundCluster)}</span>
+        </div>
+
         <table class="report">
           <colgroup>
-            <col style="width: 11%">
+            <col style="width: 9%">
             <col style="width: 10%">
-            <col style="width: 5%">
-            <col style="width: 24%">
+            <col style="width: 8%">
+            <col style="width: 4%">
+            <col style="width: 14%">
             <col style="width: 20%">
-            <col style="width: 6%">
-            <col style="width: 6%">
+            <col style="width: 5%">
+            <col style="width: 5%">
+            <col style="width: 7%">
             <col style="width: 8%">
             <col style="width: 10%">
           </colgroup>
           <thead>
             <tr>
-              <th><i>RIS No.</i></th>
+              <th><i>Date Delivered</i></th>
+              <th><i>Reference No.</i></th>
               <th><i>RC Code</i></th>
               <th><i>SN</i></th>
-              <th><i>Item</i></th>
+              <th><i>Property No.</i></th>
               <th><i>Description</i></th>
               <th><i>Unit</i></th>
               <th><i>QTY</i></th>
               <th><i>U-Cost</i></th>
               <th><i>Amount</i></th>
+              <th><i>Recipient</i></th>
             </tr>
           </thead>
           <tbody>
             ${rows}
             <tr class="total-row">
-              <td colspan="8" class="center">TOTAL</td>
+              <td colspan="9" class="center">TOTAL</td>
               <td class="number">${this.formatMoney(total)}</td>
+              <td></td>
             </tr>
           </tbody>
         </table>
@@ -767,12 +1077,18 @@ export default {
           <tbody>
             <tr>
               <td>
-                <div class="lead">I hereby certify to the correctness of the above information.</div>
-                <div class="sig-label">Signature over Printed Name of Supply/Property Custodian</div>
+                <div class="lead">
+                  I hereby certify to the correctness of the above information.
+                </div>
+                <div class="sig-label">
+                  Signature over Printed Name of Supply/Property Custodian
+                </div>
               </td>
               <td>
                 <div class="lead">Posted by:</div>
-                <div class="sig-label">Signature over Printed Name of Designated Accounting Staff</div>
+                <div class="sig-label">
+                  Signature over Printed Name of Designated Accounting Staff
+                </div>
               </td>
               <td style="width: 16%">
                 <div class="lead">Date</div>
@@ -787,6 +1103,7 @@ export default {
     async loadMovements() {
       this.loading = true;
       this.errorMessage = '';
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
@@ -811,103 +1128,224 @@ export default {
           endpoints.map(async endpoint => {
             const response = await fetch(endpoint.url, {
               method: 'GET',
-              headers: headers,
+              headers,
               signal: controller.signal
             });
 
             if (!response.ok) {
               throw new Error(
-                'Unable to load ' + endpoint.type + '. HTTP ' + response.status
+                'Unable to load ' + endpoint.type +
+                '. HTTP ' + response.status
               );
             }
 
             const data = await response.json();
+            let records = [];
+
+            if (Array.isArray(data)) {
+              records = data;
+            } else if (Array.isArray(data?.data)) {
+              records = data.data;
+            } else if (Array.isArray(data?.items)) {
+              records = data.items;
+            } else if (Array.isArray(data?.receipts)) {
+              records = data.receipts;
+            } else if (Array.isArray(data?.returns)) {
+              records = data.returns;
+            }
 
             return {
               type: endpoint.type,
-              data: Array.isArray(data)
-                ? data
-                : Array.isArray(data.data)
-                  ? data.data
-                  : Array.isArray(data.items)
-                    ? data.items
-                    : []
+              data: records
             };
           })
         );
 
-        const itemResult = results.find(result => result.type === 'items');
-        const receiptResult = results.find(result => result.type === 'receipts');
-        const returnResult = results.find(result => result.type === 'returns');
+        const items =
+          results.find(result => result.type === 'items')?.data || [];
 
-        const items = itemResult ? itemResult.data : [];
-        const receipts = receiptResult ? receiptResult.data : [];
-        const returns = returnResult ? returnResult.data : [];
+        const receipts =
+          results.find(result => result.type === 'receipts')?.data || [];
 
-        const itemMovements = items.map(item => ({
-          id: 'item-' + (item.id || item.item_id),
-          date: this.getAcquisitionDate(item),
-          propertyNumber: item.property_number || item.propertyNumber || item.property_no || '',
-          description: item.description || item.item_name || item.name || '',
-          category: 'Acquisition',
-          quantity: Number(item.quantity ?? 0),
-          reference: item.reference_number || item.reference || '',
-          person: item.source || item.supplier || '',
-          rcCode: item.responsibility_center || '',
-          unit: this.cleanUnit(item.unit || item.unit_of_measure),
-          unitCost: Number(item.cost ?? 0),
-          specs: [item.model_number, item.serial_number].filter(Boolean).join(' / '),
-          article: item.article || '',
-          itemNo: item.item_no || item.item_number || item.itemNo || item.stock_no || item.stock_number || '',
-          propertyId: item.property_tag_identifier || item.unique_property_id || item.uniquePropertyId || '',
-          drNumber: item.dr_ci_si_number || '',
-          poNumber: item.po_number || '',
-          supplier: item.supplier || '',
-          remarks: item.remarks || '',
-          fundCluster: item.fund_cluster || item.fundCluster || item.fund_cluster_code || ''
-        }));
+        const returns =
+          results.find(result => result.type === 'returns')?.data || [];
 
-        const receiptMovements = receipts.map(receipt => ({
-          id: 'receipt-' + (receipt.id || receipt.receipt_id),
-          date: this.getDate(receipt),
-          propertyNumber: receipt.items?.property_number || receipt.property_number || receipt.propertyNumber || '',
-          description: receipt.items?.description || receipt.description || receipt.item_name || receipt.name || '',
-          category: 'Issuance',
-          quantity: Number(receipt.quantity ?? 0),
-          reference: receipt.reference_number || receipt.reference || receipt.receipt_number || '',
-          person: receipt.users?.full_name || receipt.item_requests?.users?.full_name || receipt.recipient || receipt.received_by || receipt.person || '',
-          rcCode: receipt.items?.responsibility_center || receipt.responsibility_center || '',
-          unit: this.cleanUnit(receipt.items?.unit || receipt.items?.unit_of_measure),
-          unitCost: Number(receipt.items?.cost ?? 0),
-          specs: [receipt.items?.model_number, receipt.items?.serial_number].filter(Boolean).join(' / '),
-          fundCluster: receipt.fund_cluster || receipt.fundCluster || receipt.fund_cluster_code || receipt.items?.fund_cluster || receipt.item_requests?.fund_cluster || ''
-        }));
+        // ACQUISITIONS:
+        // Use the actual acquisition_date.
+        // Do not substitute created_at for the acquisition date.
+        const itemMovements = items
+          .filter(item => this.getAcquisitionDate(item))
+          .map(item => ({
+            id: 'item-' + (item.id || item.item_id),
+            date: this.getAcquisitionDate(item),
+            propertyNumber:
+              item.property_number ||
+              item.propertyNumber ||
+              item.property_no ||
+              '',
+            description:
+              item.description ||
+              item.item_name ||
+              item.name ||
+              '',
+            category: 'Acquisition',
+            quantity: Number(item.quantity ?? 0),
+            reference:
+              item.reference_number ||
+              item.reference ||
+              item.dr_ci_si_number ||
+              '',
+            person: item.supplier || '',
+            rcCode: item.responsibility_center || '',
+            unit: this.cleanUnit(item.unit || item.unit_of_measure),
+            unitCost: Number(item.cost ?? item.unit_cost ?? 0),
+            specs: [item.model_number, item.serial_number]
+              .filter(Boolean)
+              .join(' / '),
+            article: item.article || '',
+            itemNo:
+              item.item_no ||
+              item.item_number ||
+              item.itemNo ||
+              item.stock_no ||
+              item.stock_number ||
+              '',
+            drNumber: item.dr_ci_si_number || '',
+            poNumber: item.po_number || '',
+            supplier: item.supplier || '',
+            remarks: item.remarks || '',
+            fundCluster:
+              item.fund_cluster ||
+              item.fundCluster ||
+              item.fund_cluster_code ||
+              ''
+          }));
 
-        const returnMovements = returns.map(item => ({
-          id: 'return-' + (item.id || item.return_id),
-          date: this.getDate(item),
-          propertyNumber: item.items?.property_number || item.property_number || item.propertyNumber || '',
-          description: item.items?.description || item.description || item.item_name || item.name || '',
-          category: 'Return',
-          quantity: Number(item.property_receipts?.quantity ?? item.quantity ?? 0),
-          reference: item.property_receipts?.receipt_number || item.reference_number || item.reference || item.return_number || '',
-          person: item.users?.full_name || item.returned_by || item.person || '',
-          rcCode: item.items?.responsibility_center || '',
-          unit: this.cleanUnit(item.items?.unit || item.items?.unit_of_measure),
-          unitCost: Number(item.items?.cost ?? 0),
-          specs: [item.items?.model_number, item.items?.serial_number].filter(Boolean).join(' / '),
-          fundCluster: item.fund_cluster || item.fundCluster || item.fund_cluster_code || item.items?.fund_cluster || item.property_receipts?.fund_cluster || ''
-        }));
+        // ISSUANCES:
+        // Use date_issued from the receipt.
+        // Item and requester details come from the receipt relationships.
+        const receiptMovements = receipts
+          .filter(receipt => this.getIssuanceDate(receipt))
+          .map(receipt => {
+            const item = this.getRelatedRecord(receipt.items);
+            const request = this.getRelatedRecord(receipt.item_requests);
+            const receiptUser = this.getRelatedRecord(receipt.users);
+            const requestUser = this.getRelatedRecord(request.users);
+            const office = this.getRelatedRecord(request.offices);
+
+            return {
+              id: 'receipt-' + (receipt.id || receipt.receipt_id),
+              date: this.getIssuanceDate(receipt),
+              propertyNumber:
+                item.property_number ||
+                receipt.property_number ||
+                receipt.propertyNumber ||
+                '',
+              description:
+                item.description ||
+                request.item_description ||
+                receipt.description ||
+                receipt.item_name ||
+                '',
+              category: 'Issuance',
+              quantity: Number(receipt.quantity ?? 1),
+              reference:
+                receipt.receipt_number ||
+                receipt.reference_number ||
+                receipt.reference ||
+                '',
+              person:
+                receipt.issued_to ||
+                receipt.recipient ||
+                receipt.received_by ||
+                receiptUser.full_name ||
+                requestUser.full_name ||
+                office.office_name ||
+                '',
+              rcCode: item.responsibility_center || '',
+              unit: this.cleanUnit(item.unit || item.unit_of_measure),
+              unitCost: Number(item.cost ?? item.unit_cost ?? 0),
+              specs: [item.model_number, item.serial_number]
+                .filter(Boolean)
+                .join(' / '),
+              article: item.article || '',
+              itemNo:
+                item.item_no ||
+                item.item_number ||
+                item.stock_no ||
+                '',
+              drNumber: item.dr_ci_si_number || '',
+              poNumber: item.po_number || '',
+              supplier: item.supplier || '',
+              remarks: item.remarks || '',
+              fundCluster:
+                item.fund_cluster ||
+                receipt.fund_cluster ||
+                request.fund_cluster ||
+                ''
+            };
+          });
+
+        // RETURNS:
+        // Keep return dates and records separate from acquisitions/issuances.
+        const returnMovements = returns
+          .filter(record => this.getReturnDate(record))
+          .map(record => {
+            const item = this.getRelatedRecord(record.items);
+            const receipt = this.getRelatedRecord(record.property_receipts);
+            const user = this.getRelatedRecord(record.users);
+            const office = this.getRelatedRecord(record.offices);
+
+            return {
+              id: 'return-' + (record.id || record.return_id),
+              date: this.getReturnDate(record),
+              propertyNumber: item.property_number || '',
+              description: item.description || '',
+              category: 'Return',
+              quantity: Number(receipt.quantity ?? item.quantity ?? 0),
+              reference:
+                receipt.receipt_number ||
+                record.return_number ||
+                record.reference_number ||
+                '',
+              person:
+                user.full_name ||
+                office.office_name ||
+                record.returned_by ||
+                '',
+              rcCode: item.responsibility_center || '',
+              unit: this.cleanUnit(item.unit || item.unit_of_measure),
+              unitCost: Number(item.cost ?? item.unit_cost ?? 0),
+              specs: [item.model_number, item.serial_number]
+                .filter(Boolean)
+                .join(' / '),
+              article: item.article || '',
+              itemNo:
+                item.item_no ||
+                item.item_number ||
+                item.stock_no ||
+                '',
+              drNumber: item.dr_ci_si_number || '',
+              poNumber: item.po_number || '',
+              supplier: item.supplier || '',
+              remarks: item.remarks || '',
+              fundCluster:
+                item.fund_cluster ||
+                record.fund_cluster ||
+                ''
+            };
+          });
 
         this.movements = [
           ...itemMovements,
           ...receiptMovements,
           ...returnMovements
-        ].filter(item => item.date);
+        ];
       } catch (error) {
         this.errorMessage = error.name === 'AbortError'
           ? 'Loading inventory movements timed out. Check your connection and try again.'
-          : error.message || 'An error occurred while loading movement records.';
+          : error.message ||
+            'An error occurred while loading movement records.';
       } finally {
         clearTimeout(timeoutId);
         this.loading = false;
@@ -918,37 +1356,29 @@ export default {
       const value =
         item.acquisition_date ||
         item.acquisitionDate ||
-        item.created_at ||
-        item.createdAt ||
-        item.date_added ||
-        item.dateAdded ||
-        item.date ||
         '';
 
-      if (!value) {
-        return '';
-      }
-
-      return String(value).substring(0, 10);
+      return value ? String(value).substring(0, 10) : '';
     },
 
-    getDate(item) {
+    getIssuanceDate(receipt) {
       const value =
-        item.return_date ||
-        item.date_issued ||
-        item.date ||
-        item.acquisition_date ||
-        item.acquisitionDate ||
-        item.created_at ||
-        item.createdAt ||
-        item.receipt_date ||
+        receipt.date_issued ||
+        receipt.dateIssued ||
+        receipt.receipt_date ||
         '';
 
-      if (!value) {
-        return '';
-      }
+      return value ? String(value).substring(0, 10) : '';
+    },
 
-      return String(value).substring(0, 10);
+    getReturnDate(record) {
+      const value =
+        record.return_date ||
+        record.date_returned ||
+        record.dateReturned ||
+        '';
+
+      return value ? String(value).substring(0, 10) : '';
     }
   }
 };
@@ -1088,6 +1518,10 @@ export default {
   color: #b91c1c;
 }
 
+.acq-count {
+  color: #1d4ed8;
+}
+
 .table-container {
   overflow-x: auto;
   padding: 0 24px 24px;
@@ -1132,16 +1566,15 @@ th {
   background: #fee2e2;
   color: #991b1b;
 }
+
 .badge-acquisition {
   background: #dbeafe;
   color: #1d4ed8;
 }
+
 .badge-return {
   background: #fef3c7;
   color: #92400e;
-}
-.acq-count {
-  color: #1d4ed8;
 }
 
 .empty-message {
@@ -1195,11 +1628,6 @@ th {
   background: #2f5d3a;
   color: white;
   cursor: pointer;
-}
-
-.print-button {
-  background: #2f5d3a;
-  color: white;
 }
 
 .excel-button {

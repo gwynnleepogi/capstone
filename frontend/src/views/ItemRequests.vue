@@ -292,16 +292,6 @@
                 </div>
               </div>
 
-              <div class="mb-3">
-                <label class="form-label">Quantity</label>
-                <input
-                  v-model.number="form.quantity"
-                  type="number"
-                  class="form-control"
-                  min="1"
-                  required
-                />
-              </div>
 
               <div v-if="canManageRequests" class="mb-3">
                 <label class="form-label">Requested By</label>
@@ -1016,7 +1006,7 @@ export default {
             requested_by: this.form.requested_by || null,
             office_id: this.form.office_id || null,
             item_id: this.form.item_id,
-            quantity: Number(this.form.quantity),
+            quantity: 1,
             purpose: this.form.purpose,
             status: this.canManageRequests
               ? this.form.status

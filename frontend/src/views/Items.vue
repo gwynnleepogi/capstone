@@ -1,3 +1,4 @@
+
 <template>
   <div class="container-fluid">
     <div class="row align-items-center mb-4">
@@ -5,11 +6,13 @@
         <h1 class="h3 mb-1">Properties</h1>
         <p class="text-secondary mb-0">Property and inventory records</p>
       </div>
+
       <div class="col-auto d-flex gap-2">
         <button class="btn btn-success" @click="showMovementModal = true">
           <i class="bi bi-arrow-left-right me-1"></i>
           Track Inventory
         </button>
+
         <button class="btn btn-warning" @click="showAddForm = true">
           <i class="bi bi-plus-lg me-1"></i>
           Add Property
@@ -17,6 +20,7 @@
       </div>
     </div>
 
+    <!-- SEARCH AND FILTERS -->
     <div class="card mb-3">
       <div class="card-body">
         <div class="row g-2">
@@ -25,9 +29,16 @@
               <span class="input-group-text">
                 <i class="bi bi-search"></i>
               </span>
-              <input v-model="search" type="text" class="form-control" placeholder="Search unique ID, property number, description, or serial number" />
+
+              <input
+                v-model="search"
+                type="text"
+                class="form-control"
+                placeholder="Search unique ID, property number, description, or serial number"
+              />
             </div>
           </div>
+
           <div class="col-12 col-md-3">
             <select v-model="selectedClassification" class="form-select">
               <option value="">All Classification</option>
@@ -36,12 +47,16 @@
               <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
             </select>
           </div>
+
           <div class="col-12 col-md-2">
             <select v-model="selectedFundCluster" class="form-select">
               <option value="">All Fund Cluster</option>
-              <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">{{ fc }}</option>
+              <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">
+                {{ fc }}
+              </option>
             </select>
           </div>
+
           <div class="col-12 col-md-2">
             <select v-model="selectedStatus" class="form-select">
               <option value="">All Status</option>
@@ -59,6 +74,7 @@
       </div>
     </div>
 
+    <!-- PROPERTY SUMMARY -->
     <div class="row g-3 mb-3">
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
@@ -66,18 +82,21 @@
           <h4 class="mb-0 mt-1">{{ items.length }}</h4>
         </div>
       </div>
+
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
           <small class="text-secondary">Property Acknowledgement Receipt</small>
           <h4 class="mb-0 mt-1">{{ countClassification('PAR') }}</h4>
         </div>
       </div>
+
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
           <small class="text-secondary">Inventory Custodian Slip - High Value</small>
           <h4 class="mb-0 mt-1">{{ countClassification('ICS High') }}</h4>
         </div>
       </div>
+
       <div class="col-6 col-lg-3">
         <div class="border rounded p-3 bg-white">
           <small class="text-secondary">Inventory Custodian Slip - Low Value</small>
@@ -86,211 +105,447 @@
       </div>
     </div>
 
-    <div v-if="showAddForm" class="add-overlay" tabindex="-1" @keydown.esc="cancelAdd">
-      <section class="add-dialog card" role="dialog" aria-modal="true" aria-labelledby="add-item-title">
-      <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <strong id="add-item-title">Add New Property</strong>
-        <button type="button" class="btn-close" aria-label="Close" @click="cancelAdd"></button>
-      </div>
-      <form class="add-dialog-form" @submit.prevent="addItem">
-        <div class="card-body add-dialog-body">
-          <div class="row g-3">
-            <div class="col-12 col-md-6">
-              <label class="form-label">Property Number <span class="text-danger">*</span></label>
-              <input v-model="newItem.property_number" type="text" class="form-control" required />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Model Number <span class="text-danger">*</span></label>
-              <input v-model="newItem.model_number" type="text" class="form-control" required />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Serial Number <span class="text-danger">*</span></label>
-              <input v-model="newItem.serial_number" type="text" class="form-control" required />
-            </div>
-            <div class="col-12">
-              <label class="form-label">Description <span class="text-danger">*</span></label>
-              <input v-model="newItem.description" type="text" class="form-control" required />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Quantity in Stock <span class="text-danger">*</span></label>
-              <input v-model.number="newItem.quantity" type="number" min="0" step="1" class="form-control" required />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Cost <span class="text-danger">*</span></label>
-              <div class="input-group">
-                <span class="input-group-text">₱</span>
-                <input v-model="newItem.cost" type="number" min="0" step="0.01" class="form-control" required />
+    <!-- ADD PROPERTY -->
+    <div
+      v-if="showAddForm"
+      class="add-overlay"
+      tabindex="-1"
+      @keydown.esc="cancelAdd"
+    >
+      <section
+        class="add-dialog card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-item-title"
+      >
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <strong id="add-item-title">Add New Property</strong>
+
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            @click="cancelAdd"
+          ></button>
+        </div>
+
+        <form class="add-dialog-form" @submit.prevent="addItem">
+          <div class="card-body add-dialog-body">
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label">
+                  Property Number <span class="text-danger">*</span>
+                </label>
+                <input
+                  v-model="newItem.property_number"
+                  type="text"
+                  class="form-control"
+                  required
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">
+                  Model Number <span class="text-danger">*</span>
+                </label>
+                <input
+                  v-model="newItem.model_number"
+                  type="text"
+                  class="form-control"
+                  required
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Serial Number</label>
+                <input
+                  v-model.trim="newItem.serial_number"
+                  type="text"
+                  class="form-control"
+                  placeholder="Optional"
+                />
+              </div>
+
+              <div class="col-12">
+                <label class="form-label">
+                  Description <span class="text-danger">*</span>
+                </label>
+                <input
+                  v-model="newItem.description"
+                  type="text"
+                  class="form-control"
+                  required
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">
+                  Cost <span class="text-danger">*</span>
+                </label>
+
+                <div class="input-group">
+                  <span class="input-group-text">₱</span>
+                  <input
+                    v-model="newItem.cost"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="form-control"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">
+                  Acquisition Date <span class="text-danger">*</span>
+                </label>
+                <input
+                  v-model="newItem.acquisition_date"
+                  type="date"
+                  class="form-control"
+                  required
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Article</label>
+                <input
+                  v-model.trim="newItem.article"
+                  type="text"
+                  class="form-control"
+                  placeholder="e.g. BAG"
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Unit of Measure</label>
+                <input
+                  v-model.trim="newItem.unit"
+                  type="text"
+                  class="form-control"
+                  list="unit-options"
+                  placeholder="e.g. PC"
+                  required
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">DR/CI/SI Number</label>
+                <input
+                  v-model.trim="newItem.dr_ci_si_number"
+                  type="text"
+                  class="form-control"
+                  placeholder="e.g. DR 000051"
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Property Order No.</label>
+                <input
+                  v-model.trim="newItem.po_number"
+                  type="text"
+                  class="form-control"
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Supplier</label>
+                <input
+                  v-model.trim="newItem.supplier"
+                  type="text"
+                  class="form-control"
+                  list="supplier-options"
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Remarks</label>
+                <input
+                  v-model.trim="newItem.remarks"
+                  type="text"
+                  class="form-control"
+                />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Accountable Employee</label>
+                <select
+                  v-model="newItem.accountable_employee"
+                  class="form-select"
+                  @change="autoFillOffice(newItem)"
+                >
+                  <option value="">Select personnel (optional)</option>
+                  <option
+                    v-for="person in personnelOptions"
+                    :key="person.id"
+                    :value="person.full_name"
+                  >
+                    {{ person.full_name }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Responsibility Center</label>
+                <select
+                  v-model="newItem.responsibility_center"
+                  class="form-select"
+                >
+                  <option value="">Select office (optional)</option>
+                  <option
+                    v-for="office in officeOptions"
+                    :key="office.id"
+                    :value="office.office_name"
+                  >
+                    {{ office.office_name }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">
+                  Fund Cluster <span class="text-danger">*</span>
+                </label>
+
+                <select v-model="newItem.fund_cluster" class="form-select" required>
+                  <option value="" disabled>Select fund cluster</option>
+
+                  <option
+                    v-if="
+                      newItem.fund_cluster &&
+                      !fundClusterOptions.includes(newItem.fund_cluster)
+                    "
+                    :value="newItem.fund_cluster"
+                  >
+                    {{ newItem.fund_cluster }}
+                  </option>
+
+                  <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">
+                    {{ fc }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label class="form-label">
+                  Classification <span class="text-danger">*</span>
+                </label>
+                <select
+                  v-model="newItem.classification"
+                  class="form-select"
+                  required
+                >
+                  <option value="PAR">Property Acknowledgement Receipt</option>
+                  <option value="ICS High">Inventory Custodian Slip - High Value</option>
+                  <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label class="form-label">
+                  Condition <span class="text-danger">*</span>
+                </label>
+                <select v-model="newItem.condition" class="form-select" required>
+                  <option value="Serviceable">Serviceable</option>
+                  <option value="Unserviceable">Unserviceable</option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label class="form-label">
+                  Status <span class="text-danger">*</span>
+                </label>
+                <select v-model="newItem.status" class="form-select" required>
+                  <option value="Available">Available</option>
+                  <option value="Assigned">Assigned</option>
+                  <option value="Issued">Issued</option>
+                  <option value="Returned">Returned</option>
+                  <option value="Lost">Lost</option>
+                  <option value="Damaged">Damaged</option>
+                  <option value="Stolen">Stolen</option>
+                  <option value="Disposed">Disposed</option>
+                </select>
               </div>
             </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Acquisition Date <span class="text-danger">*</span></label>
-              <input v-model="newItem.acquisition_date" type="date" class="form-control" required />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Article</label>
-              <input v-model.trim="newItem.article" type="text" class="form-control" placeholder="e.g. BAG" />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Unit of Measure</label>
-              <input v-model.trim="newItem.unit" type="text" class="form-control" list="unit-options" placeholder="e.g. PC" required />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">DR/CI/SI Number</label>
-              <input v-model.trim="newItem.dr_ci_si_number" type="text" class="form-control" placeholder="e.g. DR 000051" />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Property Order No.</label>
-              <input v-model.trim="newItem.po_number" type="text" class="form-control" />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Supplier</label>
-              <input v-model.trim="newItem.supplier" type="text" class="form-control" list="supplier-options" />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Remarks</label>
-              <input v-model.trim="newItem.remarks" type="text" class="form-control" />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Accountable Employee</label>
-              <select v-model="newItem.accountable_employee" class="form-select" @change="autoFillOffice(newItem)">
-                <option value="">Select personnel (optional)</option>
-                <option v-for="person in personnelOptions" :key="person.id" :value="person.full_name">
-                  {{ person.full_name }}
-                </option>
-              </select>
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Responsibility Center</label>
-              <select v-model="newItem.responsibility_center" class="form-select">
-                <option value="">Select office (optional)</option>
-                <option v-for="office in officeOptions" :key="office.id" :value="office.office_name">
-                  {{ office.office_name }}
-                </option>
-              </select>
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Fund Cluster <span class="text-danger">*</span></label>
-              <select v-model="newItem.fund_cluster" class="form-select" required>
-                <option value="" disabled>Select fund cluster</option>
-                <option v-if="newItem.fund_cluster && !fundClusterOptions.includes(newItem.fund_cluster)" :value="newItem.fund_cluster">{{ newItem.fund_cluster }}</option>
-                <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">{{ fc }}</option>
-              </select>
-            </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">Classification <span class="text-danger">*</span></label>
-              <select v-model="newItem.classification" class="form-select" required>
-                <option value="PAR">Property Acknowledgement Receipt</option>
-                <option value="ICS High">Inventory Custodian Slip - High Value</option>
-                <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
-              </select>
-            </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">Condition <span class="text-danger">*</span></label>
-              <select v-model="newItem.condition" class="form-select" required>
-                <option value="Serviceable">Serviceable</option>
-                <option value="Unserviceable">Unserviceable</option>
-              </select>
-            </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">Status <span class="text-danger">*</span></label>
-              <select v-model="newItem.status" class="form-select" required>
-                <option value="Available">Available</option>
-                <option value="Assigned">Assigned</option>
-                <option value="Issued">Issued</option>
-                <option value="Returned">Returned</option>
-                <option value="Lost">Lost</option>
-                <option value="Damaged">Damaged</option>
-                <option value="Stolen">Stolen</option>
-                <option value="Disposed">Disposed</option>
-              </select>
-            </div>
           </div>
-        </div>
-        <div class="card-footer bg-white">
-          <button type="button" class="btn btn-secondary me-2" @click="cancelAdd">Cancel</button>
-          <button type="submit" class="btn btn-success" :disabled="saving">
-            {{ saving ? 'Saving...' : 'Save Property' }}
-          </button>
-        </div>
-      </form>
+
+          <div class="card-footer bg-white text-end">
+            <button
+              type="button"
+              class="btn btn-secondary me-2"
+              @click="cancelAdd"
+            >
+              Cancel
+            </button>
+
+            <button type="submit" class="btn btn-success" :disabled="saving">
+              {{ saving ? 'Saving...' : 'Save Property' }}
+            </button>
+          </div>
+        </form>
       </section>
     </div>
 
+    <!-- INVENTORY TABLE -->
     <div class="card">
       <div class="card-header bg-white">
         <strong>Inventory Properties</strong>
       </div>
+
       <div class="table-responsive">
         <table class="table table-hover mb-0">
           <thead>
             <tr>
-              <th><button type="button" class="sort-header" @click="sortBy('property_tag_identifier')">Unique ID <i :class="sortIcon('property_tag_identifier')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('property_number')">Property No. <i :class="sortIcon('property_number')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('description')">Description <i :class="sortIcon('description')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('quantity')">Quantity <i :class="sortIcon('quantity')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('serial_number')">Serial No. <i :class="sortIcon('serial_number')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('cost')">Cost <i :class="sortIcon('cost')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('acquisition_date')">Acquisition Date <i :class="sortIcon('acquisition_date')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('created_at')">Date Inputted <i :class="sortIcon('created_at')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('classification')">Classification <i :class="sortIcon('classification')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('fund_cluster')">Fund Cluster <i :class="sortIcon('fund_cluster')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('condition')">Condition <i :class="sortIcon('condition')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('status')">Status <i :class="sortIcon('status')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('accountable_employee')">Accountable Employee <i :class="sortIcon('accountable_employee')"></i></button></th>
-              <th><button type="button" class="sort-header" @click="sortBy('responsibility_center')">Responsibility Center <i :class="sortIcon('responsibility_center')"></i></button></th>
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('property_tag_identifier')">
+                  Unique ID <i :class="sortIcon('property_tag_identifier')"></i>
+                </button>
+              </th>
+
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('property_number')">
+                  Property No. <i :class="sortIcon('property_number')"></i>
+                </button>
+              </th>
+
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('description')">
+                  Description <i :class="sortIcon('description')"></i>
+                </button>
+              </th>
+
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('serial_number')">
+                  Serial No. <i :class="sortIcon('serial_number')"></i>
+                </button>
+              </th>
+
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('cost')">
+                  Cost <i :class="sortIcon('cost')"></i>
+                </button>
+              </th>
+
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('acquisition_date')">
+                  Acquisition Date <i :class="sortIcon('acquisition_date')"></i>
+                </button>
+              </th>
+
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('created_at')">
+                  Date Inputted <i :class="sortIcon('created_at')"></i>
+                </button>
+              </th>
+
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('classification')">
+                  Classification <i :class="sortIcon('classification')"></i>
+                </button>
+              </th>
+
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('fund_cluster')">
+                  Fund Cluster <i :class="sortIcon('fund_cluster')"></i>
+                </button>
+              </th>
+
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('condition')">
+                  Condition <i :class="sortIcon('condition')"></i>
+                </button>
+              </th>
+
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('status')">
+                  Status <i :class="sortIcon('status')"></i>
+                </button>
+              </th>
+
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('accountable_employee')">
+                  Accountable Employee <i :class="sortIcon('accountable_employee')"></i>
+                </button>
+              </th>
+
+              <th>
+                <button type="button" class="sort-header" @click="sortBy('responsibility_center')">
+                  Responsibility Center <i :class="sortIcon('responsibility_center')"></i>
+                </button>
+              </th>
+
               <th>Actions</th>
             </tr>
           </thead>
+
           <tbody>
             <tr v-if="loading">
-              <td colspan="15" class="text-center py-5">Loading properties...</td>
+              <td colspan="14" class="text-center py-5">Loading properties...</td>
             </tr>
+
             <tr v-else-if="error">
-              <td colspan="15" class="text-center text-danger py-5">{{ error }}</td>
+              <td colspan="14" class="text-center text-danger py-5">{{ error }}</td>
             </tr>
+
             <tr v-else-if="filteredItems.length === 0">
-              <td colspan="15" class="text-center text-secondary py-5">No properties found.</td>
+              <td colspan="14" class="text-center text-secondary py-5">
+                No properties found.
+              </td>
             </tr>
+
             <tr v-for="item in filteredItems" :key="item.id">
               <td>
                 {{
-                  item.property_tag_identifier !== null && item.property_tag_identifier !== undefined
+                  item.property_tag_identifier !== null &&
+                  item.property_tag_identifier !== undefined
                     ? 'PROP-' + String(item.property_tag_identifier).padStart(6, '0')
                     : 'NOT ASSIGNED'
                 }}
               </td>
+
               <td>{{ item.property_number || '-' }}</td>
               <td>{{ item.description || '-' }}</td>
-              <td>{{ item.quantity ?? 0 }}</td>
               <td>{{ item.serial_number || '-' }}</td>
               <td>₱{{ item.cost || 0 }}</td>
               <td>{{ item.acquisition_date || '-' }}</td>
-              <td>{{ item.created_at ? item.created_at.slice(0, 10) : '-' }}</td>
+
+              <td>
+                {{ item.created_at ? item.created_at.slice(0, 10) : '-' }}
+              </td>
+
               <td>
                 <span class="badge" :class="getClassificationClass(item.classification)">
                   {{ displayClassification(item.classification) }}
                 </span>
               </td>
+
               <td>{{ item.fund_cluster || '-' }}</td>
+
               <td>
                 <span class="badge" :class="getConditionClass(item.condition)">
                   {{ item.condition || '-' }}
                 </span>
               </td>
+
               <td>
                 <span class="badge" :class="getStatusClass(item.status)">
                   {{ item.status || '-' }}
                 </span>
               </td>
+
               <td>{{ item.accountable_employee || '-' }}</td>
               <td>{{ item.responsibility_center || '-' }}</td>
+
               <td>
-                <div class="d-flex gap-1">
-                  <button class="btn btn-sm btn-outline-primary" @click="showItemDetails(item)" title="View property details">
-                    <i class="bi bi-eye me-1"></i>
-                    Details
-                  </button>
-                </div>
+                <button
+                  class="btn btn-sm btn-outline-primary"
+                  @click="showItemDetails(item)"
+                  title="View property details"
+                >
+                  <i class="bi bi-eye me-1"></i>
+                  Details
+                </button>
               </td>
             </tr>
           </tbody>
@@ -298,80 +553,140 @@
       </div>
     </div>
 
+    <!-- PROPERTY DETAILS -->
     <div v-if="detailItem" class="detail-overlay" @click.self="closeItemDetails">
-      <section class="detail-dialog card" role="dialog" aria-modal="true" aria-labelledby="item-details-title">
+      <section
+        class="detail-dialog card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="item-details-title"
+      >
         <div class="card-header d-flex justify-content-between align-items-center">
           <h2 id="item-details-title" class="h5 mb-0">Property Details</h2>
-          <button type="button" class="btn-close" aria-label="Close" @click="closeItemDetails"></button>
+
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            @click="closeItemDetails"
+          ></button>
         </div>
+
         <div class="card-body">
           <div class="row g-4 align-items-center">
             <div class="col-12 col-md-4 text-center">
               <div v-if="detailQrCode" class="qr-code-frame">
-                <img :src="detailQrCode" :alt="'QR code for property ' + (detailItem.property_number || '')" />
+                <img
+                  :src="detailQrCode"
+                  :alt="'QR code for property ' + (detailItem.property_number || '')"
+                />
               </div>
-              <div v-else-if="qrCodeError" class="text-danger small">{{ qrCodeError }}</div>
-              <div v-else class="text-secondary">Generating QR code...</div>
-              <div class="fw-semibold mt-2">{{ detailItem.property_number || 'No property number' }}</div>
-              <small class="text-secondary d-block">Scan to view property details</small>
+
+              <div v-else-if="qrCodeError" class="text-danger small">
+                {{ qrCodeError }}
+              </div>
+
+              <div v-else class="text-secondary">
+                Generating QR code...
+              </div>
+
+              <div class="fw-semibold mt-2">
+                {{ detailItem.property_number || 'No property number' }}
+              </div>
+
+              <small class="text-secondary d-block">
+                Scan to view property details
+              </small>
+
               <small v-if="isLocalDevelopmentHost" class="text-warning d-block mt-2">
-                For phone scanning, open this app using your laptop's Wi-Fi address, not localhost.
+                For phone scanning, open this app using your laptop's Wi-Fi address,
+                not localhost.
               </small>
             </div>
+
             <div class="col-12 col-md-8">
               <dl class="row mb-0 item-detail-list">
                 <dt class="col-sm-5">Description</dt>
                 <dd class="col-sm-7">{{ detailItem.description || '-' }}</dd>
+
                 <dt class="col-sm-5">Model Number</dt>
                 <dd class="col-sm-7">{{ detailItem.model_number || '-' }}</dd>
+
                 <dt class="col-sm-5">Serial Number</dt>
                 <dd class="col-sm-7">{{ detailItem.serial_number || '-' }}</dd>
-                <dt class="col-sm-5">Quantity</dt>
-                <dd class="col-sm-7">{{ detailItem.quantity ?? 0 }}</dd>
+
                 <dt class="col-sm-5">Cost</dt>
                 <dd class="col-sm-7">₱{{ detailItem.cost || 0 }}</dd>
+
                 <dt class="col-sm-5">Acquisition Date</dt>
                 <dd class="col-sm-7">{{ detailItem.acquisition_date || '-' }}</dd>
+
                 <dt class="col-sm-5">Date Inputted</dt>
-                <dd class="col-sm-7">{{ detailItem.created_at ? detailItem.created_at.slice(0, 10) : '-' }}</dd>
+                <dd class="col-sm-7">
+                  {{ detailItem.created_at ? detailItem.created_at.slice(0, 10) : '-' }}
+                </dd>
+
                 <dt class="col-sm-5">Classification</dt>
-                <dd class="col-sm-7">{{ displayClassification(detailItem.classification) }}</dd>
+                <dd class="col-sm-7">
+                  {{ displayClassification(detailItem.classification) }}
+                </dd>
+
                 <dt class="col-sm-5">Condition</dt>
                 <dd class="col-sm-7">
                   <span class="badge" :class="getConditionClass(detailItem.condition)">
                     {{ detailItem.condition || '-' }}
                   </span>
                 </dd>
+
                 <dt class="col-sm-5">Status</dt>
                 <dd class="col-sm-7">
                   <span class="badge" :class="getStatusClass(detailItem.status)">
                     {{ detailItem.status || '-' }}
                   </span>
                 </dd>
+
                 <dt class="col-sm-5">Accountable Employee</dt>
                 <dd class="col-sm-7">{{ detailItem.accountable_employee || '-' }}</dd>
+
                 <dt class="col-sm-5">Responsibility Center</dt>
                 <dd class="col-sm-7">{{ detailItem.responsibility_center || '-' }}</dd>
+
                 <dt class="col-sm-5">Fund Cluster</dt>
                 <dd class="col-sm-7">{{ detailItem.fund_cluster || '-' }}</dd>
+
                 <dt class="col-sm-5">Article</dt>
                 <dd class="col-sm-7">{{ detailItem.article || '-' }}</dd>
+
                 <dt class="col-sm-5">Unit of Measure</dt>
-                <dd class="col-sm-7">{{ detailItem.unit && detailItem.unit !== 'unit' ? detailItem.unit : '-' }}</dd>
+                <dd class="col-sm-7">
+                  {{
+                    detailItem.unit && detailItem.unit !== 'unit'
+                      ? detailItem.unit
+                      : '-'
+                  }}
+                </dd>
+
                 <dt class="col-sm-5">DR/CI/SI Number</dt>
                 <dd class="col-sm-7">{{ detailItem.dr_ci_si_number || '-' }}</dd>
+
                 <dt class="col-sm-5">Property Order No.</dt>
                 <dd class="col-sm-7">{{ detailItem.po_number || '-' }}</dd>
+
                 <dt class="col-sm-5">Supplier</dt>
                 <dd class="col-sm-7">{{ detailItem.supplier || '-' }}</dd>
+
                 <dt class="col-sm-5">Remarks</dt>
                 <dd class="col-sm-7">{{ detailItem.remarks || '-' }}</dd>
               </dl>
             </div>
           </div>
         </div>
-        <div class="card-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-secondary" @click="closeItemDetails">Close</button>
+
+        <div class="card-footer d-flex justify-content-end gap-2 flex-wrap">
+          <button type="button" class="btn btn-secondary" @click="closeItemDetails">
+            Close
+          </button>
+
           <button
             type="button"
             class="btn btn-outline-success"
@@ -381,6 +696,7 @@
             <i class="bi bi-download me-1"></i>
             {{ downloadingDocument ? 'Preparing document...' : 'Download DOCX' }}
           </button>
+
           <button
             type="button"
             class="btn btn-outline-primary"
@@ -390,10 +706,16 @@
             <i class="bi bi-printer me-1"></i>
             Print Property Tag
           </button>
-          <button type="button" class="btn btn-outline-warning" @click="editItemFromDetails">
+
+          <button
+            type="button"
+            class="btn btn-outline-warning"
+            @click="editItemFromDetails"
+          >
             <i class="bi bi-pencil me-1"></i>
             Edit Property
           </button>
+
           <button
             type="button"
             class="btn btn-outline-danger"
@@ -407,83 +729,145 @@
       </section>
     </div>
 
+    <!-- EDIT PROPERTY -->
     <div v-if="editingItem" class="edit-overlay" @click.self="cancelEdit">
       <div class="edit-sidebar">
         <div class="edit-sidebar-header">
           <h5 class="mb-0">Edit Property</h5>
-          <button type="button" class="btn-close" aria-label="Close" @click="cancelEdit"></button>
+
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            @click="cancelEdit"
+          ></button>
         </div>
+
         <form class="edit-sidebar-form" @submit.prevent="updateItem">
           <div class="edit-sidebar-body">
             <div class="mb-3">
-              <label class="form-label">Property Number <span class="text-danger">*</span></label>
+              <label class="form-label">
+                Property Number <span class="text-danger">*</span>
+              </label>
               <input v-model="editForm.property_number" type="text" class="form-control" required />
             </div>
+
             <div class="mb-3">
-              <label class="form-label">Model Number <span class="text-danger">*</span></label>
+              <label class="form-label">
+                Model Number <span class="text-danger">*</span>
+              </label>
               <input v-model="editForm.model_number" type="text" class="form-control" required />
             </div>
+
             <div class="mb-3">
-              <label class="form-label">Serial Number <span class="text-danger">*</span></label>
-              <input v-model="editForm.serial_number" type="text" class="form-control" required />
+              <label class="form-label">Serial Number</label>
+              <input
+                v-model.trim="editForm.serial_number"
+                type="text"
+                class="form-control"
+                placeholder="Optional"
+              />
             </div>
+
             <div class="mb-3">
-              <label class="form-label">Description <span class="text-danger">*</span></label>
+              <label class="form-label">
+                Description <span class="text-danger">*</span>
+              </label>
               <input v-model="editForm.description" type="text" class="form-control" required />
             </div>
+
             <div class="mb-3">
-              <label class="form-label">Quantity in Stock <span class="text-danger">*</span></label>
-              <input v-model.number="editForm.quantity" type="number" min="0" step="1" class="form-control" required />
+              <label class="form-label">
+                Cost <span class="text-danger">*</span>
+              </label>
+              <input
+                v-model="editForm.cost"
+                type="number"
+                min="0"
+                step="0.01"
+                class="form-control"
+                required
+              />
             </div>
+
             <div class="mb-3">
-              <label class="form-label">Cost <span class="text-danger">*</span></label>
-              <input v-model="editForm.cost" type="number" min="0" step="0.01" class="form-control" required />
+              <label class="form-label">
+                Acquisition Date <span class="text-danger">*</span>
+              </label>
+              <input
+                v-model="editForm.acquisition_date"
+                type="date"
+                class="form-control"
+                required
+              />
             </div>
-            <div class="mb-3">
-              <label class="form-label">Acquisition Date <span class="text-danger">*</span></label>
-              <input v-model="editForm.acquisition_date" type="date" class="form-control" required />
-            </div>
+
             <div class="mb-3">
               <label class="form-label">Article</label>
               <input v-model.trim="editForm.article" type="text" class="form-control" placeholder="e.g. BAG" />
             </div>
+
             <div class="mb-3">
               <label class="form-label">Unit of Measure</label>
-              <input v-model.trim="editForm.unit" type="text" class="form-control" list="unit-options" placeholder="e.g. PC" />
+              <input
+                v-model.trim="editForm.unit"
+                type="text"
+                class="form-control"
+                list="unit-options"
+                placeholder="e.g. PC"
+              />
             </div>
+
             <div class="mb-3">
               <label class="form-label">DR/CI/SI Number</label>
               <input v-model.trim="editForm.dr_ci_si_number" type="text" class="form-control" />
             </div>
+
             <div class="mb-3">
               <label class="form-label">Property Order No.</label>
               <input v-model.trim="editForm.po_number" type="text" class="form-control" />
             </div>
+
             <div class="mb-3">
               <label class="form-label">Supplier</label>
-              <input v-model.trim="editForm.supplier" type="text" class="form-control" list="supplier-options" />
+              <input
+                v-model.trim="editForm.supplier"
+                type="text"
+                class="form-control"
+                list="supplier-options"
+              />
             </div>
+
             <div class="mb-3">
               <label class="form-label">Remarks</label>
               <input v-model.trim="editForm.remarks" type="text" class="form-control" />
             </div>
+
             <div class="mb-3">
-              <label class="form-label">Classification <span class="text-danger">*</span></label>
+              <label class="form-label">
+                Classification <span class="text-danger">*</span>
+              </label>
               <select v-model="editForm.classification" class="form-select" required>
                 <option value="PAR">Property Acknowledgement Receipt</option>
                 <option value="ICS High">Inventory Custodian Slip - High Value</option>
                 <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
               </select>
             </div>
+
             <div class="mb-3">
-              <label class="form-label">Condition <span class="text-danger">*</span></label>
+              <label class="form-label">
+                Condition <span class="text-danger">*</span>
+              </label>
               <select v-model="editForm.condition" class="form-select" required>
                 <option value="Serviceable">Serviceable</option>
                 <option value="Unserviceable">Unserviceable</option>
               </select>
             </div>
+
             <div class="mb-3">
-              <label class="form-label">Status <span class="text-danger">*</span></label>
+              <label class="form-label">
+                Status <span class="text-danger">*</span>
+              </label>
               <select v-model="editForm.status" class="form-select" required>
                 <option value="Available">Available</option>
                 <option value="Assigned">Assigned</option>
@@ -495,35 +879,68 @@
                 <option value="Disposed">Disposed</option>
               </select>
             </div>
+
             <div class="mb-3">
               <label class="form-label">Accountable Employee</label>
-              <select v-model="editForm.accountable_employee" class="form-select" @change="autoFillOffice(editForm)">
+              <select
+                v-model="editForm.accountable_employee"
+                class="form-select"
+                @change="autoFillOffice(editForm)"
+              >
                 <option value="">Select personnel (optional)</option>
-                <option v-for="person in personnelOptions" :key="person.id" :value="person.full_name">
+                <option
+                  v-for="person in personnelOptions"
+                  :key="person.id"
+                  :value="person.full_name"
+                >
                   {{ person.full_name }}
                 </option>
               </select>
             </div>
+
             <div class="mb-3">
               <label class="form-label">Responsibility Center</label>
               <select v-model="editForm.responsibility_center" class="form-select">
                 <option value="">Select office (optional)</option>
-                <option v-for="office in officeOptions" :key="office.id" :value="office.office_name">
+                <option
+                  v-for="office in officeOptions"
+                  :key="office.id"
+                  :value="office.office_name"
+                >
                   {{ office.office_name }}
                 </option>
               </select>
             </div>
+
             <div class="mb-3">
-              <label class="form-label">Fund Cluster <span class="text-danger">*</span></label>
+              <label class="form-label">
+                Fund Cluster <span class="text-danger">*</span>
+              </label>
               <select v-model="editForm.fund_cluster" class="form-select" required>
                 <option value="" disabled>Select fund cluster</option>
-                <option v-if="editForm.fund_cluster && !fundClusterOptions.includes(editForm.fund_cluster)" :value="editForm.fund_cluster">{{ editForm.fund_cluster }}</option>
-                <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">{{ fc }}</option>
+
+                <option
+                  v-if="
+                    editForm.fund_cluster &&
+                    !fundClusterOptions.includes(editForm.fund_cluster)
+                  "
+                  :value="editForm.fund_cluster"
+                >
+                  {{ editForm.fund_cluster }}
+                </option>
+
+                <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">
+                  {{ fc }}
+                </option>
               </select>
             </div>
           </div>
+
           <div class="edit-sidebar-footer">
-            <button type="button" class="btn btn-secondary" @click="cancelEdit">Cancel</button>
+            <button type="button" class="btn btn-secondary" @click="cancelEdit">
+              Cancel
+            </button>
+
             <button type="submit" class="btn btn-success" :disabled="updating">
               {{ updating ? 'Updating...' : 'Update Property' }}
             </button>
@@ -535,6 +952,7 @@
     <datalist id="unit-options">
       <option v-for="u in unitOptions" :key="u" :value="u"></option>
     </datalist>
+
     <datalist id="supplier-options">
       <option v-for="name in supplierOptions" :key="name" :value="name"></option>
     </datalist>
@@ -563,7 +981,7 @@ import {
 import QRCode from 'qrcode'
 
 const QR_SIZE = 400
-const QR_LOGO_RATIO = 0.22 // logo box = 22% of QR width (keep under ~0.25)
+const QR_LOGO_RATIO = 0.22
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
@@ -581,16 +999,18 @@ async function createQrWithLogo(text) {
     width: QR_SIZE,
   })
 
-  const [qrImage, logoImage] = await Promise.all([loadImage(qrDataUrl), loadImage(logo)])
+  const [qrImage, logoImage] = await Promise.all([
+    loadImage(qrDataUrl),
+    loadImage(logo),
+  ])
 
   const canvas = document.createElement('canvas')
   canvas.width = QR_SIZE
   canvas.height = QR_SIZE
-  const ctx = canvas.getContext('2d')
 
+  const ctx = canvas.getContext('2d')
   ctx.drawImage(qrImage, 0, 0, QR_SIZE, QR_SIZE)
 
-  // White rounded box behind the logo so the QR modules don't clash with it
   const boxSize = Math.round(QR_SIZE * QR_LOGO_RATIO)
   const boxX = (QR_SIZE - boxSize) / 2
   const boxY = (QR_SIZE - boxSize) / 2
@@ -606,10 +1026,13 @@ async function createQrWithLogo(text) {
   ctx.closePath()
   ctx.fill()
 
-  // Draw the logo inside the box, keeping its aspect ratio
   const padding = 6
   const maxLogo = boxSize - padding * 2
-  const scale = Math.min(maxLogo / logoImage.width, maxLogo / logoImage.height)
+  const scale = Math.min(
+    maxLogo / logoImage.width,
+    maxLogo / logoImage.height,
+  )
+
   const logoWidth = logoImage.width * scale
   const logoHeight = logoImage.height * scale
 
@@ -626,9 +1049,11 @@ async function createQrWithLogo(text) {
 
 export default {
   name: 'Properties',
+
   components: {
     InventoryMovementModal,
   },
+
   data() {
     return {
       items: [],
@@ -636,7 +1061,12 @@ export default {
       personnel: [],
       offices: [],
       suppliers: [],
-      unitOptions: ['PC', 'PCS', 'PAX', 'BOX', 'PACK', 'SET', 'LOT', 'REAM', 'ROLL', 'BOTTLE', 'CAN', 'UNIT'],
+
+      unitOptions: [
+        'PC', 'PCS', 'PAX', 'BOX', 'PACK', 'SET',
+        'LOT', 'REAM', 'ROLL', 'BOTTLE', 'CAN', 'UNIT',
+      ],
+
       loading: false,
       saving: false,
       updating: false,
@@ -647,22 +1077,28 @@ export default {
       selectedFundCluster: '',
       sortKey: '',
       sortDirection: 'asc',
+
       showAddForm: false,
       showMovementModal: false,
+
       fundClusterOptions: [
         'AF-1', 'AF-2', 'AF-3', 'AF-DBM PS/BID',
         'GF-1', 'GF-2', 'GF-3', 'GF-DBM PS/BID',
         'RF-1', 'RF-2', 'RF-DBM PS/BID',
         'STF-1', 'STF-2', 'STF-3', 'STF-DBM PS/BID',
         'TF-1', 'TF-2', 'TF-3', 'TF-DBM PS/BID',
-        'TR-1', 'TR-2', 'TR-DBM PS/BID'
+        'TR-1', 'TR-2', 'TR-DBM PS/BID',
       ],
+
       detailItem: null,
       detailQrCode: '',
       qrCodeError: '',
       downloadingDocument: false,
       editingItem: null,
       deletingItemId: null,
+
+      // Quantity is kept internally at 1.
+      // Tracking Type is no longer used.
       newItem: {
         property_number: '',
         description: '',
@@ -684,6 +1120,7 @@ export default {
         supplier: '',
         remarks: '',
       },
+
       editForm: {
         property_number: '',
         description: '',
@@ -707,13 +1144,15 @@ export default {
       },
     }
   },
+
   computed: {
     filteredItems() {
       const searchValue = this.search.toLowerCase().trim()
 
       const filtered = this.items.filter((item) => {
         const uniquePropertyId =
-          item.property_tag_identifier !== null && item.property_tag_identifier !== undefined
+          item.property_tag_identifier !== null &&
+          item.property_tag_identifier !== undefined
             ? 'PROP-' + String(item.property_tag_identifier).padStart(6, '0')
             : ''
 
@@ -726,14 +1165,23 @@ export default {
           (item.serial_number || '').toLowerCase().includes(searchValue)
 
         const matchesClassification =
-          !this.selectedClassification || item.classification === this.selectedClassification
+          !this.selectedClassification ||
+          item.classification === this.selectedClassification
 
-        const matchesStatus = !this.selectedStatus || item.status === this.selectedStatus
+        const matchesStatus =
+          !this.selectedStatus ||
+          item.status === this.selectedStatus
 
         const matchesFundCluster =
-          !this.selectedFundCluster || item.fund_cluster === this.selectedFundCluster
+          !this.selectedFundCluster ||
+          item.fund_cluster === this.selectedFundCluster
 
-        return matchesSearch && matchesClassification && matchesStatus && matchesFundCluster
+        return (
+          matchesSearch &&
+          matchesClassification &&
+          matchesStatus &&
+          matchesFundCluster
+        )
       })
 
       if (!this.sortKey) {
@@ -743,44 +1191,50 @@ export default {
       return filtered.sort((a, b) => {
         const first = a[this.sortKey]
         const second = b[this.sortKey]
-        let comparison = 0
 
-        if (['quantity', 'cost'].includes(this.sortKey)) {
-          comparison = Number(first || 0) - Number(second || 0)
-        } else {
-          comparison = String(first ?? '').localeCompare(String(second ?? ''), undefined, {
-            numeric: true,
-            sensitivity: 'base',
-          })
-        }
+        const comparison =
+          this.sortKey === 'cost'
+            ? Number(first || 0) - Number(second || 0)
+            : String(first ?? '').localeCompare(
+                String(second ?? ''),
+                undefined,
+                { numeric: true, sensitivity: 'base' },
+              )
 
         return this.sortDirection === 'asc' ? comparison : -comparison
       })
     },
+
     personnelOptions() {
       return this.personnel.filter((person) => person && person.full_name)
     },
+
     supplierOptions() {
       return this.suppliers
         .map((supplier) => supplier && supplier.supplier_name)
         .filter(Boolean)
     },
+
     officeOptions() {
       return this.offices.filter((office) => office && office.office_name)
     },
+
     isLocalDevelopmentHost() {
       return ['localhost', '127.0.0.1'].includes(window.location.hostname)
     },
   },
+
   mounted() {
     this.getItems()
     this.getPersonnelAndOffices()
   },
+
   watch: {
     '$route.query.item'(itemId) {
       this.openItemFromRoute(itemId)
     },
   },
+
   methods: {
     sortBy(key) {
       if (this.sortKey === key) {
@@ -790,6 +1244,7 @@ export default {
         this.sortDirection = 'asc'
       }
     },
+
     sortIcon(key) {
       if (this.sortKey !== key) {
         return 'bi bi-arrow-down-up sort-icon'
@@ -799,37 +1254,37 @@ export default {
         ? 'bi bi-arrow-up sort-icon'
         : 'bi bi-arrow-down sort-icon'
     },
+
     printPropertyTag() {
       const item = this.detailItem
 
       if (!item || !this.detailQrCode) {
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: 'The property QR code is not ready yet.',
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'The property QR code is not ready yet.',
+        }))
         return
       }
 
       const printWindow = window.open('', '_blank', 'width=900,height=700')
 
       if (!printWindow) {
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: 'Please allow pop-ups to print the property tag.',
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please allow pop-ups to print the property tag.',
+        }))
         return
       }
 
       const escape = (value) =>
-        String(value ?? '-').replace(/[&<>"']/g, (character) => ({
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#39;',
-        })[character])
+        String(value ?? '-').replace(/[&<>"']/g, (character) =>
+          ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+          })[character],
+        )
+
       const cost = Number(item.cost)
       const formattedCost = Number.isFinite(cost)
         ? cost.toLocaleString('en-PH', {
@@ -884,9 +1339,15 @@ export default {
                 overflow-wrap: anywhere;
                 text-align: center;
               }
-              .tag-name { font-size: 10px; }
               .label { display: block; font-size: 7px; font-style: italic; }
-              .value { display: block; margin-top: 2px; font-size: 8px; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
+              .value {
+                display: block;
+                margin-top: 2px;
+                font-size: 8px;
+                font-weight: 700;
+                text-align: center;
+                overflow-wrap: anywhere;
+              }
               .property-number .value { font-size: 11px; }
               .two-col { display: grid; grid-template-columns: 1fr 1fr; }
               .two-col > div:first-child { border-right: 1px solid #555; }
@@ -899,10 +1360,18 @@ export default {
               .description .value { font-size: 11px; }
               .model-serial { display: grid; grid-template-columns: 1fr 1fr; }
               .model-serial > div:first-child { border-right: 1px solid #555; }
-              .serial-qr { display: grid; grid-template-columns: 1fr .7in; align-items: center; }
+              .serial-qr {
+                display: grid;
+                grid-template-columns: 1fr .7in;
+                align-items: center;
+              }
               .serial-qr img { width: .62in; height: .62in; justify-self: center; }
               .inventory { grid-column: 1 / -1; }
-              .signature-slots { display: grid; grid-template-columns: repeat(3, 1fr); height: 100%; }
+              .signature-slots {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                height: 100%;
+              }
               .signature-slots span { border-right: 1px solid #555; }
               .signature-slots span:last-child { border-right: 0; }
               .warning {
@@ -926,17 +1395,22 @@ export default {
                   <img src="${logo}" alt="NVSU logo">
                   <span class="brand-name">NVSU PROPERTY INVENTORY</span>
                   <span>PROPERTY TAG</span>
-                  <span class="unique-property-id">UNIQUE ID: ${escape(
-                    item.property_tag_identifier !== null &&
-                    item.property_tag_identifier !== undefined
-                      ? 'PROP-' + String(item.property_tag_identifier).padStart(6, '0')
-                      : 'NOT ASSIGNED'
-                  )}</span>
+                  <span class="unique-property-id">
+                    UNIQUE ID:
+                    ${escape(
+                      item.property_tag_identifier !== null &&
+                      item.property_tag_identifier !== undefined
+                        ? 'PROP-' + String(item.property_tag_identifier).padStart(6, '0')
+                        : 'NOT ASSIGNED',
+                    )}
+                  </span>
                 </div>
+
                 <div class="cell property-number">
                   <span class="label">Property Number</span>
                   <strong class="value">${escape(item.property_number)}</strong>
                 </div>
+
                 <div class="cell two-col">
                   <div>
                     <span class="label">Office / Division</span>
@@ -947,6 +1421,7 @@ export default {
                     <strong class="value">${escape(item.accountable_employee)}</strong>
                   </div>
                 </div>
+
                 <div class="cell two-col">
                   <div>
                     <span class="label">Acquisition Date</span>
@@ -957,10 +1432,12 @@ export default {
                     <strong class="value">₱${formattedCost}</strong>
                   </div>
                 </div>
+
                 <div class="cell description">
                   <span class="label">Description of Property</span>
                   <strong class="value">${escape(item.description)}</strong>
                 </div>
+
                 <div class="cell model-serial">
                   <div>
                     <span class="label">Model Number</span>
@@ -974,11 +1451,19 @@ export default {
                     <img src="${this.detailQrCode}" alt="Item QR code">
                   </div>
                 </div>
+
                 <div class="cell inventory">
-                  <span class="label">Date of Inventory &amp; Signature of Inventory Team</span>
-                  <div class="signature-slots"><span></span><span></span><span></span></div>
+                  <span class="label">
+                    Date of Inventory &amp; Signature of Inventory Team
+                  </span>
+                  <div class="signature-slots">
+                    <span></span><span></span><span></span>
+                  </div>
                 </div>
-                <div class="cell warning">TAMPERING OF THIS LABEL IS STRICTLY PROHIBITED</div>
+
+                <div class="cell warning">
+                  TAMPERING OF THIS LABEL IS STRICTLY PROHIBITED
+                </div>
               </div>
             </main>
             <script>
@@ -987,6 +1472,7 @@ export default {
           </body>
         </html>
       `)
+
       printWindow.document.close()
     },
 
@@ -1020,11 +1506,9 @@ export default {
       }
 
       if (results.slice(0, 2).some((result) => result.status === 'rejected')) {
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: 'Failed to load personnel and office options',
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Failed to load personnel and office options',
+        }))
       }
     },
 
@@ -1037,7 +1521,9 @@ export default {
 
       form.status = 'Issued'
 
-      const person = this.personnel.find((p) => p.full_name === form.accountable_employee)
+      const person = this.personnel.find(
+        (p) => p.full_name === form.accountable_employee,
+      )
 
       if (!person || !person.office_id) {
         return
@@ -1063,16 +1549,15 @@ export default {
         this.items = await response.json()
         this.itemsLoaded = true
         this.error = ''
+
         this.openItemFromRoute(this.$route.query.item)
       } catch (error) {
         console.log(error)
         this.error = error.message
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: error.message,
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: error.message,
+        }))
       } finally {
         this.loading = false
       }
@@ -1083,34 +1568,16 @@ export default {
     },
 
     displayClassification(classification) {
-      if (classification === 'PAR') {
-        return 'Property Acknowledgement Receipt'
-      }
-
-      if (classification === 'ICS High') {
-        return 'Inventory Custodian Slip - High Value'
-      }
-
-      if (classification === 'ICS Low') {
-        return 'Inventory Custodian Slip - Low Value'
-      }
-
+      if (classification === 'PAR') return 'Property Acknowledgement Receipt'
+      if (classification === 'ICS High') return 'Inventory Custodian Slip - High Value'
+      if (classification === 'ICS Low') return 'Inventory Custodian Slip - Low Value'
       return classification || '-'
     },
 
     getClassificationClass(classification) {
-      if (classification === 'PAR') {
-        return 'classification-par'
-      }
-
-      if (classification === 'ICS High') {
-        return 'classification-high'
-      }
-
-      if (classification === 'ICS Low') {
-        return 'classification-low'
-      }
-
+      if (classification === 'PAR') return 'classification-par'
+      if (classification === 'ICS High') return 'classification-high'
+      if (classification === 'ICS Low') return 'classification-low'
       return 'classification-default'
     },
 
@@ -1118,12 +1585,19 @@ export default {
       this.saving = true
 
       try {
+        // Every property is saved with quantity 1.
+        // Tracking Type is no longer included.
+        const payload = {
+          ...this.newItem,
+          quantity: 1,
+        }
+
         const response = await fetch('/api/items', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(this.newItem),
+          body: JSON.stringify(payload),
         })
 
         const data = await response.json()
@@ -1132,23 +1606,25 @@ export default {
           throw new Error(data.error || 'Failed to add property')
         }
 
-        this.items.unshift(data)
+        // The backend may return an array when adding properties.
+        if (Array.isArray(data)) {
+          this.items.unshift(...data)
+        } else {
+          this.items.unshift(data)
+        }
+
         this.resetForm()
         this.showAddForm = false
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: 'Property added successfully',
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Property added successfully',
+        }))
       } catch (error) {
-        console.log(error)
+        console.error('Error adding property:', error)
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: error.message,
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: error.message || 'Failed to add property',
+        }))
       } finally {
         this.saving = false
       }
@@ -1156,10 +1632,11 @@ export default {
 
     startEdit(item) {
       this.editingItem = item
+
       this.editForm = {
         property_number: item.property_number || '',
         description: item.description || '',
-        quantity: Number(item.quantity ?? 0),
+        quantity: 1,
         model_number: item.model_number || '',
         serial_number: item.serial_number || '',
         cost: item.cost || 0,
@@ -1189,7 +1666,9 @@ export default {
           `/api/items/${encodeURIComponent(item.id)}/document-link`,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+            },
           },
         )
 
@@ -1202,7 +1681,9 @@ export default {
         const linkData = await response.json()
 
         if (!response.ok) {
-          throw new Error(linkData.error || 'Failed to create the property document link.')
+          throw new Error(
+            linkData.error || 'Failed to create the property document link.',
+          )
         }
 
         if (typeof linkData.downloadUrl === 'string' && !linkData.viewUrl) {
@@ -1218,7 +1699,10 @@ export default {
           throw new Error('The backend returned an invalid property details link.')
         }
 
-        const itemDetailsUrl = new URL(linkData.viewUrl, window.location.origin).toString()
+        const itemDetailsUrl = new URL(
+          linkData.viewUrl,
+          window.location.origin,
+        ).toString()
 
         const qrCode = await createQrWithLogo(itemDetailsUrl)
 
@@ -1227,6 +1711,7 @@ export default {
         }
       } catch (error) {
         console.error('Failed to generate property QR code:', error)
+
         if (this.detailItem?.id === item.id) {
           this.qrCodeError = error.message || 'Unable to generate the QR code.'
         }
@@ -1237,11 +1722,9 @@ export default {
       const item = this.detailItem
 
       if (!item || !this.detailQrCode) {
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: 'The property QR code is not ready yet.',
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'The property QR code is not ready yet.',
+        }))
         return
       }
 
@@ -1254,15 +1737,17 @@ export default {
           throw new Error('The property QR code is unavailable.')
         }
 
-        const qrImage = Uint8Array.from(atob(base64QrCode), (character) =>
-          character.charCodeAt(0),
+        const qrImage = Uint8Array.from(
+          atob(base64QrCode),
+          (character) => character.charCodeAt(0),
         )
+
+        // Tracking Type and Quantity are not included in the document.
         const itemDetails = [
           ['Property Number', item.property_number || '-'],
           ['Description', item.description || '-'],
           ['Model Number', item.model_number || '-'],
           ['Serial Number', item.serial_number || '-'],
-          ['Quantity', item.quantity ?? 0],
           [
             'Unit Cost',
             `PHP ${Number(item.cost || 0).toLocaleString('en-PH', {
@@ -1278,6 +1763,7 @@ export default {
           ['Responsibility Center / Office', item.responsibility_center || '-'],
           ['Fund Cluster', item.fund_cluster || '-'],
         ]
+
         const documentFile = new DocxDocument({
           sections: [
             {
@@ -1286,20 +1772,27 @@ export default {
                   text: 'Property Details',
                   heading: HeadingLevel.TITLE,
                 }),
-                ...itemDetails.map(
-                  ([label, value]) =>
-                    new Paragraph({
-                      children: [
-                        new TextRun({ text: `${label}: `, bold: true }),
-                        new TextRun(value),
-                      ],
-                    }),
+
+                ...itemDetails.map(([label, value]) =>
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: `${label}: `,
+                        bold: true,
+                      }),
+                      new TextRun(String(value)),
+                    ],
+                  }),
                 ),
+
                 new Paragraph({
                   children: [
                     new ImageRun({
                       data: qrImage,
-                      transformation: { width: 220, height: 220 },
+                      transformation: {
+                        width: 220,
+                        height: 220,
+                      },
                     }),
                   ],
                   alignment: AlignmentType.CENTER,
@@ -1308,9 +1801,11 @@ export default {
             },
           ],
         })
+
         const blob = await Packer.toBlob(documentFile)
         const downloadUrl = URL.createObjectURL(blob)
         const downloadLink = document.createElement('a')
+
         const safePropertyNumber = (item.property_number || 'property')
           .trim()
           .replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
@@ -1319,23 +1814,22 @@ export default {
 
         downloadLink.href = downloadUrl
         downloadLink.download = `property-${safePropertyNumber || 'property'}.docx`
+
         document.body.appendChild(downloadLink)
         downloadLink.click()
         downloadLink.remove()
+
         window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000)
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: 'Property document downloaded successfully.',
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Property document downloaded successfully.',
+        }))
       } catch (error) {
         console.error('Failed to create property document:', error)
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: 'Failed to create the property document.',
-          }),
-        )
+
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Failed to create the property document.',
+        }))
       } finally {
         this.downloadingDocument = false
       }
@@ -1346,14 +1840,14 @@ export default {
         return
       }
 
-      const item = this.items.find((currentItem) => String(currentItem.id) === String(itemId))
+      const item = this.items.find(
+        (currentItem) => String(currentItem.id) === String(itemId),
+      )
 
       if (!item) {
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: 'The property linked by this QR code could not be found.',
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'The property linked by this QR code could not be found.',
+        }))
         return
       }
 
@@ -1368,7 +1862,11 @@ export default {
       if (this.$route.query.item) {
         const query = { ...this.$route.query }
         delete query.item
-        this.$router.replace({ name: 'Properties', query })
+
+        this.$router.replace({
+          name: 'Properties',
+          query,
+        })
       }
     },
 
@@ -1390,16 +1888,20 @@ export default {
       this.updating = true
 
       try {
-        const response = await fetch(
-          '/api/items/' + this.editingItem.id,
-          {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(this.editForm),
+        // Keep each property at quantity 1.
+        // No Tracking Type is sent.
+        const payload = {
+          ...this.editForm,
+          quantity: 1,
+        }
+
+        const response = await fetch(`/api/items/${this.editingItem.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
           },
-        )
+          body: JSON.stringify(payload),
+        })
 
         const data = await response.json()
 
@@ -1407,7 +1909,9 @@ export default {
           throw new Error(data.error || 'Failed to update property')
         }
 
-        const index = this.items.findIndex((item) => item.id === this.editingItem.id)
+        const index = this.items.findIndex(
+          (item) => item.id === this.editingItem.id,
+        )
 
         if (index !== -1) {
           this.items[index] = data
@@ -1419,19 +1923,15 @@ export default {
 
         this.editingItem = null
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: 'Property updated successfully',
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Property updated successfully',
+        }))
       } catch (error) {
         console.log(error)
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: error.message,
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: error.message,
+        }))
       } finally {
         this.updating = false
       }
@@ -1461,34 +1961,36 @@ export default {
         if (responseText) {
           try {
             data = JSON.parse(responseText)
-          } catch (parseError) {
-            throw new Error('The server returned an invalid response while deleting the property.')
+          } catch {
+            throw new Error(
+              'The server returned an invalid response while deleting the property.',
+            )
           }
         }
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to delete property. Please try again.')
+          throw new Error(
+            data.error || 'Failed to delete property. Please try again.',
+          )
         }
 
-        this.items = this.items.filter((currentItem) => currentItem.id !== item.id)
+        this.items = this.items.filter(
+          (currentItem) => currentItem.id !== item.id,
+        )
 
         if (this.editingItem && this.editingItem.id === item.id) {
           this.editingItem = null
         }
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: data.message || 'Property deleted successfully',
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: data.message || 'Property deleted successfully',
+        }))
       } catch (error) {
         console.error(error)
 
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: error.message || 'Unable to delete this property.',
-          }),
-        )
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: error.message || 'Unable to delete this property.',
+        }))
       } finally {
         this.deletingItemId = null
       }
@@ -1533,50 +2035,20 @@ export default {
     },
 
     getConditionClass(condition) {
-      if (condition === 'Serviceable') {
-        return 'bg-success'
-      }
-
-      if (condition === 'Unserviceable') {
-        return 'bg-danger'
-      }
-
+      if (condition === 'Serviceable') return 'bg-success'
+      if (condition === 'Unserviceable') return 'bg-danger'
       return 'bg-secondary'
     },
 
     getStatusClass(status) {
-      if (status === 'Available') {
-        return 'bg-success'
-      }
-
-      if (status === 'Assigned') {
-        return 'bg-primary'
-      }
-
-      if (status === 'Issued') {
-        return 'bg-warning text-dark'
-      }
-
-      if (status === 'Returned') {
-        return 'bg-info'
-      }
-
-      if (status === 'Lost') {
-        return 'bg-danger'
-      }
-
-      if (status === 'Damaged') {
-        return 'bg-warning text-dark'
-      }
-
-      if (status === 'Stolen') {
-        return 'bg-danger'
-      }
-
-      if (status === 'Disposed') {
-        return 'bg-secondary'
-      }
-
+      if (status === 'Available') return 'bg-success'
+      if (status === 'Assigned') return 'bg-primary'
+      if (status === 'Issued') return 'bg-warning text-dark'
+      if (status === 'Returned') return 'bg-info'
+      if (status === 'Lost') return 'bg-danger'
+      if (status === 'Damaged') return 'bg-warning text-dark'
+      if (status === 'Stolen') return 'bg-danger'
+      if (status === 'Disposed') return 'bg-secondary'
       return 'bg-secondary'
     },
   },
@@ -1689,17 +2161,6 @@ h1 {
   overflow-y: auto;
 }
 
-.add-dialog .card-footer {
-  text-align: right;
-}
-
-.edit-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.35);
-  z-index: 1050;
-}
-
 .detail-overlay {
   position: fixed;
   inset: 0;
@@ -1735,6 +2196,13 @@ h1 {
 .item-detail-list dt,
 .item-detail-list dd {
   margin-bottom: 0.75rem;
+}
+
+.edit-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.35);
+  z-index: 1050;
 }
 
 .edit-sidebar {

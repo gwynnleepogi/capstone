@@ -495,40 +495,19 @@
                   >
                 </div>
 
-                <div class="col-12">
-                  <label class="form-label">
-                    Signature Image (optional)
-                  </label>
-
-                  <input
-                    class="form-control"
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    @change="handlePrintSignatureChange"
-                  >
-
-                  <small class="text-muted">
-                    A saved signature loads automatically when available. You can choose another image for this print.
-                  </small>
-
-                  <div class="form-check mt-2">
-                    <input
-                      id="saveSignatureForFuture"
-                      v-model="saveSignatureForFuture"
-                      class="form-check-input"
-                      type="checkbox"
-                    >
-                    <label class="form-check-label" for="saveSignatureForFuture">
-                      Save this signature for future PAR/ICS prints
-                    </label>
-                  </div>
-
-                  <img
-                    v-if="printSignatureImage"
-                    :src="printSignatureImage"
-                    alt="Signature preview"
-                    style="display:block;max-width:220px;max-height:90px;object-fit:contain;margin-top:10px;"
-                  >
+                <div class="col-md-6">
+                  <label class="form-label">Import Signature for Received By</label>
+                  <input class="form-control" type="file" accept="image/png,image/jpeg,image/webp" @change="handlePrintSignatureChange($event, 'receivedBy')">
+                  <img v-if="signatureImages.receivedBy" :src="signatureImages.receivedBy" alt="Received By signature preview" style="display:block;max-width:220px;max-height:70px;object-fit:contain;margin-top:8px;">
+                  <label class="form-label mt-2">Date (optional)</label>
+                  <input class="form-control" type="date" v-model="signatureDates.receivedBy">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Import Signature for Received From</label>
+                  <input class="form-control" type="file" accept="image/png,image/jpeg,image/webp" @change="handlePrintSignatureChange($event, 'receivedFrom')">
+                  <img v-if="signatureImages.receivedFrom" :src="signatureImages.receivedFrom" alt="Received From signature preview" style="display:block;max-width:220px;max-height:70px;object-fit:contain;margin-top:8px;">
+                  <label class="form-label mt-2">Date (optional)</label>
+                  <input class="form-control" type="date" v-model="signatureDates.receivedFrom">
                 </div>
 
                 <div class="col-md-6">
@@ -796,40 +775,33 @@
                   >
                 </div>
 
-                <div class="col-12">
-                  <label class="form-label">
-                    Signature Image (optional)
-                  </label>
-
-                  <input
-                    class="form-control"
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    @change="handlePrintSignatureChange"
-                  >
-
-                  <small class="text-muted">
-                    A saved signature loads automatically when available. You can choose another image for this print.
-                  </small>
-
-                  <div class="form-check mt-2">
-                    <input
-                      id="saveSignatureForFutureRis"
-                      v-model="saveSignatureForFuture"
-                      class="form-check-input"
-                      type="checkbox"
-                    >
-                    <label class="form-check-label" for="saveSignatureForFutureRis">
-                      Save this signature for future PAR/ICS prints
-                    </label>
-                  </div>
-
-                  <img
-                    v-if="printSignatureImage"
-                    :src="printSignatureImage"
-                    alt="Signature preview"
-                    style="display:block;max-width:220px;max-height:90px;object-fit:contain;margin-top:10px;"
-                  >
+                <div class="col-md-6">
+                  <label class="form-label">Import Signature for Requested By</label>
+                  <input class="form-control" type="file" accept="image/png,image/jpeg,image/webp" @change="handlePrintSignatureChange($event, 'requestedBy')">
+                  <img v-if="signatureImages.requestedBy" :src="signatureImages.requestedBy" alt="Requested By signature preview" style="display:block;max-width:220px;max-height:70px;object-fit:contain;margin-top:8px;">
+                  <label class="form-label mt-2">Date (optional)</label>
+                  <input class="form-control" type="date" v-model="signatureDates.requestedBy">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Import Signature for Approved By</label>
+                  <input class="form-control" type="file" accept="image/png,image/jpeg,image/webp" @change="handlePrintSignatureChange($event, 'approvedBy')">
+                  <img v-if="signatureImages.approvedBy" :src="signatureImages.approvedBy" alt="Approved By signature preview" style="display:block;max-width:220px;max-height:70px;object-fit:contain;margin-top:8px;">
+                  <label class="form-label mt-2">Date (optional)</label>
+                  <input class="form-control" type="date" v-model="signatureDates.approvedBy">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Import Signature for Issued By</label>
+                  <input class="form-control" type="file" accept="image/png,image/jpeg,image/webp" @change="handlePrintSignatureChange($event, 'issuedBy')">
+                  <img v-if="signatureImages.issuedBy" :src="signatureImages.issuedBy" alt="Issued By signature preview" style="display:block;max-width:220px;max-height:70px;object-fit:contain;margin-top:8px;">
+                  <label class="form-label mt-2">Date (optional)</label>
+                  <input class="form-control" type="date" v-model="signatureDates.issuedBy">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Import Signature for Received By</label>
+                  <input class="form-control" type="file" accept="image/png,image/jpeg,image/webp" @change="handlePrintSignatureChange($event, 'receivedByRIS')">
+                  <img v-if="signatureImages.receivedByRIS" :src="signatureImages.receivedByRIS" alt="Received By signature preview" style="display:block;max-width:220px;max-height:70px;object-fit:contain;margin-top:8px;">
+                  <label class="form-label mt-2">Date (optional)</label>
+                  <input class="form-control" type="date" v-model="signatureDates.receivedByRIS">
                 </div>
 
                 <div class="col-md-6">
@@ -1028,7 +1000,7 @@
               @click="printSelectedRIS"
             >
               <i class="bi bi-file-earmark-text me-1"></i>
-              Print Issuance Receiptt init
+              Print Issuance Receipt
             </button>
           </div>
         </div>
@@ -1061,9 +1033,8 @@ export default {
 
       editing: false,
       saving: false,
-      printSignatureImage: '',
-      selectedSignatureFile: null,
-      saveSignatureForFuture: false,
+      signatureImages: { receivedBy: '', receivedFrom: '', requestedBy: '', approvedBy: '', issuedBy: '', receivedByRIS: '' },
+      signatureDates: { receivedBy: '', receivedFrom: '', requestedBy: '', approvedBy: '', issuedBy: '', receivedByRIS: '' },
       selectedRISReceipt: null,
       selectedPrintReceipt: null,
       selectedDetailsReceipt: null,
@@ -1187,19 +1158,13 @@ export default {
       this.deleteReceipt(id)
     },
 
-    handlePrintSignatureChange(event) {
+    handlePrintSignatureChange(event, signerKey) {
       const file = event.target.files && event.target.files[0]
-      this.printSignatureImage = ''
-      this.selectedSignatureFile = file || null
+      this.signatureImages[signerKey] = ''
 
       if (!file) return
 
-      const allowedTypes = [
-        'image/png',
-        'image/jpeg',
-        'image/webp'
-      ]
-
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/webp']
       if (!allowedTypes.includes(file.type)) {
         this.showToast('Choose a PNG, JPG, or WEBP signature image')
         event.target.value = ''
@@ -1213,19 +1178,13 @@ export default {
       }
 
       const reader = new FileReader()
-
       reader.onload = () => {
-        this.printSignatureImage =
-          typeof reader.result === 'string'
-            ? reader.result
-            : ''
+        this.signatureImages[signerKey] = typeof reader.result === 'string' ? reader.result : ''
       }
-
       reader.onerror = () => {
         this.showToast('Could not read the signature image')
         event.target.value = ''
       }
-
       reader.readAsDataURL(file)
     },
 
@@ -1510,61 +1469,6 @@ export default {
       return fallback
     },
 
-    async saveSignatureIfRequested(receipt) {
-      if (!this.saveSignatureForFuture) return
-
-      if (!this.selectedSignatureFile) {
-        this.showToast('Choose a signature image before saving it for future prints.')
-        return
-      }
-
-      const userId =
-        receipt?.issued_to ||
-        receipt?.item_requests?.requested_by
-
-      if (!userId) {
-        this.showToast('The recipient account could not be found for this signature.')
-        return
-      }
-
-      try {
-        const formData = new FormData()
-        formData.append('signature', this.selectedSignatureFile)
-
-        const response = await fetch(`/api/signatures/${encodeURIComponent(userId)}`, {
-          method: 'POST',
-          body: formData
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Could not save the signature.')
-        }
-
-        if (receipt.users) {
-          receipt.users.signature_path = data.signature_path
-        }
-
-        if (receipt.item_requests?.users) {
-          receipt.item_requests.users.signature_path = data.signature_path
-        }
-
-        this.showToast('Signature saved for future PAR/ICS prints.')
-      } catch (error) {
-        this.showToast(error.message || 'Could not save the signature.')
-      }
-    },
-
-    getAutoSignatureUrl(receipt) {
-      const signaturePath =
-        receipt?.users?.signature_path ||
-        receipt?.item_requests?.users?.signature_path ||
-        ''
-
-      return signaturePath || ''
-    },
-
     getQuantityIssued(receipt) {
       if (!receipt) return 0
 
@@ -1712,9 +1616,8 @@ export default {
     },
 
     openReceiptPrintModal(receipt) {
-      this.printSignatureImage = this.getAutoSignatureUrl(receipt)
-      this.selectedSignatureFile = null
-      this.saveSignatureForFuture = false
+      this.signatureImages = { receivedBy: '', receivedFrom: '', requestedBy: '', approvedBy: '', issuedBy: '', receivedByRIS: '' }
+      this.signatureDates = { receivedBy: '', receivedFrom: '', requestedBy: '', approvedBy: '', issuedBy: '', receivedByRIS: '' }
       const item = this.getReceiptItem(receipt)
       receipt.receipt_type = this.getReceiptTypeForItem(item)
       this.selectedPrintReceipt = receipt
@@ -1748,10 +1651,8 @@ export default {
       modal.show()
     },
 
-    async confirmPrintReceipt() {
+    confirmPrintReceipt() {
       if (!this.selectedPrintReceipt) return
-
-      await this.saveSignatureIfRequested(this.selectedPrintReceipt)
 
       const modal = Modal.getOrCreateInstance(
         document.getElementById('receiptPrintDetailsModal')
@@ -1763,15 +1664,15 @@ export default {
         this.selectedPrintReceipt,
         {
           ...this.receiptPrintForm,
-          signatureImage: this.printSignatureImage || this.getAutoSignatureUrl(this.selectedPrintReceipt)
+          signatureImages: { ...this.signatureImages },
+          signatureDates: { ...this.signatureDates }
         }
       )
     },
 
     openRISModal(receipt) {
-      this.printSignatureImage = this.getAutoSignatureUrl(receipt)
-      this.selectedSignatureFile = null
-      this.saveSignatureForFuture = false
+      this.signatureImages = { receivedBy: '', receivedFrom: '', requestedBy: '', approvedBy: '', issuedBy: '', receivedByRIS: '' }
+      this.signatureDates = { receivedBy: '', receivedFrom: '', requestedBy: '', approvedBy: '', issuedBy: '', receivedByRIS: '' }
 
       const request = receipt.item_requests || {}
       const issuedTo = this.getIssuedToName(receipt)
@@ -1815,10 +1716,8 @@ export default {
       modal.show()
     },
 
-    async confirmPrintRIS() {
+    confirmPrintRIS() {
       if (!this.selectedRISReceipt) return
-
-      await this.saveSignatureIfRequested(this.selectedRISReceipt)
 
       const modal = Modal.getOrCreateInstance(
         document.getElementById('risDetailsModal')
@@ -1830,7 +1729,8 @@ export default {
         this.selectedRISReceipt,
         {
           ...this.risForm,
-          signatureImage: this.printSignatureImage
+          signatureImages: { ...this.signatureImages },
+          signatureDates: { ...this.signatureDates }
         }
       )
     },
@@ -1871,8 +1771,8 @@ export default {
       const office = request.offices || receipt.offices || {}
       const escape = value => this.escapeHtml(value === null || value === undefined || value === '' ? '-' : value)
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
-      const signatureImageMarkup = details.signatureImage
-        ? `<img class="print-signature" src="${details.signatureImage}" alt="Signature">`
+      const signatureImageMarkup = key => details.signatureImages?.[key]
+        ? `<img class="print-signature" src="${details.signatureImages[key]}" alt="Signature">`
         : ''
 
       const printWindow = window.open('', '_blank')
@@ -2048,10 +1948,10 @@ export default {
                 </tr>
                 <tr class="signature-row">
                   <td class="sign-label">Signature:</td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td>${signatureImageMarkup}</td>
+                  <td>${signatureImageMarkup('requestedBy')}</td>
+                  <td>${signatureImageMarkup('approvedBy')}</td>
+                  <td>${signatureImageMarkup('issuedBy')}</td>
+                  <td>${signatureImageMarkup('receivedByRIS')}</td>
                 </tr>
                 <tr class="name-row">
                   <td class="sign-label">Printed Name:</td>
@@ -2069,10 +1969,10 @@ export default {
                 </tr>
                 <tr class="date-row">
                   <td class="sign-label">Date:</td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
+                  <td>${escape(details.signatureDates?.requestedBy || '')}</td>
+                  <td>${escape(details.signatureDates?.approvedBy || '')}</td>
+                  <td>${escape(details.signatureDates?.issuedBy || '')}</td>
+                  <td>${escape(details.signatureDates?.receivedByRIS || '')}</td>
                 </tr>
               </tbody>
             </table>
@@ -2112,8 +2012,8 @@ export default {
 
       const item = this.getReceiptItem(receipt)
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
-      const signatureImageMarkup = details.signatureImage
-        ? `<img class="print-signature" src="${details.signatureImage}" alt="Signature">`
+      const signatureImageMarkup = key => details.signatureImages?.[key]
+        ? `<img class="print-signature" src="${details.signatureImages[key]}" alt="Signature">`
         : ''
 
       const receiptType = this.escapeHtml(receipt.receipt_type || 'PAR')
@@ -2293,19 +2193,20 @@ export default {
               <div class="signature">
                 <div class="signature-box">
                   <div class="signature-heading">RECEIVED BY</div>
-                  ${signatureImageMarkup}
+                  ${signatureImageMarkup('receivedBy')}
                   <div class="signature-name">${personnelName}</div>
                   <div class="signature-label">${this.escapeHtml(details.receivedByDesignation || '')}</div>
                   <div class="signature-label">Signature over Printed Name</div>
-                  <div class="signature-date">${dateIssued}</div>
+                  <div class="signature-date">${this.escapeHtml(details.signatureDates?.receivedBy || '')}</div>
                 </div>
 
                 <div class="signature-box">
                   <div class="signature-heading">RECEIVED FROM:</div>
+                  ${signatureImageMarkup('receivedFrom')}
                   <div class="signature-name">${this.escapeHtml(details.receivedFrom || '-')}</div>
                   <div class="signature-label">${this.escapeHtml(details.receivedFromDesignation || '')}</div>
                   <div class="signature-label">Signature over Printed Name</div>
-                  <div class="signature-date">${dateIssued}</div>
+                  <div class="signature-date">${this.escapeHtml(details.signatureDates?.receivedFrom || '')}</div>
                 </div>
               </div>
             </div>

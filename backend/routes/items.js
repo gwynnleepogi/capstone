@@ -18,6 +18,9 @@ function getItemReferenceError(error, operation) {
   return `This item cannot be ${operation} because it is referenced by existing records.`
 }
 
+// ==========================================
+// 1. GET ALL ITEMS
+// ==========================================
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -37,6 +40,9 @@ router.get('/', async (req, res) => {
   }
 })
 
+// ==========================================
+// 2. DOCUMENT LINK
+// ==========================================
 router.post('/:id/document-link', async (req, res) => {
   try {
     const { data: item, error } = await supabase
@@ -55,16 +61,16 @@ router.post('/:id/document-link', async (req, res) => {
     }
 
     const viewUrl = `/items?item=${encodeURIComponent(item.id)}`
-
-    res.json({
-      viewUrl
-    })
+    res.json({ viewUrl })
   } catch (error) {
     console.error('Failed to create item document link:', error)
     res.status(500).json({ error: 'Failed to create item document link' })
   }
 })
 
+// ==========================================
+// 3. GET OPTIONS
+// ==========================================
 router.get('/options', async (req, res) => {
   try {
     const { data: personnel, error: personnelError } = await supabase
@@ -94,6 +100,9 @@ router.get('/options', async (req, res) => {
   }
 })
 
+// ==========================================
+// 4. GET ASSIGNED ITEMS
+// ==========================================
 router.get('/assigned/:employeeName', async (req, res) => {
   try {
     const employeeName = decodeURIComponent(req.params.employeeName)
@@ -116,6 +125,9 @@ router.get('/assigned/:employeeName', async (req, res) => {
   }
 })
 
+// ==========================================
+// 5. CREATE ITEM (With Bulk Add Support)
+// ==========================================
 router.post('/', async (req, res) => {
   try {
     const {
@@ -144,41 +156,65 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Fund Cluster is required.' })
     }
 
-    const itemQuantity = Number(quantity ?? 0)
+    const requestedQty = Number(quantity ?? 1)
 
-    if (!Number.isInteger(itemQuantity) || itemQuantity < 0) {
+    if (!Number.isInteger(requestedQty) || requestedQty < 1) {
       return res.status(400).json({
-        error: 'Quantity must be a non-negative whole number.'
+        error: 'Quantity must be a positive whole number (at least 1).'
       })
     }
 
-    const { data, error } = await supabase
-      .from('items')
-      .insert([{
-        property_number,
-        description,
-        model_number,
-        serial_number,
-        cost,
-        quantity: itemQuantity,
+    if (requestedQty > 1 && (!property_number || !String(property_number).trim())) {
+      return res.status(400).json({ 
+        error: 'Property Number is required when adding more than 1 item.' 
+      })
+    }
+
+    const itemsToInsert = []
+
+    for (let i = 0; i < requestedQty; i++) {
+      let currentPropNum = String(property_number || '').trim()
+
+      if (requestedQty > 1) {
+        const match = currentPropNum.match(/^(.*?)(\d+)$/)
+        if (match) {
+          const prefix = match[1]
+          const num = parseInt(match[2], 10) + i
+          currentPropNum = `${prefix}${num.toString().padStart(match[2].length, '0')}`
+        } else {
+          currentPropNum = `${currentPropNum}-${i + 1}`
+        }
+      }
+
+      itemsToInsert.push({
+        property_number: currentPropNum || null,
+        description: description || null,
+        model_number: model_number || null,
+        serial_number: i === 0 ? (serial_number || null) : null,
+        cost: cost || 0,
+        quantity: 1, // FORCE 1 per row for strict 1-to-1 asset tracking
         unit: String(unit || '').trim() || 'PC',
         article: String(article || '').trim() || null,
         dr_ci_si_number: String(dr_ci_si_number || '').trim() || null,
         po_number: String(po_number || '').trim() || null,
         supplier: String(supplier || '').trim() || null,
         remarks: String(remarks || '').trim() || null,
-        acquisition_date,
-        classification,
-        condition,
+        acquisition_date: acquisition_date || null,
+        classification: classification || 'PAR',
+        condition: condition || 'Serviceable',
         accountable_employee: String(accountable_employee || '').trim() || null,
         responsibility_center: String(accountable_employee || '').trim()
           ? (String(responsibility_center || '').trim() || null)
           : null,
         fund_cluster: String(fund_cluster).trim(),
         status: String(accountable_employee || '').trim() ? 'Issued' : 'Available'
-      }])
+      })
+    }
+
+    const { data, error } = await supabase
+      .from('items')
+      .insert(itemsToInsert)
       .select()
-      .single()
 
     if (error) {
       console.log(error)
@@ -186,13 +222,20 @@ router.post('/', async (req, res) => {
     }
 
     try {
+      const firstItem = data[0]
+      const lastItem = data[data.length - 1]
+      
+      const logMessage = requestedQty > 1 
+        ? `Bulk added ${data.length} items: ${description} (${firstItem.property_number} to ${lastItem.property_number})`
+        : `Added item: ${firstItem.description}`
+
       await createAuditLog(
         'Created',
-        data.id,
+        firstItem.id,
         null,
         JSON.stringify(data),
-        'Added item: ' + data.description,
-        req.profile.id
+        logMessage,
+        req.profile ? req.profile.id : null
       )
     } catch (auditError) {
       console.log('Audit log error:', auditError)
@@ -205,6 +248,9 @@ router.post('/', async (req, res) => {
   }
 })
 
+// ==========================================
+// 6. UPDATE ITEM
+// ==========================================
 router.put('/:id', async (req, res) => {
   try {
     const {
@@ -233,11 +279,11 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Fund Cluster is required.' })
     }
 
-    const itemQuantity = Number(quantity ?? 0)
+    const itemQuantity = Number(quantity ?? 1)
 
-    if (!Number.isInteger(itemQuantity) || itemQuantity < 0) {
+    if (!Number.isInteger(itemQuantity) || itemQuantity < 1) {
       return res.status(400).json({
-        error: 'Quantity must be a non-negative whole number.'
+        error: 'Quantity must be a positive whole number.'
       })
     }
 
@@ -254,15 +300,15 @@ router.put('/:id', async (req, res) => {
     const { data, error } = await supabase
       .from('items')
       .update({
-        property_number,
-        description,
-        model_number,
-        serial_number,
-        cost,
+        property_number: property_number || null,
+        description: description || null,
+        model_number: model_number || null,
+        serial_number: serial_number || null,
+        cost: cost || 0,
         quantity: itemQuantity,
-        acquisition_date,
-        classification,
-        condition,
+        acquisition_date: acquisition_date || null,
+        classification: classification || 'PAR',
+        condition: condition || 'Serviceable',
         status: String(accountable_employee || '').trim()
           ? (['Available', 'Assigned'].includes(status) ? 'Issued' : (status || 'Issued'))
           : 'Available',
@@ -284,13 +330,10 @@ router.put('/:id', async (req, res) => {
 
     if (error) {
       console.log(error)
-
       const referenceError = getItemReferenceError(error, 'updated')
-
       if (referenceError) {
         return res.status(409).json({ error: referenceError })
       }
-
       return res.status(500).json({ error: error.message })
     }
 
@@ -301,7 +344,7 @@ router.put('/:id', async (req, res) => {
         JSON.stringify(oldData),
         JSON.stringify(data),
         'Updated item: ' + data.description,
-        req.profile.id
+        req.profile ? req.profile.id : null
       )
     } catch (auditError) {
       console.log('Audit log error:', auditError)
@@ -314,6 +357,9 @@ router.put('/:id', async (req, res) => {
   }
 })
 
+// ==========================================
+// 7. DELETE ITEM
+// ==========================================
 router.delete('/:id', async (req, res) => {
   try {
     const { data: oldData, error: oldError } = await supabase
@@ -346,16 +392,10 @@ router.delete('/:id', async (req, res) => {
 
     if (deleteError) {
       console.log(deleteError)
-
-      const referenceError = getItemReferenceError(
-        deleteError,
-        'deleted'
-      )
-
+      const referenceError = getItemReferenceError(deleteError, 'deleted')
       if (referenceError) {
         return res.status(409).json({ error: referenceError })
       }
-
       return res.status(500).json({ error: deleteError.message })
     }
 
@@ -366,7 +406,7 @@ router.delete('/:id', async (req, res) => {
         JSON.stringify(oldData),
         null,
         'Deleted item: ' + oldData.description,
-        req.profile.id
+        req.profile ? req.profile.id : null
       )
     } catch (auditError) {
       console.log('Audit log error:', auditError)

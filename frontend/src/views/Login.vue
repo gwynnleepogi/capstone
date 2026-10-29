@@ -1,3 +1,4 @@
+
 <template>
   <div class="login-page">
     <main class="login-shell">
@@ -7,6 +8,7 @@
             <img src="../assets/LOGO.png" alt="NVSU logo">
           </div>
         </div>
+
         <div class="visual-copy">
           <span class="visual-kicker">NVSU PROPERTY INVENTORY</span>
           <h2>Welcome to<br>your workspace.</h2>
@@ -16,50 +18,23 @@
 
       <section class="login-panel">
         <header class="form-heading">
-          <span class="eyebrow">{{ signingUp ? 'GET STARTED' : 'SECURE ACCESS' }}</span>
+          <span class="eyebrow">SECURE ACCESS</span>
+
           <h1>
-            {{
-              signingUp
-                ? 'Create your account'
-                : loginStep === 1
-                  ? 'Welcome back'
-                  : 'Sign in to continue'
-            }}
+            {{ loginStep === 1 ? 'Welcome back' : 'Sign in to continue' }}
           </h1>
+
           <p>
             {{
-              signingUp
-                ? 'Register to access the property inventory system.'
-                : loginStep === 1
-                  ? 'Choose your personnel type to get started.'
-                  : 'Enter your account details below.'
+              loginStep === 1
+                ? 'Choose your personnel type to get started.'
+                : 'Enter your account details below.'
             }}
           </p>
         </header>
 
-        <div class="mode-switch" role="tablist" aria-label="Account access">
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="!signingUp"
-            :class="{ active: !signingUp }"
-            @click="switchToLogin"
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="signingUp"
-            :class="{ active: signingUp }"
-            @click="switchToSignup"
-          >
-            Sign Up
-          </button>
-        </div>
-
         <form class="auth-form" @submit.prevent="login">
-          <template v-if="!signingUp && loginStep === 1">
+          <template v-if="loginStep === 1">
             <div class="section-heading">
               <h2>Choose personnel type</h2>
               <span>Select the account you use at NVSU</span>
@@ -73,10 +48,13 @@
                 :aria-pressed="preferredRole === 'Administrator'"
                 @click="selectRole('Administrator')"
               >
-                <span class="role-icon"><i class="bi bi-person-gear"></i></span>
+                <span class="role-icon">
+                  <i class="bi bi-person-gear"></i>
+                </span>
                 <span class="role-label">Administrator</span>
                 <i class="bi bi-check-circle-fill role-check"></i>
               </button>
+
               <button
                 type="button"
                 class="role-button"
@@ -84,10 +62,13 @@
                 :aria-pressed="preferredRole === 'Personnel'"
                 @click="selectRole('Personnel')"
               >
-                <span class="role-icon"><i class="bi bi-person-badge"></i></span>
+                <span class="role-icon">
+                  <i class="bi bi-person-badge"></i>
+                </span>
                 <span class="role-label">Personnel</span>
                 <i class="bi bi-check-circle-fill role-check"></i>
               </button>
+
               <button
                 type="button"
                 class="role-button"
@@ -95,10 +76,13 @@
                 :aria-pressed="preferredRole === 'Teacher'"
                 @click="selectRole('Teacher')"
               >
-                <span class="role-icon"><i class="bi bi-mortarboard"></i></span>
+                <span class="role-icon">
+                  <i class="bi bi-mortarboard"></i>
+                </span>
                 <span class="role-label">Teaching</span>
                 <i class="bi bi-check-circle-fill role-check"></i>
               </button>
+
               <button
                 type="button"
                 class="role-button"
@@ -106,7 +90,9 @@
                 :aria-pressed="preferredRole === 'Non-Teaching Staff'"
                 @click="selectRole('Non-Teaching Staff')"
               >
-                <span class="role-icon"><i class="bi bi-people"></i></span>
+                <span class="role-icon">
+                  <i class="bi bi-people"></i>
+                </span>
                 <span class="role-label">Non-Teaching</span>
                 <i class="bi bi-check-circle-fill role-check"></i>
               </button>
@@ -123,14 +109,18 @@
             </button>
           </template>
 
-          <template v-if="!signingUp && loginStep === 2">
+          <template v-if="loginStep === 2">
             <div class="selected-role">
-              <span><i class="bi bi-shield-check"></i> Signing in as</span>
+              <span>
+                <i class="bi bi-shield-check"></i>
+                Signing in as
+              </span>
               <strong>{{ preferredRole }}</strong>
             </div>
 
             <div class="field">
               <label for="login-email">Email address</label>
+
               <div class="input-wrap">
                 <i class="bi bi-envelope"></i>
                 <input
@@ -146,6 +136,7 @@
 
             <div class="field">
               <label for="login-password">Password</label>
+
               <div class="input-wrap">
                 <i class="bi bi-lock"></i>
                 <input
@@ -159,78 +150,22 @@
               </div>
             </div>
 
-            <button type="submit" class="primary-button" :disabled="loading">
+            <button
+              type="submit"
+              class="primary-button"
+              :disabled="loading"
+            >
               {{ loading ? 'Please wait...' : 'Sign In' }}
               <i v-if="!loading" class="bi bi-arrow-right"></i>
             </button>
-            <button type="button" class="text-button" @click="goBackToRoles">
+
+            <button
+              type="button"
+              class="text-button"
+              @click="goBackToRoles"
+            >
               <i class="bi bi-arrow-left"></i>
               Change personnel type
-            </button>
-          </template>
-
-          <template v-if="signingUp">
-            <div class="field">
-              <label for="signup-name">Full name</label>
-              <div class="input-wrap">
-                <i class="bi bi-person"></i>
-                <input
-                  id="signup-name"
-                  v-model="fullName"
-                  type="text"
-                  autocomplete="name"
-                  placeholder="Enter your full name"
-                  required
-                >
-              </div>
-            </div>
-
-            <div class="field">
-              <label for="signup-email">Email address</label>
-              <div class="input-wrap">
-                <i class="bi bi-envelope"></i>
-                <input
-                  id="signup-email"
-                  v-model="email"
-                  type="email"
-                  autocomplete="email"
-                  placeholder="you@example.com"
-                  required
-                >
-              </div>
-            </div>
-
-            <div class="field">
-              <label for="signup-password">Password</label>
-              <div class="input-wrap">
-                <i class="bi bi-lock"></i>
-                <input
-                  id="signup-password"
-                  v-model="password"
-                  type="password"
-                  autocomplete="new-password"
-                  placeholder="Create a password"
-                  required
-                >
-              </div>
-            </div>
-
-            <div class="field">
-              <label for="signup-role">Personnel type</label>
-              <div class="input-wrap select-wrap">
-                <i class="bi bi-people"></i>
-                <select id="signup-role" v-model="role" required>
-                  <option value="">Choose personnel type</option>
-                  <option value="Personnel">Personnel</option>
-                  <option value="Teacher">Teacher</option>
-                  <option value="Non-Teaching Staff">Non-Teaching Staff</option>
-                </select>
-              </div>
-            </div>
-
-            <button type="submit" class="primary-button" :disabled="loading">
-              {{ loading ? 'Please wait...' : 'Create Account' }}
-              <i v-if="!loading" class="bi bi-arrow-right"></i>
             </button>
           </template>
         </form>
@@ -252,37 +187,13 @@ export default {
     return {
       email: '',
       password: '',
-      fullName: '',
-      role: '',
-      signingUp: false,
       preferredRole: '',
       loginStep: 1,
-      loading: false,
-      error: ''
+      loading: false
     }
   },
 
   methods: {
-    switchToLogin() {
-      this.signingUp = false
-      this.loginStep = 1
-      this.email = ''
-      this.password = ''
-      this.preferredRole = ''
-      this.error = ''
-    },
-
-    switchToSignup() {
-      this.signingUp = true
-      this.loginStep = 1
-      this.email = ''
-      this.password = ''
-      this.fullName = ''
-      this.role = ''
-      this.preferredRole = ''
-      this.error = ''
-    },
-
     selectRole(role) {
       this.preferredRole = role
     },
@@ -294,7 +205,6 @@ export default {
             detail: 'Please choose your personnel type'
           })
         )
-
         return
       }
 
@@ -305,79 +215,38 @@ export default {
       this.loginStep = 1
       this.email = ''
       this.password = ''
-      this.error = ''
     },
 
     async login() {
       this.loading = true
-      this.error = ''
 
       try {
-        const response = await fetch(
-          `/api/auth/${this.signingUp ? 'signup' : 'login'}`,
-          {
-            method: 'POST',
-
-            headers: {
-              'Content-Type': 'application/json'
-            },
-
-            body: JSON.stringify(
-              this.signingUp
-                ? {
-                    full_name: this.fullName,
-                    email: this.email,
-                    password: this.password,
-                    role: this.role
-                  }
-                : {
-                    email: this.email,
-                    password: this.password,
-                    preferred_role: this.preferredRole
-                  }
-            )
-          }
-        )
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: this.email,
+            password: this.password,
+            preferred_role: this.preferredRole
+          })
+        })
 
         const result = await response.json()
 
         if (!response.ok) {
-          if (this.signingUp) {
-            throw new Error(
-              result.error || 'Unable to create account'
-            )
-          }
-
-          throw new Error('Invalid email or password')
-        }
-
-        if (this.signingUp) {
-          window.dispatchEvent(
-            new CustomEvent('show-toast', {
-              detail:
-                result.message ||
-                'Account created successfully'
-            })
+          throw new Error(
+            result.error || 'Invalid email or password'
           )
-
-          this.signingUp = false
-          this.loginStep = 1
-          this.password = ''
-          this.role = ''
-          this.preferredRole = ''
-
-          return
         }
 
-        localStorage.setItem(
-          'accessToken',
-          result.access_token
-        )
+        if (!result.access_token || !result.user) {
+          throw new Error('Invalid login response from server')
+        }
 
-        localStorage.setItem(
-          'user',
-          JSON.stringify(result.user)
-        )
+        localStorage.setItem('accessToken', result.access_token)
+        localStorage.setItem('user', JSON.stringify(result.user))
 
         window.dispatchEvent(
           new CustomEvent('user-updated', {
@@ -386,6 +255,7 @@ export default {
         )
 
         const redirect = this.$route.query.redirect
+
         const destination =
           typeof redirect === 'string' &&
           redirect.startsWith('/') &&
@@ -395,13 +265,11 @@ export default {
 
         await this.$router.push(destination)
       } catch (error) {
-        console.log(error)
+        console.error('Login error:', error)
 
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: this.signingUp
-              ? error.message
-              : 'Invalid email or password'
+            detail: error.message || 'Unable to sign in'
           })
         )
       } finally {
@@ -411,6 +279,7 @@ export default {
   }
 }
 </script>
+
 
 <style scoped>
 .login-page {

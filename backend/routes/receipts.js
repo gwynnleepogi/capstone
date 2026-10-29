@@ -1,10 +1,10 @@
+
 const express = require('express')
-
 const router = express.Router()
-
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
 
+// GET ALL RECEIPTS
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -12,35 +12,14 @@ router.get('/', async (req, res) => {
       .select(`
         *,
         items (
-          id,
-          property_number,
-          description,
-          model_number,
-          serial_number,
-          cost,
-          acquisition_date,
-          quantity,
-          condition,
-          status,
-          accountable_employee,
-          responsibility_center,
-          fund_cluster,
-          unit
+          id, property_number, description, model_number, serial_number,
+          cost, acquisition_date, quantity, condition, status,
+          accountable_employee, responsibility_center, fund_cluster, unit
         ),
-        users (
-          id,
-          full_name,
-          signature_path
-        ),
+        users (id, full_name, signature_path),
         item_requests (
-          id,
-          request_number,
-          item_description,
-          quantity,
-          purpose,
-          status,
-          requested_by,
-          office_id,
+          id, request_number, item_description, quantity, purpose, status,
+          requested_by, office_id,
           users (id, full_name, signature_path),
           offices (id, office_name)
         )
@@ -58,6 +37,7 @@ router.get('/', async (req, res) => {
   }
 })
 
+// GET ONE RECEIPT
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -65,35 +45,14 @@ router.get('/:id', async (req, res) => {
       .select(`
         *,
         items (
-          id,
-          property_number,
-          description,
-          model_number,
-          serial_number,
-          cost,
-          acquisition_date,
-          quantity,
-          condition,
-          status,
-          accountable_employee,
-          responsibility_center,
-          fund_cluster,
-          unit
+          id, property_number, description, model_number, serial_number,
+          cost, acquisition_date, quantity, condition, status,
+          accountable_employee, responsibility_center, fund_cluster, unit
         ),
-        users (
-          id,
-          full_name,
-          signature_path
-        ),
+        users (id, full_name, signature_path),
         item_requests (
-          id,
-          request_number,
-          item_description,
-          quantity,
-          purpose,
-          status,
-          requested_by,
-          office_id,
+          id, request_number, item_description, quantity, purpose, status,
+          requested_by, office_id,
           users (id, full_name, signature_path),
           offices (id, office_name)
         )
@@ -101,7 +60,7 @@ router.get('/:id', async (req, res) => {
       .eq('id', req.params.id)
       .single()
 
-    if (error) {
+    if (error || !data) {
       return res.status(404).json({ error: 'Receipt not found' })
     }
 
@@ -112,6 +71,7 @@ router.get('/:id', async (req, res) => {
   }
 })
 
+// CREATE RECEIPT - ONE UNIT PER REQUEST
 router.post('/', async (req, res) => {
   try {
     const {
@@ -123,19 +83,24 @@ router.post('/', async (req, res) => {
     } = req.body
 
     if (!item_request_id) {
-      return res.status(400).json({ error: 'Item request is required' })
+      return res.status(400).json({
+        error: 'Item request is required'
+      })
     }
 
-    if (!receipt_type || !['PAR', 'ICS'].includes(receipt_type)) {
+    if (!['PAR', 'ICS'].includes(receipt_type)) {
       return res.status(400).json({
         error: 'Receipt type must be PAR or ICS'
       })
     }
 
     if (!receipt_number || !String(receipt_number).trim()) {
-      return res.status(400).json({ error: 'Receipt number is required' })
+      return res.status(400).json({
+        error: 'Receipt number is required'
+      })
     }
 
+    // Find request
     const { data: request, error: requestError } = await supabase
       .from('item_requests')
       .select('*, users (id, full_name)')
@@ -143,10 +108,14 @@ router.post('/', async (req, res) => {
       .single()
 
     if (requestError || !request) {
-      return res.status(404).json({ error: 'Item request not found' })
+      return res.status(404).json({
+        error: 'Item request not found'
+      })
     }
 
-    if (String(request.status || '').trim().toLowerCase() !== 'approved') {
+    if (
+      String(request.status || '').trim().toLowerCase() !== 'approved'
+    ) {
       return res.status(400).json({
         error: 'Only approved requests can be issued'
       })
@@ -158,14 +127,27 @@ router.post('/', async (req, res) => {
       })
     }
 
-    const { data: existingReceipt, error: existingReceiptError } = await supabase
+    // Every request must be for exactly one unit
+    if (Number(request.quantity) !== 1) {
+      return res.status(400).json({
+        error: 'Each item request must have a quantity of 1. Please update the request first.'
+      })
+    }
+
+    // Prevent duplicate receipts
+    const {
+      data: existingReceipt,
+      error: existingError
+    } = await supabase
       .from('property_receipts')
       .select('id')
       .eq('item_request_id', item_request_id)
       .maybeSingle()
 
-    if (existingReceiptError) {
-      return res.status(500).json({ error: existingReceiptError.message })
+    if (existingError) {
+      return res.status(500).json({
+        error: existingError.message
+      })
     }
 
     if (existingReceipt) {
@@ -174,19 +156,36 @@ router.post('/', async (req, res) => {
       })
     }
 
+    // Find item without tracking_type
     const { data: item, error: itemError } = await supabase
       .from('items')
-      .select('id, description, status, condition, accountable_employee, quantity')
+      .select(`
+        id, description, status, condition, accountable_employee,
+        quantity
+      `)
       .eq('id', request.item_id)
       .single()
 
     if (itemError || !item) {
-      return res.status(404).json({ error: 'Item not found' })
+      return res.status(404).json({
+        error: 'Item not found'
+      })
     }
 
-    if (item.status !== 'Available' && item.status !== 'Assigned') {
+    const availableQuantity = Number(item.quantity)
+
+    if (
+      !Number.isInteger(availableQuantity) ||
+      availableQuantity < 0
+    ) {
       return res.status(400).json({
-        error: `This item cannot be issued. Current status: ${item.status}`
+        error: 'Item stock quantity is invalid'
+      })
+    }
+
+    if (availableQuantity < 1) {
+      return res.status(400).json({
+        error: 'This item is out of stock'
       })
     }
 
@@ -196,21 +195,13 @@ router.post('/', async (req, res) => {
       })
     }
 
-    const quantityToIssue = Number(request.quantity)
-    const availableQuantity = Number(item.quantity || 0)
-
-    if (!Number.isInteger(quantityToIssue) || quantityToIssue < 1) {
+    if (!['Available', 'Assigned'].includes(item.status)) {
       return res.status(400).json({
-        error: 'Requested quantity must be at least 1'
+        error: `This item cannot be issued. Current status: ${item.status}`
       })
     }
 
-    if (availableQuantity < quantityToIssue) {
-      return res.status(400).json({
-        error: `Insufficient stock. Available: ${availableQuantity}, requested: ${quantityToIssue}.`
-      })
-    }
-
+    // Find recipient
     const { data: recipient, error: recipientError } = await supabase
       .from('users')
       .select('id, full_name')
@@ -218,11 +209,25 @@ router.post('/', async (req, res) => {
       .single()
 
     if (recipientError || !recipient) {
-      return res.status(404).json({ error: 'Recipient not found' })
+      return res.status(404).json({
+        error: 'Recipient not found'
+      })
     }
 
+    // Always issue one unit
+    const quantityToIssue = 1
     const remainingQuantity = availableQuantity - quantityToIssue
 
+    const newStatus = remainingQuantity > 0
+      ? 'Available'
+      : 'Issued'
+
+    // Only assign the employee when no stock remains
+    const newAccountableEmployee = remainingQuantity === 0
+      ? recipient.full_name
+      : null
+
+    // Create receipt
     const { data: receipt, error: receiptError } = await supabase
       .from('property_receipts')
       .insert([{
@@ -231,8 +236,9 @@ router.post('/', async (req, res) => {
         receipt_type,
         receipt_number: String(receipt_number).trim(),
         issued_to: request.requested_by,
-        quantity: quantityToIssue,
-        date_issued: date_issued || new Date().toISOString().split('T')[0],
+        quantity: 1,
+        date_issued: date_issued ||
+          new Date().toISOString().split('T')[0],
         remarks: remarks || null,
         status: 'Issued'
       }])
@@ -240,15 +246,18 @@ router.post('/', async (req, res) => {
       .single()
 
     if (receiptError) {
-      return res.status(500).json({ error: receiptError.message })
+      return res.status(500).json({
+        error: receiptError.message
+      })
     }
 
+    // Reduce stock by one
     const { data: updatedItem, error: updateItemError } = await supabase
       .from('items')
       .update({
         quantity: remainingQuantity,
-        status: 'Issued',
-        accountable_employee: recipient.full_name
+        status: newStatus,
+        accountable_employee: newAccountableEmployee
       })
       .eq('id', request.item_id)
       .select()
@@ -260,15 +269,18 @@ router.post('/', async (req, res) => {
         .delete()
         .eq('id', receipt.id)
 
-      return res.status(500).json({ error: updateItemError.message })
+      return res.status(500).json({
+        error: updateItemError.message
+      })
     }
 
-    const { error: updateRequestError } = await supabase
+    // Mark request as delivered
+    const { error: requestUpdateError } = await supabase
       .from('item_requests')
       .update({ status: 'Delivered' })
       .eq('id', item_request_id)
 
-    if (updateRequestError) {
+    if (requestUpdateError) {
       await supabase
         .from('items')
         .update({
@@ -283,33 +295,12 @@ router.post('/', async (req, res) => {
         .delete()
         .eq('id', receipt.id)
 
-      return res.status(500).json({ error: updateRequestError.message })
-    }
-
-    const { data: finalItem, error: finalItemError } = await supabase
-      .from('items')
-      .update({
-        quantity: remainingQuantity,
-        status: 'Issued',
-        accountable_employee: recipient.full_name
-      })
-      .eq('id', request.item_id)
-      .select('id, property_number, status, quantity, accountable_employee')
-      .single()
-
-    if (finalItemError || !finalItem || finalItem.status !== 'Issued') {
-      console.error(
-        'Failed to confirm Issued property status:',
-        finalItemError ? finalItemError.message : finalItem
-      )
-
       return res.status(500).json({
-        error: 'Receipt was created, but the property status could not be confirmed as Issued.'
+        error: requestUpdateError.message
       })
     }
 
-    console.log('Property status confirmed:', finalItem)
-
+    // Audit log
     try {
       await createAuditLog({
         user_id: req.profile?.id || null,
@@ -320,10 +311,13 @@ router.post('/', async (req, res) => {
           receipt_id: receipt.id,
           item_request_id,
           receipt_number: receipt.receipt_number,
-          quantity: quantityToIssue,
-          status: 'Issued'
+          quantity: 1,
+          old_quantity: availableQuantity,
+          new_quantity: remainingQuantity,
+          status: newStatus
         }),
-        description: `Created receipt ${receipt.receipt_number} for ${item.description}`,
+        description:
+          `Created receipt ${receipt.receipt_number} for ${item.description}`,
         record_id: receipt.id
       })
     } catch (auditError) {
@@ -333,14 +327,17 @@ router.post('/', async (req, res) => {
     res.status(201).json({
       message: 'Receipt created successfully',
       receipt,
-      item: finalItem
+      item: updatedItem
     })
   } catch (error) {
     console.log(error)
-    res.status(500).json({ error: 'Failed to create receipt' })
+    res.status(500).json({
+      error: 'Failed to create receipt'
+    })
   }
 })
 
+// UPDATE RECEIPT DETAILS
 router.put('/:id', async (req, res) => {
   try {
     const {
@@ -351,27 +348,34 @@ router.put('/:id', async (req, res) => {
       status
     } = req.body
 
-    if (!receipt_type || !['PAR', 'ICS'].includes(receipt_type)) {
+    if (!['PAR', 'ICS'].includes(receipt_type)) {
       return res.status(400).json({
         error: 'Receipt type must be PAR or ICS'
       })
     }
 
     if (!receipt_number || !String(receipt_number).trim()) {
-      return res.status(400).json({ error: 'Receipt number is required' })
+      return res.status(400).json({
+        error: 'Receipt number is required'
+      })
     }
 
-    const { data: existingReceipt, error: existingReceiptError } = await supabase
+    const {
+      data: existingReceipt,
+      error: findError
+    } = await supabase
       .from('property_receipts')
       .select('*')
       .eq('id', req.params.id)
       .single()
 
-    if (existingReceiptError || !existingReceipt) {
-      return res.status(404).json({ error: 'Receipt not found' })
+    if (findError || !existingReceipt) {
+      return res.status(404).json({
+        error: 'Receipt not found'
+      })
     }
 
-    const receiptUpdates = {
+    const updates = {
       receipt_type,
       receipt_number: String(receipt_number).trim(),
       date_issued: date_issued || null,
@@ -379,35 +383,23 @@ router.put('/:id', async (req, res) => {
     }
 
     if (status !== undefined) {
-      receiptUpdates.status = status
+      updates.status = status
     }
 
-    const { data: updatedReceipt, error: updateReceiptError } = await supabase
+    const {
+      data: updatedReceipt,
+      error: updateError
+    } = await supabase
       .from('property_receipts')
-      .update(receiptUpdates)
+      .update(updates)
       .eq('id', req.params.id)
       .select()
       .single()
 
-    if (updateReceiptError) {
-      return res.status(500).json({ error: updateReceiptError.message })
-    }
-
-    if (
-      String(updatedReceipt.status || '').trim().toLowerCase() === 'issued' &&
-      existingReceipt.item_id
-    ) {
-      const { error: updateItemError } = await supabase
-        .from('items')
-        .update({ status: 'Issued' })
-        .eq('id', existingReceipt.item_id)
-
-      if (updateItemError) {
-        console.log('Item status update error:', updateItemError.message)
-        return res.status(500).json({
-          error: 'Receipt was updated, but the property status could not be updated.'
-        })
-      }
+    if (updateError) {
+      return res.status(500).json({
+        error: updateError.message
+      })
     }
 
     try {
@@ -417,7 +409,8 @@ router.put('/:id', async (req, res) => {
         action: 'UPDATE',
         old_value: JSON.stringify(existingReceipt),
         new_value: JSON.stringify(updatedReceipt),
-        description: `Updated receipt ${updatedReceipt.receipt_number}`,
+        description:
+          `Updated receipt ${updatedReceipt.receipt_number}`,
         record_id: req.params.id
       })
     } catch (auditError) {
@@ -430,59 +423,68 @@ router.put('/:id', async (req, res) => {
     })
   } catch (error) {
     console.log(error)
-    res.status(500).json({ error: 'Failed to update receipt' })
+    res.status(500).json({
+      error: 'Failed to update receipt'
+    })
   }
 })
 
+// DELETE RECEIPT AND RESTORE STOCK
 router.delete('/:id', async (req, res) => {
   try {
-    const { data: existingReceipt, error: existingReceiptError } = await supabase
+    const {
+      data: receipt,
+      error: receiptError
+    } = await supabase
       .from('property_receipts')
       .select('*')
       .eq('id', req.params.id)
       .single()
 
-    if (existingReceiptError || !existingReceipt) {
-      return res.status(404).json({ error: 'Receipt not found' })
+    if (receiptError || !receipt) {
+      return res.status(404).json({
+        error: 'Receipt not found'
+      })
     }
 
-    let currentItem = null
+    let item = null
 
-    if (existingReceipt.item_id) {
-      const { data, error: currentItemError } = await supabase
+    if (receipt.item_id) {
+      const { data, error } = await supabase
         .from('items')
         .select('id, quantity, status, accountable_employee')
-        .eq('id', existingReceipt.item_id)
+        .eq('id', receipt.item_id)
         .single()
 
-      if (currentItemError || !data) {
+      if (error || !data) {
         return res.status(409).json({
           error: 'The linked item was not found. Receipt was not deleted.'
         })
       }
 
-      currentItem = data
+      item = data
 
-      const quantityToRestore = Number(existingReceipt.quantity)
+      const restoreQuantity = Number(receipt.quantity)
 
-      if (!Number.isInteger(quantityToRestore) || quantityToRestore < 1) {
+      if (
+        !Number.isInteger(restoreQuantity) ||
+        restoreQuantity < 1
+      ) {
         return res.status(400).json({
           error: 'Receipt quantity is invalid. Receipt was not deleted.'
         })
       }
 
-      const restoredQuantity = Number(currentItem.quantity || 0) + quantityToRestore
-
-      const { error: restoreItemError } = await supabase
+      const { error: restoreError } = await supabase
         .from('items')
         .update({
-          quantity: restoredQuantity,
+          quantity: Number(item.quantity || 0) + restoreQuantity,
           status: 'Available',
           accountable_employee: null
         })
-        .eq('id', existingReceipt.item_id)
+        .eq('id', receipt.item_id)
 
-      if (restoreItemError) {
+      if (restoreError) {
         return res.status(500).json({
           error: 'Failed to restore item stock. Receipt was not deleted.'
         })
@@ -495,15 +497,15 @@ router.delete('/:id', async (req, res) => {
       .eq('id', req.params.id)
 
     if (deleteError) {
-      if (currentItem) {
+      if (item) {
         await supabase
           .from('items')
           .update({
-            quantity: Number(currentItem.quantity || 0),
-            status: currentItem.status,
-            accountable_employee: currentItem.accountable_employee
+            quantity: Number(item.quantity || 0),
+            status: item.status,
+            accountable_employee: item.accountable_employee
           })
-          .eq('id', currentItem.id)
+          .eq('id', item.id)
       }
 
       return res.status(500).json({
@@ -511,35 +513,40 @@ router.delete('/:id', async (req, res) => {
       })
     }
 
-    if (existingReceipt.item_request_id) {
-      const { error: restoreRequestError } = await supabase
+    if (receipt.item_request_id) {
+      const { error } = await supabase
         .from('item_requests')
         .update({ status: 'Approved' })
-        .eq('id', existingReceipt.item_request_id)
+        .eq('id', receipt.item_request_id)
 
-      if (restoreRequestError) {
-        console.log('Request restore error:', restoreRequestError.message)
+      if (error) {
+        console.log('Request restore error:', error.message)
       }
     }
 
     try {
       await createAuditLog({
         user_id: req.profile?.id || null,
-        item_id: existingReceipt.item_id,
+        item_id: receipt.item_id,
         action: 'DELETE',
-        old_value: JSON.stringify(existingReceipt),
+        old_value: JSON.stringify(receipt),
         new_value: null,
-        description: `Deleted receipt ${existingReceipt.receipt_number}`,
-        record_id: existingReceipt.id
+        description:
+          `Deleted receipt ${receipt.receipt_number}`,
+        record_id: receipt.id
       })
     } catch (auditError) {
       console.log('Audit log error:', auditError)
     }
 
-    res.json({ message: 'Receipt deleted and stock restored successfully' })
+    res.json({
+      message: 'Receipt deleted and stock restored successfully'
+    })
   } catch (error) {
     console.log(error)
-    res.status(500).json({ error: 'Failed to delete receipt' })
+    res.status(500).json({
+      error: 'Failed to delete receipt'
+    })
   }
 })
 
