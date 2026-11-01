@@ -1762,473 +1762,1034 @@ export default {
 
       return { width, height }
     },
-        printRIS(receipt, details = {}) {
-      const pageSize = this.getPrintPageSize(details)
-      if (!pageSize) return
+printRIS(receipt, details = {}) {
+  const pageSize = this.getPrintPageSize(details)
+  if (!pageSize) return
 
-      const item = this.getReceiptItem(receipt)
-      const request = receipt.item_requests || {}
-      const office = request.offices || receipt.offices || {}
-      const escape = value => this.escapeHtml(value === null || value === undefined || value === '' ? '-' : value)
-      const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
-      const signatureImageMarkup = key => details.signatureImages?.[key]
-        ? `<img class="print-signature" src="${details.signatureImages[key]}" alt="Signature">`
-        : ''
+  const item = this.getReceiptItem(receipt)
+  const request = receipt.item_requests || {}
+  const office = request.offices || receipt.offices || {}
 
-      const printWindow = window.open('', '_blank')
-      if (!printWindow) {
-        this.showToast('Please allow pop-ups to print the RIS')
-        return
-      }
+  const escape = value =>
+    this.escapeHtml(
+      value === null || value === undefined || value === ''
+        ? '-'
+        : value
+    )
 
-      const receiptNumber = escape(receipt.receipt_number)
-      const dateIssued = escape(receipt.date_issued)
-      const officeName = escape(details.officeName || office.office_name || request.office_name || receipt.office_name)
-      const division = escape(details.division || request.division || receipt.division)
-      const responsibilityCenter = escape(request.responsibility_center || receipt.responsibility_center || item.responsibility_center)
-      const fundCluster = escape(details.fundCluster || request.fund_cluster || receipt.fund_cluster)
-      const description = escape(item.description || request.item_description)
-      const stockNumber = escape(item.stock_number || item.property_number || item.stock_no)
-      const quantityRequested = escape(request.quantity ?? request.quantity_requested ?? receipt.quantity_requested ?? receipt.quantity)
-      const quantityIssued = escape(this.getQuantityIssued(receipt) || request.quantity_issued || request.quantity || '-')
-      const requestedQuantity = Number(request.quantity ?? request.quantity_requested ?? receipt.quantity_requested ?? this.getQuantityIssued(receipt))
-      const availableQuantity = Number(item.quantity_available ?? item.quantity ?? item.stock_balance)
-      const stockWasAvailableWhenIssued =
-        ['Issued', 'Delivered'].includes(receipt.status) ||
-        request.status === 'Delivered'
-      const stockIsAvailable = stockWasAvailableWhenIssued || (
-        item.status === 'Available' &&
-        Number.isFinite(availableQuantity) &&
-        Number.isFinite(requestedQuantity) &&
-        availableQuantity >= requestedQuantity
-      )
-      const purpose = escape(details.purpose || request.purpose || receipt.purpose || request.remarks)
-      const remarks = escape(receipt.remarks || request.remarks)
+  const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
 
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>RIS - ${receiptNumber}</title>
-          <style>
-            @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 8mm; }
-            * { box-sizing: border-box; }
-            body { font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 10px; margin: 0; }
-            .header-frame { border: 0.5px solid #000; margin-bottom: 0; }
-            .content-frame { border: 0.5px solid #000; padding: 0; }
-            .letterhead { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; border-bottom: 0.5px solid #000; min-height: 72px; }
-            .logo-box { border-right: 0.5px solid #000; height: 72px; display: flex; align-items: center; justify-content: center; }
-            .logo { width: 58px; height: 58px; object-fit: contain; }
-            .letterhead-text { line-height: 1.25; padding: 3px; }
-            .letterhead-text p { margin: 1px 0; }
-            .school-name { font-size: 14px; font-weight: bold; }
-            .document-title { text-align: center; font-size: 14px; font-weight: bold; padding: 5px 0; border-bottom: 0.5px solid #000; }
-            table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            th, td { border: 0.5px solid #000; padding: 4px 4px; vertical-align: middle; overflow-wrap: anywhere; }
-            th { text-align: center; font-weight: bold; }
-            .meta td { height: 23px; }
-            .items { margin-top: 0; }
-            .items th { height: 29px; }
-            .items td { height: 30px; }
-            .center { text-align: center; }
-            .sign-table { margin: 0; border-collapse: collapse; table-layout: fixed; }
-            .sign-table td { border: 0.5px solid #000; padding: 4px 6px; vertical-align: middle; font-size: 10px; }
-            .sign-table .sign-label { text-align: left; font-weight: normal; }
-            .sign-table .purpose-row td { height: 38px; }
-            .sign-table .purpose-value { text-align: left; }
-            .sign-table .sign-head-row td { height: 44px; vertical-align: top; text-align: left; }
-            .sign-table .blank-cell { border-top: 0.5px solid #000; }
-            .sign-table .signature-row td { height: 40px; }
-            .print-signature { display: block; max-width: 100px; max-height: 34px; object-fit: contain; margin: 0 auto; }
-            .sign-table .name-row td { height: 26px; }
-            .sign-table .sign-name { text-align: center; font-weight: bold; text-transform: uppercase; }
-            .sign-table .designation-row td { height: 26px; }
-            .sign-table .sign-designation { text-align: center; font-style: italic; }
-            .sign-table .date-row td { height: 26px; }
-            .small { font-size: 9px; }
-            .instructions { margin-top: 0; border-top: 0.5px solid #000; padding: 5px 6px; font-size: 7px; line-height: 1.2; }
-            .instructions-title { text-align: center; font-weight: bold; text-decoration: underline; margin-bottom: 4px; }
-            .instructions p { margin: 0 0 3px; }
-            .instructions .copies { margin-left: 10px; }
-            .form-code { margin-top: 3px; font-weight: bold; }
-            @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
-          </style>
-        </head>
-        <body>
-          <div class="header-frame">
-            <div class="letterhead">
-              <div class="logo-box"><img class="logo" src="${logoUrl}" alt="NVSU Logo"></div>
-              <div class="letterhead-text">
-                <p>Republic of the Philippines</p>
-                <p class="school-name">NUEVA VIZCAYA STATE UNIVERSITY</p>
-                <p>3702 Bambang, Nueva Vizcaya</p>
-              </div>
-            </div>
+  const signatureImageMarkup = key =>
+    details.signatureImages?.[key]
+      ? `<img class="print-signature" src="${details.signatureImages[key]}" alt="Signature">`
+      : ''
 
-            <div class="document-title">REQUISITION AND ISSUE SLIP (RIS)</div>
+  const printWindow = window.open('', '_blank')
+
+  if (!printWindow) {
+    this.showToast('Please allow pop-ups to print the RIS')
+    return
+  }
+
+  const receiptNumber = escape(receipt.receipt_number)
+
+  const officeName = escape(
+    details.officeName ||
+    office.office_name ||
+    request.office_name ||
+    receipt.office_name
+  )
+
+  const division = escape(
+    details.division ||
+    request.division ||
+    receipt.division
+  )
+
+  const responsibilityCenter = escape(
+    request.responsibility_center ||
+    receipt.responsibility_center ||
+    item.responsibility_center
+  )
+
+  const fundCluster = escape(
+    details.fundCluster ||
+    request.fund_cluster ||
+    receipt.fund_cluster
+  )
+
+  const description = escape(
+    item.description ||
+    request.item_description
+  )
+
+  const stockNumber = escape(
+    item.stock_number ||
+    item.property_number ||
+    item.stock_no
+  )
+
+  const quantityRequested = escape(
+    request.quantity ??
+    request.quantity_requested ??
+    receipt.quantity_requested ??
+    receipt.quantity
+  )
+
+  const quantityIssued = escape(
+    this.getQuantityIssued(receipt) ||
+    request.quantity_issued ||
+    request.quantity ||
+    '-'
+  )
+
+  const requestedQuantity = Number(
+    request.quantity ??
+    request.quantity_requested ??
+    receipt.quantity_requested ??
+    this.getQuantityIssued(receipt)
+  )
+
+  const availableQuantity = Number(
+    item.quantity_available ??
+    item.quantity ??
+    item.stock_balance
+  )
+
+  const stockWasAvailableWhenIssued =
+    ['Issued', 'Delivered'].includes(receipt.status) ||
+    request.status === 'Delivered'
+
+  const stockIsAvailable =
+    stockWasAvailableWhenIssued ||
+    (
+      item.status === 'Available' &&
+      Number.isFinite(availableQuantity) &&
+      Number.isFinite(requestedQuantity) &&
+      availableQuantity >= requestedQuantity
+    )
+
+  const purpose = escape(
+    details.purpose ||
+    request.purpose ||
+    receipt.purpose ||
+    request.remarks
+  )
+
+  const remarks = escape(
+    receipt.remarks ||
+    request.remarks
+  )
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+
+    <head>
+
+      <meta charset="UTF-8">
+
+      <title>RIS - ${receiptNumber}</title>
+
+      <style>
+
+        @page {
+          size: ${pageSize.width}in ${pageSize.height}in portrait;
+          margin: 8mm;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          color: #000;
+          font-size: 10px;
+          margin: 0;
+        }
+
+
+        /* =========================
+           HEADER
+           ========================= */
+
+        .header-frame {
+          border: 0.5px solid #000;
+          margin-bottom: 0;
+        }
+
+        .letterhead {
+          display: grid;
+          grid-template-columns: 72px 1fr;
+          align-items: center;
+          text-align: center;
+          border-bottom: 0.5px solid #000;
+          min-height: 72px;
+        }
+
+        .logo-box {
+          border-right: 0.5px solid #000;
+          height: 72px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .logo {
+          width: 58px;
+          height: 58px;
+          object-fit: contain;
+        }
+
+        .letterhead-text {
+          line-height: 1.25;
+          padding: 3px;
+        }
+
+        .letterhead-text p {
+          margin: 1px 0;
+        }
+
+        .school-name {
+          font-size: 14px;
+          font-weight: bold;
+        }
+
+        .document-title {
+          text-align: center;
+          font-size: 14px;
+          font-weight: bold;
+          padding: 5px 0;
+        }
+
+
+        /* =========================
+           CONTENT
+           ========================= */
+
+        .content-frame {
+          border-bottom: 0.5px solid #000;
+          padding: 0;
+        }
+
+
+        /* =========================
+           GENERAL TABLE BORDERS
+           ========================= */
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+        }
+
+        th,
+        td {
+          border: 0.5px solid #000;
+          padding: 4px 6px;
+          vertical-align: middle;
+          overflow-wrap: anywhere;
+        }
+
+        th {
+          text-align: center;
+          font-weight: bold;
+        }
+
+
+        /* =========================
+           RIS NUMBER
+           ========================= */
+
+        .ris-number-table {
+          width: 100%;
+          border-collapse: collapse;
+          border: none;
+        }
+
+        .ris-number-table td {
+          height: 34px;
+          text-align: right;
+          padding: 4px 12px;
+
+          border-top: 0.5px solid #000;
+          border-bottom: 0.5px solid #000;
+
+          border-left: none;
+          border-right: none;
+
+          font-size: 10px;
+        }
+
+
+        /* =========================
+           META INFORMATION
+           ========================= */
+
+        .meta {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .meta td {
+          height: 23px;
+          border: 0.5px solid #000;
+        }
+
+
+        /* =========================
+           ITEMS
+           ========================= */
+
+        .items {
+          margin-top: 0;
+          border-collapse: collapse;
+        }
+
+        .items th {
+          height: 29px;
+          border: 0.5px solid #000;
+        }
+
+        .items td {
+          height: 30px;
+          border: 0.5px solid #000;
+        }
+
+        .center {
+          text-align: center;
+        }
+
+
+        /* =========================
+           SIGNATURE TABLE
+           ========================= */
+
+        .sign-table {
+          margin: 0;
+          border-collapse: collapse;
+          table-layout: fixed;
+        }
+
+        .sign-table td {
+          border: 0.5px solid #000;
+          padding: 4px 6px;
+          vertical-align: middle;
+          font-size: 10px;
+        }
+
+        .sign-table .sign-label {
+          text-align: left;
+          font-weight: normal;
+        }
+
+        .sign-table .purpose-row td {
+          height: 38px;
+        }
+
+        .sign-table .purpose-value {
+          text-align: left;
+        }
+
+        .sign-table .sign-head-row td {
+          height: 44px;
+          vertical-align: top;
+          text-align: left;
+        }
+
+        .sign-table .blank-cell {
+          border-top: 0.5px solid #000;
+        }
+
+        .sign-table .signature-row td {
+          height: 40px;
+        }
+
+        .print-signature {
+          display: block;
+          max-width: 100px;
+          max-height: 34px;
+          object-fit: contain;
+          margin: 0 auto;
+        }
+
+        .sign-table .name-row td {
+          height: 26px;
+        }
+
+        .sign-table .sign-name {
+          text-align: center;
+          font-weight: bold;
+          text-transform: uppercase;
+        }
+
+        .sign-table .designation-row td {
+          height: 26px;
+        }
+
+        .sign-table .sign-designation {
+          text-align: center;
+          font-style: italic;
+        }
+
+        .sign-table .date-row td {
+          height: 26px;
+        }
+
+
+        /* =========================
+           INSTRUCTIONS
+           ========================= */
+
+        .small {
+          font-size: 9px;
+        }
+
+        .instructions {
+          margin-top: 0;
+          border-top: 0.5px solid #000;
+          padding: 5px 6px;
+          font-size: 7px;
+          line-height: 1.2;
+        }
+
+        .instructions-title {
+          text-align: center;
+          font-weight: bold;
+          text-decoration: underline;
+          margin-bottom: 4px;
+        }
+
+        .instructions p {
+          margin: 0 0 3px;
+        }
+
+        .instructions .copies {
+          margin-left: 10px;
+        }
+
+        .form-code {
+          margin-top: 3px;
+          font-weight: bold;
+        }
+
+
+        /* =========================
+           PRINT
+           ========================= */
+
+        @media print {
+
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+
+        }
+
+      </style>
+
+    </head>
+
+
+    <body>
+
+
+      <!-- =========================
+           HEADER
+           ========================= -->
+
+      <div class="header-frame">
+
+        <div class="letterhead">
+
+          <div class="logo-box">
+
+            <img
+              class="logo"
+              src="${logoUrl}"
+              alt="NVSU Logo"
+            >
+
           </div>
 
-          <div class="content-frame">
-            <table class="meta">
-              <tbody>
-                <tr>
-                  <td colspan="2"><strong>Fund Cluster:</strong> ${fundCluster}</td>
-                  <td colspan="2"><strong>Responsibility Center Code:</strong> ${responsibilityCenter}</td>
-                  <td><strong>RIS No.:</strong> ${receiptNumber}</td>
-                  <td><strong>Date:</strong> ${dateIssued}</td>
-                </tr>
-                <tr>
-                  <td colspan="2"><strong>Division:</strong> ${division}</td>
-                  <td colspan="4"><strong>Office:</strong> ${officeName}</td>
-                </tr>
-              </tbody>
-            </table>
 
-            <table class="items">
-              <colgroup>
-                <col style="width: 9%">
-                <col style="width: 31%">
-                <col style="width: 8%">
-                <col style="width: 7%">
-                <col style="width: 7%">
-                <col style="width: 8%">
-                <col style="width: 30%">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th rowspan="2">Stock #</th>
-                  <th rowspan="2">Description</th>
-                  <th rowspan="2">QTY</th>
-                  <th colspan="2">Stock Available?</th>
-                  <th colspan="2">Issue</th>
-                </tr>
-                <tr>
-                  <th>Yes</th>
-                  <th>No</th>
-                  <th>QTY</th>
-                  <th>Remarks</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td class="center">${stockNumber}</td>
-                  <td>${description}</td>
-                  <td class="center">${quantityRequested}</td>
-                  <td class="center">${stockIsAvailable ? '✓' : ''}</td>
-                  <td class="center">${stockIsAvailable ? '' : '✓'}</td>
-                  <td class="center">${quantityIssued}</td>
-                  <td>${remarks}</td>
-                </tr>
-                <tr>
-                  <td colspan="7" class="center"><strong>***Nothing Follows***</strong></td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="letterhead-text">
 
-            <table class="sign-table">
-              <colgroup>
-                <col style="width: 20%">
-                <col style="width: 20%">
-                <col style="width: 20%">
-                <col style="width: 20%">
-                <col style="width: 20%">
-              </colgroup>
-              <tbody>
-                <tr class="purpose-row">
-                  <td class="sign-label">Purpose:</td>
-                  <td colspan="4" class="purpose-value">${purpose}</td>
-                </tr>
-                <tr class="sign-head-row">
-                  <td class="blank-cell"></td>
-                  <td><strong>Requested by:</strong></td>
-                  <td><strong>Approved by:</strong></td>
-                  <td><strong>Issued by:</strong></td>
-                  <td><strong>Received by:</strong></td>
-                </tr>
-                <tr class="signature-row">
-                  <td class="sign-label">Signature:</td>
-                  <td>${signatureImageMarkup('requestedBy')}</td>
-                  <td>${signatureImageMarkup('approvedBy')}</td>
-                  <td>${signatureImageMarkup('issuedBy')}</td>
-                  <td>${signatureImageMarkup('receivedByRIS')}</td>
-                </tr>
-                <tr class="name-row">
-                  <td class="sign-label">Printed Name:</td>
-                  <td class="sign-name">${escape(details.requestedBy)}</td>
-                  <td class="sign-name">${escape(details.approvedBy)}</td>
-                  <td class="sign-name">${escape(details.issuedBy)}</td>
-                  <td class="sign-name">${escape(details.receivedBy)}</td>
-                </tr>
-                <tr class="designation-row">
-                  <td class="sign-label">Designation:</td>
-                  <td class="sign-designation">${escape(details.requestedDesignation)}</td>
-                  <td class="sign-designation">${escape(details.approvedDesignation)}</td>
-                  <td class="sign-designation">${escape(details.issuedDesignation)}</td>
-                  <td class="sign-designation">${escape(details.receivedDesignation)}</td>
-                </tr>
-                <tr class="date-row">
-                  <td class="sign-label">Date:</td>
-                  <td>${escape(details.signatureDates?.requestedBy || '')}</td>
-                  <td>${escape(details.signatureDates?.approvedBy || '')}</td>
-                  <td>${escape(details.signatureDates?.issuedBy || '')}</td>
-                  <td>${escape(details.signatureDates?.receivedByRIS || '')}</td>
-                </tr>
-              </tbody>
-            </table>
+            <p>
+              Republic of the Philippines
+            </p>
 
-            <div class="instructions">
-              <div class="instructions-title">INSTRUCTIONS</div>
-              <p><strong>A.</strong> The RIS shall be prepared by the authorized officer or employee to request needed Property/Supply, by the Supervisor of the requesting unit to approve the request, by the Property/Supply Custodian to verify the availability of stocks and issuance of the item/s, and by the end user or authorized personnel of the requesting unit to receive the item/s as an accountable/responsible officer or employee.</p>
-              <p><strong>B.</strong> For requested item/s other than the category of consumable property/supply, the approved RIS (GAM Appendix 63) shall be the basis of the SMO Staff in preparing and processing the Inventory Custodian Slip (GAM Appendix 69) for semi-expendable property and/or Property Acknowledgement Receipt (GAM Appendix 71) for non-expendable property prior to issuance if the item/s is available on stock; and</p>
-              <p><strong>C.</strong> This form shall be prepared in three (3) copies and in 8.5&quot; x 13&quot; paper. It will be distributed as follows:</p>
-              <div class="copies">Original - Accounting Office</div>
-              <div class="copies">Copy 2 - Requesting Office</div>
-              <div class="copies">Copy 3 - Supply Management Office</div>
-              <div class="form-code">NVSU-FR-SMO-08-00 (031022)</div>
-            </div>
+            <p class="school-name">
+              NUEVA VIZCAYA STATE UNIVERSITY
+            </p>
+
+            <p>
+              3702 Bambang, Nueva Vizcaya
+            </p>
+
           </div>
 
-          <script>
-            window.onload = function () {
-              const logo = document.querySelector('.logo')
-              if (logo && !logo.complete) {
-                logo.onload = function () { window.print() }
-                logo.onerror = function () { window.print() }
-              } else {
-                window.print()
-              }
+        </div>
+
+
+        <div class="document-title">
+
+          REQUISITION AND ISSUE SLIP (RIS)
+
+        </div>
+
+      </div>
+
+
+
+      <!-- =========================
+           CONTENT
+           ========================= -->
+
+      <div class="content-frame">
+
+
+        <!-- RIS NUMBER -->
+
+        <table class="ris-number-table">
+
+          <tbody>
+
+            <tr>
+
+              <td>
+
+                <strong>
+                  RIS No.:
+                </strong>
+
+                ${receiptNumber}
+
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+
+
+        <!-- FUND CLUSTER / RESPONSIBILITY CENTER -->
+
+        <table class="meta">
+
+          <tbody>
+
+            <tr>
+
+              <td colspan="3">
+
+                <strong>
+                  Fund Cluster:
+                </strong>
+
+                ${fundCluster}
+
+              </td>
+
+
+              <td colspan="3">
+
+                <strong>
+                  Responsibility Center Code:
+                </strong>
+
+                ${responsibilityCenter}
+
+              </td>
+
+            </tr>
+
+
+            <tr>
+
+              <td colspan="3">
+
+                <strong>
+                  Division:
+                </strong>
+
+                ${division}
+
+              </td>
+
+
+              <td colspan="3">
+
+                <strong>
+                  Office:
+                </strong>
+
+                ${officeName}
+
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+
+
+        <!-- =========================
+             ITEMS TABLE
+             ========================= -->
+
+        <table class="items">
+
+          <colgroup>
+
+            <col style="width: 9%">
+
+            <col style="width: 31%">
+
+            <col style="width: 8%">
+
+            <col style="width: 7%">
+
+            <col style="width: 7%">
+
+            <col style="width: 8%">
+
+            <col style="width: 30%">
+
+          </colgroup>
+
+
+          <thead>
+
+            <tr>
+
+              <th rowspan="2">
+                Stock #
+              </th>
+
+              <th rowspan="2">
+                Description
+              </th>
+
+              <th rowspan="2">
+                QTY
+              </th>
+
+              <th colspan="2">
+                Stock Available?
+              </th>
+
+              <th colspan="2">
+                Issue
+              </th>
+
+            </tr>
+
+
+            <tr>
+
+              <th>
+                Yes
+              </th>
+
+              <th>
+                No
+              </th>
+
+              <th>
+                QTY
+              </th>
+
+              <th>
+                Remarks
+              </th>
+
+            </tr>
+
+          </thead>
+
+
+          <tbody>
+
+            <tr>
+
+              <td class="center">
+                ${stockNumber}
+              </td>
+
+              <td>
+                ${description}
+              </td>
+
+              <td class="center">
+                ${quantityRequested}
+              </td>
+
+              <td class="center">
+                ${stockIsAvailable ? '✓' : ''}
+              </td>
+
+              <td class="center">
+                ${stockIsAvailable ? '' : '✓'}
+              </td>
+
+              <td class="center">
+                ${quantityIssued}
+              </td>
+
+              <td>
+                ${remarks}
+              </td>
+
+            </tr>
+
+
+            <tr>
+
+              <td colspan="7" class="center">
+
+                <strong>
+                  ***Nothing Follows***
+                </strong>
+
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+
+
+        <!-- =========================
+             SIGNATURE TABLE
+             ========================= -->
+
+        <table class="sign-table">
+
+          <colgroup>
+
+            <col style="width: 20%">
+
+            <col style="width: 20%">
+
+            <col style="width: 20%">
+
+            <col style="width: 20%">
+
+            <col style="width: 20%">
+
+          </colgroup>
+
+
+          <tbody>
+
+
+            <!-- PURPOSE -->
+
+            <tr class="purpose-row">
+
+              <td class="sign-label">
+                Purpose:
+              </td>
+
+              <td
+                colspan="4"
+                class="purpose-value"
+              >
+
+                ${purpose}
+
+              </td>
+
+            </tr>
+
+
+            <!-- SIGNATURE HEADERS -->
+
+            <tr class="sign-head-row">
+
+              <td class="blank-cell">
+              </td>
+
+              <td>
+
+                <strong>
+                  Requested by:
+                </strong>
+
+              </td>
+
+              <td>
+
+                <strong>
+                  Approved by:
+                </strong>
+
+              </td>
+
+              <td>
+
+                <strong>
+                  Issued by:
+                </strong>
+
+              </td>
+
+              <td>
+
+                <strong>
+                  Received by:
+                </strong>
+
+              </td>
+
+            </tr>
+
+
+            <!-- SIGNATURE -->
+
+            <tr class="signature-row">
+
+              <td class="sign-label">
+                Signature:
+              </td>
+
+              <td>
+                ${signatureImageMarkup('requestedBy')}
+              </td>
+
+              <td>
+                ${signatureImageMarkup('approvedBy')}
+              </td>
+
+              <td>
+                ${signatureImageMarkup('issuedBy')}
+              </td>
+
+              <td>
+                ${signatureImageMarkup('receivedByRIS')}
+              </td>
+
+            </tr>
+
+
+            <!-- PRINTED NAME -->
+
+            <tr class="name-row">
+
+              <td class="sign-label">
+                Printed Name:
+              </td>
+
+              <td class="sign-name">
+                ${escape(details.requestedBy)}
+              </td>
+
+              <td class="sign-name">
+                ${escape(details.approvedBy)}
+              </td>
+
+              <td class="sign-name">
+                ${escape(details.issuedBy)}
+              </td>
+
+              <td class="sign-name">
+                ${escape(details.receivedBy)}
+              </td>
+
+            </tr>
+
+
+            <!-- DESIGNATION -->
+
+            <tr class="designation-row">
+
+              <td class="sign-label">
+                Designation:
+              </td>
+
+              <td class="sign-designation">
+                ${escape(details.requestedDesignation)}
+              </td>
+
+              <td class="sign-designation">
+                ${escape(details.approvedDesignation)}
+              </td>
+
+              <td class="sign-designation">
+                ${escape(details.issuedDesignation)}
+              </td>
+
+              <td class="sign-designation">
+                ${escape(details.receivedDesignation)}
+              </td>
+
+            </tr>
+
+
+            <!-- DATE -->
+
+            <tr class="date-row">
+
+              <td class="sign-label">
+                Date:
+              </td>
+
+              <td>
+                ${escape(
+                  details.signatureDates?.requestedBy || ''
+                )}
+              </td>
+
+              <td>
+                ${escape(
+                  details.signatureDates?.approvedBy || ''
+                )}
+              </td>
+
+              <td>
+                ${escape(
+                  details.signatureDates?.issuedBy || ''
+                )}
+              </td>
+
+              <td>
+                ${escape(
+                  details.signatureDates?.receivedByRIS || ''
+                )}
+              </td>
+
+            </tr>
+
+
+          </tbody>
+
+        </table>
+
+
+
+        <!-- =========================
+             INSTRUCTIONS
+             ========================= -->
+
+        <div class="instructions">
+
+          <div class="instructions-title">
+            INSTRUCTIONS
+          </div>
+
+
+          <p>
+
+            <strong>A.</strong>
+
+            The RIS shall be prepared by the authorized officer or employee
+            to request needed Property/Supply, by the Supervisor of the
+            requesting unit to approve the request, by the Property/Supply
+            Custodian to verify the availability of stocks and issuance of
+            the item/s, and by the end user or authorized personnel of the
+            requesting unit to receive the item/s as an accountable/responsible
+            officer or employee.
+
+          </p>
+
+
+          <p>
+
+            <strong>B.</strong>
+
+            For requested item/s other than the category of consumable
+            property/supply, the approved RIS (GAM Appendix 63) shall be
+            the basis of the SMO Staff in preparing and processing the
+            Inventory Custodian Slip (GAM Appendix 69) for semi-expendable
+            property and/or Property Acknowledgement Receipt (GAM Appendix 71)
+            for non-expendable property prior to issuance if the item/s is
+            available on stock; and
+
+          </p>
+
+
+          <p>
+
+            <strong>C.</strong>
+
+            This form shall be prepared in three (3) copies and in
+            8.5&quot; x 13&quot; paper. It will be distributed as follows:
+
+          </p>
+
+
+          <div class="copies">
+            Original - Accounting Office
+          </div>
+
+          <div class="copies">
+            Copy 2 - Requesting Office
+          </div>
+
+          <div class="copies">
+            Copy 3 - Supply Management Office
+          </div>
+
+
+          <div class="form-code">
+            NVSU-FR-SMO-08-00 (031022)
+          </div>
+
+        </div>
+
+
+      </div>
+
+
+
+      <!-- =========================
+           PRINT SCRIPT
+           ========================= -->
+
+      <script>
+
+        window.onload = function () {
+
+          const logo =
+            document.querySelector('.logo')
+
+          if (logo && !logo.complete) {
+
+            logo.onload = function () {
+              window.print()
             }
-          <\/script>
-        </body>
-        </html>
-      `)
-      printWindow.document.close()
-    },
 
-    printReceipt(receipt, details = {}) {
-      const pageSize = this.getPrintPageSize(details)
-      if (!pageSize) return
-
-      const item = this.getReceiptItem(receipt)
-      const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
-      const signatureImageMarkup = key => details.signatureImages?.[key]
-        ? `<img class="print-signature" src="${details.signatureImages[key]}" alt="Signature">`
-        : ''
-
-      const receiptType = this.escapeHtml(receipt.receipt_type || 'PAR')
-      const receiptNumber = this.escapeHtml(receipt.receipt_number || '-')
-      const personnelName = this.escapeHtml(details.receivedBy || this.getIssuedToName(receipt))
-      const description = this.escapeHtml(item.description || '-')
-      const quantity = this.escapeHtml(this.getQuantityIssued(receipt) || 1)
-      const propertyNumber = this.escapeHtml(item.property_number || '-')
-      const modelNumber = this.escapeHtml(item.model_number || '-')
-      const serialNumber = this.escapeHtml(item.serial_number || '-')
-      const dateAcquired = this.escapeHtml(item.acquisition_date || item.date_acquired || '-')
-      const dateIssued = this.escapeHtml(receipt.date_issued || '-')
-      const classification = this.escapeHtml(item.classification || receipt.receipt_type || '-')
-      const condition = this.escapeHtml(item.condition || '-')
-      const responsibilityCenter = this.escapeHtml(details.unitOffice || item.responsibility_center || '-')
-      const cost = Number(item.cost || 0)
-      const amount = this.formatAmount(cost * Number(this.getQuantityIssued(receipt) || 1))
-      const remarks = this.escapeHtml(details.purpose || receipt.remarks || '-')
-      const officeName = this.escapeHtml(
-        receipt.item_requests?.offices?.office_name ||
-        receipt.offices?.office_name ||
-        '-'
-      )
-
-      const printWindow = window.open('', '_blank')
-
-      if (!printWindow) {
-        this.showToast('Please allow pop-ups to print the receipt')
-        return
-      }
-
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>${receiptType} - ${receiptNumber}</title>
-          <style>
-            @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 8mm; }
-            * { box-sizing: border-box; }
-            body { margin: 0; color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 10px; }
-            .page { width: 100%; min-height: calc(${pageSize.height}in - 16mm); padding: 5px; display: flex; flex-direction: column; }
-            .header { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; min-height: 72px; }
-            .logo-box { height: 72px; display: flex; align-items: center; justify-content: center; }
-            .logo { width: 58px; height: 58px; object-fit: contain; }
-            .header-text { line-height: 1.25; padding: 3px; }
-            .header-text p { margin: 1px 0; }
-            .header h1 { margin: 1px 0; font-size: 14px; color: #000; font-weight: bold; }
-            .header h2 { margin: 1px 0; font-size: 10px; color: #000; font-weight: normal; }
-            .header p { margin: 1px 0; font-size: 10px; }
-            .appendix { text-align: right; margin-top: 4px; font-size: 9px; font-weight: bold; }
-            .receipt-title { text-align: center; color: #000; font-size: 14px; font-weight: bold; padding: 6px 0; margin: 0; }
-            .receipt-title span { color: #000; }
-            .receipt-info { display: grid; grid-template-columns: 1fr 1fr; margin: 0; font-size: 10px; font-weight: normal; }
-            .fund-cluster, .par-number { display: flex; align-items: center; gap: 6px; padding: 6px; min-height: 28px; }
-            .fund-cluster span, .par-number span { display: inline-block; flex: 1; padding: 2px 4px; font-weight: normal; min-width: 0; }
-            .par-number span { color: #b22222; font-weight: bold; }
-            .main-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 0; }
-            .main-table th, .main-table td { border: 0; padding: 4px; vertical-align: middle; overflow-wrap: anywhere; }
-            .main-table th { background: #fff; color: #000; text-align: center; font-size: 9px; font-weight: bold; border-bottom: 0.5px solid #000; }
-            .main-table td { height: 35px; font-size: 9px; }
-            .main-table tbody tr:first-child td { border-bottom: 0.5px solid #000; }
-            .sn { width: 6%; text-align: center; }
-            .qty { width: 5%; text-align: center; }
-            .article { width: 24%; }
-            .property { width: 13%; text-align: center; }
-            .model { width: 12%; text-align: center; }
-            .serial { width: 12%; text-align: center; }
-            .date { width: 12%; text-align: center; }
-            .amount { width: 16%; text-align: right; }
-            .total-row td { height: 28px; font-weight: bold; }
-            .total-label, .total-amount { color: #b22222; font-weight: bold; }
-            .total-label { text-align: right; }
-            .total-amount { text-align: right; background: #ffeb3b; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-            .lower-details { display: grid; grid-template-columns: 1fr 1fr; }
-            .lower-left, .lower-right { padding: 7px; min-height: 125px; }
-            .lower-details p { margin: 0 0 7px; line-height: 1.25; }
-            .lower-details strong { color: #000; }
-            .line { display: inline-block; border-bottom: 1px solid #000; width: 125px; height: 12px; }
-            .print-footer { width: 100%; margin: auto 0 0; padding-bottom: 0; }
-            .page-number { margin: 0 2px 5px; text-align: right; font-size: 8px; }
-            .signature { display: grid; grid-template-columns: 38% 38%; justify-content: space-between; gap: 12px; min-height: 78px; border-top: 1px solid #000; padding: 5px 0 0; }
-            .signature-box { display: flex; flex-direction: column; font-size: 9px; }
-            .signature-heading { font-weight: bold; }
-            .signature-name { margin-top: 18px; text-align: center; font-weight: bold; }
-            .print-signature { display: block; max-width: 120px; max-height: 38px; object-fit: contain; margin: 2px auto -14px; }
-            .signature-label, .signature-date { text-align: center; }
-            .signature-label { margin-top: 2px; }
-            .signature-date { margin-top: 2px; }
-            @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
-          </style>
-        </head>
-        <body>
-          <div class="page">
-            <div class="header">
-              <div class="logo-box"><img class="logo" src="${logoUrl}" alt="NVSU Logo"></div>
-              <div class="header-text">
-                <p>Republic of the Philippines</p>
-                <h1>NUEVA VIZCAYA STATE UNIVERSITY</h1>
-                <h2>3702 Bambang, Nueva Vizcaya</h2>
-              </div>
-            </div>
-
-            <div class="appendix">
-              APPENDIX ${this.escapeHtml(details.appendix || '71')}
-            </div>
-
-            <div class="receipt-title">
-              <span>
-                ${
-                  receipt.receipt_type === 'ICS'
-                    ? 'INVENTORY CUSTODIAN SLIP'
-                    : 'PROPERTY ACKNOWLEDGEMENT RECEIPT'
-                }
-              </span>
-            </div>
-
-            <div class="receipt-info">
-              <div class="fund-cluster">
-                <strong>FUND CLUSTER:</strong>
-                <span>${this.escapeHtml(details.fundCluster || 'TF-2')}</span>
-              </div>
-
-              <div class="par-number">
-                <strong>${receiptType} No.</strong>
-                <span>${receiptNumber}</span>
-              </div>
-            </div>
-
-            <table class="main-table">
-              <thead>
-                <tr>
-                  <th class="sn">SN</th>
-                  <th class="qty">Qty.</th>
-                  <th class="article">Article and Description</th>
-                  <th class="property">Property Number</th>
-                  <th class="model">Model Number</th>
-                  <th class="serial">Serial Number</th>
-                  <th class="date">Date Acquired</th>
-                  <th class="amount">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td class="sn">1</td>
-                  <td class="qty">${quantity}</td>
-                  <td class="article">${description}</td>
-                  <td class="property">${propertyNumber}</td>
-                  <td class="model">${modelNumber}</td>
-                  <td class="serial">${serialNumber}</td>
-                  <td class="date">${dateAcquired}</td>
-                  <td class="amount">${amount}</td>
-                </tr>
-                <tr class="total-row">
-                  <td colspan="7" class="total-label">Total</td>
-                  <td class="total-amount">${amount}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div class="lower-details">
-              <div class="lower-left">
-                <p><strong>UNIT/OFFICE:</strong> ${this.escapeHtml(details.unitOffice || responsibilityCenter || '-')}</p>
-                <p><strong>PO NO.:</strong> ${this.escapeHtml(details.poNumber || '-')}</p>
-                <p><strong>UACS:</strong> ${this.escapeHtml(details.uacs || '-')}</p>
-                <p><strong>BUR NO.:</strong> ${this.escapeHtml(details.burNumber || '-')}</p>
-                <p><strong>IAR NO.:</strong> ${this.escapeHtml(details.iarNumber || '-')}</p>
-              </div>
-
-              <div class="lower-right">
-                <p><strong>PURPOSE:</strong></p>
-                <p>${remarks}</p>
-              </div>
-            </div>
-
-            <div class="print-footer">
-              <div class="page-number">Page 1 of 1</div>
-              <div class="signature">
-                <div class="signature-box">
-                  <div class="signature-heading">RECEIVED BY</div>
-                  ${signatureImageMarkup('receivedBy')}
-                  <div class="signature-name">${personnelName}</div>
-                  <div class="signature-label">${this.escapeHtml(details.receivedByDesignation || '')}</div>
-                  <div class="signature-label">Signature over Printed Name</div>
-                  <div class="signature-date">${this.escapeHtml(details.signatureDates?.receivedBy || '')}</div>
-                </div>
-
-                <div class="signature-box">
-                  <div class="signature-heading">RECEIVED FROM:</div>
-                  ${signatureImageMarkup('receivedFrom')}
-                  <div class="signature-name">${this.escapeHtml(details.receivedFrom || '-')}</div>
-                  <div class="signature-label">${this.escapeHtml(details.receivedFromDesignation || '')}</div>
-                  <div class="signature-label">Signature over Printed Name</div>
-                  <div class="signature-date">${this.escapeHtml(details.signatureDates?.receivedFrom || '')}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <script>
-            window.onload = function () {
-              const logo = document.querySelector('.logo')
-              if (logo && !logo.complete) {
-                logo.onload = function () { window.print() }
-                logo.onerror = function () { window.print() }
-              } else {
-                window.print()
-              }
+            logo.onerror = function () {
+              window.print()
             }
-          <\/script>
-        </body>
-        </html>
-      `)
 
-      printWindow.document.close()
-    }
+          } else {
+
+            window.print()
+
+          }
+
+        }
+
+      <\/script>
+
+
+    </body>
+
+    </html>
+  `)
+
+  printWindow.document.close()
+},
   }
 }
 </script>

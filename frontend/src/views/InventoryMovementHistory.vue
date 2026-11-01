@@ -1,12 +1,11 @@
 <template>
-  <div v-if="show" class="modal-overlay" @click.self="$emit('close')">
+  <div class="inventory-page">
     <div class="modal-container">
       <div class="modal-header">
         <div>
           <h2>Inventory Movement History</h2>
           <p>Track property acquisitions, issuances and returns.</p>
         </div>
-        <button class="close-button" @click="$emit('close')">&times;</button>
       </div>
 
       <div class="filter-section">
@@ -150,9 +149,6 @@
             Print Report
           </button>
 
-          <button class="close-footer-button" @click="$emit('close')">
-            Close
-          </button>
         </div>
       </div>
     </div>
@@ -161,14 +157,8 @@
 
 <script>
 export default {
-  name: 'InventoryMovementModal',
+  name: 'InventoryMovementHistory',
 
-  props: {
-    show: {
-      type: Boolean,
-      default: false
-    }
-  },
 
   data() {
     return {
@@ -236,7 +226,9 @@ export default {
             String(item.description || '').toLowerCase().includes(keyword) ||
             String(item.category || '').toLowerCase().includes(keyword) ||
             String(item.reference || '').toLowerCase().includes(keyword) ||
-            String(item.person || '').toLowerCase().includes(keyword)
+            String(item.person || '').toLowerCase().includes(keyword) ||
+            String(item.name || '').toLowerCase().includes(keyword) ||
+            String(item.destination || '').toLowerCase().includes(keyword)
           );
         });
       }
@@ -293,20 +285,9 @@ export default {
     }
   },
 
-  watch: {
-    show(value) {
-      if (value) {
-        this.setDefaultDates();
-        this.loadMovements();
-      }
-    }
-  },
-
   mounted() {
-    if (this.show) {
-      this.setDefaultDates();
-      this.loadMovements();
-    }
+    this.setDefaultDates();
+    this.loadMovements();
   },
 
   methods: {
@@ -415,10 +396,10 @@ export default {
 
         const isIssuance = this.reportToPrint === 'issuance';
         const title = isIssuance
-          ? 'REPORT OF PROPERTIES ISSUED'
+          ? 'REPORT ON SUPPLIES AND MATERIALS ISSUED'
           : 'ACQUISITION OF OFFICE PROPERTIES';
 
-        const lastColumn = isIssuance ? 'K' : 'L';
+        const lastColumn = isIssuance ? 'L' : 'L';
 
         const worksheet = workbook.addWorksheet(
           isIssuance ? 'Properties Issued' : 'Office Property Acquisition',
@@ -428,68 +409,120 @@ export default {
               orientation: 'landscape',
               fitToPage: true,
               fitToWidth: 1,
-              fitToHeight: 0
+              fitToHeight: 0,
+              horizontalCentered: true,
+              verticalCentered: false,
+              margins: {
+                left: 0.25,
+                right: 0.25,
+                top: 0.5,
+                bottom: 0.5,
+                header: 0.2,
+                footer: 0.2
+              }
             },
             views: [{ state: 'frozen', ySplit: 8 }]
           }
         );
 
+        /* HEADER */
+
         worksheet.mergeCells('A1:' + lastColumn + '1');
-        worksheet.getCell('A1').value = 'REPUBLIC OF THE PHILIPPINES';
+        worksheet.getCell('A1').value = 'Republic of the Philippines';
 
         worksheet.mergeCells('A2:' + lastColumn + '2');
         worksheet.getCell('A2').value = 'NUEVA VIZCAYA STATE UNIVERSITY';
 
         worksheet.mergeCells('A3:' + lastColumn + '3');
-        worksheet.getCell('A3').value = '3702 Bambang, Nueva Vizcaya';
+        worksheet.getCell('A3').value = 'Bambang, Nueva Vizcaya';
 
         worksheet.mergeCells('A4:' + lastColumn + '4');
         worksheet.getCell('A4').value = title;
 
         worksheet.mergeCells('A5:' + lastColumn + '5');
         worksheet.getCell('A5').value =
-          'For the Period Covered ' +
+          'For the period of ' +
           this.formatLongDate(this.dateFrom) +
-          ' to ' +
+          ' - ' +
           this.formatLongDate(this.dateTo);
 
         worksheet.mergeCells('A6:' + lastColumn + '6');
         worksheet.getCell('A6').value =
-          'FUND CLUSTER: ' + this.selectedFundCluster;
+          'FUND CLUSTER: ' +
+          (this.selectedFundCluster === 'ALL'
+            ? '(ALL)'
+            : this.selectedFundCluster);
 
         ['A1', 'A2', 'A3', 'A4', 'A5', 'A6'].forEach(address => {
           worksheet.getCell(address).alignment = {
             horizontal: 'center',
-            vertical: 'middle'
+            vertical: 'middle',
+            wrapText: true
           };
 
           worksheet.getCell(address).font = {
+            name: 'Arial',
             bold: address === 'A2' || address === 'A4',
             size: address === 'A4' ? 14 : 11
           };
         });
 
-        const headers = isIssuance
-          ? [
-              'Date Delivered', 'Reference No.', 'RC Code', 'SN',
-              'Property No.', 'Description', 'Unit', 'Qty',
-              'Unit Cost', 'Amount', 'Recipient'
-            ]
-          : [
-              'Acquisition Date', 'Article', 'Description', 'Item No.',
-              'Unit of Measure', 'Cost per Unit', 'DR/CI/SI Number',
-              'Property Order No.', 'Qty', 'Value', 'Supplier', 'Remarks'
-            ];
+        worksheet.getRow(1).height = 20;
+        worksheet.getRow(2).height = 22;
+        worksheet.getRow(3).height = 20;
+        worksheet.getRow(4).height = 25;
+        worksheet.getRow(5).height = 22;
+        worksheet.getRow(6).height = 20;
+
+        /* TABLE HEADERS */
 
         worksheet.addRow([]);
 
+        const headers = isIssuance
+          ? [
+              'Date Delivered',
+              'Reference No.',
+              'RC Code',
+              'SN',
+              'Property No.',
+              'Description',
+              'Unit',
+              'QTY',
+              'U-Cost',
+              'Amount',
+              'Name',
+              'Destination'
+            ]
+          : [
+              'Acquisition Date',
+              'Article',
+              'Description',
+              'Item No.',
+              'Unit of Measure',
+              'Cost per Unit',
+              'DR/CI/SI Number',
+              'Property Order No.',
+              'Qty',
+              'Value',
+              'Supplier',
+              'Remarks'
+            ];
+
         const headerRow = worksheet.addRow(headers);
-        headerRow.font = { bold: true };
+
+        headerRow.font = {
+          name: 'Arial',
+          bold: true,
+          size: 9
+        };
+
         headerRow.alignment = {
           horizontal: 'center',
           vertical: 'middle',
           wrapText: true
         };
+
+        headerRow.height = 34;
 
         headerRow.eachCell(cell => {
           cell.border = {
@@ -509,40 +542,47 @@ export default {
 
           grandTotal += amount;
 
-          let values;
-
-          if (isIssuance) {
-            values = [
-              item.date || '',
-              item.reference || '',
-              item.rcCode || '',
-              index + 1,
-              item.propertyNumber || '',
-              item.description || '',
-              item.unit || '',
-              quantity,
-              unitCost,
-              amount,
-              item.person || ''
-            ];
-          } else {
-            values = [
-              item.date || '',
-              item.article || '',
-              item.description || '',
-              item.itemNo || index + 1,
-              item.unit || '',
-              unitCost,
-              item.drNumber || '',
-              item.poNumber || '',
-              quantity,
-              amount,
-              item.supplier || '',
-              item.remarks || ''
-            ];
-          }
+          const values = isIssuance
+            ? [
+                item.date || '',
+                item.reference || '',
+                item.rcCode || '',
+                index + 1,
+                item.propertyNumber || '',
+                item.description || '',
+                item.unit || '',
+                quantity,
+                unitCost,
+                amount,
+                item.name || item.person || '',
+                item.destination || ''
+              ]
+            : [
+                item.date || '',
+                item.article || '',
+                item.description || '',
+                item.itemNo || index + 1,
+                item.unit || '',
+                unitCost,
+                item.drNumber || '',
+                item.poNumber || '',
+                quantity,
+                amount,
+                item.supplier || '',
+                item.remarks || ''
+              ];
 
           const row = worksheet.addRow(values);
+
+          row.font = {
+            name: 'Arial',
+            size: 9
+          };
+
+          row.alignment = {
+            vertical: 'middle',
+            wrapText: true
+          };
 
           row.eachCell(cell => {
             cell.border = {
@@ -555,23 +595,38 @@ export default {
 
           if (isIssuance) {
             row.getCell(1).numFmt = 'yyyy-mm-dd';
+            row.getCell(8).numFmt = '0';
             row.getCell(9).numFmt = '#,##0.00';
             row.getCell(10).numFmt = '#,##0.00';
           } else {
             row.getCell(1).numFmt = 'yyyy-mm-dd';
             row.getCell(6).numFmt = '#,##0.00';
+            row.getCell(9).numFmt = '0';
             row.getCell(10).numFmt = '#,##0.00';
           }
         });
 
+        /* TOTAL */
+
         const totalRow = worksheet.addRow(
           isIssuance
-            ? ['TOTAL', '', '', '', '', '', '', '', '', grandTotal, '']
-            : ['GRAND TOTAL', '', '', '', '', '', '', '', '', grandTotal, '', '']
+            ? [
+                'TOTAL', '', '', '', '', '', '', '', '',
+                grandTotal, '', ''
+              ]
+            : [
+                'GRAND TOTAL', '', '', '', '', '', '', '', '',
+                grandTotal, '', ''
+              ]
         );
 
-        totalRow.font = { bold: true };
-        totalRow.getCell(isIssuance ? 10 : 10).numFmt = '#,##0.00';
+        totalRow.font = {
+          name: 'Arial',
+          bold: true,
+          size: 10
+        };
+
+        totalRow.getCell(10).numFmt = '#,##0.00';
 
         totalRow.eachCell(cell => {
           cell.border = {
@@ -580,24 +635,51 @@ export default {
             left: { style: 'thin' },
             right: { style: 'thin' }
           };
+
+          cell.alignment = {
+            vertical: 'middle'
+          };
         });
+
+        /* COLUMN WIDTHS */
 
         worksheet.columns = isIssuance
           ? [
-              { width: 16 }, { width: 18 }, { width: 16 }, { width: 8 },
-              { width: 18 }, { width: 30 }, { width: 12 }, { width: 10 },
-              { width: 16 }, { width: 16 }, { width: 24 }
+              { width: 15 },
+              { width: 17 },
+              { width: 13 },
+              { width: 7 },
+              { width: 17 },
+              { width: 30 },
+              { width: 9 },
+              { width: 7 },
+              { width: 13 },
+              { width: 14 },
+              { width: 22 },
+              { width: 25 }
             ]
           : [
-              { width: 16 }, { width: 18 }, { width: 30 }, { width: 14 },
-              { width: 16 }, { width: 18 }, { width: 20 }, { width: 24 },
-              { width: 10 }, { width: 16 }, { width: 22 }, { width: 24 }
+              { width: 16 },
+              { width: 18 },
+              { width: 30 },
+              { width: 14 },
+              { width: 16 },
+              { width: 18 },
+              { width: 20 },
+              { width: 24 },
+              { width: 10 },
+              { width: 16 },
+              { width: 22 },
+              { width: 24 }
             ];
 
-        worksheet.getRow(8).height = 34;
         worksheet.autoFilter = {
           from: 'A8',
           to: lastColumn + '8'
+        };
+
+        worksheet.headerFooter.oddFooter = {
+          center: 'Page &P of &N'
         };
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -611,7 +693,9 @@ export default {
 
         link.href = url;
         link.download =
-          (isIssuance ? 'Properties_Issued_' : 'Office_Property_Acquisition_') +
+          (isIssuance
+            ? 'Properties_Issued_'
+            : 'Office_Property_Acquisition_') +
           this.dateFrom + '_to_' + this.dateTo + '.xlsx';
 
         document.body.appendChild(link);
@@ -661,13 +745,13 @@ export default {
           <div class="school">
             <div>Republic of the Philippines</div>
             <div class="name">NUEVA VIZCAYA STATE UNIVERSITY</div>
-            <div>3702 Bambang, Nueva Vizcaya</div>
+            <div>Bambang, Nueva Vizcaya</div>
           </div>
           <div class="title">${this.escapeHtml(title)}</div>
           <div class="period">
-            For the Period Covered
+            For the period of
             ${this.escapeHtml(this.formatLongDate(this.dateFrom))}
-            to ${this.escapeHtml(this.formatLongDate(this.dateTo))}
+            - ${this.escapeHtml(this.formatLongDate(this.dateTo))}
           </div>
         </div>`;
     },
@@ -717,42 +801,59 @@ export default {
 
               .header {
                 position: relative;
+                width: 100%;
+                min-height: 92px;
+                margin-bottom: 8px;
+                border: 1px solid #999;
                 text-align: center;
-                min-height: 70px;
-                margin-bottom: 6px;
               }
 
               .logo-box {
                 position: absolute;
                 left: 0;
                 top: 0;
-                border: 1px solid #999;
-                padding: 3px;
+                width: 90px;
+                height: 92px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-right: 1px solid #999;
               }
 
               .logo {
-                width: 56px;
-                height: 56px;
+                width: 62px;
+                height: 62px;
                 object-fit: contain;
                 display: block;
               }
 
               .school {
-                color: #b3262b;
+                height: 58px;
+                padding-top: 8px;
+                color: #000;
                 font-weight: bold;
-                line-height: 1.35;
+                line-height: 1.25;
                 font-size: 13px;
+                border-bottom: 1px solid #999;
+                margin-left: 90px;
               }
 
               .school .name { font-size: 15px; }
 
               .title {
-                margin-top: 8px;
+                margin-left: 90px;
+                padding: 5px 8px;
                 font-weight: bold;
-                font-size: 14px;
+                font-size: 13px;
+                text-transform: uppercase;
               }
 
-              .period { font-size: 12px; }
+              .period {
+                margin-top: 7px;
+                font-size: 12px;
+                border-top: 1px solid #999;
+                padding-top: 5px;
+              }
 
               .fund {
                 margin: 8px 0 4px;
@@ -995,7 +1096,7 @@ export default {
     },
 
     printIssuanceReport() {
-      const title = 'REPORT OF PROPERTIES ISSUED';
+      const title = 'REPORT ON SUPPLIES AND MATERIALS ISSUED';
       const e = value => this.escapeHtml(
         value === null || value === undefined || value === '' ? '' : value
       );
@@ -1024,30 +1125,34 @@ export default {
           <td class="number">${e(item.quantity)}</td>
           <td class="number">${this.formatMoney(item.unitCost)}</td>
           <td class="number">${this.formatMoney(amountOf(item))}</td>
-          <td>${e(item.person)}</td>
+          <td>${e(item.name || item.person)}</td>
+          <td>${e(item.destination)}</td>
         </tr>
       `).join('');
 
       const body = `
         ${this.buildReportHeader(title, { appendix: 'Appendix 64' })}
+
         <div class="fund">
           Fund Cluster:<span>${this.escapeHtml(fundCluster)}</span>
         </div>
 
-        <table class="report">
+        <table class="report issuance-report">
           <colgroup>
-            <col style="width: 9%">
-            <col style="width: 10%">
             <col style="width: 8%">
+            <col style="width: 9%">
+            <col style="width: 7%">
             <col style="width: 4%">
-            <col style="width: 14%">
-            <col style="width: 20%">
+            <col style="width: 11%">
+            <col style="width: 18%">
             <col style="width: 5%">
             <col style="width: 5%">
             <col style="width: 7%">
             <col style="width: 8%">
-            <col style="width: 10%">
+            <col style="width: 9%">
+            <col style="width: 9%">
           </colgroup>
+
           <thead>
             <tr>
               <th><i>Date Delivered</i></th>
@@ -1060,44 +1165,62 @@ export default {
               <th><i>QTY</i></th>
               <th><i>U-Cost</i></th>
               <th><i>Amount</i></th>
-              <th><i>Recipient</i></th>
+              <th><i>Name</i></th>
+              <th><i>Destination</i></th>
             </tr>
           </thead>
+
           <tbody>
             ${rows}
+
             <tr class="total-row">
               <td colspan="9" class="center">TOTAL</td>
               <td class="number">${this.formatMoney(total)}</td>
-              <td></td>
+              <td colspan="2"></td>
             </tr>
           </tbody>
         </table>
 
         <table class="certify">
+          <colgroup>
+            <col style="width: 40%">
+            <col style="width: 40%">
+            <col style="width: 20%">
+          </colgroup>
+
           <tbody>
             <tr>
-              <td>
+              <td colspan="3" class="certification-text">
                 <div class="lead">
                   I hereby certify to the correctness of the above information.
                 </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="signature-cell">
+                <div class="signature-line"></div>
                 <div class="sig-label">
                   Signature over Printed Name of Supply/Property Custodian
                 </div>
               </td>
-              <td>
-                <div class="lead">Posted by:</div>
+
+              <td class="signature-cell">
+                <div class="signature-line"></div>
                 <div class="sig-label">
                   Signature over Printed Name of Designated Accounting Staff
                 </div>
               </td>
-              <td style="width: 16%">
-                <div class="lead">Date</div>
+
+              <td class="signature-cell date-cell">
+                <div class="signature-line"></div>
+                <div class="sig-label">Date</div>
               </td>
             </tr>
           </tbody>
         </table>`;
 
-      this.openReportWindow(title, body, '#999');
+      this.openReportWindow(title, body, '#000');
     },
 
     async loadMovements() {
@@ -1189,7 +1312,9 @@ export default {
               item.name ||
               '',
             category: 'Acquisition',
-            quantity: Number(item.quantity ?? 0),
+            // Each acquired property is tracked as one individual property.
+            // Keep acquisition quantity at 1 even after the property is issued.
+            quantity: 1,
             reference:
               item.reference_number ||
               item.reference ||
@@ -1260,6 +1385,22 @@ export default {
                 receipt.received_by ||
                 receiptUser.full_name ||
                 requestUser.full_name ||
+                office.office_name ||
+                '',
+              name:
+                receipt.issued_to ||
+                receipt.recipient ||
+                receipt.received_by ||
+                receiptUser.full_name ||
+                requestUser.full_name ||
+                '',
+              destination:
+                receipt.destination ||
+                receipt.destination_office ||
+                receipt.issued_to_office ||
+                receipt.office ||
+                request.destination ||
+                request.destination_office ||
                 office.office_name ||
                 '',
               rcCode: item.responsibility_center || '',
@@ -1385,23 +1526,17 @@ export default {
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  background: rgba(25, 42, 29, 0.55);
+.inventory-page {
+  width: 100%;
+  min-height: 100%;
+  padding: 24px;
 }
 
 .modal-container {
   width: 100%;
-  max-width: 860px;
-  max-height: 90vh;
-  max-height: 90dvh;
-  overflow-y: auto;
+  max-width: none;
+  margin: 0 auto;
+  overflow: visible;
   background: #ffffff;
   color: #26332a;
   border: 1px solid #e4e2d8;
@@ -1648,14 +1783,8 @@ th {
 }
 
 @media (max-width: 800px) {
-  .modal-overlay {
-    align-items: flex-start;
+  .inventory-page {
     padding: 12px;
-  }
-
-  .modal-container {
-    max-height: calc(100vh - 24px);
-    max-height: calc(100dvh - 24px);
   }
 
   .filter-section {
@@ -1668,13 +1797,8 @@ th {
 }
 
 @media (max-width: 500px) {
-  .modal-overlay {
+  .inventory-page {
     padding: 8px;
-  }
-
-  .modal-container {
-    max-height: calc(100vh - 16px);
-    max-height: calc(100dvh - 16px);
   }
 
   .modal-header,

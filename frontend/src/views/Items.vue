@@ -8,11 +8,6 @@
       </div>
 
       <div class="col-auto d-flex gap-2">
-        <button class="btn btn-success" @click="showMovementModal = true">
-          <i class="bi bi-arrow-left-right me-1"></i>
-          Track Inventory
-        </button>
-
         <button class="btn btn-warning" @click="showAddForm = true">
           <i class="bi bi-plus-lg me-1"></i>
           Add Property
@@ -957,17 +952,10 @@
       <option v-for="name in supplierOptions" :key="name" :value="name"></option>
     </datalist>
 
-    <InventoryMovementModal
-      v-if="showMovementModal"
-      :show="showMovementModal"
-      @close="showMovementModal = false"
-      @saved="handleMovementSaved"
-    />
   </div>
 </template>
 
 <script>
-import InventoryMovementModal from '@/components/InventoryMovementModal.vue'
 import logo from '@/assets/LOGO.png'
 import {
   AlignmentType,
@@ -1050,9 +1038,7 @@ async function createQrWithLogo(text) {
 export default {
   name: 'Properties',
 
-  components: {
-    InventoryMovementModal,
-  },
+  components: {},
 
   data() {
     return {
@@ -1079,7 +1065,6 @@ export default {
       sortDirection: 'asc',
 
       showAddForm: false,
-      showMovementModal: false,
 
       fundClusterOptions: [
         'AF-1', 'AF-2', 'AF-3', 'AF-DBM PS/BID',
@@ -2029,10 +2014,6 @@ export default {
       }
     },
 
-    handleMovementSaved() {
-      this.showMovementModal = false
-      this.getItems()
-    },
 
     getConditionClass(condition) {
       if (condition === 'Serviceable') return 'bg-success'

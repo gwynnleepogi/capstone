@@ -109,6 +109,16 @@
         </router-link>
 
         <router-link
+  v-if="canAccess(['Administrator', 'Personnel'])"
+  to="/inventory-movement"
+  class="nav-link"
+  @click="menuOpen = false"
+>
+  <i class="bi bi-arrow-left-right"></i>
+  Inventory Movement History
+</router-link>
+
+        <router-link
           v-if="canAccess(['Administrator', 'Personnel'])"
           to="/returns"
           class="nav-link"
