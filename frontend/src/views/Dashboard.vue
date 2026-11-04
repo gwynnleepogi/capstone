@@ -9,6 +9,137 @@
       </p>
     </div>
 
+    <section class="action-center mb-4" aria-labelledby="action-center-title">
+      <div class="action-center-heading">
+        <div>
+          <span class="action-center-eyebrow">ACTION CENTER</span>
+          <h2 id="action-center-title" class="h5 mb-1">Needs your attention</h2>
+          <p class="text-secondary mb-0">Review new requests and keep things moving.</p>
+        </div>
+        <i class="bi bi-bell-fill action-center-bell" aria-hidden="true"></i>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-12 col-xl-6">
+          <section class="card pending-card property-pending-card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="pending-icon"><i class="bi bi-box-arrow-in-down"></i></span>
+                <div>
+                  <strong>Property Requests</strong>
+                  <div class="small text-secondary">Waiting for approval</div>
+                </div>
+                <span class="pending-count">{{ pendingPropertyRequests.length }}</span>
+              </div>
+              <router-link class="btn btn-sm btn-success" to="/request">
+                Review <i class="bi bi-arrow-right ms-1"></i>
+              </router-link>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Request No.</th>
+                    <th>Property</th>
+                    <th>Requested By</th>
+                    <th>Office</th>
+                    <th>Quantity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="pendingRequestsLoading">
+                    <td colspan="5" class="text-center text-secondary py-4">
+                      Loading pending property requests...
+                    </td>
+                  </tr>
+                  <tr v-else-if="pendingRequestsError">
+                    <td colspan="5" class="text-center text-danger py-4">
+                      {{ pendingRequestsError }}
+                    </td>
+                  </tr>
+                  <tr v-else-if="pendingPropertyRequests.length === 0">
+                    <td colspan="5" class="text-center text-secondary py-4">
+                      No pending property requests.
+                    </td>
+                  </tr>
+                  <tr
+                    v-for="request in pendingPropertyRequests.slice(0, 5)"
+                    :key="request.id"
+                  >
+                    <td>{{ request.request_number || '-' }}</td>
+                    <td>{{ request.item_description || '-' }}</td>
+                    <td>
+                      {{ request.users?.full_name || request.personnel?.full_name || '-' }}
+                    </td>
+                    <td>{{ request.offices?.office_name || '-' }}</td>
+                    <td>{{ request.quantity || 0 }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-12 col-xl-6">
+          <section class="card pending-card account-pending-card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="pending-icon"><i class="bi bi-person-plus-fill"></i></span>
+                <div>
+                  <strong>Account Signups</strong>
+                  <div class="small text-secondary">Waiting for verification</div>
+                </div>
+                <span class="pending-count">{{ pendingAccountRequests.length }}</span>
+              </div>
+              <router-link class="btn btn-sm btn-success" to="/account-requests">
+                Review <i class="bi bi-arrow-right ms-1"></i>
+              </router-link>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Employee ID</th>
+                    <th>Name</th>
+                    <th>Office</th>
+                    <th>Title</th>
+                    <th>Date Requested</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="pendingAccountsLoading">
+                    <td colspan="5" class="text-center text-secondary py-4">
+                      Loading account signups...
+                    </td>
+                  </tr>
+                  <tr v-else-if="pendingAccountsError">
+                    <td colspan="5" class="text-center text-danger py-4">
+                      {{ pendingAccountsError }}
+                    </td>
+                  </tr>
+                  <tr v-else-if="pendingAccountRequests.length === 0">
+                    <td colspan="5" class="text-center text-secondary py-4">
+                      No pending account signups.
+                    </td>
+                  </tr>
+                  <tr
+                    v-for="request in pendingAccountRequests.slice(0, 5)"
+                    :key="request.id"
+                  >
+                    <td>{{ request.employee_id || '-' }}</td>
+                    <td>{{ request.full_name || '-' }}</td>
+                    <td>{{ request.department || '-' }}</td>
+                    <td>{{ request.job_title || '-' }}</td>
+                    <td>{{ formatDate(request.created_at) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
     <!-- Summary Cards -->
     <div class="row g-3 mb-4">
 
@@ -421,6 +552,18 @@ export default {
 
       items: [],
 
+      pendingPropertyRequests: [],
+
+      pendingAccountRequests: [],
+
+      pendingRequestsLoading: true,
+
+      pendingAccountsLoading: true,
+
+      pendingRequestsError: '',
+
+      pendingAccountsError: '',
+
       loading: true,
 
       error: '',
@@ -460,8 +603,20 @@ export default {
 
   async mounted() {
 
-    await this.getItems()
+    window.addEventListener('item-requests-updated', this.getPendingPropertyRequests)
+    window.addEventListener('account-requests-updated', this.getPendingAccountRequests)
 
+    await Promise.all([
+      this.getItems(),
+      this.getPendingPropertyRequests(),
+      this.getPendingAccountRequests()
+    ])
+
+  },
+
+  beforeUnmount() {
+    window.removeEventListener('item-requests-updated', this.getPendingPropertyRequests)
+    window.removeEventListener('account-requests-updated', this.getPendingAccountRequests)
   },
 
   methods: {
@@ -546,6 +701,62 @@ export default {
 
       }
 
+    },
+
+    async getPendingPropertyRequests() {
+      this.pendingRequestsLoading = true
+      this.pendingRequestsError = ''
+
+      try {
+        const response = await fetch('/api/item-requests')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load pending property requests')
+        }
+
+        if (!Array.isArray(data)) {
+          throw new Error('The property requests response was not a list')
+        }
+
+        this.pendingPropertyRequests = data.filter(
+          request => request.status === 'Pending'
+        )
+      } catch (error) {
+        console.error('Pending property requests error:', error)
+        this.pendingRequestsError = error.message || 'Failed to load pending property requests'
+      } finally {
+        this.pendingRequestsLoading = false
+      }
+    },
+
+    async getPendingAccountRequests() {
+      this.pendingAccountsLoading = true
+      this.pendingAccountsError = ''
+
+      try {
+        const response = await fetch('/api/personnel/account-requests')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load pending account signups')
+        }
+
+        if (!Array.isArray(data)) {
+          throw new Error('The account requests response was not a list')
+        }
+
+        this.pendingAccountRequests = data
+      } catch (error) {
+        console.error('Pending account signups error:', error)
+        this.pendingAccountsError = error.message || 'Failed to load pending account signups'
+      } finally {
+        this.pendingAccountsLoading = false
+      }
+    },
+
+    formatDate(value) {
+      return value ? new Date(value).toLocaleDateString() : '-'
     },
 
     countClassification(classification) {
@@ -674,6 +885,94 @@ h1 {
 
 .card {
   border-radius: 10px;
+}
+
+.action-center {
+  padding: 16px;
+  border: 1px solid #dfe9df;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f3f8f2 0%, #fffdf5 100%);
+}
+
+.action-center-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.action-center-heading h2 {
+  color: #2F5D3A;
+}
+
+.action-center-eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: #7d6510;
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.action-center-bell {
+  color: #b38a12;
+  font-size: 1.5rem;
+}
+
+.pending-card {
+  border: 1px solid #e5e5e5;
+  border-top: 4px solid #d6ad2e;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(37, 73, 45, .07);
+}
+
+.property-pending-card {
+  border-top-color: #2F5D3A;
+}
+
+.account-pending-card {
+  border-top-color: #d6ad2e;
+}
+
+.pending-card .card-header {
+  color: #2F5D3A;
+  padding: 11px 14px;
+}
+
+.pending-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 10px;
+  background: #edf4ed;
+  color: #2F5D3A;
+  font-size: 1.1rem;
+}
+
+.account-pending-card .pending-icon {
+  background: #fff6d9;
+  color: #8a6c0b;
+}
+
+.pending-count {
+  display: inline-grid;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  place-items: center;
+  border-radius: 999px;
+  background: #2F5D3A;
+  color: white;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.account-pending-card .pending-count {
+  background: #d6ad2e;
+  color: #2d2b1f;
 }
 
 .analytics-card {

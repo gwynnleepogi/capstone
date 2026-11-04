@@ -2,8 +2,8 @@
   <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
-        <h2>Receipts</h2>
-        <p class="text-muted">Manage property receipts</p>
+        <h2>Acquisitions and Issuance</h2>
+        <p class="text-muted">Manage Acquisitions and Issuance</p>
       </div>
 
       <button
@@ -150,10 +150,29 @@
                 >
               </div>
 
-              <!-- ITEM REQUEST -->
               <div
                 class="mb-3"
                 v-if="!editing"
+              >
+                <label class="form-label">
+                  Receipt For
+                </label>
+
+                <select
+                  class="form-select"
+                  v-model="form.receipt_source"
+                  @change="resetReceiptSourceSelection"
+                  required
+                >
+                  <option value="request">Approved Item Request</option>
+                  <option value="property">Property with Accountable Employee</option>
+                </select>
+              </div>
+
+              <!-- ITEM REQUEST -->
+              <div
+                class="mb-3"
+                v-if="!editing && form.receipt_source === 'request'"
               >
                 <label class="form-label">
                   Approved Item Request
@@ -196,9 +215,54 @@
                 </small>
               </div>
 
+              <div
+                class="mb-3"
+                v-if="!editing && form.receipt_source === 'property'"
+              >
+                <label class="form-label">
+                  Assigned Property
+                </label>
+
+                <select
+                  class="form-select"
+                  v-model="form.item_id"
+                  @change="updateReceiptTypeForSelectedProperty"
+                  required
+                >
+                  <option value="">
+                    {{
+                      assignedReceiptItems.length
+                        ? 'Select Assigned Property'
+                        : 'No eligible assigned properties'
+                    }}
+                  </option>
+
+                  <option
+                    v-for="item in assignedReceiptItems"
+                    :key="item.id"
+                    :value="item.id"
+                  >
+                    {{ item.property_number || item.description }} -
+                    {{ item.description }} ({{ item.accountable_employee }})
+                  </option>
+                </select>
+
+                <small class="text-muted">
+                  Properties added with an accountable employee are automatically eligible for an acquisition receipt.
+
+                  <button
+                    type="button"
+                    class="btn btn-link btn-sm p-0 ms-1"
+                    @click="getItems"
+                  >
+                    Refresh list
+                  </button>
+                </small>
+              </div>
+
               <!-- SELECTED ITEM DETAILS -->
               <div
-                v-if="selectedRequest && !editing"
+                v-if="(selectedRequest || selectedAssignedItem) && !editing"
                 class="alert alert-light border"
               >
                 <h6 class="fw-bold text-success">
@@ -208,8 +272,8 @@
                 <p class="mb-1">
                   <strong>Item:</strong>
                   {{
-                    getRequestItem(selectedRequest).description ||
-                    selectedRequest.item_description ||
+                    selectedReceiptItem.description ||
+                    selectedRequest?.item_description ||
                     '-'
                   }}
                 </p>
@@ -217,7 +281,7 @@
                 <p class="mb-1">
                   <strong>Property Number:</strong>
                   {{
-                    getRequestItem(selectedRequest).property_number ||
+                    selectedReceiptItem.property_number ||
                     '-'
                   }}
                 </p>
@@ -225,7 +289,7 @@
                 <p class="mb-1">
                   <strong>Model Number:</strong>
                   {{
-                    getRequestItem(selectedRequest).model_number ||
+                    selectedReceiptItem.model_number ||
                     '-'
                   }}
                 </p>
@@ -233,16 +297,17 @@
                 <p class="mb-1">
                   <strong>Serial Number:</strong>
                   {{
-                    getRequestItem(selectedRequest).serial_number ||
+                    selectedReceiptItem.serial_number ||
                     '-'
                   }}
                 </p>
 
                 <p class="mb-1">
-                  <strong>Requested By:</strong>
+                  <strong>{{ selectedRequest ? 'Requested By:' : 'Accountable Employee:' }}</strong>
                   {{
-                    selectedRequest.users?.full_name ||
-                    selectedRequest.requested_by_name ||
+                    selectedRequest?.users?.full_name ||
+                    selectedRequest?.requested_by_name ||
+                    selectedAssignedItem?.accountable_employee ||
                     '-'
                   }}
                 </p>
@@ -250,9 +315,7 @@
                 <p class="mb-0">
                   <strong>Cost:</strong>
                   ₱{{
-                    formatAmount(
-                      getRequestItem(selectedRequest).cost
-                    )
+                    formatAmount(selectedReceiptItem.cost)
                   }}
                 </p>
               </div>
@@ -460,18 +523,53 @@
                     <span class="text-danger">*</span>
                   </label>
 
-                  <input
-                    class="form-control"
-                    v-model.trim="receiptPrintForm.receivedBy"
-                    required
-                  >
+                  <div class="personnel-search">
+                    <input
+                      v-model="personnelSearch.receiptReceivedBy"
+                      class="form-control"
+                      type="text"
+                      placeholder="Search name"
+                      autocomplete="off"
+                      required
+                      role="combobox"
+                      aria-autocomplete="list"
+                      :aria-expanded="showPersonnelOptions.receiptReceivedBy"
+                      @focus="openPersonnelOptions('receiptReceivedBy', receiptPrintForm.receivedBy)"
+                      @input="onPersonnelSearch(receiptPrintForm, 'receiptReceivedBy', 'receivedBy', 'receivedByDesignation')"
+                      @keydown.esc="closePersonnelOptions('receiptReceivedBy')"
+                      @blur="hidePersonnelOptions('receiptReceivedBy')"
+                    >
+                    <div v-if="showPersonnelOptions.receiptReceivedBy" class="personnel-options" role="listbox">
+                      <button
+                        v-if="receiptPrintForm.receivedBy && !printablePersonnel.some(person => person.full_name === receiptPrintForm.receivedBy)"
+                        type="button"
+                        role="option"
+                        @mousedown.prevent="selectPersonnel(receiptPrintForm, 'receiptReceivedBy', 'receivedBy', 'receivedByDesignation', receiptPrintForm.receivedBy)"
+                      >
+                        {{ receiptPrintForm.receivedBy }}
+                      </button>
+                      <button
+                        v-for="person in filteredPersonnel('receiptReceivedBy')"
+                        :key="person.id"
+                        type="button"
+                        role="option"
+                        @mousedown.prevent="selectPersonnel(receiptPrintForm, 'receiptReceivedBy', 'receivedBy', 'receivedByDesignation', person.full_name)"
+                      >
+                        {{ person.full_name }}
+                      </button>
+                      <div v-if="!filteredPersonnel('receiptReceivedBy').length && !receiptPrintForm.receivedBy" class="personnel-empty">
+                        No matching names.
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="col-md-6">
-                  <label class="form-label">Designation</label>
+                  <label class="form-label">Title</label>
                   <input
                     class="form-control"
                     v-model.trim="receiptPrintForm.receivedByDesignation"
+                    :readonly="Boolean(getPersonnelTitle(receiptPrintForm.receivedBy))"
                   >
                 </div>
 
@@ -481,17 +579,52 @@
 
                 <div class="col-md-6">
                   <label class="form-label">Received From Name</label>
-                  <input
-                    class="form-control"
-                    v-model.trim="receiptPrintForm.receivedFrom"
-                  >
+                  <div class="personnel-search">
+                    <input
+                      v-model="personnelSearch.receiptReceivedFrom"
+                      class="form-control"
+                      type="text"
+                      placeholder="Search name"
+                      autocomplete="off"
+                      role="combobox"
+                      aria-autocomplete="list"
+                      :aria-expanded="showPersonnelOptions.receiptReceivedFrom"
+                      @focus="openPersonnelOptions('receiptReceivedFrom', receiptPrintForm.receivedFrom)"
+                      @input="onPersonnelSearch(receiptPrintForm, 'receiptReceivedFrom', 'receivedFrom', 'receivedFromDesignation')"
+                      @keydown.esc="closePersonnelOptions('receiptReceivedFrom')"
+                      @blur="hidePersonnelOptions('receiptReceivedFrom')"
+                    >
+                    <div v-if="showPersonnelOptions.receiptReceivedFrom" class="personnel-options" role="listbox">
+                      <button
+                        v-if="receiptPrintForm.receivedFrom && !printablePersonnel.some(person => person.full_name === receiptPrintForm.receivedFrom)"
+                        type="button"
+                        role="option"
+                        @mousedown.prevent="selectPersonnel(receiptPrintForm, 'receiptReceivedFrom', 'receivedFrom', 'receivedFromDesignation', receiptPrintForm.receivedFrom)"
+                      >
+                        {{ receiptPrintForm.receivedFrom }}
+                      </button>
+                      <button
+                        v-for="person in filteredPersonnel('receiptReceivedFrom')"
+                        :key="person.id"
+                        type="button"
+                        role="option"
+                        @mousedown.prevent="selectPersonnel(receiptPrintForm, 'receiptReceivedFrom', 'receivedFrom', 'receivedFromDesignation', person.full_name)"
+                      >
+                        {{ person.full_name }}
+                      </button>
+                      <div v-if="!filteredPersonnel('receiptReceivedFrom').length && !receiptPrintForm.receivedFrom" class="personnel-empty">
+                        No matching names.
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="col-md-6">
-                  <label class="form-label">Designation</label>
+                  <label class="form-label">Title</label>
                   <input
                     class="form-control"
                     v-model.trim="receiptPrintForm.receivedFromDesignation"
+                    :readonly="Boolean(getPersonnelTitle(receiptPrintForm.receivedFrom))"
                   >
                 </div>
 
@@ -677,16 +810,50 @@
                     <span class="text-danger">*</span>
                   </label>
 
-                  <input
-                    class="form-control"
-                    v-model.trim="risForm.requestedBy"
-                    required
-                  >
+                  <div class="personnel-search">
+                    <input
+                      v-model="personnelSearch.risRequestedBy"
+                      class="form-control"
+                      type="text"
+                      placeholder="Search name"
+                      autocomplete="off"
+                      required
+                      role="combobox"
+                      aria-autocomplete="list"
+                      :aria-expanded="showPersonnelOptions.risRequestedBy"
+                      @focus="openPersonnelOptions('risRequestedBy', risForm.requestedBy)"
+                      @input="onPersonnelSearch(risForm, 'risRequestedBy', 'requestedBy', 'requestedDesignation')"
+                      @keydown.esc="closePersonnelOptions('risRequestedBy')"
+                      @blur="hidePersonnelOptions('risRequestedBy')"
+                    >
+                    <div v-if="showPersonnelOptions.risRequestedBy" class="personnel-options" role="listbox">
+                      <button
+                        v-if="risForm.requestedBy && !printablePersonnel.some(person => person.full_name === risForm.requestedBy)"
+                        type="button"
+                        role="option"
+                        @mousedown.prevent="selectPersonnel(risForm, 'risRequestedBy', 'requestedBy', 'requestedDesignation', risForm.requestedBy)"
+                      >
+                        {{ risForm.requestedBy }}
+                      </button>
+                      <button
+                        v-for="person in filteredPersonnel('risRequestedBy')"
+                        :key="person.id"
+                        type="button"
+                        role="option"
+                        @mousedown.prevent="selectPersonnel(risForm, 'risRequestedBy', 'requestedBy', 'requestedDesignation', person.full_name)"
+                      >
+                        {{ person.full_name }}
+                      </button>
+                      <div v-if="!filteredPersonnel('risRequestedBy').length && !risForm.requestedBy" class="personnel-empty">
+                        No matching names.
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="col-md-6">
                   <label class="form-label">
-                    Requested By Designation
+                    Requested By Title
                     <span class="text-danger">*</span>
                   </label>
 
@@ -694,6 +861,7 @@
                     class="form-control"
                     v-model.trim="risForm.requestedDesignation"
                     required
+                    :readonly="Boolean(getPersonnelTitle(risForm.requestedBy))"
                   >
                 </div>
 
@@ -703,16 +871,50 @@
                     <span class="text-danger">*</span>
                   </label>
 
-                  <input
-                    class="form-control"
-                    v-model.trim="risForm.approvedBy"
-                    required
-                  >
+                  <div class="personnel-search">
+                    <input
+                      v-model="personnelSearch.risApprovedBy"
+                      class="form-control"
+                      type="text"
+                      placeholder="Search name"
+                      autocomplete="off"
+                      required
+                      role="combobox"
+                      aria-autocomplete="list"
+                      :aria-expanded="showPersonnelOptions.risApprovedBy"
+                      @focus="openPersonnelOptions('risApprovedBy', risForm.approvedBy)"
+                      @input="onPersonnelSearch(risForm, 'risApprovedBy', 'approvedBy', 'approvedDesignation')"
+                      @keydown.esc="closePersonnelOptions('risApprovedBy')"
+                      @blur="hidePersonnelOptions('risApprovedBy')"
+                    >
+                    <div v-if="showPersonnelOptions.risApprovedBy" class="personnel-options" role="listbox">
+                      <button
+                        v-if="risForm.approvedBy && !printablePersonnel.some(person => person.full_name === risForm.approvedBy)"
+                        type="button"
+                        role="option"
+                        @mousedown.prevent="selectPersonnel(risForm, 'risApprovedBy', 'approvedBy', 'approvedDesignation', risForm.approvedBy)"
+                      >
+                        {{ risForm.approvedBy }}
+                      </button>
+                      <button
+                        v-for="person in filteredPersonnel('risApprovedBy')"
+                        :key="person.id"
+                        type="button"
+                        role="option"
+                        @mousedown.prevent="selectPersonnel(risForm, 'risApprovedBy', 'approvedBy', 'approvedDesignation', person.full_name)"
+                      >
+                        {{ person.full_name }}
+                      </button>
+                      <div v-if="!filteredPersonnel('risApprovedBy').length && !risForm.approvedBy" class="personnel-empty">
+                        No matching names.
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="col-md-6">
                   <label class="form-label">
-                    Approved By Designation
+                    Approved By Title
                     <span class="text-danger">*</span>
                   </label>
 
@@ -720,6 +922,7 @@
                     class="form-control"
                     v-model.trim="risForm.approvedDesignation"
                     required
+                    :readonly="Boolean(getPersonnelTitle(risForm.approvedBy))"
                   >
                 </div>
 
@@ -729,16 +932,50 @@
                     <span class="text-danger">*</span>
                   </label>
 
-                  <input
-                    class="form-control"
-                    v-model.trim="risForm.issuedBy"
-                    required
-                  >
+                  <div class="personnel-search">
+                    <input
+                      v-model="personnelSearch.risIssuedBy"
+                      class="form-control"
+                      type="text"
+                      placeholder="Search name"
+                      autocomplete="off"
+                      required
+                      role="combobox"
+                      aria-autocomplete="list"
+                      :aria-expanded="showPersonnelOptions.risIssuedBy"
+                      @focus="openPersonnelOptions('risIssuedBy', risForm.issuedBy)"
+                      @input="onPersonnelSearch(risForm, 'risIssuedBy', 'issuedBy', 'issuedDesignation')"
+                      @keydown.esc="closePersonnelOptions('risIssuedBy')"
+                      @blur="hidePersonnelOptions('risIssuedBy')"
+                    >
+                    <div v-if="showPersonnelOptions.risIssuedBy" class="personnel-options" role="listbox">
+                      <button
+                        v-if="risForm.issuedBy && !printablePersonnel.some(person => person.full_name === risForm.issuedBy)"
+                        type="button"
+                        role="option"
+                        @mousedown.prevent="selectPersonnel(risForm, 'risIssuedBy', 'issuedBy', 'issuedDesignation', risForm.issuedBy)"
+                      >
+                        {{ risForm.issuedBy }}
+                      </button>
+                      <button
+                        v-for="person in filteredPersonnel('risIssuedBy')"
+                        :key="person.id"
+                        type="button"
+                        role="option"
+                        @mousedown.prevent="selectPersonnel(risForm, 'risIssuedBy', 'issuedBy', 'issuedDesignation', person.full_name)"
+                      >
+                        {{ person.full_name }}
+                      </button>
+                      <div v-if="!filteredPersonnel('risIssuedBy').length && !risForm.issuedBy" class="personnel-empty">
+                        No matching names.
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="col-md-6">
                   <label class="form-label">
-                    Issued By Designation
+                    Issued By Title
                     <span class="text-danger">*</span>
                   </label>
 
@@ -746,6 +983,7 @@
                     class="form-control"
                     v-model.trim="risForm.issuedDesignation"
                     required
+                    :readonly="Boolean(getPersonnelTitle(risForm.issuedBy))"
                   >
                 </div>
 
@@ -755,16 +993,50 @@
                     <span class="text-danger">*</span>
                   </label>
 
-                  <input
-                    class="form-control"
-                    v-model.trim="risForm.receivedBy"
-                    required
-                  >
+                  <div class="personnel-search">
+                    <input
+                      v-model="personnelSearch.risReceivedBy"
+                      class="form-control"
+                      type="text"
+                      placeholder="Search name"
+                      autocomplete="off"
+                      required
+                      role="combobox"
+                      aria-autocomplete="list"
+                      :aria-expanded="showPersonnelOptions.risReceivedBy"
+                      @focus="openPersonnelOptions('risReceivedBy', risForm.receivedBy)"
+                      @input="onPersonnelSearch(risForm, 'risReceivedBy', 'receivedBy', 'receivedDesignation')"
+                      @keydown.esc="closePersonnelOptions('risReceivedBy')"
+                      @blur="hidePersonnelOptions('risReceivedBy')"
+                    >
+                    <div v-if="showPersonnelOptions.risReceivedBy" class="personnel-options" role="listbox">
+                      <button
+                        v-if="risForm.receivedBy && !printablePersonnel.some(person => person.full_name === risForm.receivedBy)"
+                        type="button"
+                        role="option"
+                        @mousedown.prevent="selectPersonnel(risForm, 'risReceivedBy', 'receivedBy', 'receivedDesignation', risForm.receivedBy)"
+                      >
+                        {{ risForm.receivedBy }}
+                      </button>
+                      <button
+                        v-for="person in filteredPersonnel('risReceivedBy')"
+                        :key="person.id"
+                        type="button"
+                        role="option"
+                        @mousedown.prevent="selectPersonnel(risForm, 'risReceivedBy', 'receivedBy', 'receivedDesignation', person.full_name)"
+                      >
+                        {{ person.full_name }}
+                      </button>
+                      <div v-if="!filteredPersonnel('risReceivedBy').length && !risForm.receivedBy" class="personnel-empty">
+                        No matching names.
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="col-md-6">
                   <label class="form-label">
-                    Received By Designation
+                    Received By Title
                     <span class="text-danger">*</span>
                   </label>
 
@@ -772,6 +1044,7 @@
                     class="form-control"
                     v-model.trim="risForm.receivedDesignation"
                     required
+                    :readonly="Boolean(getPersonnelTitle(risForm.receivedBy))"
                   >
                 </div>
 
@@ -991,7 +1264,11 @@
               @click="printSelectedReceipt"
             >
               <i class="bi bi-printer me-1"></i>
-              Print Acquisition Receipt
+              {{
+                selectedDetailsReceipt?.receipt_type === 'ICS'
+                  ? 'Print Inventory Custodian Slip'
+                  : 'Print Property Acknowledgement Receipt'
+              }}
             </button>
 
             <button
@@ -1035,6 +1312,22 @@ export default {
       saving: false,
       signatureImages: { receivedBy: '', receivedFrom: '', requestedBy: '', approvedBy: '', issuedBy: '', receivedByRIS: '' },
       signatureDates: { receivedBy: '', receivedFrom: '', requestedBy: '', approvedBy: '', issuedBy: '', receivedByRIS: '' },
+      personnelSearch: {
+        receiptReceivedBy: '',
+        receiptReceivedFrom: '',
+        risRequestedBy: '',
+        risApprovedBy: '',
+        risIssuedBy: '',
+        risReceivedBy: ''
+      },
+      showPersonnelOptions: {
+        receiptReceivedBy: false,
+        receiptReceivedFrom: false,
+        risRequestedBy: false,
+        risApprovedBy: false,
+        risIssuedBy: false,
+        risReceivedBy: false
+      },
       selectedRISReceipt: null,
       selectedPrintReceipt: null,
       selectedDetailsReceipt: null,
@@ -1075,6 +1368,8 @@ export default {
       form: {
         id: null,
         item_request_id: '',
+        item_id: '',
+        receipt_source: 'request',
         receipt_type: 'PAR',
         receipt_number: '',
         date_issued: '',
@@ -1084,11 +1379,47 @@ export default {
   },
 
   computed: {
+    printablePersonnel() {
+      return [...this.personnel]
+        .filter(person => person.full_name)
+        .sort((first, second) =>
+          first.full_name.localeCompare(second.full_name, undefined, {
+            sensitivity: 'base'
+          })
+        )
+    },
+
     selectedRequest() {
       return this.itemRequests.find(
         request =>
           request.id === this.form.item_request_id
       ) || null
+    },
+
+    assignedReceiptItems() {
+      const receiptedItemIds = new Set(
+        this.receipts.map(receipt => String(receipt.item_id))
+      )
+
+      return this.items.filter(item =>
+        String(item.status || '').trim().toLowerCase() === 'issued' &&
+        String(item.accountable_employee || '').trim() &&
+        !receiptedItemIds.has(String(item.id))
+      )
+    },
+
+    selectedAssignedItem() {
+      return this.assignedReceiptItems.find(
+        item => String(item.id) === String(this.form.item_id)
+      ) || null
+    },
+
+    selectedReceiptItem() {
+      if (this.form.receipt_source === 'property') {
+        return this.selectedAssignedItem || {}
+      }
+
+      return this.getRequestItem(this.selectedRequest)
     },
 
     editingItem() {
@@ -1126,6 +1457,62 @@ export default {
   },
 
   methods: {
+    getPersonnelTitle(name) {
+      if (!name) return ''
+
+      return this.personnel.find(
+        person => person.full_name === name
+      )?.job_title || ''
+    },
+
+    filteredPersonnel(searchKey) {
+      const search = this.personnelSearch[searchKey].trim().toLowerCase()
+
+      if (!search) return this.printablePersonnel
+
+      return this.printablePersonnel.filter(person =>
+        person.full_name.toLowerCase().includes(search)
+      )
+    },
+
+    openPersonnelOptions(searchKey, selectedName) {
+      if (!this.personnelSearch[searchKey]) {
+        this.personnelSearch[searchKey] = selectedName || ''
+      }
+
+      this.showPersonnelOptions[searchKey] = true
+    },
+
+    onPersonnelSearch(form, searchKey, nameField, titleField) {
+      form[nameField] = ''
+      form[titleField] = ''
+      this.showPersonnelOptions[searchKey] = true
+    },
+
+    selectPersonnel(form, searchKey, nameField, titleField, fullName) {
+      const personnelTitle = this.getPersonnelTitle(fullName)
+
+      if (personnelTitle) {
+        form[titleField] = personnelTitle
+      } else if (form[nameField] !== fullName) {
+        form[titleField] = ''
+      }
+
+      form[nameField] = fullName
+      this.personnelSearch[searchKey] = fullName
+      this.showPersonnelOptions[searchKey] = false
+    },
+
+    closePersonnelOptions(searchKey) {
+      this.showPersonnelOptions[searchKey] = false
+    },
+
+    hidePersonnelOptions(searchKey) {
+      setTimeout(() => {
+        this.closePersonnelOptions(searchKey)
+      }, 150)
+    },
+
     viewReceiptDetails(receipt) {
       this.selectedDetailsReceipt = receipt
 
@@ -1304,6 +1691,8 @@ export default {
       this.form = {
         id: null,
         item_request_id: '',
+        item_id: '',
+        receipt_source: 'request',
         receipt_type: 'PAR',
         receipt_number: '',
         date_issued: new Date().toISOString().split('T')[0],
@@ -1323,6 +1712,8 @@ export default {
       this.form = {
         id: receipt.id,
         item_request_id: '',
+        item_id: '',
+        receipt_source: 'request',
         receipt_type: this.getReceiptTypeForItem(this.getReceiptItem(receipt)),
         receipt_number: receipt.receipt_number || '',
         date_issued: receipt.date_issued || '',
@@ -1348,7 +1739,7 @@ export default {
 
         const receiptItem = this.editing
           ? this.editingItem
-          : this.getRequestItem(this.selectedRequest)
+          : this.selectedReceiptItem
         const automaticReceiptType = this.getReceiptTypeForItem(receiptItem)
         this.form.receipt_type = automaticReceiptType
 
@@ -1362,6 +1753,8 @@ export default {
         if (this.editing) {
           url = `/api/receipts/${this.form.id}`
           method = 'PUT'
+        } else if (this.form.receipt_source === 'property') {
+          body.item_id = this.form.item_id
         } else {
           body.item_request_id = this.form.item_request_id
         }
@@ -1537,6 +1930,17 @@ export default {
       this.form.receipt_type = this.getReceiptTypeForItem(item)
     },
 
+    updateReceiptTypeForSelectedProperty() {
+      this.form.receipt_type = this.getReceiptTypeForItem(
+        this.selectedAssignedItem
+      )
+    },
+
+    resetReceiptSourceSelection() {
+      this.form.item_request_id = ''
+      this.form.item_id = ''
+    },
+
     getRequestItem(request) {
       if (!request) {
         return {}
@@ -1635,14 +2039,23 @@ export default {
         receivedBy: this.getIssuedToName(receipt) === '-'
           ? ''
           : this.getIssuedToName(receipt),
-        receivedByDesignation: receipt.received_by_designation || '',
+        receivedByDesignation:
+          this.getPersonnelTitle(this.getIssuedToName(receipt)) ||
+          receipt.received_by_designation ||
+          '',
         receivedFrom: receipt.received_from_name || '',
         receivedFromDesignation:
-          receipt.received_from_designation || 'Administrative Officer V',
+          this.getPersonnelTitle(receipt.received_from_name) ||
+          receipt.received_from_designation ||
+          'Administrative Officer V',
         paperSize: 'short',
         paperWidth: 8.5,
         paperHeight: 11
       }
+      this.personnelSearch.receiptReceivedBy = this.receiptPrintForm.receivedBy
+      this.personnelSearch.receiptReceivedFrom = this.receiptPrintForm.receivedFrom
+      this.showPersonnelOptions.receiptReceivedBy = false
+      this.showPersonnelOptions.receiptReceivedFrom = false
 
       const modal = Modal.getOrCreateInstance(
         document.getElementById('receiptPrintDetailsModal')
@@ -1653,6 +2066,10 @@ export default {
 
     confirmPrintReceipt() {
       if (!this.selectedPrintReceipt) return
+      if (!this.receiptPrintForm.receivedBy) {
+        this.showToast('Select a name for Received By.')
+        return
+      }
 
       const modal = Modal.getOrCreateInstance(
         document.getElementById('receiptPrintDetailsModal')
@@ -1697,17 +2114,41 @@ export default {
           request.requested_by_name ||
           request.users?.full_name ||
           '',
-        requestedDesignation: request.requested_by_designation || '',
+        requestedDesignation:
+          this.getPersonnelTitle(
+            request.requested_by_name ||
+            request.users?.full_name ||
+            ''
+          ) ||
+          request.requested_by_designation ||
+          '',
         approvedBy: receipt.approved_by_name || '',
-        approvedDesignation: receipt.approved_by_designation || '',
+        approvedDesignation:
+          this.getPersonnelTitle(receipt.approved_by_name) ||
+          receipt.approved_by_designation ||
+          '',
         issuedBy: receipt.issued_by_name || '',
-        issuedDesignation: receipt.issued_by_designation || '',
+        issuedDesignation:
+          this.getPersonnelTitle(receipt.issued_by_name) ||
+          receipt.issued_by_designation ||
+          '',
         receivedBy: issuedTo === '-' ? '' : issuedTo,
-        receivedDesignation: receipt.received_by_designation || '',
+        receivedDesignation:
+          this.getPersonnelTitle(issuedTo) ||
+          receipt.received_by_designation ||
+          '',
         paperSize: 'long',
         paperWidth: 8.5,
         paperHeight: 13
       }
+      this.personnelSearch.risRequestedBy = this.risForm.requestedBy
+      this.personnelSearch.risApprovedBy = this.risForm.approvedBy
+      this.personnelSearch.risIssuedBy = this.risForm.issuedBy
+      this.personnelSearch.risReceivedBy = this.risForm.receivedBy
+      this.showPersonnelOptions.risRequestedBy = false
+      this.showPersonnelOptions.risApprovedBy = false
+      this.showPersonnelOptions.risIssuedBy = false
+      this.showPersonnelOptions.risReceivedBy = false
 
       const modal = Modal.getOrCreateInstance(
         document.getElementById('risDetailsModal')
@@ -1718,6 +2159,15 @@ export default {
 
     confirmPrintRIS() {
       if (!this.selectedRISReceipt) return
+      if (
+        !this.risForm.requestedBy ||
+        !this.risForm.approvedBy ||
+        !this.risForm.issuedBy ||
+        !this.risForm.receivedBy
+      ) {
+        this.showToast('Select a name for each RIS signer.')
+        return
+      }
 
       const modal = Modal.getOrCreateInstance(
         document.getElementById('risDetailsModal')
@@ -1762,6 +2212,221 @@ export default {
 
       return { width, height }
     },
+
+    printReceipt(receipt, details = {}) {
+      const pageSize = this.getPrintPageSize(details)
+      if (!pageSize) return
+
+      const item = this.getReceiptItem(receipt)
+      const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
+
+      const receiptType = this.escapeHtml(receipt.receipt_type || 'PAR')
+      const receiptNumber = this.escapeHtml(receipt.receipt_number || '-')
+      const personnelName = this.escapeHtml(
+        details.receivedBy || this.getIssuedToName(receipt)
+      )
+      const description = this.escapeHtml(item.description || '-')
+      const quantity = this.escapeHtml(receipt.quantity ?? 1)
+      const propertyNumber = this.escapeHtml(item.property_number || '-')
+      const modelNumber = this.escapeHtml(item.model_number || '-')
+      const serialNumber = this.escapeHtml(item.serial_number || '-')
+      const dateAcquired = this.escapeHtml(
+        item.acquisition_date || item.date_acquired || '-'
+      )
+      const dateIssued = this.escapeHtml(receipt.date_issued || '-')
+      const signatureImageMarkup = key =>
+        details.signatureImages?.[key]
+          ? `<img class="receipt-signature-image" src="${this.escapeHtml(details.signatureImages[key])}" alt="Signature">`
+          : ''
+      const responsibilityCenter = this.escapeHtml(
+        details.unitOffice || item.responsibility_center || '-'
+      )
+      const cost = Number(item.cost || 0)
+      const amount = this.formatAmount(cost * Number(receipt.quantity ?? 1))
+      const remarks = this.escapeHtml(
+        details.purpose || receipt.remarks || '-'
+      )
+
+      const printWindow = window.open('', '_blank')
+
+      if (!printWindow) {
+        this.showToast('Please allow pop-ups to print the receipt')
+        return
+      }
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${receiptType} - ${receiptNumber}</title>
+          <style>
+            @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 8mm; }
+            * { box-sizing: border-box; }
+            body { margin: 0; color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 10px; }
+            .page { width: 100%; min-height: calc(${pageSize.height}in - 16mm); padding: 5px; display: flex; flex-direction: column; }
+            .header { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; min-height: 72px; }
+            .logo-box { height: 72px; display: flex; align-items: center; justify-content: center; }
+            .logo { width: 58px; height: 58px; object-fit: contain; }
+            .header-text { line-height: 1.25; padding: 3px; }
+            .header-text p { margin: 1px 0; }
+            .header h1 { margin: 1px 0; font-size: 14px; color: #000; font-weight: bold; }
+            .header h2 { margin: 1px 0; font-size: 10px; color: #000; font-weight: normal; }
+            .header p { margin: 1px 0; font-size: 10px; }
+            .appendix { text-align: right; margin-top: 4px; font-size: 9px; font-weight: bold; }
+            .receipt-title { text-align: center; color: #000; font-size: 14px; font-weight: bold; padding: 6px 0; margin: 0; }
+            .receipt-title span { color: #000; }
+            .receipt-info { display: grid; grid-template-columns: 1fr 1fr; margin: 0; font-size: 10px; font-weight: normal; }
+            .fund-cluster, .par-number { display: flex; align-items: center; gap: 6px; padding: 6px; min-height: 28px; }
+            .fund-cluster span, .par-number span { display: inline-block; flex: 1; padding: 2px 4px; font-weight: normal; min-width: 0; }
+            .par-number span { color: #b22222; font-weight: bold; }
+            .main-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 0; }
+            .main-table th, .main-table td { border: 0; padding: 4px; vertical-align: middle; overflow-wrap: anywhere; }
+            .main-table th { background: #fff; color: #000; text-align: center; font-size: 9px; font-weight: bold; border-bottom: 0.5px solid #000; }
+            .main-table td { height: 35px; font-size: 9px; }
+            .main-table tbody tr:first-child td { border-bottom: 0.5px solid #000; }
+            .sn { width: 6%; text-align: center; }
+            .qty { width: 5%; text-align: center; }
+            .article { width: 24%; }
+            .property { width: 13%; text-align: center; }
+            .model { width: 12%; text-align: center; }
+            .serial { width: 12%; text-align: center; }
+            .date { width: 12%; text-align: center; }
+            .amount { width: 16%; text-align: right; }
+            .total-row td { height: 28px; font-weight: bold; }
+            .total-label, .total-amount { color: #b22222; font-weight: bold; }
+            .total-label { text-align: right; }
+            .total-amount { text-align: right; background: #ffeb3b; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .lower-details { display: grid; grid-template-columns: 1fr 1fr; }
+            .lower-left, .lower-right { padding: 7px; min-height: 125px; }
+            .lower-details p { margin: 0 0 7px; line-height: 1.25; }
+            .lower-details strong { color: #000; }
+            .print-footer { width: 100%; margin: auto 0 0; padding-bottom: 0; }
+            .page-number { margin: 0 2px 5px; text-align: right; font-size: 8px; }
+            .signature { display: grid; grid-template-columns: 38% 38%; justify-content: space-between; gap: 12px; min-height: 78px; border-top: 1px solid #000; padding: 5px 0 0; }
+            .signature-box { display: flex; flex-direction: column; font-size: 9px; }
+            .signature-heading { font-weight: bold; }
+            .signature-name { margin-top: 18px; text-align: center; font-weight: bold; }
+            .receipt-signature-image { display: block; width: 100%; height: 28px; object-fit: contain; }
+            .signature-box.has-signature .signature-name { margin-top: 0; }
+            .signature-label, .signature-date { text-align: center; }
+            .signature-label { margin-top: 2px; }
+            .signature-date { margin-top: 2px; }
+            @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+          </style>
+        </head>
+        <body>
+          <div class="page">
+            <div class="header">
+              <div class="logo-box"><img class="logo" src="${logoUrl}" alt="NVSU Logo"></div>
+              <div class="header-text">
+                <p>Republic of the Philippines</p>
+                <h1>NUEVA VIZCAYA STATE UNIVERSITY</h1>
+                <h2>3702 Bambang, Nueva Vizcaya</h2>
+              </div>
+            </div>
+
+            <div class="appendix">APPENDIX ${this.escapeHtml(details.appendix || '71')}</div>
+            <div class="receipt-title">
+              <span>${receipt.receipt_type === 'ICS' ? 'INVENTORY CUSTODIAN SLIP' : 'PROPERTY ACKNOWLEDGEMENT RECEIPT'}</span>
+            </div>
+
+            <div class="receipt-info">
+              <div class="fund-cluster">
+                <strong>FUND CLUSTER:</strong>
+                <span>${this.escapeHtml(details.fundCluster || 'TF-2')}</span>
+              </div>
+              <div class="par-number">
+                <strong>${receiptType} No.</strong>
+                <span>${receiptNumber}</span>
+              </div>
+            </div>
+
+            <table class="main-table">
+              <thead>
+                <tr>
+                  <th class="sn">SN</th>
+                  <th class="qty">Qty.</th>
+                  <th class="article">Article and Description</th>
+                  <th class="property">Property Number</th>
+                  <th class="model">Model Number</th>
+                  <th class="serial">Serial Number</th>
+                  <th class="date">Date Acquired</th>
+                  <th class="amount">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="sn">1</td>
+                  <td class="qty">${quantity}</td>
+                  <td class="article">${description}</td>
+                  <td class="property">${propertyNumber}</td>
+                  <td class="model">${modelNumber}</td>
+                  <td class="serial">${serialNumber}</td>
+                  <td class="date">${dateAcquired}</td>
+                  <td class="amount">${amount}</td>
+                </tr>
+                <tr class="total-row">
+                  <td colspan="7" class="total-label">Total</td>
+                  <td class="total-amount">${amount}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="lower-details">
+              <div class="lower-left">
+                <p><strong>UNIT/OFFICE:</strong> ${this.escapeHtml(details.unitOffice || responsibilityCenter || '-')}</p>
+                <p><strong>PO NO.:</strong> ${this.escapeHtml(details.poNumber || '-')}</p>
+                <p><strong>UACS:</strong> ${this.escapeHtml(details.uacs || '-')}</p>
+                <p><strong>BUR NO.:</strong> ${this.escapeHtml(details.burNumber || '-')}</p>
+                <p><strong>IAR NO.:</strong> ${this.escapeHtml(details.iarNumber || '-')}</p>
+              </div>
+              <div class="lower-right">
+                <p><strong>PURPOSE:</strong></p>
+                <p>${remarks}</p>
+              </div>
+            </div>
+
+            <div class="print-footer">
+              <div class="page-number">Page 1 of 1</div>
+              <div class="signature">
+                <div class="signature-box${details.signatureImages?.receivedBy ? ' has-signature' : ''}">
+                  <div class="signature-heading">RECEIVED BY</div>
+                  ${signatureImageMarkup('receivedBy')}
+                  <div class="signature-name">${personnelName}</div>
+                  <div class="signature-label">${this.escapeHtml(details.receivedByDesignation || '')}</div>
+                  <div class="signature-label">Signature over Printed Name</div>
+                  <div class="signature-date">${dateIssued}</div>
+                </div>
+                <div class="signature-box${details.signatureImages?.receivedFrom ? ' has-signature' : ''}">
+                  <div class="signature-heading">RECEIVED FROM:</div>
+                  ${signatureImageMarkup('receivedFrom')}
+                  <div class="signature-name">${this.escapeHtml(details.receivedFrom || '-')}</div>
+                  <div class="signature-label">${this.escapeHtml(details.receivedFromDesignation || '')}</div>
+                  <div class="signature-label">Signature over Printed Name</div>
+                  <div class="signature-date">${dateIssued}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+            <script>
+              window.onafterprint = function () { window.close() }
+              window.onload = function () {
+                const logo = document.querySelector('.logo')
+                if (logo && !logo.complete) {
+                  logo.onload = function () { window.print() }
+                  logo.onerror = function () { window.print() }
+                } else {
+                  window.print()
+                }
+              }
+            <\/script>
+        </body>
+        </html>
+      `)
+
+      printWindow.document.close()
+    },
+
 printRIS(receipt, details = {}) {
   const pageSize = this.getPrintPageSize(details)
   if (!pageSize) return
@@ -1902,10 +2567,19 @@ printRIS(receipt, details = {}) {
           box-sizing: border-box;
         }
 
+        :root {
+          --font-xxs: 7px;
+          --font-xs: 8px;
+          --font-sm: 9px;
+          --font-md: 10px;
+          --font-lg: 11px;
+          --font-xl: 14px;
+        }
+
         body {
           font-family: Arial, Helvetica, sans-serif;
           color: #000;
-          font-size: 10px;
+          font-size: var(--font-md);
           margin: 0;
         }
 
@@ -1921,16 +2595,16 @@ printRIS(receipt, details = {}) {
 
         .letterhead {
           display: grid;
-          grid-template-columns: 72px 1fr;
+          grid-template-columns: 80px 1fr;
           align-items: center;
           text-align: center;
-          border-bottom: 0.5px solid #000;
-          min-height: 72px;
+          min-height: 106px;
         }
 
         .logo-box {
           border-right: 0.5px solid #000;
-          height: 72px;
+          height: 100%;
+          min-height: 106px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1943,8 +2617,12 @@ printRIS(receipt, details = {}) {
         }
 
         .letterhead-text {
+          align-self: stretch;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
           line-height: 1.25;
-          padding: 3px;
+          padding: 5px 8px 0;
         }
 
         .letterhead-text p {
@@ -1952,15 +2630,17 @@ printRIS(receipt, details = {}) {
         }
 
         .school-name {
-          font-size: 14px;
+          font-size: var(--font-xl);
           font-weight: bold;
         }
 
         .document-title {
           text-align: center;
-          font-size: 14px;
+          font-size: var(--font-xl);
           font-weight: bold;
-          padding: 5px 0;
+          margin: 5px -8px 0;
+          padding: 5px 4px;
+          border-top: 0.5px solid #000;
         }
 
 
@@ -2019,7 +2699,7 @@ printRIS(receipt, details = {}) {
           border-left: none;
           border-right: none;
 
-          font-size: 10px;
+          font-size: var(--font-lg);
         }
 
 
@@ -2035,6 +2715,7 @@ printRIS(receipt, details = {}) {
         .meta td {
           height: 23px;
           border: 0.5px solid #000;
+          font-size: var(--font-md);
         }
 
 
@@ -2050,11 +2731,13 @@ printRIS(receipt, details = {}) {
         .items th {
           height: 29px;
           border: 0.5px solid #000;
+          font-size: var(--font-sm);
         }
 
         .items td {
           height: 30px;
           border: 0.5px solid #000;
+          font-size: var(--font-sm);
         }
 
         .center {
@@ -2076,12 +2759,13 @@ printRIS(receipt, details = {}) {
           border: 0.5px solid #000;
           padding: 4px 6px;
           vertical-align: middle;
-          font-size: 10px;
+          font-size: var(--font-md);
         }
 
         .sign-table .sign-label {
           text-align: left;
           font-weight: normal;
+          font-size: var(--font-md);
         }
 
         .sign-table .purpose-row td {
@@ -2090,12 +2774,14 @@ printRIS(receipt, details = {}) {
 
         .sign-table .purpose-value {
           text-align: left;
+          font-size: var(--font-md);
         }
 
         .sign-table .sign-head-row td {
           height: 44px;
           vertical-align: top;
           text-align: left;
+          font-size: var(--font-md);
         }
 
         .sign-table .blank-cell {
@@ -2124,11 +2810,11 @@ printRIS(receipt, details = {}) {
           text-transform: uppercase;
         }
 
-        .sign-table .designation-row td {
+        .sign-table .title-row td {
           height: 26px;
         }
 
-        .sign-table .sign-designation {
+        .sign-table .sign-title {
           text-align: center;
           font-style: italic;
         }
@@ -2172,6 +2858,15 @@ printRIS(receipt, details = {}) {
         .form-code {
           margin-top: 3px;
           font-weight: bold;
+        }
+
+        .page-footer {
+          position: fixed;
+          right: 0;
+          bottom: 0;
+          padding-top: 4px;
+          font-size: 8px;
+          text-align: right;
         }
 
 
@@ -2229,14 +2924,13 @@ printRIS(receipt, details = {}) {
               3702 Bambang, Nueva Vizcaya
             </p>
 
+            <div class="document-title">
+
+              REQUISITION AND ISSUE SLIP (RIS)
+
+            </div>
+
           </div>
-
-        </div>
-
-
-        <div class="document-title">
-
-          REQUISITION AND ISSUE SLIP (RIS)
 
         </div>
 
@@ -2608,27 +3302,27 @@ printRIS(receipt, details = {}) {
             </tr>
 
 
-            <!-- DESIGNATION -->
+            <!-- TITLE -->
 
-            <tr class="designation-row">
+            <tr class="title-row">
 
               <td class="sign-label">
-                Designation:
+                Title:
               </td>
 
-              <td class="sign-designation">
+              <td class="sign-title">
                 ${escape(details.requestedDesignation)}
               </td>
 
-              <td class="sign-designation">
+              <td class="sign-title">
                 ${escape(details.approvedDesignation)}
               </td>
 
-              <td class="sign-designation">
+              <td class="sign-title">
                 ${escape(details.issuedDesignation)}
               </td>
 
-              <td class="sign-designation">
+              <td class="sign-title">
                 ${escape(details.receivedDesignation)}
               </td>
 
@@ -2746,6 +3440,9 @@ printRIS(receipt, details = {}) {
 
         </div>
 
+        <div class="page-footer">
+          Page 1 of 1
+        </div>
 
       </div>
 
@@ -2756,6 +3453,10 @@ printRIS(receipt, details = {}) {
            ========================= -->
 
       <script>
+
+        window.onafterprint = function () {
+          window.close()
+        }
 
         window.onload = function () {
 
@@ -2795,6 +3496,44 @@ printRIS(receipt, details = {}) {
 </script>
 
 <style scoped>
+.personnel-search {
+  position: relative;
+}
+
+.personnel-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  z-index: 1060;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  background: #fff;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, .12);
+}
+
+.personnel-options button {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  background: #fff;
+  color: #212529;
+  text-align: left;
+}
+
+.personnel-options button:hover,
+.personnel-options button:focus {
+  background: #f1f5f2;
+}
+
+.personnel-empty {
+  padding: 0.5rem 0.75rem;
+  color: #6c757d;
+}
+
 .receipt-print-details-form .modal-body {
   min-height: 0;
   overflow-y: auto;

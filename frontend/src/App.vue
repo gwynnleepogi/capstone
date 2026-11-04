@@ -34,12 +34,12 @@
       </div>
 
       <nav class="sidebar-nav d-flex flex-column">
-        <div v-if="canAccess(['Administrator', 'Personnel'])" class="nav-section-label">
+        <div v-if="canAccess(['Administrator'])" class="nav-section-label">
           Overview
         </div>
 
         <router-link
-          v-if="canAccess(['Administrator', 'Personnel'])"
+          v-if="canAccess(['Administrator'])"
           to="/"
           class="nav-link"
           @click="menuOpen = false"
@@ -48,48 +48,12 @@
           Dashboard
         </router-link>
 
-        <div v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])" class="nav-section-label">
-          Requests &amp; Approvals
+        <div v-if="canAccess(['Administrator'])" class="nav-section-label">
+          Property Management
         </div>
 
         <router-link
-          v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])"
-          to="/request"
-          class="nav-link"
-          @click="menuOpen = false"
-        >
-          <i class="bi bi-file-earmark-text"></i>
-          Requests
-
-          <span
-            v-if="canAccess(['Administrator', 'Personnel']) && pendingRequestCount > 0"
-            class="request-count-badge"
-            :aria-label="`${pendingRequestCount} pending requests`"
-          >
-            {{ pendingRequestCount > 99 ? '99+' : pendingRequestCount }}
-          </span>
-        </router-link>
-
-        <div v-if="canAccess(['Administrator', 'Personnel'])" class="nav-section-label">
-          Acquisition &amp; Issuance
-        </div>
-
-        <router-link
-          v-if="canAccess(['Administrator', 'Personnel'])"
-          to="/receipts"
-          class="nav-link"
-          @click="menuOpen = false"
-        >
-          <i class="bi bi-receipt"></i>
-          Acquisitions &amp; Issuance
-        </router-link>
-
-        <div v-if="canAccess(['Administrator', 'Personnel'])" class="nav-section-label">
-          Inventory Management
-        </div>
-
-        <router-link
-          v-if="canAccess(['Administrator', 'Personnel'])"
+          v-if="canAccess(['Administrator'])"
           to="/items"
           class="nav-link"
           @click="menuOpen = false"
@@ -98,8 +62,48 @@
           Properties
         </router-link>
 
+        <div v-if="canAccess(['Administrator', 'Teacher', 'Non-Teaching Staff'])" class="nav-section-label">
+          Requests &amp; Approvals
+        </div>
+
         <router-link
-          v-if="canAccess(['Administrator', 'Personnel'])"
+          v-if="canAccess(['Administrator', 'Teacher', 'Non-Teaching Staff'])"
+          to="/request"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-file-earmark-text"></i>
+          Requests
+
+          <span
+            v-if="canAccess(['Administrator']) && pendingRequestCount > 0"
+            class="request-count-badge"
+            :aria-label="`${pendingRequestCount} pending requests`"
+          >
+            {{ pendingRequestCount > 99 ? '99+' : pendingRequestCount }}
+          </span>
+        </router-link>
+
+        <div v-if="canAccess(['Administrator'])" class="nav-section-label">
+          Acquisition &amp; Issuance
+        </div>
+
+        <router-link
+          v-if="canAccess(['Administrator'])"
+          to="/receipts"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-receipt"></i>
+          Acquisitions &amp; Issuance
+        </router-link>
+
+        <div v-if="canAccess(['Administrator'])" class="nav-section-label">
+          Inventory Management
+        </div>
+
+        <router-link
+          v-if="canAccess(['Administrator'])"
           to="/offices"
           class="nav-link"
           @click="menuOpen = false"
@@ -109,7 +113,7 @@
         </router-link>
 
         <router-link
-  v-if="canAccess(['Administrator', 'Personnel'])"
+  v-if="canAccess(['Administrator'])"
   to="/inventory-movement"
   class="nav-link"
   @click="menuOpen = false"
@@ -119,7 +123,7 @@
 </router-link>
 
         <router-link
-          v-if="canAccess(['Administrator', 'Personnel'])"
+          v-if="canAccess(['Administrator'])"
           to="/returns"
           class="nav-link"
           @click="menuOpen = false"
@@ -147,7 +151,7 @@
         </router-link>
 
         <router-link
-          v-if="canAccess(['Administrator', 'Personnel'])"
+          v-if="canAccess(['Administrator'])"
           to="/transfers"
           class="nav-link"
           @click="menuOpen = false"
@@ -156,7 +160,7 @@
           Transfers
         </router-link>
 
-        <div v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])" class="nav-section-label">
+        <div v-if="canAccess(['Administrator', 'Teacher', 'Non-Teaching Staff'])" class="nav-section-label">
           Monitoring &amp; Tools
         </div>
 
@@ -172,7 +176,7 @@
         </button>
 
         <router-link
-          v-if="canAccess(['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'])"
+          v-if="canAccess(['Administrator', 'Teacher', 'Non-Teaching Staff'])"
           to="/audit-logs"
           class="nav-link"
           @click="menuOpen = false"
@@ -193,6 +197,23 @@
         >
           <i class="bi bi-people"></i>
           Personnel
+        </router-link>
+
+        <router-link
+          v-if="canAccess(['Administrator'])"
+          to="/account-requests"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-person-plus"></i>
+          Account Requests
+          <span
+            v-if="pendingAccountRequestCount > 0"
+            class="request-count-badge"
+            :aria-label="`${pendingAccountRequestCount} pending account requests`"
+          >
+            {{ pendingAccountRequestCount > 99 ? '99+' : pendingAccountRequestCount }}
+          </span>
         </router-link>
       </nav>
 
@@ -255,6 +276,7 @@ export default {
       menuOpen: false,
       currentUser: JSON.parse(localStorage.getItem('user') || 'null'),
       pendingRequestCount: 0,
+      pendingAccountRequestCount: 0,
       showQrScanner: false,
       pendingReturnCount: 0,
       requestCountTimer: null,
@@ -262,7 +284,8 @@ export default {
         show: false,
         message: ''
       },
-      toastTimer: null
+      toastTimer: null,
+      tableLabelObserver: null
     }
   },
 
@@ -272,7 +295,18 @@ export default {
     window.addEventListener('storage', this.handleStorageChange)
     window.addEventListener('item-requests-updated', this.refreshPendingRequestCount)
     window.addEventListener('return-requests-updated', this.refreshPendingRequestCount)
+    window.addEventListener('account-requests-updated', this.refreshPendingAccountRequestCount)
     window.addEventListener('open-qr-scanner', this.openQrScanner)
+
+    this.tableLabelObserver = new MutationObserver(
+      this.updateResponsiveTableLabels
+    )
+    this.tableLabelObserver.observe(document.body, {
+      childList: true,
+      characterData: true,
+      subtree: true
+    })
+    this.updateResponsiveTableLabels()
 
     this.refreshPendingRequestCount()
     this.requestCountTimer = setInterval(this.refreshPendingRequestCount, 30000)
@@ -284,10 +318,12 @@ export default {
     window.removeEventListener('storage', this.handleStorageChange)
     window.removeEventListener('item-requests-updated', this.refreshPendingRequestCount)
     window.removeEventListener('return-requests-updated', this.refreshPendingRequestCount)
+    window.removeEventListener('account-requests-updated', this.refreshPendingAccountRequestCount)
     window.removeEventListener('open-qr-scanner', this.openQrScanner)
 
     clearInterval(this.requestCountTimer)
     clearTimeout(this.toastTimer)
+    this.tableLabelObserver?.disconnect()
   },
 
   watch: {
@@ -341,15 +377,17 @@ export default {
 
     async refreshPendingRequestCount() {
       if (
-        !this.canAccess(['Administrator', 'Personnel']) ||
+        !this.canAccess(['Administrator']) ||
         !localStorage.getItem('accessToken')
       ) {
         this.pendingRequestCount = 0
+        this.pendingAccountRequestCount = 0
         this.pendingReturnCount = 0
         return
       }
 
       this.refreshPendingReturnCount()
+      this.refreshPendingAccountRequestCount()
 
       try {
         const response = await fetch('/api/item-requests')
@@ -384,8 +422,57 @@ export default {
       }
     },
 
+    async refreshPendingAccountRequestCount() {
+      if (
+        !this.canAccess(['Administrator']) ||
+        !localStorage.getItem('accessToken')
+      ) {
+        this.pendingAccountRequestCount = 0
+        return
+      }
+
+      try {
+        const response = await fetch('/api/personnel/account-requests')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load account request count')
+        }
+
+        if (!Array.isArray(data)) {
+          throw new Error('The account requests response was not a list')
+        }
+
+        this.pendingAccountRequestCount = data.length
+      } catch (error) {
+        console.error('Pending account request count error:', error)
+      }
+    },
+
     canAccess(roles) {
       return roles.includes(this.currentUser?.role)
+    },
+
+    updateResponsiveTableLabels() {
+      document
+        .querySelectorAll('.content .table-responsive > table')
+        .forEach(table => {
+          const headers = Array.from(
+            table.querySelectorAll('thead tr:last-child th')
+          ).map(header => header.textContent.trim())
+
+          table.querySelectorAll('tbody tr').forEach(row => {
+            Array.from(row.cells).forEach((cell, index) => {
+              const label = cell.hasAttribute('colspan')
+                ? ''
+                : headers[index] || ''
+
+              if (cell.dataset.label !== label) {
+                cell.dataset.label = label
+              }
+            })
+          })
+        })
     },
 
     openQrScanner() {
@@ -396,9 +483,9 @@ export default {
     openScannedItem({ id }) {
       this.showQrScanner = false
 
-      // Only Administrator / Personnel can open the Items page.
+      // Only Administrator can open the Items page.
       // Teacher and Non-Teaching Staff get the read-only details page.
-      if (this.canAccess(['Administrator', 'Personnel'])) {
+      if (this.canAccess(['Administrator'])) {
         this.$router.push({
           name: 'Items',
           query: { item: id }
@@ -415,10 +502,12 @@ export default {
     logout() {
       this.currentUser = null
       this.pendingRequestCount = 0
+      this.pendingAccountRequestCount = 0
       this.menuOpen = false
 
       localStorage.removeItem('accessToken')
       localStorage.removeItem('user')
+      localStorage.removeItem('mustChangePassword')
 
       this.showToast('Logged out successfully')
 
@@ -877,7 +966,18 @@ body {
 }
 
 .content .table-responsive > .table {
+  width: 100%;
   max-width: 100%;
+  margin-bottom: 0;
+  font-size: .9rem;
+}
+
+.content .table-responsive > .table th,
+.content .table-responsive > .table td {
+  padding: .5rem .65rem;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* Buttons */
@@ -1371,14 +1471,16 @@ body {
 
   .content .table-responsive > .table {
     width: max-content !important;
-    min-width: 640px !important;
+    min-width: 600px !important;
     table-layout: auto !important;
+    font-size: .82rem;
   }
 
   .content .table-responsive > .table th,
   .content .table-responsive > .table td {
-    white-space: nowrap !important;
-    overflow-wrap: normal;
+    padding: .4rem .5rem;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
     word-break: normal;
   }
 
@@ -1422,6 +1524,100 @@ body {
     bottom: 12px;
     left: 12px;
     padding: 12px 14px;
+  }
+}
+
+@media (max-width: 639.98px) {
+  .content .table-responsive {
+    overflow: visible;
+  }
+
+  .content .table-responsive > .table {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .content .table-responsive > .table > thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .content .table-responsive > .table > tbody {
+    display: grid;
+    gap: 8px;
+  }
+
+  .content .table-responsive > .table > tbody > tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--app-border);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(27, 46, 31, .05);
+  }
+
+  .content .table-responsive > .table > tbody > tr > td {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 6px 8px;
+    border: 0;
+    border-bottom: 1px solid #eeede7;
+    border-right: 1px solid #eeede7;
+    text-align: left;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    font-size: .78rem;
+    line-height: 1.3;
+  }
+
+  .content .table-responsive > .table > tbody > tr > td:last-child {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .content .table-responsive > .table > tbody > tr > td:not([colspan])::before {
+    content: attr(data-label);
+    color: var(--app-muted);
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .025em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+
+  .content .table-responsive > .table > tbody > tr > td[colspan] {
+    display: block;
+    grid-column: 1 / -1;
+    padding: 12px 8px;
+    border: 0;
+    text-align: center;
+  }
+
+  .content .table-responsive > .table > tbody > tr > td .btn {
+    justify-self: start;
+    padding: .25rem .5rem;
+    font-size: .75rem;
+    min-height: 32px;
   }
 }
 </style>

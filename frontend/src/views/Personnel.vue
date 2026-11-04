@@ -7,6 +7,14 @@
           Manage system personnel and accounts
         </p>
       </div>
+      <button
+        type="button"
+        class="btn btn-success"
+        @click="openCreatePersonnelModal"
+      >
+        <i class="bi bi-person-plus me-1"></i>
+        Add User
+      </button>
     </div>
 
     <div class="card">
@@ -100,12 +108,27 @@
         <table class="table table-hover align-middle mb-0">
           <thead>
             <tr>
+              <th class="sortable" @click="sortBy('employee_id')">
+                Employee ID
+                <i :class="getSortIcon('employee_id')"></i>
+              </th>
+
               <th
                 class="sortable"
                 @click="sortBy('full_name')"
               >
                 Full Name
                 <i :class="getSortIcon('full_name')"></i>
+              </th>
+
+              <th class="sortable" @click="sortBy('department')">
+                Department
+                <i :class="getSortIcon('department')"></i>
+              </th>
+
+              <th class="sortable" @click="sortBy('job_title')">
+                Job Title
+                <i :class="getSortIcon('job_title')"></i>
               </th>
 
               <th
@@ -146,19 +169,19 @@
 
           <tbody>
             <tr v-if="loading">
-              <td colspan="6" class="text-center py-5">
+              <td colspan="9" class="text-center py-5">
                 Loading personnel...
               </td>
             </tr>
 
             <tr v-else-if="error">
-              <td colspan="6" class="text-center text-danger py-5">
+              <td colspan="9" class="text-center text-danger py-5">
                 {{ error }}
               </td>
             </tr>
 
             <tr v-else-if="filteredPersonnel.length === 0">
-              <td colspan="6" class="text-center text-muted py-5">
+              <td colspan="9" class="text-center text-muted py-5">
                 No personnel found.
               </td>
             </tr>
@@ -167,9 +190,13 @@
               v-for="person in paginatedPersonnel"
               :key="person.id"
             >
+              <td>{{ person.employee_id || '-' }}</td>
               <td>
                 {{ person.full_name }}
               </td>
+
+              <td>{{ person.department || '-' }}</td>
+              <td>{{ person.job_title || '-' }}</td>
 
               <td>
                 {{ person.email }}
@@ -400,6 +427,89 @@
       </div>
     </div>
 
+    <div class="modal fade" id="personnelCreateModal" tabindex="-1" aria-labelledby="personnelCreateModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form @submit.prevent="createPersonnel">
+            <div class="modal-header">
+              <h5 id="personnelCreateModalLabel" class="modal-title">Add User</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="newPersonnelEmployeeId" class="form-label">Employee ID</label>
+                <input id="newPersonnelEmployeeId" v-model.trim="newPersonnelForm.employee_id" class="form-control" required>
+              </div>
+              <div class="mb-3">
+                <label for="newPersonnelName" class="form-label">Full Name</label>
+                <input id="newPersonnelName" v-model.trim="newPersonnelForm.full_name" class="form-control" autocomplete="name" required>
+              </div>
+              <div class="mb-3">
+                <label for="newPersonnelEmail" class="form-label">Email</label>
+                <input id="newPersonnelEmail" v-model.trim="newPersonnelForm.email" type="email" class="form-control" autocomplete="email" required>
+              </div>
+              <div class="mb-3">
+                <label for="newPersonnelPassword" class="form-label">Temporary Password</label>
+                <input id="newPersonnelPassword" v-model="newPersonnelForm.password" type="password" class="form-control" autocomplete="new-password" minlength="6" required>
+                <div class="form-text">Must be at least 6 characters.</div>
+              </div>
+              <div class="mb-3">
+                <label for="newPersonnelRole" class="form-label">User Type</label>
+                <select id="newPersonnelRole" v-model="newPersonnelForm.role" class="form-select" required @change="clearNewPersonnelTitle">
+                  <option value="" disabled>Select a user type</option>
+                  <option value="Teacher">Teaching Staff</option>
+                  <option value="Non-Teaching Staff">Non-Teaching Staff</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="newPersonnelTitle" class="form-label">Job Title</label>
+                <SearchableSelect
+                  input-id="newPersonnelTitle"
+                  v-model="newTitleSelection"
+                  :options="newPersonnelTitleOptions"
+                  placeholder="Search or select a job title"
+                  required
+                  :disabled="!newPersonnelForm.role"
+                />
+              </div>
+              <div v-if="newTitleSelection === '__other__'" class="mb-3">
+                <label for="newPersonnelOtherTitle" class="form-label">Other Job Title</label>
+                <input
+                  id="newPersonnelOtherTitle"
+                  v-model.trim="newOtherJobTitle"
+                  class="form-control"
+                  maxlength="120"
+                  required
+                  placeholder="Enter the job title"
+                >
+                <div class="form-text">This title will be available in signup after this user is created.</div>
+              </div>
+              <div class="mb-3">
+                <label for="newPersonnelOffice" class="form-label">Office</label>
+                <SearchableSelect
+                  input-id="newPersonnelOffice"
+                  v-model="newPersonnelForm.office_id"
+                  :options="newPersonnelOfficeOptions"
+                  placeholder="Search or select an office"
+                  required
+                />
+                <div v-if="offices.length === 0" class="form-text text-danger">
+                  No offices are available. Add an office before creating this user.
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success" :disabled="personnelCreating">
+                <span v-if="personnelCreating" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                {{ personnelCreating ? 'Creating...' : 'Create User' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <div class="modal fade" id="personnelDetailsModal" tabindex="-1" aria-labelledby="personnelDetailsModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -409,12 +519,18 @@
           </div>
           <div v-if="selectedPersonnel" class="modal-body">
             <dl class="row mb-0">
+              <dt class="col-sm-4">Employee ID</dt>
+              <dd class="col-sm-8">{{ selectedPersonnel.employee_id || '-' }}</dd>
               <dt class="col-sm-4">Full Name</dt>
               <dd class="col-sm-8">{{ selectedPersonnel.full_name || '-' }}</dd>
               <dt class="col-sm-4">Email</dt>
               <dd class="col-sm-8">{{ selectedPersonnel.email || '-' }}</dd>
               <dt class="col-sm-4">Role</dt>
               <dd class="col-sm-8">{{ selectedPersonnel.role || '-' }}</dd>
+              <dt class="col-sm-4">Department</dt>
+              <dd class="col-sm-8">{{ selectedPersonnel.department || '-' }}</dd>
+              <dt class="col-sm-4">Job Title</dt>
+              <dd class="col-sm-8">{{ selectedPersonnel.job_title || '-' }}</dd>
               <dt class="col-sm-4">Office</dt>
               <dd class="col-sm-8">{{ selectedPersonnel.offices?.office_name || '-' }}</dd>
               <dt class="col-sm-4">Created</dt>
@@ -447,6 +563,10 @@
             </div>
             <div class="modal-body">
               <div class="mb-3">
+                <label class="form-label">Employee ID</label>
+                <input v-model.trim="personnelForm.employee_id" class="form-control">
+              </div>
+              <div class="mb-3">
                 <label class="form-label">Full Name</label>
                 <input v-model.trim="personnelForm.full_name" class="form-control" required>
               </div>
@@ -456,10 +576,26 @@
               </div>
               <div class="mb-3">
                 <label class="form-label">Role</label>
-                <select v-model="personnelForm.role" class="form-select" required>
-                  <option value="Personnel">Personnel</option>
+                <select v-model="personnelForm.role" class="form-select" required @change="personnelForm.job_title = ''">
+                  <option value="" disabled>Select a user type</option>
                   <option value="Teacher">Teacher</option>
                   <option value="Non-Teaching Staff">Non-Teaching Staff</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Department</label>
+                <input
+                  v-model.trim="personnelForm.department"
+                  class="form-control"
+                  @blur="personnelForm.department = normalizeDepartment(personnelForm.department)"
+                >
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Job Title</label>
+                <select v-model="personnelForm.job_title" class="form-select" required :disabled="!personnelForm.role">
+                  <option value="" disabled>Select a job title</option>
+                  <option v-if="personnelForm.job_title && !positionsForRole(personnelForm.role).includes(personnelForm.job_title)" :value="personnelForm.job_title">{{ personnelForm.job_title }}</option>
+                  <option v-for="position in positionsForRole(personnelForm.role)" :key="position" :value="position">{{ position }}</option>
                 </select>
               </div>
               <div class="mb-3">
@@ -487,6 +623,8 @@
 
 <script>
 import { Modal } from 'bootstrap'
+import { positionsForRole } from '@/data/positions'
+import SearchableSelect from '@/components/SearchableSelect.vue'
 
 async function apiRequest(url, options = {}) {
   const token = localStorage.getItem('accessToken')
@@ -502,6 +640,7 @@ async function apiRequest(url, options = {}) {
 
 export default {
   name: 'Personnel',
+  components: { SearchableSelect },
 
   data() {
     return {
@@ -526,22 +665,66 @@ export default {
       assignedItems: [],
       itemsLoading: false,
       personnelSaving: false,
+      personnelCreating: false,
+      newTitleSelection: '',
+      newOtherJobTitle: '',
+      newPersonnelForm: {
+        full_name: '',
+        email: '',
+        password: '',
+        role: '',
+        employee_id: '',
+        department: '',
+        job_title: '',
+        office_id: ''
+      },
       personnelForm: {
         full_name: '',
         email: '',
         role: '',
+        employee_id: '',
+        department: '',
+        job_title: '',
         office_id: ''
       }
     }
   },
 
   computed: {
-    roles() {
-      const roleList = this.personnel
-        .map(person => person.role)
-        .filter(role => role)
+    newPersonnelOfficeOptions() {
+      return [...this.offices]
+        .filter(office => office?.id && office.office_name)
+        .sort((first, second) =>
+          first.office_name.localeCompare(second.office_name, undefined, {
+            sensitivity: 'base'
+          })
+        )
+        .map(office => ({ value: office.id, label: office.office_name }))
+    },
 
-      return [...new Set(roleList)].sort()
+    newPersonnelTitleOptions() {
+      if (!this.newPersonnelForm.role) return []
+
+      const savedTitles = this.personnel
+        .filter(person => person.role === this.newPersonnelForm.role)
+        .map(person => String(person.job_title || '').trim())
+        .filter(Boolean)
+
+      const titles = [...new Set([
+        ...positionsForRole(this.newPersonnelForm.role),
+        ...savedTitles
+      ])].sort((first, second) =>
+        first.localeCompare(second, undefined, { sensitivity: 'base' })
+      )
+
+      return [
+        ...titles.map(title => ({ value: title, label: title })),
+        { value: '__other__', label: 'Others' }
+      ]
+    },
+
+    roles() {
+      return ['Administrator', 'Teacher', 'Non-Teaching Staff']
     },
 
     officeNames() {
@@ -564,6 +747,10 @@ export default {
           person.email || ''
         ).toLowerCase()
 
+        const employeeId = (person.employee_id || '').toLowerCase()
+        const department = (person.department || '').toLowerCase()
+        const jobTitle = (person.job_title || '').toLowerCase()
+
         const role = (
           person.role || ''
         ).toLowerCase()
@@ -574,7 +761,10 @@ export default {
 
         const matchesSearch =
           !searchText ||
+          employeeId.includes(searchText) ||
           fullName.includes(searchText) ||
+          department.includes(searchText) ||
+          jobTitle.includes(searchText) ||
           email.includes(searchText) ||
           role.includes(searchText) ||
           office.includes(searchText)
@@ -694,6 +884,110 @@ export default {
   },
 
   methods: {
+    positionsForRole,
+
+    normalizeDepartment(value) {
+      return String(value || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(word => word === word.toUpperCase()
+          ? word
+          : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
+    },
+
+    openCreatePersonnelModal() {
+      this.newTitleSelection = ''
+      this.newOtherJobTitle = ''
+      this.newPersonnelForm = {
+        full_name: '',
+        email: '',
+        password: '',
+        role: '',
+        employee_id: '',
+        department: '',
+        job_title: '',
+        office_id: ''
+      }
+      Modal.getOrCreateInstance(
+        document.getElementById('personnelCreateModal')
+      ).show()
+    },
+
+    clearNewPersonnelTitle() {
+      this.newTitleSelection = ''
+      this.newOtherJobTitle = ''
+      this.newPersonnelForm.job_title = ''
+    },
+
+    async createPersonnel() {
+      const jobTitle = this.newTitleSelection === '__other__'
+        ? this.newOtherJobTitle.trim()
+        : this.newTitleSelection
+      const selectedOffice = this.offices.find(
+        office => String(office.id) === String(this.newPersonnelForm.office_id)
+      )
+
+      if (!jobTitle || jobTitle.length > 120) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: jobTitle
+              ? 'Job title must be 120 characters or fewer'
+              : 'Select or enter a job title'
+          })
+        )
+        return
+      }
+
+      if (!selectedOffice) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Select an office before creating this user.'
+          })
+        )
+        return
+      }
+
+      this.personnelCreating = true
+
+      try {
+        const response = await apiRequest('/api/personnel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...this.newPersonnelForm,
+            job_title: jobTitle,
+            department: selectedOffice.office_name
+          })
+        })
+        const result = await response.json()
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create user')
+        }
+
+        this.personnel.unshift(result.data)
+        this.newTitleSelection = ''
+        this.newOtherJobTitle = ''
+        this.search = ''
+        this.roleFilter = ''
+        this.officeFilter = ''
+        this.currentPage = 1
+        Modal.getInstance(document.getElementById('personnelCreateModal'))?.hide()
+        window.dispatchEvent(
+          new CustomEvent('show-toast', { detail: 'User created successfully' })
+        )
+      } catch (error) {
+        console.log(error)
+        window.dispatchEvent(
+          new CustomEvent('show-toast', { detail: error.message })
+        )
+      } finally {
+        this.personnelCreating = false
+      }
+    },
+
     viewPersonnelDetails(person) {
       this.selectedPersonnel = person
       Modal.getOrCreateInstance(
@@ -714,7 +1008,10 @@ export default {
       this.personnelForm = {
         full_name: person.full_name || '',
         email: person.email || '',
-        role: person.role || 'Personnel',
+        role: person.role || '',
+        employee_id: person.employee_id || '',
+        department: person.department || '',
+        job_title: person.job_title || '',
         office_id: person.office_id || ''
       }
       Modal.getInstance(document.getElementById('personnelDetailsModal'))?.hide()

@@ -21,20 +21,238 @@
           <span class="eyebrow">SECURE ACCESS</span>
 
           <h1>
-            {{ loginStep === 1 ? 'Welcome back' : 'Sign in to continue' }}
+            {{
+              signupComplete
+                ? 'Request submitted'
+                : signUpMode
+                  ? 'Request an account'
+                  : loginStep === 1
+                    ? 'Welcome back'
+                    : loginStep === 3
+                      ? 'Set a new password'
+                      : 'Sign in to continue'
+            }}
           </h1>
 
           <p>
             {{
-              loginStep === 1
-                ? 'Choose your personnel type to get started.'
-                : 'Enter your account details below.'
+              signupComplete
+                ? 'Your account will be available after administrator approval.'
+                : signUpMode
+                  ? 'Submit your employee details for administrator approval.'
+                  : loginStep === 1
+                    ? 'Choose your personnel type to get started.'
+                    : loginStep === 3
+                      ? 'Your temporary password must be changed before continuing.'
+                      : 'Enter your account details below.'
             }}
           </p>
         </header>
 
-        <form class="auth-form" @submit.prevent="login">
-          <template v-if="loginStep === 1">
+        <form class="auth-form" @submit.prevent="handleSubmit">
+          <template v-if="signupComplete">
+            <div class="signup-success">
+              <i class="bi bi-check-circle-fill"></i>
+              <strong>Request received</strong>
+              <span>Save this temporary password. You can use it after an administrator approves your request.</span>
+            </div>
+
+            <div class="field">
+              <label for="temporary-password">Your temporary password</label>
+              <div class="input-wrap">
+                <i class="bi bi-key"></i>
+                <input id="temporary-password" :value="signupPassword" type="text" readonly>
+              </div>
+              <button type="button" class="text-button copy-password" @click="copySignupPassword">
+                <i class="bi bi-clipboard"></i>
+                Copy password
+              </button>
+            </div>
+
+            <button type="button" class="primary-button" @click="finishSignup">
+              Return to sign in
+              <i class="bi bi-arrow-right"></i>
+            </button>
+          </template>
+
+          <template v-else-if="signUpMode">
+            <div class="field">
+              <label for="signup-email">Email address</label>
+              <div class="input-wrap">
+                <i class="bi bi-envelope"></i>
+                <input id="signup-email" v-model.trim="signupForm.email" type="email" autocomplete="email" required>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="signup-employee-id">Employee ID</label>
+              <div class="input-wrap">
+                <i class="bi bi-person-vcard"></i>
+                <input id="signup-employee-id" v-model.trim="signupForm.employee_id" type="text" autocomplete="off" required>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="signup-name">Full name</label>
+              <div class="input-wrap">
+                <i class="bi bi-person"></i>
+                <input id="signup-name" v-model.trim="signupForm.full_name" type="text" autocomplete="name" required>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="signup-role">Personnel type</label>
+              <div class="input-wrap">
+                <i class="bi bi-people"></i>
+                <select id="signup-role" v-model="signupForm.role" required @change="clearSignupJobTitle">
+                  <option value="" disabled>Select personnel type</option>
+                  <option value="Teacher">Teaching</option>
+                  <option value="Non-Teaching Staff">Non-Teaching</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="signup-department">Department</label>
+              <div class="input-wrap searchable-select">
+                <i class="bi bi-building"></i>
+                <input
+                  id="signup-department"
+                  v-model="officeSearch"
+                  type="text"
+                  placeholder="Search or select an office"
+                  autocomplete="off"
+                  required
+                  aria-autocomplete="list"
+                  :aria-expanded="showOfficeOptions"
+                  @focus="showOfficeOptions = true"
+                  @input="onOfficeSearch"
+                  @keydown.esc="showOfficeOptions = false"
+                  @blur="hideOfficeOptions"
+                >
+
+                <div
+                  v-if="showOfficeOptions"
+                  class="job-title-options"
+                  role="listbox"
+                >
+                  <div v-if="officesLoading" class="no-job-title-results">
+                    Loading offices...
+                  </div>
+                  <button
+                    v-for="office in filteredSignupOffices"
+                    :key="office.id"
+                    type="button"
+                    role="option"
+                    :aria-selected="signupForm.department === office.office_name"
+                    @mousedown.prevent="selectSignupOffice(office)"
+                  >
+                    {{ office.office_name }}
+                  </button>
+                  <button
+                    v-if="officeSearch.trim() && !signupOffices.some(office => office.office_name.toLowerCase() === officeSearch.trim().toLowerCase())"
+                    type="button"
+                    role="option"
+                    :aria-selected="signupForm.department === officeSearch.trim()"
+                    @mousedown.prevent="selectSignupDepartment(officeSearch)"
+                  >
+                    Use “{{ officeSearch.trim() }}” as a new department
+                  </button>
+                  <div
+                    v-if="!officesLoading && !filteredSignupOffices.length && !officeSearch.trim()"
+                    class="no-job-title-results"
+                  >
+                    {{ signupOfficesLoaded ? 'No offices are available.' : 'Office list is unavailable.' }}
+                  </div>
+                </div>
+              </div>
+              <small class="field-hint">Select an existing office or enter a new department. New departments are added after admin approval.</small>
+            </div>
+
+            <div v-if="!isCustomSignupTitle" class="field">
+              <label for="signup-title">Job title</label>
+              <div class="input-wrap searchable-select">
+                <i class="bi bi-briefcase"></i>
+                <input
+                  id="signup-title"
+                  v-model="jobTitleSearch"
+                  type="text"
+                  placeholder="Search or select job title"
+                  autocomplete="off"
+                  :disabled="!signupForm.role"
+                  aria-autocomplete="list"
+                  :aria-expanded="showJobTitleOptions"
+                  @focus="showJobTitleOptions = true"
+                  @input="onJobTitleSearch"
+                  @keydown.esc="showJobTitleOptions = false"
+                  @blur="hideJobTitleOptions"
+                >
+
+                <div
+                  v-if="showJobTitleOptions && signupForm.role"
+                  class="job-title-options"
+                  role="listbox"
+                >
+                  <button
+                    v-for="position in filteredSignupPositions"
+                    :key="position"
+                    type="button"
+                    role="option"
+                    :aria-selected="signupForm.job_title === position"
+                    @mousedown.prevent="selectJobTitle(position)"
+                  >
+                    {{ position }}
+                  </button>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected="false"
+                    @mousedown.prevent="selectOtherJobTitle"
+                  >
+                    Others
+                  </button>
+
+                  <div v-if="filteredSignupPositions.length === 0" class="no-job-title-results">
+                    No matching job titles found.
+                  </div>
+                </div>
+              </div>
+              <small class="field-hint">Type to search, then select a job title from the list.</small>
+            </div>
+
+            <div v-else class="field">
+              <label for="signup-custom-title">Other job title</label>
+              <div class="input-wrap">
+                <i class="bi bi-briefcase"></i>
+                <input
+                  id="signup-custom-title"
+                  v-model.trim="customSignupTitle"
+                  type="text"
+                  autocomplete="organization-title"
+                  placeholder="Enter your job title"
+                  maxlength="120"
+                  required
+                >
+              </div>
+              <button type="button" class="text-button mt-1" @click="returnToSignupTitleList">
+                <i class="bi bi-arrow-left"></i>
+                Choose from the title list
+              </button>
+              <small class="field-hint">The administrator will review this title before it is added to the list.</small>
+            </div>
+
+            <button type="submit" class="primary-button" :disabled="loading">
+              {{ loading ? 'Submitting...' : 'Submit account request' }}
+              <i v-if="!loading" class="bi bi-arrow-right"></i>
+            </button>
+
+            <button type="button" class="text-button" @click="cancelSignup">
+              <i class="bi bi-arrow-left"></i>
+              Back to sign in
+            </button>
+          </template>
+
+          <template v-else-if="loginStep === 1">
             <div class="section-heading">
               <h2>Choose personnel type</h2>
               <span>Select the account you use at NVSU</span>
@@ -52,20 +270,6 @@
                   <i class="bi bi-person-gear"></i>
                 </span>
                 <span class="role-label">Administrator</span>
-                <i class="bi bi-check-circle-fill role-check"></i>
-              </button>
-
-              <button
-                type="button"
-                class="role-button"
-                :class="{ selected: preferredRole === 'Personnel' }"
-                :aria-pressed="preferredRole === 'Personnel'"
-                @click="selectRole('Personnel')"
-              >
-                <span class="role-icon">
-                  <i class="bi bi-person-badge"></i>
-                </span>
-                <span class="role-label">Personnel</span>
                 <i class="bi bi-check-circle-fill role-check"></i>
               </button>
 
@@ -109,7 +313,7 @@
             </button>
           </template>
 
-          <template v-if="loginStep === 2">
+          <template v-else-if="loginStep === 2">
             <div class="selected-role">
               <span>
                 <i class="bi bi-shield-check"></i>
@@ -168,7 +372,45 @@
               Change personnel type
             </button>
           </template>
+
+          <template v-else-if="loginStep === 3">
+            <div class="field">
+              <label for="new-password">New password</label>
+              <div class="input-wrap">
+                <i class="bi bi-lock"></i>
+                <input id="new-password" v-model="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+              </div>
+              <small class="field-hint">Use at least 8 characters.</small>
+            </div>
+
+            <div class="field">
+              <label for="confirm-password">Confirm new password</label>
+              <div class="input-wrap">
+                <i class="bi bi-lock-fill"></i>
+                <input id="confirm-password" v-model="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+              </div>
+            </div>
+
+            <button type="submit" class="primary-button" :disabled="loading">
+              {{ loading ? 'Updating...' : 'Change password and continue' }}
+              <i v-if="!loading" class="bi bi-arrow-right"></i>
+            </button>
+
+            <button type="button" class="text-button" @click="signOutPasswordChange">
+              <i class="bi bi-box-arrow-left"></i>
+              Sign out
+            </button>
+          </template>
         </form>
+
+        <button
+          v-if="!signUpMode && !signupComplete && loginStep === 1"
+          type="button"
+          class="text-button signup-link"
+          @click="openSignup"
+        >
+          Need an account? Request one
+        </button>
 
         <footer class="login-footer">
           <i class="bi bi-lock-fill"></i>
@@ -180,6 +422,8 @@
 </template>
 
 <script>
+import { positionsForRole } from '@/data/positions'
+
 export default {
   name: 'Login',
 
@@ -189,11 +433,393 @@ export default {
       password: '',
       preferredRole: '',
       loginStep: 1,
-      loading: false
+      loading: false,
+      signUpMode: false,
+      signupComplete: false,
+      signupPassword: '',
+      jobTitleSearch: '',
+      showJobTitleOptions: false,
+      customSignupTitle: '',
+      isCustomSignupTitle: false,
+      approvedSignupPositions: [],
+      signupOffices: [],
+      officeSearch: '',
+      showOfficeOptions: false,
+      officesLoading: false,
+      signupOfficesLoaded: false,
+      signupForm: {
+        email: '',
+        employee_id: '',
+        full_name: '',
+        role: '',
+        department: '',
+        job_title: ''
+      },
+      newPassword: '',
+      confirmPassword: ''
+    }
+  },
+
+  mounted() {
+    if (localStorage.getItem('mustChangePassword') === 'true') {
+      this.loginStep = 3
+    }
+  },
+
+  computed: {
+    availableSignupPositions() {
+      return [...new Set([
+        ...positionsForRole(this.signupForm.role),
+        ...this.approvedSignupPositions
+      ])].sort((first, second) =>
+        first.localeCompare(second, undefined, { sensitivity: 'base' })
+      )
+    },
+
+    filteredSignupPositions() {
+      const search = this.jobTitleSearch.trim().toLowerCase()
+
+      if (!search) {
+        return this.availableSignupPositions
+      }
+
+      return this.availableSignupPositions.filter(position =>
+        position.toLowerCase().includes(search)
+      )
+    },
+
+    filteredSignupOffices() {
+      const search = this.officeSearch.trim().toLowerCase()
+
+      if (!search) {
+        return this.signupOffices
+      }
+
+      return this.signupOffices.filter(office =>
+        office.office_name.toLowerCase().includes(search)
+      )
     }
   },
 
   methods: {
+    handleSubmit() {
+      if (this.signUpMode) {
+        return this.submitSignup()
+      }
+
+      if (this.loginStep === 3) {
+        return this.changeTemporaryPassword()
+      }
+
+      return this.login()
+    },
+
+    openSignup() {
+      this.signUpMode = true
+      if (!this.signupOfficesLoaded) {
+        this.loadSignupOffices()
+      }
+      this.$nextTick(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      })
+    },
+
+    async loadSignupOffices() {
+      this.officesLoading = true
+
+      try {
+        const response = await fetch('/api/auth/signup-offices')
+        const result = await response.json()
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Unable to load offices')
+        }
+
+        this.signupOffices = Array.isArray(result) ? result : []
+        this.signupOfficesLoaded = true
+      } catch (error) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message || 'Unable to load offices'
+          })
+        )
+      } finally {
+        this.officesLoading = false
+      }
+    },
+
+    async loadApprovedSignupPositions(role) {
+      try {
+        const response = await fetch(
+          `/api/auth/signup-job-titles?role=${encodeURIComponent(role)}`
+        )
+        const result = await response.json()
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Unable to load approved job titles')
+        }
+
+        if (this.signupForm.role === role) {
+          this.approvedSignupPositions = Array.isArray(result) ? result : []
+        }
+      } catch (error) {
+        if (this.signupForm.role === role) {
+          this.approvedSignupPositions = []
+          window.dispatchEvent(
+            new CustomEvent('show-toast', {
+              detail: error.message || 'Unable to load approved job titles'
+            })
+          )
+        }
+      }
+    },
+
+    onOfficeSearch() {
+      this.signupForm.department = this.officeSearch.trim()
+      this.showOfficeOptions = true
+    },
+
+    selectSignupOffice(office) {
+      this.signupForm.department = office.office_name
+      this.officeSearch = office.office_name
+      this.showOfficeOptions = false
+    },
+
+    selectSignupDepartment(value) {
+      const department = value.trim()
+      this.signupForm.department = department
+      this.officeSearch = department
+      this.showOfficeOptions = false
+    },
+
+    hideOfficeOptions() {
+      setTimeout(() => {
+        this.showOfficeOptions = false
+      }, 150)
+    },
+
+    clearSignupJobTitle() {
+      this.signupForm.job_title = ''
+      this.jobTitleSearch = ''
+      this.showJobTitleOptions = false
+      this.customSignupTitle = ''
+      this.isCustomSignupTitle = false
+      this.approvedSignupPositions = []
+      if (this.signupForm.role) {
+        this.loadApprovedSignupPositions(this.signupForm.role)
+      }
+    },
+
+    onJobTitleSearch() {
+      this.signupForm.job_title = ''
+      this.showJobTitleOptions = true
+    },
+
+    selectJobTitle(position) {
+      this.signupForm.job_title = position
+      this.jobTitleSearch = position
+      this.showJobTitleOptions = false
+      this.customSignupTitle = ''
+      this.isCustomSignupTitle = false
+    },
+
+    selectOtherJobTitle() {
+      this.signupForm.job_title = ''
+      this.jobTitleSearch = ''
+      this.customSignupTitle = ''
+      this.isCustomSignupTitle = true
+      this.showJobTitleOptions = false
+    },
+
+    returnToSignupTitleList() {
+      this.signupForm.job_title = ''
+      this.customSignupTitle = ''
+      this.isCustomSignupTitle = false
+      this.jobTitleSearch = ''
+    },
+
+    hideJobTitleOptions() {
+      setTimeout(() => {
+        this.showJobTitleOptions = false
+      }, 150)
+    },
+
+    cancelSignup() {
+      this.signUpMode = false
+      this.signupForm = {
+        email: '',
+        employee_id: '',
+        full_name: '',
+        role: '',
+        department: '',
+        job_title: ''
+      }
+      this.officeSearch = ''
+      this.showOfficeOptions = false
+      this.jobTitleSearch = ''
+      this.showJobTitleOptions = false
+      this.customSignupTitle = ''
+      this.isCustomSignupTitle = false
+      this.approvedSignupPositions = []
+      this.$nextTick(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      })
+    },
+
+    async submitSignup() {
+      this.signupForm.department = this.officeSearch.trim()
+
+      if (!this.signupForm.department) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Please enter or select a department.'
+          })
+        )
+        return
+      }
+
+      const selectedJobTitle = this.isCustomSignupTitle
+        ? this.customSignupTitle.trim()
+        : this.signupForm.job_title
+
+      if (
+        !selectedJobTitle ||
+        (!this.isCustomSignupTitle &&
+          !this.availableSignupPositions.includes(selectedJobTitle))
+      ) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Please select or enter a valid job title.'
+          })
+        )
+        return
+      }
+
+      this.signupForm.job_title = selectedJobTitle
+      this.loading = true
+
+      try {
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...this.signupForm
+          })
+        })
+        const result = await response.json()
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Unable to submit account request')
+        }
+
+        if (!result.temporary_password) {
+          throw new Error('The server did not return a temporary password')
+        }
+
+        this.signupPassword = result.temporary_password
+        this.signupComplete = true
+        this.signUpMode = false
+      } catch (error) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message || 'Unable to submit account request'
+          })
+        )
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async copySignupPassword() {
+      try {
+        await navigator.clipboard.writeText(this.signupPassword)
+        window.dispatchEvent(
+          new CustomEvent('show-toast', { detail: 'Temporary password copied' })
+        )
+      } catch (error) {
+        console.error('Password copy failed:', error)
+        window.dispatchEvent(
+          new CustomEvent('show-toast', { detail: 'Unable to copy the password' })
+        )
+      }
+    },
+
+    finishSignup() {
+      this.signupComplete = false
+      this.signupPassword = ''
+      this.cancelSignup()
+      this.loginStep = 1
+    },
+
+    async changeTemporaryPassword() {
+      if (this.newPassword.length < 8) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', { detail: 'Password must be at least 8 characters' })
+        )
+        return
+      }
+
+      if (this.newPassword !== this.confirmPassword) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', { detail: 'Passwords do not match' })
+        )
+        return
+      }
+
+      this.loading = true
+
+      try {
+        const response = await fetch('/api/auth/change-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + localStorage.getItem('accessToken')
+          },
+          body: JSON.stringify({ password: this.newPassword })
+        })
+        const result = await response.json()
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Unable to change password')
+        }
+
+        localStorage.removeItem('mustChangePassword')
+        window.dispatchEvent(
+          new CustomEvent('user-updated', {
+            detail: JSON.parse(localStorage.getItem('user') || 'null')
+          })
+        )
+        const redirect = this.$route.query.redirect
+        const destination =
+          typeof redirect === 'string' &&
+          redirect.startsWith('/') &&
+          !redirect.startsWith('//')
+            ? redirect
+            : '/'
+        await this.$router.push(destination)
+      } catch (error) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: error.message || 'Unable to change password'
+          })
+        )
+      } finally {
+        this.loading = false
+      }
+    },
+
+    signOutPasswordChange() {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      localStorage.removeItem('mustChangePassword')
+      this.loginStep = 1
+      this.newPassword = ''
+      this.confirmPassword = ''
+      this.email = ''
+      this.password = ''
+    },
+
     selectRole(role) {
       this.preferredRole = role
     },
@@ -248,6 +874,17 @@ export default {
         localStorage.setItem('accessToken', result.access_token)
         localStorage.setItem('user', JSON.stringify(result.user))
 
+        if (result.must_change_password) {
+          localStorage.setItem('mustChangePassword', 'true')
+          this.loginStep = 3
+          this.password = ''
+          this.newPassword = ''
+          this.confirmPassword = ''
+          return
+        }
+
+        localStorage.removeItem('mustChangePassword')
+
         window.dispatchEvent(
           new CustomEvent('user-updated', {
             detail: result.user
@@ -292,6 +929,7 @@ export default {
   --muted: #717a72;
 
   display: flex;
+  align-items: safe center;
   min-height: 100vh;
   min-height: 100dvh;
   padding: clamp(16px, 4vw, 48px);
@@ -608,6 +1246,52 @@ export default {
   transform: translateY(-50%);
 }
 
+.searchable-select {
+  position: relative;
+}
+
+.searchable-select input {
+  padding-right: 38px;
+}
+
+.job-title-options {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  left: 0;
+  z-index: 1000;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #dfe3d9;
+  border-radius: 7px;
+  background: #fff;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, .10);
+}
+
+.job-title-options button {
+  display: block;
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+}
+
+.job-title-options button:hover,
+.job-title-options button[aria-selected="true"] {
+  background: #f7f5e8;
+}
+
+.no-job-title-results {
+  padding: 12px 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .input-wrap input,
 .input-wrap select {
   display: block;
@@ -695,6 +1379,39 @@ export default {
   background: #f7f5e8;
   color: var(--forest);
   font-size: 13px;
+}
+
+.signup-link {
+  display: block;
+  margin: 18px auto 0;
+  text-align: center;
+}
+
+.signup-success {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid #cfe4d2;
+  border-radius: 12px;
+  background: #f1f8f2;
+  color: var(--ink);
+  text-align: center;
+}
+
+.signup-success > i {
+  color: var(--green);
+  font-size: 1.8rem;
+}
+
+.signup-success span,
+.field-hint {
+  color: var(--muted);
+  font-size: .82rem;
+}
+
+.copy-password {
+  margin-top: 6px;
 }
 
 .selected-role span {

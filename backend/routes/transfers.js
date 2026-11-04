@@ -89,7 +89,7 @@ router.get('/', async (req, res) => {
     const users = await lookup(
       'users',
       rows.flatMap(r => [r.from_user_id, r.to_user_id, r.transferred_by]),
-      'id, full_name'
+      'id, full_name, job_title'
     )
     const offices = await lookup('offices', rows.map(r => r.office_id), 'id, office_name')
  
@@ -169,7 +169,7 @@ router.post('/', async (req, res) => {
  
     const { data: item, error: itemError } = await supabase
       .from('items')
-      .select('id, description, quantity, status, condition, accountable_employee')
+      .select('id, description, property_number, quantity, status, condition, accountable_employee')
       .eq('id', receipt.item_id)
       .single()
  
@@ -252,8 +252,22 @@ router.post('/', async (req, res) => {
       await createAuditLog(
         'Created',
         item.id,
-        JSON.stringify({ accountable_employee: item.accountable_employee }),
-        JSON.stringify(transfer),
+        JSON.stringify({
+          accountable_employee: item.accountable_employee,
+          status: item.status
+        }),
+        JSON.stringify({
+          description: item.description,
+          property_number: item.property_number,
+          transfer_type,
+          from_employee: item.accountable_employee || 'Previous holder',
+          to_employee: recipient.full_name,
+          transfer_date: transferDate,
+          condition_after_transfer: item.condition,
+          resulting_status: 'Issued',
+          reason: reason || null,
+          remarks: remarks || null
+        }),
         `Transferred ${item.description} from ${item.accountable_employee || 'previous holder'} to ${recipient.full_name}`,
         req.profile?.id
       )
@@ -362,8 +376,25 @@ router.post('/', async (req, res) => {
     await createAuditLog(
       'Created',
       item.id,
-      JSON.stringify({ status: item.status, condition: item.condition, quantity: item.quantity }),
-      JSON.stringify(transfer),
+      JSON.stringify({
+        accountable_employee: item.accountable_employee,
+        status: item.status,
+        condition: item.condition,
+        quantity: item.quantity
+      }),
+      JSON.stringify({
+        description: item.description,
+        property_number: item.property_number,
+        transfer_type,
+        from_employee: item.accountable_employee || 'Previous holder',
+        to_office: 'Property Office',
+        transfer_date: transferDate,
+        condition_after_transfer: condition_after_transfer,
+        resulting_status: resultingStatus,
+        quantity: updatedQuantity,
+        reason: reason || null,
+        remarks: remarks || null
+      }),
       `Transferred ${item.description} to Property Office (${condition_after_transfer}); status ${resultingStatus}; restored quantity ${receiptQuantity}`,
       req.profile?.id
     )

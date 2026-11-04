@@ -17,6 +17,12 @@ async function requireAuth(req, res, next) {
         })
     }
 
+    if (result.data.user.user_metadata?.must_change_password) {
+        return res.status(403).json({
+            error: 'Change your temporary password before using the system'
+        })
+    }
+
     const profileResult = await supabase
         .from('users')
         .select('*')
@@ -52,5 +58,4 @@ module.exports = {
     requireAuth,
     requireRole
 }
-
 

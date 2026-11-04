@@ -35,35 +35,27 @@
           </div>
 
           <div class="col-12 col-md-3">
-            <select v-model="selectedClassification" class="form-select">
-              <option value="">All Classification</option>
-              <option value="PAR">Property Acknowledgement Receipt</option>
-              <option value="ICS High">Inventory Custodian Slip - High Value</option>
-              <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
-            </select>
+            <SearchableSelect
+              v-model="selectedClassification"
+              :options="classificationOptions"
+              placeholder="All Classification"
+            />
           </div>
 
           <div class="col-12 col-md-2">
-            <select v-model="selectedFundCluster" class="form-select">
-              <option value="">All Fund Cluster</option>
-              <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">
-                {{ fc }}
-              </option>
-            </select>
+            <SearchableSelect
+              v-model="selectedFundCluster"
+              :options="fundClusterOptions"
+              placeholder="All Fund Cluster"
+            />
           </div>
 
           <div class="col-12 col-md-2">
-            <select v-model="selectedStatus" class="form-select">
-              <option value="">All Status</option>
-              <option value="Available">Available</option>
-              <option value="Assigned">Assigned</option>
-              <option value="Issued">Issued</option>
-              <option value="Returned">Returned</option>
-              <option value="Lost">Lost</option>
-              <option value="Damaged">Damaged</option>
-              <option value="Stolen">Stolen</option>
-              <option value="Disposed">Disposed</option>
-            </select>
+            <SearchableSelect
+              v-model="selectedStatus"
+              :options="statusOptions"
+              placeholder="All Status"
+            />
           </div>
         </div>
       </div>
@@ -127,7 +119,7 @@
         <form class="add-dialog-form" @submit.prevent="addItem">
           <div class="card-body add-dialog-body">
             <div class="row g-3">
-              <div class="col-12 col-md-6">
+              <div class="col-12">
                 <label class="form-label">
                   Property Number <span class="text-danger">*</span>
                 </label>
@@ -161,6 +153,16 @@
                 />
               </div>
 
+              <div class="col-12 col-md-6">
+                <label class="form-label">Article</label>
+                <input
+                  v-model.trim="newItem.article"
+                  type="text"
+                  class="form-control"
+                  placeholder="e.g. BAG"
+                />
+              </div>
+
               <div class="col-12">
                 <label class="form-label">
                   Description <span class="text-danger">*</span>
@@ -173,7 +175,7 @@
                 />
               </div>
 
-              <div class="col-12 col-md-6">
+              <div class="col-12 col-md-8">
                 <label class="form-label">
                   Cost <span class="text-danger">*</span>
                 </label>
@@ -191,7 +193,7 @@
                 </div>
               </div>
 
-              <div class="col-12 col-md-6">
+              <div class="col-12 col-md-4">
                 <label class="form-label">
                   Acquisition Date <span class="text-danger">*</span>
                 </label>
@@ -200,16 +202,6 @@
                   type="date"
                   class="form-control"
                   required
-                />
-              </div>
-
-              <div class="col-12 col-md-6">
-                <label class="form-label">Article</label>
-                <input
-                  v-model.trim="newItem.article"
-                  type="text"
-                  class="form-control"
-                  placeholder="e.g. BAG"
                 />
               </div>
 
@@ -265,37 +257,21 @@
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Accountable Employee</label>
-                <select
+                <SearchableSelect
                   v-model="newItem.accountable_employee"
-                  class="form-select"
-                  @change="autoFillOffice(newItem)"
-                >
-                  <option value="">Select personnel (optional)</option>
-                  <option
-                    v-for="person in personnelOptions"
-                    :key="person.id"
-                    :value="person.full_name"
-                  >
-                    {{ person.full_name }}
-                  </option>
-                </select>
+                  :options="personnelSelectOptions"
+                  placeholder="Search personnel (optional)"
+                  @update:model-value="autoFillOffice(newItem)"
+                />
               </div>
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Responsibility Center</label>
-                <select
+                <SearchableSelect
                   v-model="newItem.responsibility_center"
-                  class="form-select"
-                >
-                  <option value="">Select office (optional)</option>
-                  <option
-                    v-for="office in officeOptions"
-                    :key="office.id"
-                    :value="office.office_name"
-                  >
-                    {{ office.office_name }}
-                  </option>
-                </select>
+                  :options="officeSelectOptions"
+                  placeholder="Search office (optional)"
+                />
               </div>
 
               <div class="col-12 col-md-6">
@@ -303,64 +279,48 @@
                   Fund Cluster <span class="text-danger">*</span>
                 </label>
 
-                <select v-model="newItem.fund_cluster" class="form-select" required>
-                  <option value="" disabled>Select fund cluster</option>
-
-                  <option
-                    v-if="
-                      newItem.fund_cluster &&
-                      !fundClusterOptions.includes(newItem.fund_cluster)
-                    "
-                    :value="newItem.fund_cluster"
-                  >
-                    {{ newItem.fund_cluster }}
-                  </option>
-
-                  <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">
-                    {{ fc }}
-                  </option>
-                </select>
+                <SearchableSelect
+                  v-model="newItem.fund_cluster"
+                  :options="fundClusterOptions"
+                  placeholder="Search fund cluster"
+                  required
+                />
               </div>
 
               <div class="col-12 col-md-4">
                 <label class="form-label">
                   Classification <span class="text-danger">*</span>
                 </label>
-                <select
+                <SearchableSelect
                   v-model="newItem.classification"
-                  class="form-select"
+                  :options="classificationOptions"
+                  placeholder="Select classification"
                   required
-                >
-                  <option value="PAR">Property Acknowledgement Receipt</option>
-                  <option value="ICS High">Inventory Custodian Slip - High Value</option>
-                  <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
-                </select>
+                />
               </div>
 
               <div class="col-12 col-md-4">
                 <label class="form-label">
                   Condition <span class="text-danger">*</span>
                 </label>
-                <select v-model="newItem.condition" class="form-select" required>
-                  <option value="Serviceable">Serviceable</option>
-                  <option value="Unserviceable">Unserviceable</option>
-                </select>
+                <SearchableSelect
+                  v-model="newItem.condition"
+                  :options="conditionOptions"
+                  placeholder="Select condition"
+                  required
+                />
               </div>
 
               <div class="col-12 col-md-4">
                 <label class="form-label">
                   Status <span class="text-danger">*</span>
                 </label>
-                <select v-model="newItem.status" class="form-select" required>
-                  <option value="Available">Available</option>
-                  <option value="Assigned">Assigned</option>
-                  <option value="Issued">Issued</option>
-                  <option value="Returned">Returned</option>
-                  <option value="Lost">Lost</option>
-                  <option value="Damaged">Damaged</option>
-                  <option value="Stolen">Stolen</option>
-                  <option value="Disposed">Disposed</option>
-                </select>
+                <SearchableSelect
+                  v-model="newItem.status"
+                  :options="statusOptions"
+                  placeholder="Select status"
+                  required
+                />
               </div>
             </div>
           </div>
@@ -388,8 +348,8 @@
         <strong>Inventory Properties</strong>
       </div>
 
-      <div class="table-responsive">
-        <table class="table table-hover mb-0">
+      <div class="table-responsive property-table-wrap">
+        <table class="table table-hover mb-0 property-table">
           <thead>
             <tr>
               <th>
@@ -416,7 +376,7 @@
                 </button>
               </th>
 
-              <th>
+              <th class="cost-column">
                 <button type="button" class="sort-header" @click="sortBy('cost')">
                   Cost <i :class="sortIcon('cost')"></i>
                 </button>
@@ -502,7 +462,7 @@
               <td>{{ item.property_number || '-' }}</td>
               <td>{{ item.description || '-' }}</td>
               <td>{{ item.serial_number || '-' }}</td>
-              <td>₱{{ item.cost || 0 }}</td>
+              <td class="cost-column">₱{{ item.cost || 0 }}</td>
               <td>{{ item.acquisition_date || '-' }}</td>
 
               <td>
@@ -534,11 +494,12 @@
 
               <td>
                 <button
-                  class="btn btn-sm btn-outline-primary"
+                  type="button"
+                  class="property-details-button"
                   @click="showItemDetails(item)"
                   title="View property details"
                 >
-                  <i class="bi bi-eye me-1"></i>
+                  <i class="bi bi-eye" aria-hidden="true"></i>
                   Details
                 </button>
               </td>
@@ -601,6 +562,9 @@
 
             <div class="col-12 col-md-8">
               <dl class="row mb-0 item-detail-list">
+                <dt class="col-sm-5">Article</dt>
+                <dd class="col-sm-7">{{ detailItem.article || '-' }}</dd>
+
                 <dt class="col-sm-5">Description</dt>
                 <dd class="col-sm-7">{{ detailItem.description || '-' }}</dd>
 
@@ -648,9 +612,6 @@
 
                 <dt class="col-sm-5">Fund Cluster</dt>
                 <dd class="col-sm-7">{{ detailItem.fund_cluster || '-' }}</dd>
-
-                <dt class="col-sm-5">Article</dt>
-                <dd class="col-sm-7">{{ detailItem.article || '-' }}</dd>
 
                 <dt class="col-sm-5">Unit of Measure</dt>
                 <dd class="col-sm-7">
@@ -747,21 +708,28 @@
               <input v-model="editForm.property_number" type="text" class="form-control" required />
             </div>
 
-            <div class="mb-3">
-              <label class="form-label">
-                Model Number <span class="text-danger">*</span>
-              </label>
-              <input v-model="editForm.model_number" type="text" class="form-control" required />
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label">
+                  Model Number <span class="text-danger">*</span>
+                </label>
+                <input v-model="editForm.model_number" type="text" class="form-control" required />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Serial Number</label>
+                <input
+                  v-model.trim="editForm.serial_number"
+                  type="text"
+                  class="form-control"
+                  placeholder="Optional"
+                />
+              </div>
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Serial Number</label>
-              <input
-                v-model.trim="editForm.serial_number"
-                type="text"
-                class="form-control"
-                placeholder="Optional"
-              />
+              <label class="form-label">Article</label>
+              <input v-model.trim="editForm.article" type="text" class="form-control" placeholder="e.g. BAG" />
             </div>
 
             <div class="mb-3">
@@ -795,11 +763,6 @@
                 class="form-control"
                 required
               />
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Article</label>
-              <input v-model.trim="editForm.article" type="text" class="form-control" placeholder="e.g. BAG" />
             </div>
 
             <div class="mb-3">
@@ -842,92 +805,67 @@
               <label class="form-label">
                 Classification <span class="text-danger">*</span>
               </label>
-              <select v-model="editForm.classification" class="form-select" required>
-                <option value="PAR">Property Acknowledgement Receipt</option>
-                <option value="ICS High">Inventory Custodian Slip - High Value</option>
-                <option value="ICS Low">Inventory Custodian Slip - Low Value</option>
-              </select>
+              <SearchableSelect
+                v-model="editForm.classification"
+                :options="classificationOptions"
+                placeholder="Select classification"
+                required
+              />
             </div>
 
             <div class="mb-3">
               <label class="form-label">
                 Condition <span class="text-danger">*</span>
               </label>
-              <select v-model="editForm.condition" class="form-select" required>
-                <option value="Serviceable">Serviceable</option>
-                <option value="Unserviceable">Unserviceable</option>
-              </select>
+              <SearchableSelect
+                v-model="editForm.condition"
+                :options="conditionOptions"
+                placeholder="Select condition"
+                required
+              />
             </div>
 
             <div class="mb-3">
               <label class="form-label">
                 Status <span class="text-danger">*</span>
               </label>
-              <select v-model="editForm.status" class="form-select" required>
-                <option value="Available">Available</option>
-                <option value="Assigned">Assigned</option>
-                <option value="Issued">Issued</option>
-                <option value="Returned">Returned</option>
-                <option value="Lost">Lost</option>
-                <option value="Damaged">Damaged</option>
-                <option value="Stolen">Stolen</option>
-                <option value="Disposed">Disposed</option>
-              </select>
+              <SearchableSelect
+                v-model="editForm.status"
+                :options="statusOptions"
+                placeholder="Select status"
+                required
+              />
             </div>
 
             <div class="mb-3">
               <label class="form-label">Accountable Employee</label>
-              <select
+              <SearchableSelect
                 v-model="editForm.accountable_employee"
-                class="form-select"
-                @change="autoFillOffice(editForm)"
-              >
-                <option value="">Select personnel (optional)</option>
-                <option
-                  v-for="person in personnelOptions"
-                  :key="person.id"
-                  :value="person.full_name"
-                >
-                  {{ person.full_name }}
-                </option>
-              </select>
+                :options="personnelSelectOptions"
+                placeholder="Search personnel (optional)"
+                @update:model-value="autoFillOffice(editForm)"
+              />
             </div>
 
             <div class="mb-3">
               <label class="form-label">Responsibility Center</label>
-              <select v-model="editForm.responsibility_center" class="form-select">
-                <option value="">Select office (optional)</option>
-                <option
-                  v-for="office in officeOptions"
-                  :key="office.id"
-                  :value="office.office_name"
-                >
-                  {{ office.office_name }}
-                </option>
-              </select>
+              <SearchableSelect
+                v-model="editForm.responsibility_center"
+                :options="officeSelectOptions"
+                placeholder="Search office (optional)"
+              />
             </div>
 
             <div class="mb-3">
               <label class="form-label">
                 Fund Cluster <span class="text-danger">*</span>
               </label>
-              <select v-model="editForm.fund_cluster" class="form-select" required>
-                <option value="" disabled>Select fund cluster</option>
-
-                <option
-                  v-if="
-                    editForm.fund_cluster &&
-                    !fundClusterOptions.includes(editForm.fund_cluster)
-                  "
-                  :value="editForm.fund_cluster"
-                >
-                  {{ editForm.fund_cluster }}
-                </option>
-
-                <option v-for="fc in fundClusterOptions" :key="fc" :value="fc">
-                  {{ fc }}
-                </option>
-              </select>
+              <SearchableSelect
+                v-model="editForm.fund_cluster"
+                :options="fundClusterOptions"
+                placeholder="Search fund cluster"
+                required
+              />
             </div>
           </div>
 
@@ -967,6 +905,7 @@ import {
   TextRun,
 } from 'docx'
 import QRCode from 'qrcode'
+import SearchableSelect from '@/components/SearchableSelect.vue'
 
 const QR_SIZE = 400
 const QR_LOGO_RATIO = 0.22
@@ -1038,7 +977,7 @@ async function createQrWithLogo(text) {
 export default {
   name: 'Properties',
 
-  components: {},
+  components: { SearchableSelect },
 
   data() {
     return {
@@ -1131,6 +1070,48 @@ export default {
   },
 
   computed: {
+    classificationOptions() {
+      return [
+        { value: 'PAR', label: 'Property Acknowledgement Receipt' },
+        { value: 'ICS High', label: 'Inventory Custodian Slip - High Value' },
+        { value: 'ICS Low', label: 'Inventory Custodian Slip - Low Value' }
+      ]
+    },
+
+    conditionOptions() {
+      return ['Serviceable', 'Unserviceable']
+    },
+
+    statusOptions() {
+      return [
+        'Available',
+        'Assigned',
+        'Issued',
+        'Returned',
+        'Lost',
+        'Damaged',
+        'Stolen',
+        'Disposed'
+      ]
+    },
+
+    personnelSelectOptions() {
+      return [...this.personnelOptions]
+        .sort((first, second) =>
+          first.full_name.localeCompare(second.full_name, undefined, {
+            sensitivity: 'base'
+          })
+        )
+        .map(person => ({ value: person.full_name, label: person.full_name }))
+    },
+
+    officeSelectOptions() {
+      return this.officeOptions.map(office => ({
+        value: office.office_name,
+        label: office.office_name
+      }))
+    },
+
     filteredItems() {
       const searchValue = this.search.toLowerCase().trim()
 
@@ -1277,6 +1258,9 @@ export default {
             maximumFractionDigits: 2,
           })
         : '0.00'
+      const accountableEmployeeTitle = this.personnel.find(
+        (person) => person.full_name === item.accountable_employee,
+      )?.job_title || ''
 
       printWindow.document.write(`
         <!doctype html>
@@ -1295,7 +1279,7 @@ export default {
                 width: 100%;
                 height: 100%;
                 grid-template-columns: 1.12in 1fr;
-                grid-template-rows: .42in .40in .36in .55in .44in .34in .15in;
+                grid-template-rows: .42in .48in .32in .55in .44in .30in .15in;
                 border: 1px solid #222;
               }
               .cell {
@@ -1404,6 +1388,7 @@ export default {
                   <div>
                     <span class="label">Person Accountable</span>
                     <strong class="value">${escape(item.accountable_employee)}</strong>
+                    ${accountableEmployeeTitle ? `<span class="label">Title: ${escape(accountableEmployeeTitle)}</span>` : ''}
                   </div>
                 </div>
 
@@ -1419,6 +1404,7 @@ export default {
                 </div>
 
                 <div class="cell description">
+                  ${item.article ? `<span class="label">Article</span><strong class="value">${escape(item.article)}</strong>` : ''}
                   <span class="label">Description of Property</span>
                   <strong class="value">${escape(item.description)}</strong>
                 </div>
@@ -1452,6 +1438,7 @@ export default {
               </div>
             </main>
             <script>
+              window.onafterprint = () => window.close()
               window.onload = () => window.setTimeout(() => window.print(), 250)
             <\/script>
           </body>
@@ -2092,6 +2079,46 @@ h1 {
   vertical-align: middle;
 }
 
+.property-table .cost-column {
+  min-width: 140px;
+}
+
+.property-table-wrap > .property-table > thead > tr > th,
+.property-table-wrap > .property-table > tbody > tr > td {
+  padding: 6px 8px;
+}
+
+.property-details-button {
+  display: inline-flex;
+  min-width: 76px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: #edf5ed;
+  color: #2f5d3a;
+  font: inherit;
+  font-size: .82rem;
+  line-height: 1;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  cursor: pointer;
+}
+
+.property-details-button:hover {
+  background: #dcebdc;
+  color: #21452b;
+}
+
+.property-details-button:focus-visible {
+  outline: 2px solid #6f9c70;
+  outline-offset: 2px;
+}
+
 .classification-par {
   background-color: #2f5d3a;
   color: white;
@@ -2246,6 +2273,37 @@ h1 {
 
   .edit-sidebar-footer .btn {
     flex: 1 1 130px;
+  }
+}
+
+@media (max-width: 639.98px) {
+  .property-table-wrap > .property-table > tbody {
+    gap: 6px;
+  }
+
+  .property-table-wrap > .property-table > tbody > tr {
+    border-radius: 6px;
+    box-shadow: none;
+  }
+
+  .property-table-wrap > .property-table > tbody > tr > td {
+    gap: 1px;
+    padding: 4px 7px;
+    font-size: .75rem;
+    line-height: 1.25;
+  }
+
+  .property-table-wrap > .property-table > tbody > tr > td:last-child {
+    justify-content: flex-end;
+    padding: 3px 7px;
+  }
+
+  .property-table-wrap > .property-table > tbody > tr > td:last-child > .property-details-button {
+    flex: 0 0 auto;
+    min-height: 28px;
+    height: 28px;
+    padding: 3px 8px;
+    font-size: .75rem;
   }
 }
 </style>

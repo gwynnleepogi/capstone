@@ -35,13 +35,12 @@
             placeholder="Search item requests..."
           />
 
-          <select v-model="statusFilter" class="form-select filter-select">
-            <option value="">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Approved">Approved</option>
-            <option value="Delivered">Delivered</option>
-            <option value="Rejected">Rejected</option>
-          </select>
+          <SearchableSelect
+            v-model="statusFilter"
+            class="filter-select"
+            :options="requestStatusOptions"
+            placeholder="All Statuses"
+          />
 
           <select
             v-model.number="itemsPerPage"
@@ -252,21 +251,13 @@
               <div class="mb-3">
                 <label class="form-label">Item (from Inventory)</label>
 
-                <select
+                <SearchableSelect
                   v-model="form.item_id"
-                  class="form-select"
+                  :options="itemSelectOptions"
+                  placeholder="Search inventory items"
                   required
-                >
-                  <option value="">Select Inventory Item</option>
-
-                  <option
-                    v-for="item in items"
-                    :key="item.id"
-                    :value="item.id"
-                  >
-                    {{ formatItem(item) }}
-                  </option>
-                </select>
+                  input-id="request-item-select"
+                />
 
                 <small v-if="items.length === 0" class="text-danger">
                   No available inventory items found.
@@ -296,33 +287,23 @@
               <div v-if="canManageRequests" class="mb-3">
                 <label class="form-label">Requested By</label>
 
-                <select v-model="form.requested_by" class="form-select">
-                  <option value="">Select Personnel</option>
-
-                  <option
-                    v-for="person in personnel"
-                    :key="person.id"
-                    :value="person.id"
-                  >
-                    {{ person.full_name }}
-                  </option>
-                </select>
+                <SearchableSelect
+                  v-model="form.requested_by"
+                  :options="personnelSelectOptions"
+                  placeholder="Search personnel (optional)"
+                  input-id="request-personnel-select"
+                />
               </div>
 
               <div v-if="canManageRequests" class="mb-3">
                 <label class="form-label">Office</label>
 
-                <select v-model="form.office_id" class="form-select">
-                  <option value="">Select Office</option>
-
-                  <option
-                    v-for="office in offices"
-                    :key="office.id"
-                    :value="office.id"
-                  >
-                    {{ office.office_name }}
-                  </option>
-                </select>
+                <SearchableSelect
+                  v-model="form.office_id"
+                  :options="officeSelectOptions"
+                  placeholder="Search office (optional)"
+                  input-id="request-office-select"
+                />
               </div>
 
               <div class="mb-3">
@@ -339,12 +320,12 @@
               <div v-if="canManageRequests" class="mb-3">
                 <label class="form-label">Status</label>
 
-                <select v-model="form.status" class="form-select">
-                  <option value="Pending">Pending</option>
-                  <option value="Approved">Approved</option>
-                  <option value="Delivered">Delivered</option>
-                  <option value="Rejected">Rejected</option>
-                </select>
+                <SearchableSelect
+                  v-model="form.status"
+                  :options="requestStatusOptions"
+                  placeholder="Select status"
+                  input-id="request-status-select"
+                />
               </div>
             </div>
 
@@ -481,9 +462,11 @@
 
 <script>
 import { Modal } from 'bootstrap'
+import SearchableSelect from '@/components/SearchableSelect.vue'
 
 export default {
   name: 'ItemRequests',
+  components: { SearchableSelect },
 
   data() {
     return {
@@ -533,6 +516,39 @@ export default {
   },
 
   computed: {
+    requestStatusOptions() {
+      return ['Pending', 'Approved', 'Delivered', 'Rejected']
+    },
+
+    itemSelectOptions() {
+      return this.items.map(item => ({
+        value: item.id,
+        label: this.formatItem(item)
+      }))
+    },
+
+    personnelSelectOptions() {
+      return [...this.personnel]
+        .filter(person => person?.id && person.full_name)
+        .sort((first, second) =>
+          first.full_name.localeCompare(second.full_name, undefined, {
+            sensitivity: 'base'
+          })
+        )
+        .map(person => ({ value: person.id, label: person.full_name }))
+    },
+
+    officeSelectOptions() {
+      return [...this.offices]
+        .filter(office => office?.id && office.office_name)
+        .sort((first, second) =>
+          first.office_name.localeCompare(second.office_name, undefined, {
+            sensitivity: 'base'
+          })
+        )
+        .map(office => ({ value: office.id, label: office.office_name }))
+    },
+
     currentUser() {
       return JSON.parse(
         localStorage.getItem('user') || 'null'
@@ -548,10 +564,7 @@ export default {
     },
 
     canManageRequests() {
-      return [
-        'Administrator',
-        'Personnel'
-      ].includes(this.currentUser?.role)
+      return this.currentUser?.role === 'Administrator'
     },
 
     filteredRequests() {

@@ -71,20 +71,21 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// CREATE RECEIPT - ONE UNIT PER REQUEST
+// CREATE RECEIPT - ONE UNIT PER APPROVED REQUEST OR ASSIGNED PROPERTY
 router.post('/', async (req, res) => {
   try {
     const {
       item_request_id,
+      item_id,
       receipt_type,
       receipt_number,
       date_issued,
       remarks
     } = req.body
 
-    if (!item_request_id) {
+    if (Boolean(item_request_id) === Boolean(item_id)) {
       return res.status(400).json({
-        error: 'Item request is required'
+        error: 'Provide either an item request or an assigned property'
       })
     }
 
@@ -97,6 +98,122 @@ router.post('/', async (req, res) => {
     if (!receipt_number || !String(receipt_number).trim()) {
       return res.status(400).json({
         error: 'Receipt number is required'
+      })
+    }
+
+    if (item_id) {
+      const { data: item, error: itemError } = await supabase
+        .from('items')
+        .select('id, description, property_number, status, accountable_employee')
+        .eq('id', item_id)
+        .single()
+
+      if (itemError || !item) {
+        return res.status(404).json({
+          error: 'Property not found'
+        })
+      }
+
+      if (
+        String(item.status || '').trim().toLowerCase() !== 'issued' ||
+        !String(item.accountable_employee || '').trim()
+      ) {
+        return res.status(400).json({
+          error: 'Only issued properties with an accountable employee can receive an acquisition receipt'
+        })
+      }
+
+      const { data: existingReceipt, error: existingError } = await supabase
+        .from('property_receipts')
+        .select('id')
+        .eq('item_id', item_id)
+        .limit(1)
+        .maybeSingle()
+
+      if (existingError) {
+        return res.status(500).json({
+          error: existingError.message
+        })
+      }
+
+      if (existingReceipt) {
+        return res.status(409).json({
+          error: 'This property already has a receipt'
+        })
+      }
+
+      const { data: recipients, error: recipientError } = await supabase
+        .from('users')
+        .select('id, full_name')
+        .eq('full_name', item.accountable_employee)
+        .limit(2)
+
+      if (recipientError) {
+        return res.status(500).json({
+          error: recipientError.message
+        })
+      }
+
+      if (!recipients?.length) {
+        return res.status(400).json({
+          error: 'The accountable employee is not a system user. Select a registered user when adding the property.'
+        })
+      }
+
+      if (recipients.length > 1) {
+        return res.status(409).json({
+          error: 'More than one user matches the accountable employee. Resolve the duplicate user names before creating a receipt.'
+        })
+      }
+
+      const recipient = recipients[0]
+      const { data: receipt, error: receiptError } = await supabase
+        .from('property_receipts')
+        .insert([{
+          item_id,
+          receipt_type,
+          receipt_number: String(receipt_number).trim(),
+          issued_to: recipient.id,
+          quantity: 1,
+          date_issued: date_issued ||
+            new Date().toISOString().split('T')[0],
+          remarks: remarks || null,
+          status: 'Issued'
+        }])
+        .select()
+        .single()
+
+      if (receiptError) {
+        return res.status(500).json({
+          error: receiptError.message
+        })
+      }
+
+      try {
+        await createAuditLog(
+          'Created',
+          item_id,
+          null,
+          JSON.stringify({
+            description: item.description,
+            property_number: item.property_number,
+            receipt_number: receipt.receipt_number,
+            receipt_type,
+            accountable_employee: recipient.full_name,
+            quantity: 1,
+            status: item.status
+          }),
+          `Created ${receipt_type} receipt ${receipt.receipt_number} for ${item.description}`,
+          req.profile?.id
+        )
+      } catch (auditError) {
+        console.log('Audit log error:', auditError)
+      }
+
+      return res.status(201).json({
+        message: 'Receipt created successfully',
+        receipt,
+        item
       })
     }
 
@@ -160,8 +277,8 @@ router.post('/', async (req, res) => {
     const { data: item, error: itemError } = await supabase
       .from('items')
       .select(`
-        id, description, status, condition, accountable_employee,
-        quantity
+        id, description, property_number, status, condition,
+        accountable_employee, quantity
       `)
       .eq('id', request.item_id)
       .single()
@@ -302,24 +419,24 @@ router.post('/', async (req, res) => {
 
     // Audit log
     try {
-      await createAuditLog({
-        user_id: req.profile?.id || null,
-        item_id: request.item_id,
-        action: 'CREATE',
-        old_value: null,
-        new_value: JSON.stringify({
-          receipt_id: receipt.id,
-          item_request_id,
+      await createAuditLog(
+        'Created',
+        request.item_id,
+        null,
+        JSON.stringify({
+          description: item.description,
+          property_number: item.property_number,
           receipt_number: receipt.receipt_number,
+          receipt_type,
+          accountable_employee: recipient.full_name,
           quantity: 1,
           old_quantity: availableQuantity,
           new_quantity: remainingQuantity,
           status: newStatus
         }),
-        description:
-          `Created receipt ${receipt.receipt_number} for ${item.description}`,
-        record_id: receipt.id
-      })
+        `Created ${receipt_type} receipt ${receipt.receipt_number} for ${item.description}`,
+        req.profile?.id
+      )
     } catch (auditError) {
       console.log('Audit log error:', auditError)
     }
@@ -403,16 +520,26 @@ router.put('/:id', async (req, res) => {
     }
 
     try {
-      await createAuditLog({
-        user_id: req.profile?.id || null,
-        item_id: existingReceipt.item_id,
-        action: 'UPDATE',
-        old_value: JSON.stringify(existingReceipt),
-        new_value: JSON.stringify(updatedReceipt),
-        description:
-          `Updated receipt ${updatedReceipt.receipt_number}`,
-        record_id: req.params.id
-      })
+      await createAuditLog(
+        'Updated',
+        existingReceipt.item_id,
+        JSON.stringify({
+          receipt_number: existingReceipt.receipt_number,
+          receipt_type: existingReceipt.receipt_type,
+          date_issued: existingReceipt.date_issued,
+          remarks: existingReceipt.remarks,
+          status: existingReceipt.status
+        }),
+        JSON.stringify({
+          receipt_number: updatedReceipt.receipt_number,
+          receipt_type: updatedReceipt.receipt_type,
+          date_issued: updatedReceipt.date_issued,
+          remarks: updatedReceipt.remarks,
+          status: updatedReceipt.status
+        }),
+        `Updated receipt ${updatedReceipt.receipt_number}`,
+        req.profile?.id
+      )
     } catch (auditError) {
       console.log('Audit log error:', auditError)
     }
@@ -449,7 +576,7 @@ router.delete('/:id', async (req, res) => {
 
     let item = null
 
-    if (receipt.item_id) {
+    if (receipt.item_id && receipt.item_request_id) {
       const { data, error } = await supabase
         .from('items')
         .select('id, quantity, status, accountable_employee')
@@ -525,16 +652,20 @@ router.delete('/:id', async (req, res) => {
     }
 
     try {
-      await createAuditLog({
-        user_id: req.profile?.id || null,
-        item_id: receipt.item_id,
-        action: 'DELETE',
-        old_value: JSON.stringify(receipt),
-        new_value: null,
-        description:
-          `Deleted receipt ${receipt.receipt_number}`,
-        record_id: receipt.id
-      })
+      await createAuditLog(
+        'Deleted',
+        receipt.item_id,
+        JSON.stringify({
+          receipt_number: receipt.receipt_number,
+          receipt_type: receipt.receipt_type,
+          quantity: receipt.quantity,
+          date_issued: receipt.date_issued,
+          status: receipt.status
+        }),
+        null,
+        `Deleted receipt ${receipt.receipt_number}`,
+        req.profile?.id
+      )
     } catch (auditError) {
       console.log('Audit log error:', auditError)
     }

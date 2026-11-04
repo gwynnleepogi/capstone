@@ -5,7 +5,7 @@ const supabase = require('../supabase')
 
 // Read-only item details for the QR scanner.
 // Open to every logged-in role (including Teacher and Non-Teaching Staff),
-// unlike /api/items which is Administrator / Personnel only.
+// unlike /api/items which is Administrator only.
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase

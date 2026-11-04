@@ -96,7 +96,7 @@ router.post('/', async (req, res) => {
 
     const { data: receipt, error: receiptError } = await supabase
       .from('property_receipts')
-      .select('id, item_id, quantity, status')
+      .select('id, item_id, quantity, status, receipt_number')
       .eq('id', property_receipt_id)
       .single()
 
@@ -163,7 +163,7 @@ router.post('/', async (req, res) => {
 
     const { data: item, error: inventoryError } = await supabase
       .from('items')
-      .select('id, quantity, status')
+      .select('id, description, property_number, quantity, status')
       .eq('id', receipt.item_id)
       .single()
 
@@ -224,8 +224,18 @@ router.post('/', async (req, res) => {
       'Created',
       newReturn.item_id,
       null,
-      JSON.stringify(newReturn),
-      `Recorded return for item ID ${receipt.item_id}; restored quantity ${receiptQuantity}`,
+      JSON.stringify({
+        description: item.description,
+        property_number: item.property_number,
+        receipt_number: receipt.receipt_number,
+        status: 'Returned',
+        quantity: updatedQuantity,
+        condition_after_return: condition_after_return,
+        return_date: newReturn.return_date,
+        return_reason: newReturn.return_reason,
+        remarks: newReturn.remarks
+      }),
+      `Recorded return for ${item.description} (receipt ${receipt.receipt_number}); restored quantity ${receiptQuantity}`,
       req.profile?.id
     )
 
@@ -256,7 +266,7 @@ router.put('/:id', async (req, res) => {
 
     const { data: oldReturn, error: oldReturnError } = await supabase
       .from('item_returns')
-      .select('*')
+      .select('*, items (description, property_number)')
       .eq('id', id)
       .single()
 
@@ -312,9 +322,23 @@ router.put('/:id', async (req, res) => {
     await createAuditLog(
       'Updated',
       updatedReturn.item_id,
-      JSON.stringify(oldReturn),
-      JSON.stringify(updatedReturn),
-      `Updated return record ${id}`,
+      JSON.stringify({
+        description: oldReturn.items?.description,
+        property_number: oldReturn.items?.property_number,
+        return_date: oldReturn.return_date,
+        condition_after_return: oldReturn.condition_after_return,
+        return_reason: oldReturn.return_reason,
+        remarks: oldReturn.remarks
+      }),
+      JSON.stringify({
+        description: oldReturn.items?.description,
+        property_number: oldReturn.items?.property_number,
+        return_date: updatedReturn.return_date,
+        condition_after_return: updatedReturn.condition_after_return,
+        return_reason: updatedReturn.return_reason,
+        remarks: updatedReturn.remarks
+      }),
+      `Updated return record for ${oldReturn.items?.description || 'property'}`,
       req.profile?.id
     )
 
@@ -330,7 +354,7 @@ router.delete('/:id', async (req, res) => {
 
     const { data: deletedReturn, error: fetchError } = await supabase
       .from('item_returns')
-      .select('*')
+      .select('*, items (description, property_number)')
       .eq('id', id)
       .single()
 
@@ -432,9 +456,16 @@ router.delete('/:id', async (req, res) => {
     await createAuditLog(
       'Deleted',
       deletedReturn.item_id,
-      JSON.stringify(deletedReturn),
+      JSON.stringify({
+        description: deletedReturn.items?.description,
+        property_number: deletedReturn.items?.property_number,
+        return_date: deletedReturn.return_date,
+        condition_after_return: deletedReturn.condition_after_return,
+        return_reason: deletedReturn.return_reason,
+        remarks: deletedReturn.remarks
+      }),
       null,
-      `Deleted return record ${id}`,
+      `Deleted return record for ${deletedReturn.items?.description || 'property'}`,
       req.profile?.id
     )
 

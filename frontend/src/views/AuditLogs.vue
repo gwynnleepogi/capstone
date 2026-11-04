@@ -98,7 +98,7 @@
                     class="action-badge"
                     :class="getActionClass(log.action)"
                   >
-                    {{ log.action }}
+                    {{ formatAction(log.action) }}
                   </span>
                 </td>
 
@@ -108,15 +108,19 @@
 
                 <td>
                   <div
-                    v-if="isItemLog(log) && (log.old_value || log.new_value)"
+                    v-if="hasStructuredDetails(log)"
                     class="details-dropdown"
                   >
+                    <p class="activity-summary mb-1">
+                      {{ log.description || 'Activity recorded' }}
+                    </p>
+
                     <button
                       type="button"
                       class="details-button"
                       @click="toggleDetails(log.id)"
                     >
-                      <span>View activity details</span>
+                      <span>View field changes</span>
 
                       <i
                         class="bi bi-chevron-down"
@@ -129,7 +133,7 @@
                       :class="{ open: openedLog === log.id }"
                     >
                       <div class="details-content">
-                        <div v-if="log.old_value">
+                        <div v-if="detailEntries(log.old_value).length">
                           <strong>
                             {{
                               log.action === 'Deleted'
@@ -155,7 +159,7 @@
                           </div>
                         </div>
 
-                        <div v-if="log.new_value">
+                        <div v-if="detailEntries(log.new_value).length">
                           <strong>
                             {{
                               log.action === 'Created'
@@ -262,21 +266,26 @@
           </div>
           <div v-if="selectedLog" class="modal-body">
             <p><strong>Date:</strong> {{ formatDate(selectedLog.created_at) }}</p>
-            <p><strong>Action:</strong> {{ selectedLog.action || '-' }}</p>
+            <p><strong>Action:</strong> {{ formatAction(selectedLog.action) }}</p>
             <p><strong>Item:</strong> {{ getItemName(selectedLog) }}</p>
             <p><strong>Description:</strong> {{ selectedLog.description || '-' }}</p>
             <button
-              v-if="canSeeDeleteButton"
+              v-if="canDeleteAuditLogs"
               type="button"
               class="btn btn-outline-danger btn-sm mb-3"
-              :disabled="!isAdmin"
-              :title="isAdmin ? 'Delete this audit log' : 'Only administrators can delete audit logs'"
+              title="Delete this audit log"
               @click="deleteSelectedLog"
             >
               <i class="bi bi-trash me-1"></i>Delete this audit log
             </button>
-            <div v-if="isItemLog(selectedLog) && selectedLog.old_value" class="mb-3">
-              <strong>Before</strong>
+            <div v-if="detailEntries(selectedLog.old_value).length" class="mb-3">
+              <strong>
+                {{
+                  formatAction(selectedLog.action) === 'Deleted'
+                    ? 'Deleted record'
+                    : 'Before'
+                }}
+              </strong>
               <div class="detail-grid">
                 <div v-for="entry in detailEntries(selectedLog.old_value)" :key="entry.key" class="detail-field">
                   <span>{{ formatLabel(entry.key) }}</span>
@@ -284,8 +293,8 @@
                 </div>
               </div>
             </div>
-            <div v-if="isItemLog(selectedLog) && selectedLog.new_value">
-              <strong>After</strong>
+            <div v-if="detailEntries(selectedLog.new_value).length">
+              <strong>{{ formatAction(selectedLog.action) === 'Created' ? 'Added record' : 'After' }}</strong>
               <div class="detail-grid">
                 <div v-for="entry in detailEntries(selectedLog.new_value)" :key="entry.key" class="detail-field">
                   <span>{{ formatLabel(entry.key) }}</span>
@@ -349,20 +358,12 @@ export default {
   },
 
   computed: {
-    isAdmin() {
+    canDeleteAuditLogs() {
       const user = JSON.parse(
         localStorage.getItem('user') || 'null'
       )
 
       return user?.role === 'Administrator'
-    },
-
-    canSeeDeleteButton() {
-      const user = JSON.parse(
-        localStorage.getItem('user') || 'null'
-      )
-
-      return ['Administrator', 'Personnel'].includes(user?.role)
     },
 
     filteredLogs() {
@@ -371,7 +372,7 @@ export default {
       const filtered = this.logs.filter(log => {
         const actionMatch =
           !this.actionFilter ||
-          log.action === this.actionFilter
+          this.formatAction(log.action) === this.actionFilter
 
         const searchableText = [
           this.formatDate(log.created_at),
@@ -465,9 +466,8 @@ export default {
     },
 
     deleteSelectedLog() {
-      if (!this.selectedLog || !this.isAdmin) return
+      if (!this.selectedLog || !this.canDeleteAuditLogs) return
       const id = this.selectedLog.id
-      Modal.getInstance(document.getElementById('logDetailsModal'))?.hide()
       this.deleteLog(id)
     },
 
@@ -536,11 +536,18 @@ export default {
         if (!response.ok) {
           throw new Error(
             data.error ||
-            'Delete route not found. Please restart the backend server.'
+            'Failed to delete audit log.'
           )
         }
 
         this.logs = this.logs.filter(log => log.id !== id)
+
+        if (this.selectedLog?.id === id) {
+          Modal.getInstance(
+            document.getElementById('logDetailsModal')
+          )?.hide()
+          this.selectedLog = null
+        }
 
         if (this.currentPage > this.totalPages) {
           this.currentPage = this.totalPages
@@ -614,11 +621,9 @@ export default {
       }
     },
 
-    isItemLog(log) {
-      const description =
-        (log.description || '').toLowerCase()
-
-      return description.includes('item')
+    hasStructuredDetails(log) {
+      return this.detailEntries(log.old_value).length > 0 ||
+        this.detailEntries(log.new_value).length > 0
     },
 
     getItemName(log) {
@@ -630,8 +635,19 @@ export default {
         )
       }
 
-      const values = this.parseLogValue(log.new_value) ||
+      const parsedValues = this.parseLogValue(log.new_value) ||
         this.parseLogValue(log.old_value)
+      const values = Array.isArray(parsedValues)
+        ? parsedValues[0]
+        : parsedValues
+
+      if (values?.description) {
+        return values.description
+      }
+
+      if (values?.property_number) {
+        return values.property_number
+      }
 
       if (values?.item_description) {
         return values.item_description
@@ -675,7 +691,11 @@ export default {
         return []
       }
 
-      const parsed = this.parseLogValue(value)
+      const parsedValue = this.parseLogValue(value)
+      const parsed = Array.isArray(parsedValue)
+        ? parsedValue[0]
+        : parsedValue
+
       if (!parsed || typeof parsed !== 'object') {
         return []
       }
@@ -684,7 +704,6 @@ export default {
         'property_number',
         'description',
         'serial_number',
-        // 'supplier_id',
         'cost',
         'acquisition_date',
         'classification',
@@ -695,30 +714,66 @@ export default {
         'request_number',
         'item_description',
         'quantity',
+        'old_quantity',
+        'new_quantity',
         'purpose',
-        'requested_by',
-        'office_id'
+        'receipt_number',
+        'receipt_type',
+        'date_issued',
+        'return_date',
+        'transfer_date',
+        'transfer_type',
+        'from_employee',
+        'to_employee',
+        'from_office',
+        'to_office',
+        'condition_declared',
+        'condition_after_return',
+        'condition_after_transfer',
+        'resulting_status',
+        'return_reason',
+        'reason',
+        'review_remarks',
+        'remarks',
+        'office_name',
+        'supplier'
       ]
 
-      return Object.entries(parsed)
+      const entries = Object.entries(parsed)
         .filter(([key]) => allowedKeys.includes(key))
         .map(([key, value]) => ({
           key: key,
-          value:
-            value === null ||
-            value === undefined ||
-            value === ''
-              ? '-'
-              : value
+          value: this.formatDetailValue(value)
         }))
+
+      if (Array.isArray(parsedValue) && parsedValue.length > 1) {
+        entries.unshift({
+          key: 'records_count',
+          value: `${parsedValue.length} records`
+        })
+      }
+
+      return entries
+    },
+
+    formatDetailValue(value) {
+      if (value === null || value === undefined || value === '') {
+        return '-'
+      }
+
+      if (typeof value === 'object') {
+        return '-'
+      }
+
+      return String(value)
     },
 
     formatLabel(key) {
       const labels = {
         property_number: 'Property No.',
+        records_count: 'Records',
         description: 'Description',
         serial_number: 'Serial Number',
-        // supplier_id: 'Supplier',
         cost: 'Cost',
         acquisition_date: 'Acquisition Date',
         classification: 'Classification',
@@ -729,9 +784,28 @@ export default {
         request_number: 'Request Number',
         item_description: 'Requested Item',
         quantity: 'Quantity',
+        old_quantity: 'Previous Quantity',
+        new_quantity: 'Updated Quantity',
         purpose: 'Purpose',
-        requested_by: 'Requested By',
-        office_id: 'Office ID'
+        receipt_number: 'Receipt No.',
+        receipt_type: 'Receipt Type',
+        date_issued: 'Date Issued',
+        return_date: 'Return Date',
+        transfer_date: 'Transfer Date',
+        transfer_type: 'Transfer Type',
+        from_employee: 'Transferred From',
+        to_employee: 'Transferred To',
+        from_office: 'Transferred To Office',
+        condition_declared: 'Reported Condition',
+        condition_after_return: 'Condition After Return',
+        condition_after_transfer: 'Condition After Transfer',
+        resulting_status: 'Resulting Status',
+        return_reason: 'Return Reason',
+        reason: 'Reason',
+        review_remarks: 'Review Remarks',
+        remarks: 'Remarks',
+        office_name: 'Office',
+        supplier: 'Supplier'
       }
 
       return labels[key] || key
@@ -746,19 +820,35 @@ export default {
     },
 
     getActionClass(action) {
-      if (action === 'Created') {
+      const normalizedAction = this.formatAction(action)
+
+      if (normalizedAction === 'Created') {
         return 'created'
       }
 
-      if (action === 'Updated') {
+      if (normalizedAction === 'Updated') {
         return 'updated'
       }
 
-      if (action === 'Deleted') {
+      if (normalizedAction === 'Deleted') {
         return 'deleted'
       }
 
       return ''
+    },
+
+    formatAction(action) {
+      const normalizedAction = String(action || '').trim().toLowerCase()
+      const labels = {
+        create: 'Created',
+        created: 'Created',
+        update: 'Updated',
+        updated: 'Updated',
+        delete: 'Deleted',
+        deleted: 'Deleted'
+      }
+
+      return labels[normalizedAction] || action || '-'
     },
 
     toggleDetails(id) {

@@ -5,9 +5,9 @@ const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
 
 // Teacher / Non-Teaching Staff submit a return request for property issued to them.
-// Administrator / Personnel then Accept (stock is restored) or Reject it (nothing changes).
+// Administrator then Accept (stock is restored) or Reject it (nothing changes).
 
-const STAFF_ROLES = ['Administrator', 'Personnel']
+const STAFF_ROLES = ['Administrator']
 const CONDITIONS = ['Serviceable', 'Unserviceable']
 
 function isStaff(req) {
@@ -16,7 +16,7 @@ function isStaff(req) {
 
 function staffOnly(req, res, next) {
   if (!isStaff(req)) {
-    return res.status(403).json({ error: 'Only Administrator or Personnel can do this.' })
+    return res.status(403).json({ error: 'Only Administrator can do this.' })
   }
 
   next()
@@ -217,7 +217,7 @@ router.post('/', async (req, res) => {
 
     const { data: receipt, error: receiptError } = await supabase
       .from('property_receipts')
-      .select('id, item_id, quantity, status, issued_to')
+      .select('id, item_id, quantity, status, issued_to, receipt_number, items (description, property_number)')
       .eq('id', property_receipt_id)
       .single()
 
@@ -277,8 +277,17 @@ router.post('/', async (req, res) => {
       'Created',
       receipt.item_id,
       null,
-      JSON.stringify(created),
-      `${req.profile.full_name || 'A user'} requested to return property (receipt ${receipt.id})`,
+      JSON.stringify({
+        description: receipt.items?.description,
+        property_number: receipt.items?.property_number,
+        receipt_number: receipt.receipt_number,
+        status: 'Pending',
+        condition_declared,
+        return_date: created.return_date,
+        return_reason: created.return_reason,
+        remarks: created.remarks
+      }),
+      `${req.profile.full_name || 'A user'} requested to return ${receipt.items?.description || 'property'} (receipt ${receipt.receipt_number})`,
       req.profile.id
     )
 
@@ -358,7 +367,7 @@ router.patch('/:id/accept', staffOnly, async (req, res) => {
 
     const { data: receipt, error: receiptError } = await supabase
       .from('property_receipts')
-      .select('id, item_id, quantity, status')
+      .select('id, item_id, quantity, status, receipt_number')
       .eq('id', request.property_receipt_id)
       .single()
 
@@ -381,7 +390,7 @@ router.patch('/:id/accept', staffOnly, async (req, res) => {
 
     const { data: item, error: itemError } = await supabase
       .from('items')
-      .select('id, quantity, status')
+      .select('id, description, property_number, quantity, status')
       .eq('id', receipt.item_id)
       .single()
 
@@ -464,9 +473,26 @@ router.patch('/:id/accept', staffOnly, async (req, res) => {
     await createAuditLog(
       'Updated',
       receipt.item_id,
-      JSON.stringify({ status: 'Pending' }),
-      JSON.stringify(finalRequest || claimed),
-      `Accepted return request; restored quantity ${receiptQuantity}; condition ${finalCondition}`,
+      JSON.stringify({
+        description: item.description,
+        property_number: item.property_number,
+        receipt_number: receipt.receipt_number,
+        status: request.status,
+        condition_declared: request.condition_declared,
+        return_reason: request.return_reason
+      }),
+      JSON.stringify({
+        description: item.description,
+        property_number: item.property_number,
+        receipt_number: receipt.receipt_number,
+        status: 'Accepted',
+        condition_after_return: finalCondition,
+        quantity: updatedQuantity,
+        return_date: request.return_date,
+        return_reason: request.return_reason,
+        review_remarks: reviewFields.review_remarks
+      }),
+      `Accepted return request for ${item.description}; restored quantity ${receiptQuantity}; condition ${finalCondition}`,
       req.profile.id
     )
 
@@ -491,7 +517,7 @@ router.patch('/:id/reject', staffOnly, async (req, res) => {
 
     const { data: request, error: requestError } = await supabase
       .from('return_requests')
-      .select('*')
+      .select('*, items (description, property_number)')
       .eq('id', req.params.id)
       .maybeSingle()
 
@@ -525,9 +551,21 @@ router.patch('/:id/reject', staffOnly, async (req, res) => {
     await createAuditLog(
       'Updated',
       request.item_id,
-      JSON.stringify(request),
-      JSON.stringify(updated),
-      `Rejected return request: ${reason}`,
+      JSON.stringify({
+        description: request.items?.description,
+        property_number: request.items?.property_number,
+        status: request.status,
+        condition_declared: request.condition_declared,
+        return_reason: request.return_reason
+      }),
+      JSON.stringify({
+        description: request.items?.description,
+        property_number: request.items?.property_number,
+        status: 'Rejected',
+        condition_declared: request.condition_declared,
+        review_remarks: reason
+      }),
+      `Rejected return request for ${request.items?.description || 'property'}: ${reason}`,
       req.profile.id
     )
 
@@ -545,7 +583,7 @@ router.patch('/:id/cancel', async (req, res) => {
   try {
     const { data: request, error: requestError } = await supabase
       .from('return_requests')
-      .select('*')
+      .select('*, items (description, property_number)')
       .eq('id', req.params.id)
       .maybeSingle()
 
@@ -576,9 +614,19 @@ router.patch('/:id/cancel', async (req, res) => {
     await createAuditLog(
       'Updated',
       request.item_id,
-      JSON.stringify(request),
-      JSON.stringify(updated),
-      'Cancelled return request',
+      JSON.stringify({
+        description: request.items?.description,
+        property_number: request.items?.property_number,
+        status: request.status,
+        condition_declared: request.condition_declared,
+        return_reason: request.return_reason
+      }),
+      JSON.stringify({
+        description: request.items?.description,
+        property_number: request.items?.property_number,
+        status: 'Cancelled'
+      }),
+      `Cancelled return request for ${request.items?.description || 'property'}`,
       req.profile.id
     )
 

@@ -240,7 +240,7 @@ router.get('/available-items', async (req, res) => {
 
 router.patch(
   '/:id/status',
-  requireRole('Administrator', 'Personnel'),
+  requireRole('Administrator'),
   async (req, res) => {
     const { status } = req.body
 
@@ -493,10 +493,7 @@ router.post('/', async (req, res) => {
 
   let requestOwner = req.profile.id
 
-  if (
-    req.role === 'Administrator' ||
-    req.role === 'Personnel'
-  ) {
+  if (req.role === 'Administrator') {
     requestOwner = requested_by || req.profile.id
   }
 
@@ -576,7 +573,7 @@ router.post('/', async (req, res) => {
 
 router.put(
   '/:id',
-  requireRole('Administrator', 'Personnel'),
+  requireRole('Administrator'),
   async (req, res) => {
     const {
       request_number,
@@ -831,7 +828,7 @@ router.put(
 
 router.delete(
   '/:id',
-  requireRole('Administrator', 'Personnel'),
+  requireRole('Administrator'),
   async (req, res) => {
     const {
       data: oldData,

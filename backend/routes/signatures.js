@@ -51,7 +51,7 @@ router.post('/:userId', upload.single('signature'), async function (req, res) {
     if (
       req.profile &&
       req.profile.id !== userId &&
-      !['Administrator', 'Personnel'].includes(req.role)
+      req.role !== 'Administrator'
     ) {
       fs.unlinkSync(req.file.path);
       return res.status(403).json({ error: 'You can only update your own signature.' });
@@ -103,7 +103,7 @@ router.get('/:userId', async function (req, res) {
     if (
       req.profile &&
       req.profile.id !== req.params.userId &&
-      !['Administrator', 'Personnel'].includes(req.role)
+      req.role !== 'Administrator'
     ) {
       return res.status(403).json({ error: 'You can only view your own signature.' });
     }

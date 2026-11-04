@@ -12,8 +12,8 @@
         <div class="filter-group report-group">
           <label for="movement-report">Report to Print</label>
           <select id="movement-report" v-model="reportToPrint">
-            <option value="acquisition">Acquisition of Office Properties</option>
-            <option value="issuance">Report of Properties Issued</option>
+            <option value="acquisition">Acquisition of Supplies and Materials</option>
+            <option value="issuance">Report of Supplies and Materials Issued</option>
           </select>
         </div>
 
@@ -397,7 +397,7 @@ export default {
         const isIssuance = this.reportToPrint === 'issuance';
         const title = isIssuance
           ? 'REPORT ON SUPPLIES AND MATERIALS ISSUED'
-          : 'ACQUISITION OF OFFICE PROPERTIES';
+          : 'ACQUISITION OF SUPPLIES AND MATERIALS';
 
         const lastColumn = isIssuance ? 'L' : 'L';
 
@@ -958,6 +958,7 @@ export default {
           <body>
             ${bodyHtml}
             <script>
+              window.onafterprint = function () { window.close(); };
               window.onload = function () {
                 var logo = document.querySelector('.logo');
 
@@ -976,7 +977,7 @@ export default {
     },
 
     printAcquisitionReport() {
-      const title = 'ACQUISITION OF OFFICE PROPERTIES';
+      const title = 'ACQUISITION OF SUPPLIES AND MATERIALS';
       const e = value => this.escapeHtml(
         value === null || value === undefined || value === '' ? '' : value
       );

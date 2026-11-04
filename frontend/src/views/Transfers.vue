@@ -1,3 +1,4 @@
+
 <template>
   <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -70,33 +71,54 @@
                   <div>{{ transfer.items?.description || '-' }}</div>
                   <small class="text-muted">{{ transfer.items?.property_number || '' }}</small>
                 </td>
+
                 <td>{{ transfer.transfer_type }}</td>
-                <td>{{ transfer.from_user?.full_name || '-' }}</td>
+
+                <td>
+                  {{ transfer.from_user?.full_name || '-' }}
+                  <div v-if="transfer.from_user?.job_title" class="small text-muted">
+                    {{ transfer.from_user.job_title }}
+                  </div>
+                </td>
+
                 <td>
                   <template v-if="transfer.transfer_type === 'To Employee'">
                     {{ transfer.to_user?.full_name || '-' }}
+                    <div v-if="transfer.to_user?.job_title" class="small text-muted">
+                      {{ transfer.to_user.job_title }}
+                    </div>
                   </template>
                   <template v-else>Property Office</template>
+
                   <div v-if="transfer.offices?.office_name" class="small text-muted">
                     {{ transfer.offices.office_name }}
                   </div>
                 </td>
+
                 <td>{{ transfer.transfer_date || '-' }}</td>
+
                 <td>
-                  <span class="badge" :class="transfer.condition_after_transfer === 'Serviceable' ? 'bg-success' : 'bg-danger'">
+                  <span
+                    class="badge"
+                    :class="transfer.condition_after_transfer === 'Serviceable' ? 'bg-success' : 'bg-danger'"
+                  >
                     {{ transfer.condition_after_transfer || '-' }}
                   </span>
                 </td>
+
                 <td>
                   <span class="badge" :class="getResultClass(transfer)">
                     {{ getResultLabel(transfer) }}
                   </span>
                 </td>
+
                 <td>{{ transfer.reason || '-' }}</td>
               </tr>
 
               <tr v-if="paginatedTransfers.length === 0">
-                <td colspan="8" class="text-center text-muted py-4">No transfers found.</td>
+                <td colspan="8" class="text-center text-muted py-4">
+                  No transfers found.
+                </td>
               </tr>
             </tbody>
           </table>
@@ -108,7 +130,11 @@
         >
           <div class="d-flex align-items-center gap-2">
             <label class="mb-0 text-muted small">Show</label>
-            <select class="form-select form-select-sm" v-model.number="itemsPerPage" style="width: 75px">
+            <select
+              class="form-select form-select-sm"
+              v-model.number="itemsPerPage"
+              style="width: 75px"
+            >
               <option :value="5">5</option>
               <option :value="10">10</option>
               <option :value="25">25</option>
@@ -124,13 +150,27 @@
           <nav>
             <ul class="pagination pagination-sm mb-0">
               <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                <button class="page-link" @click="currentPage--">Previous</button>
+                <button
+                  class="page-link"
+                  @click="currentPage--"
+                  :disabled="currentPage === 1"
+                >
+                  Previous
+                </button>
               </li>
+
               <li class="page-item active">
                 <span class="page-link">{{ currentPage }} / {{ totalPages }}</span>
               </li>
+
               <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                <button class="page-link" @click="currentPage++">Next</button>
+                <button
+                  class="page-link"
+                  @click="currentPage++"
+                  :disabled="currentPage === totalPages"
+                >
+                  Next
+                </button>
               </li>
             </ul>
           </nav>
@@ -138,12 +178,18 @@
       </div>
     </div>
 
+    <!-- New Transfer Modal -->
     <div class="modal fade" id="transferModal" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">New Transfer</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              @click="resetEmployeeSearch"
+            ></button>
           </div>
 
           <form @submit.prevent="saveTransfer">
@@ -152,11 +198,16 @@
                 <label class="form-label">Issued Property</label>
                 <select class="form-select" v-model="form.property_receipt_id" required>
                   <option value="">Select issued property</option>
-                  <option v-for="receipt in receipts" :key="receipt.id" :value="receipt.id">
+                  <option
+                    v-for="receipt in receipts"
+                    :key="receipt.id"
+                    :value="receipt.id"
+                  >
                     {{ receipt.receipt_number }} - {{ receipt.items?.description || 'Item' }}
                     ({{ receipt.users?.full_name || 'Unknown holder' }})
                   </option>
                 </select>
+
                 <div v-if="receipts.length === 0" class="form-text text-warning">
                   No issued property is available to transfer.
                 </div>
@@ -172,35 +223,110 @@
 
               <div class="mb-3">
                 <label class="form-label d-block">Transfer To</label>
+
                 <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" id="typeEmployee" value="To Employee" v-model="form.transfer_type">
-                  <label class="form-check-label" for="typeEmployee">Another Employee</label>
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    id="typeEmployee"
+                    value="To Employee"
+                    v-model="form.transfer_type"
+                    @change="resetEmployeeSearch"
+                  >
+                  <label class="form-check-label" for="typeEmployee">
+                    Another Employee
+                  </label>
                 </div>
+
                 <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" id="typeOffice" value="To Property Office" v-model="form.transfer_type">
-                  <label class="form-check-label" for="typeOffice">Property Office (return to stock)</label>
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    id="typeOffice"
+                    value="To Property Office"
+                    v-model="form.transfer_type"
+                    @change="resetEmployeeSearch"
+                  >
+                  <label class="form-check-label" for="typeOffice">
+                    Property Office (return to stock)
+                  </label>
                 </div>
               </div>
 
+              <!-- Searchable Receiving Employee -->
               <div v-if="form.transfer_type === 'To Employee'" class="mb-3">
                 <label class="form-label">Receiving Employee</label>
-                <select class="form-select" v-model="form.to_user_id" required>
-                  <option value="">Select employee</option>
-                  <option v-for="person in receivingEmployees" :key="person.id" :value="person.id">
-                    {{ person.full_name }}
-                  </option>
-                </select>
-                <div v-if="selectedReceipt && selectedReceipt.items?.condition !== 'Serviceable'" class="form-text text-danger">
+
+                <div class="position-relative">
+                  <input
+                    type="text"
+                    class="form-control"
+                    v-model="employeeSearch"
+                    placeholder="Search employee name or job title..."
+                    autocomplete="off"
+                    @focus="showEmployeeOptions = true"
+                    @input="showEmployeeOptions = true"
+                  >
+
+                  <div
+                    v-if="showEmployeeOptions"
+                    class="list-group position-absolute w-100 shadow"
+                    style="max-height: 200px; overflow-y: auto; z-index: 1056;"
+                  >
+                    <button
+                      v-for="person in filteredReceivingEmployees"
+                      :key="person.id"
+                      type="button"
+                      class="list-group-item list-group-item-action"
+                      :class="{ active: form.to_user_id === person.id }"
+                      @click="selectReceivingEmployee(person)"
+                    >
+                      <div>{{ person.full_name }}</div>
+                      <small
+                        v-if="person.job_title"
+                        :class="form.to_user_id === person.id ? 'text-white' : 'text-muted'"
+                      >
+                        {{ person.job_title }}
+                      </small>
+                    </button>
+
+                    <div
+                      v-if="filteredReceivingEmployees.length === 0"
+                      class="list-group-item text-muted"
+                    >
+                      No employee found.
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="selectedReceivingEmployee" class="mt-2">
+                  <label class="form-label">Title</label>
+                  <input
+                    class="form-control"
+                    :value="selectedReceivingEmployee.job_title || ''"
+                    readonly
+                  >
+                </div>
+
+                <div
+                  v-if="selectedReceipt && selectedReceipt.items?.condition !== 'Serviceable'"
+                  class="form-text text-danger"
+                >
                   This property is Unserviceable. It can only be transferred to the Property Office.
                 </div>
               </div>
 
               <div v-else class="mb-3">
                 <label class="form-label">Condition of Property</label>
-                <select class="form-select" v-model="form.condition_after_transfer" required>
+                <select
+                  class="form-select"
+                  v-model="form.condition_after_transfer"
+                  required
+                >
                   <option value="Serviceable">Serviceable</option>
                   <option value="Unserviceable">Unserviceable</option>
                 </select>
+
                 <div class="form-text">
                   <template v-if="form.condition_after_transfer === 'Serviceable'">
                     The property will be marked <strong>Available</strong> again.
@@ -213,33 +339,75 @@
 
               <div class="row g-3 mb-3">
                 <div class="col-md-6">
-                  <label class="form-label">Office <span class="text-muted">(optional)</span></label>
+                  <label class="form-label">
+                    Office <span class="text-muted">(optional)</span>
+                  </label>
+
                   <select class="form-select" v-model="form.office_id">
                     <option value="">None</option>
-                    <option v-for="office in offices" :key="office.id" :value="office.id">
+                    <option
+                      v-for="office in offices"
+                      :key="office.id"
+                      :value="office.id"
+                    >
                       {{ office.office_name }}
                     </option>
                   </select>
                 </div>
+
                 <div class="col-md-6">
                   <label class="form-label">Transfer Date</label>
-                  <input type="date" class="form-control" v-model="form.transfer_date" required>
+                  <input
+                    type="date"
+                    class="form-control"
+                    v-model="form.transfer_date"
+                    required
+                  >
                 </div>
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Reason</label>
-                <input type="text" class="form-control" v-model="form.reason" placeholder="e.g. Reassignment, end of use">
+                <label class="form-label">Reason for Transfer</label>
+                <select class="form-select" v-model="form.reason" required>
+                  <option value="">Select a reason</option>
+                  <option value="End of Contract">End of Contract</option>
+                  <option value="Transfer of Agency">Transfer of Agency</option>
+                  <option value="Resignation">Resignation</option>
+                  <option value="Change of Designation">Change of Designation</option>
+                  <option value="Retirement">Retirement</option>
+                  <option value="Others">Others</option>
+                </select>
+
+                <input
+                  v-if="form.reason === 'Others'"
+                  type="text"
+                  class="form-control mt-2"
+                  v-model.trim="form.otherReason"
+                  placeholder="Enter reason"
+                  required
+                >
               </div>
 
               <div class="mb-3">
                 <label class="form-label">Remarks</label>
-                <textarea class="form-control" rows="2" v-model="form.remarks"></textarea>
+                <textarea
+                  class="form-control"
+                  rows="2"
+                  v-model="form.remarks"
+                ></textarea>
               </div>
             </div>
 
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+                @click="resetEmployeeSearch"
+              >
+                Cancel
+              </button>
+
               <button type="submit" class="btn btn-warning" :disabled="saving">
                 {{ saving ? 'Saving...' : 'Save Transfer' }}
               </button>
@@ -272,18 +440,49 @@ export default {
       itemsPerPage: 10,
       saving: false,
 
+      // Receiving employee search
+      employeeSearch: '',
+      showEmployeeOptions: false,
+
       form: this.emptyForm()
     }
   },
 
   computed: {
     selectedReceipt() {
-      return this.receipts.find(r => r.id === this.form.property_receipt_id) || null
+      return this.receipts.find(
+        r => r.id === this.form.property_receipt_id
+      ) || null
     },
 
     receivingEmployees() {
       const holderId = this.selectedReceipt?.issued_to
-      return this.personnel.filter(person => person.id !== holderId)
+
+      return this.personnel
+        .filter(person => person.id !== holderId)
+        .sort((first, second) =>
+          first.full_name.localeCompare(second.full_name, undefined, {
+            sensitivity: 'base'
+          })
+        )
+    },
+
+    // Employees matching the search input
+    filteredReceivingEmployees() {
+      const search = this.employeeSearch.toLowerCase().trim()
+
+      return this.receivingEmployees.filter(person => {
+        const name = (person.full_name || '').toLowerCase()
+        const title = (person.job_title || '').toLowerCase()
+
+        return name.includes(search) || title.includes(search)
+      })
+    },
+
+    selectedReceivingEmployee() {
+      return this.receivingEmployees.find(
+        person => person.id === this.form.to_user_id
+      ) || null
     },
 
     filteredTransfers() {
@@ -308,7 +507,10 @@ export default {
     },
 
     totalPages() {
-      return Math.max(1, Math.ceil(this.filteredTransfers.length / this.itemsPerPage))
+      return Math.max(
+        1,
+        Math.ceil(this.filteredTransfers.length / this.itemsPerPage)
+      )
     },
 
     paginatedTransfers() {
@@ -317,24 +519,52 @@ export default {
     },
 
     firstNumber() {
-      return this.filteredTransfers.length === 0 ? 0 : (this.currentPage - 1) * this.itemsPerPage + 1
+      return this.filteredTransfers.length === 0
+        ? 0
+        : (this.currentPage - 1) * this.itemsPerPage + 1
     },
 
     lastNumber() {
-      return Math.min(this.currentPage * this.itemsPerPage, this.filteredTransfers.length)
+      return Math.min(
+        this.currentPage * this.itemsPerPage,
+        this.filteredTransfers.length
+      )
     }
   },
 
   watch: {
-    search() { this.currentPage = 1 },
-    typeFilter() { this.currentPage = 1 },
-    resultFilter() { this.currentPage = 1 },
-    itemsPerPage() { this.currentPage = 1 },
-    totalPages(value) {
-      if (this.currentPage > value) this.currentPage = value
+    search() {
+      this.currentPage = 1
     },
+
+    typeFilter() {
+      this.currentPage = 1
+    },
+
+    resultFilter() {
+      this.currentPage = 1
+    },
+
+    itemsPerPage() {
+      this.currentPage = 1
+    },
+
+    totalPages(value) {
+      if (this.currentPage > value) {
+        this.currentPage = value
+      }
+    },
+
     'form.property_receipt_id'() {
       this.form.to_user_id = ''
+      this.employeeSearch = ''
+      this.showEmployeeOptions = false
+    },
+
+    'form.to_user_id'() {
+      if (!this.form.to_user_id) {
+        this.employeeSearch = ''
+      }
     }
   },
 
@@ -355,12 +585,15 @@ export default {
         transfer_date: new Date().toISOString().split('T')[0],
         condition_after_transfer: 'Serviceable',
         reason: '',
+        otherReason: '',
         remarks: ''
       }
     },
 
     toast(message) {
-      window.dispatchEvent(new CustomEvent('show-toast', { detail: message }))
+      window.dispatchEvent(
+        new CustomEvent('show-toast', { detail: message })
+      )
     },
 
     async load(url, fallbackMessage) {
@@ -376,7 +609,10 @@ export default {
 
     async getTransfers() {
       try {
-        this.transfers = await this.load('/api/transfers', 'Failed to load transfers')
+        this.transfers = await this.load(
+          '/api/transfers',
+          'Failed to load transfers'
+        )
       } catch (error) {
         this.toast(error.message)
       }
@@ -384,7 +620,10 @@ export default {
 
     async getReceipts() {
       try {
-        this.receipts = await this.load('/api/transfers/eligible-receipts', 'Failed to load issued property')
+        this.receipts = await this.load(
+          '/api/transfers/eligible-receipts',
+          'Failed to load issued property'
+        )
       } catch (error) {
         this.toast(error.message)
       }
@@ -392,7 +631,10 @@ export default {
 
     async getPersonnel() {
       try {
-        this.personnel = await this.load('/api/personnel', 'Failed to load personnel')
+        this.personnel = await this.load(
+          '/api/personnel',
+          'Failed to load personnel'
+        )
       } catch (error) {
         console.log(error)
       }
@@ -400,7 +642,10 @@ export default {
 
     async getOffices() {
       try {
-        this.offices = await this.load('/api/offices', 'Failed to load offices')
+        this.offices = await this.load(
+          '/api/offices',
+          'Failed to load offices'
+        )
       } catch (error) {
         console.log(error)
       }
@@ -408,7 +653,27 @@ export default {
 
     openAddModal() {
       this.form = this.emptyForm()
-      Modal.getOrCreateInstance(document.getElementById('transferModal')).show()
+      this.employeeSearch = ''
+      this.showEmployeeOptions = false
+
+      Modal.getOrCreateInstance(
+        document.getElementById('transferModal')
+      ).show()
+    },
+
+    selectReceivingEmployee(person) {
+      this.form.to_user_id = person.id
+      this.employeeSearch = person.full_name
+      this.showEmployeeOptions = false
+    },
+
+    resetEmployeeSearch() {
+      this.employeeSearch = ''
+      this.showEmployeeOptions = false
+
+      if (this.form.transfer_type !== 'To Employee') {
+        this.form.to_user_id = ''
+      }
     },
 
     async saveTransfer() {
@@ -417,16 +682,24 @@ export default {
       try {
         const response = await fetch('/api/transfers', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({
             property_receipt_id: this.form.property_receipt_id,
             transfer_type: this.form.transfer_type,
-            to_user_id: this.form.transfer_type === 'To Employee' ? this.form.to_user_id : null,
+            to_user_id: this.form.transfer_type === 'To Employee'
+              ? this.form.to_user_id
+              : null,
             office_id: this.form.office_id || null,
             transfer_date: this.form.transfer_date,
             condition_after_transfer:
-              this.form.transfer_type === 'To Property Office' ? this.form.condition_after_transfer : null,
-            reason: this.form.reason,
+              this.form.transfer_type === 'To Property Office'
+                ? this.form.condition_after_transfer
+                : null,
+            reason: this.form.reason === 'Others'
+              ? `Others: ${this.form.otherReason.trim()}`
+              : this.form.reason,
             remarks: this.form.remarks
           })
         })
@@ -437,9 +710,17 @@ export default {
           throw new Error(data.error || 'Failed to save transfer')
         }
 
-        Modal.getOrCreateInstance(document.getElementById('transferModal')).hide()
+        Modal.getOrCreateInstance(
+          document.getElementById('transferModal')
+        ).hide()
 
-        await Promise.all([this.getTransfers(), this.getReceipts()])
+        this.employeeSearch = ''
+        this.showEmployeeOptions = false
+
+        await Promise.all([
+          this.getTransfers(),
+          this.getReceipts()
+        ])
 
         this.toast('Transfer recorded successfully')
       } catch (error) {
@@ -450,7 +731,10 @@ export default {
     },
 
     getResultLabel(transfer) {
-      if (transfer.resulting_status === 'Returned' && transfer.condition_after_transfer === 'Unserviceable') {
+      if (
+        transfer.resulting_status === 'Returned' &&
+        transfer.condition_after_transfer === 'Unserviceable'
+      ) {
         return 'Returned and Unserviceable'
       }
 
@@ -461,6 +745,7 @@ export default {
       if (transfer.resulting_status === 'Available') return 'bg-success'
       if (transfer.resulting_status === 'Issued') return 'bg-warning text-dark'
       if (transfer.resulting_status === 'Returned') return 'bg-danger'
+
       return 'bg-secondary'
     }
   }

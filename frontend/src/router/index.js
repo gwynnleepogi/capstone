@@ -15,6 +15,7 @@ import ReturnProperty from '@/views/ReturnProperty.vue'
 import ItemDetails from '@/views/ItemDetails.vue'
 import AuditLogs from '@/views/AuditLogs.vue'
 import InventoryMovementHistory from '@/views/InventoryMovementHistory.vue'
+import AccountRequests from '@/views/AccountRequests.vue'
 
 
 const router = createRouter({
@@ -38,31 +39,31 @@ const router = createRouter({
       path: '/',
       name: 'Dashboard',
       component: Dashboard,
-      meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator'] }
     },
     {
       path: '/items',
       name: 'Items',
       component: Items,
-      meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator'] }
     },
     {
       path: '/offices',
       name: 'Offices',
       component: Offices,
-      meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator'] }
     },
     {
       path: '/inventory-movement',
       name: 'InventoryMovementHistory',
       component: InventoryMovementHistory,
-      meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator'] }
     },
     {
       path: '/suppliers',
       name: 'Suppliers',
       component: Suppliers,
-      meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator'] }
     },
     {
       path: '/personnel',
@@ -71,16 +72,22 @@ const router = createRouter({
       meta: { roles: ['Administrator'] }
     },
     {
+      path: '/account-requests',
+      name: 'AccountRequests',
+      component: AccountRequests,
+      meta: { roles: ['Administrator'] }
+    },
+    {
       path: '/request',
       name: 'ItemRequest',
       component: ItemRequests,
-      meta: { roles: ['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'] }
+      meta: { roles: ['Administrator', 'Teacher', 'Non-Teaching Staff'] }
     },
     {
       path: '/receipts',
       name: 'PropertyReceipts',
       component: PropertyReceipts,
-      meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator'] }
     },
     {
       path: '/my-returns',
@@ -92,37 +99,37 @@ const router = createRouter({
       path: '/item-details/:id',
       name: 'ItemDetails',
       component: ItemDetails,
-      meta: { roles: ['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'] }
+      meta: { roles: ['Administrator', 'Teacher', 'Non-Teaching Staff'] }
     },
     {
       path: '/returns',
       name: 'Returns',
       component: Returns,
-      meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator'] }
     },
     {
       path: '/transfers',
       name: 'Transfers',
       component: Transfers,
-      meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator'] }
     },
     {
       path: '/incidents',
       name: 'Incidents',
       component: Incidents,
-      meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator'] }
     },
     {
       path: '/returns-incidents',
       name: 'ReturnIncidents',
       redirect: { name: 'Returns' },
-      meta: { roles: ['Administrator', 'Personnel'] }
+      meta: { roles: ['Administrator'] }
     },
     {
       path: '/audit-logs',
       name: 'AuditSLogs',
       component: AuditLogs,
-      meta: { roles: ['Administrator', 'Personnel', 'Teacher', 'Non-Teaching Staff'] }
+      meta: { roles: ['Administrator', 'Teacher', 'Non-Teaching Staff'] }
     }
   ]
 })
@@ -134,6 +141,16 @@ router.beforeEach((to) => {
 
   const token = localStorage.getItem('accessToken')
   const user = JSON.parse(localStorage.getItem('user') || 'null')
+  const mustChangePassword =
+    localStorage.getItem('mustChangePassword') === 'true'
+
+  if (token && mustChangePassword) {
+    if (to.name === 'Login') {
+      return true
+    }
+
+    return { name: 'Login', query: { redirect: to.fullPath } }
+  }
 
   if (to.name !== 'Login' && !token) {
     return { name: 'Login', query: { redirect: to.fullPath } }
@@ -151,8 +168,8 @@ router.beforeEach((to) => {
     return { name: 'Dashboard' }
   }
 
-  // Scanned item links point to /items?item=ID, but only Administrator / Personnel
-  // can open the Items page. Everyone else gets the read-only details page.
+  // Scanned item links point to /items?item=ID, but only Administrators
+  // can open the Items page. Teaching staff get the read-only details page.
   if (
     to.name === 'Items' &&
     typeof to.query.item === 'string' &&
