@@ -138,7 +138,6 @@ router.post('/', async (req, res) => {
       cost,
       quantity,
       acquisition_date,
-      classification,
       condition,
       status,
       accountable_employee,
@@ -155,6 +154,18 @@ router.post('/', async (req, res) => {
     if (!fund_cluster || !String(fund_cluster).trim()) {
       return res.status(400).json({ error: 'Fund Cluster is required.' })
     }
+
+    const itemCost = Number(cost ?? 0)
+
+    if (!Number.isFinite(itemCost) || itemCost < 0) {
+      return res.status(400).json({ error: 'Cost must be a non-negative number.' })
+    }
+
+    const itemClassification = itemCost >= 50000
+      ? 'PAR'
+      : itemCost >= 5000
+        ? 'ICS High'
+        : 'ICS Low'
 
     const requestedQty = Number(quantity ?? 1)
 
@@ -191,7 +202,7 @@ router.post('/', async (req, res) => {
         description: description || null,
         model_number: model_number || null,
         serial_number: i === 0 ? (serial_number || null) : null,
-        cost: cost || 0,
+        cost: itemCost,
         quantity: 1, // FORCE 1 per row for strict 1-to-1 asset tracking
         unit: String(unit || '').trim() || 'PC',
         article: String(article || '').trim() || null,
@@ -200,7 +211,7 @@ router.post('/', async (req, res) => {
         supplier: String(supplier || '').trim() || null,
         remarks: String(remarks || '').trim() || null,
         acquisition_date: acquisition_date || null,
-        classification: classification || 'PAR',
+        classification: itemClassification,
         condition: condition || 'Serviceable',
         accountable_employee: String(accountable_employee || '').trim() || null,
         responsibility_center: String(accountable_employee || '').trim()
@@ -372,10 +383,14 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Item not found' })
     }
 
-    const { error: requestError } = await supabase
+    const {
+      data: detachedRequests,
+      error: requestError
+    } = await supabase
       .from('item_requests')
       .update({ item_id: null })
       .eq('item_id', req.params.id)
+      .select('id, request_number')
 
     if (requestError) {
       console.log(requestError)
@@ -404,7 +419,13 @@ router.delete('/:id', async (req, res) => {
         'Deleted',
         req.params.id,
         JSON.stringify(oldData),
-        null,
+        JSON.stringify({
+          detached_request_count: detachedRequests?.length || 0,
+          detached_requests: (detachedRequests || []).map(request => ({
+            request_number: request.request_number,
+            item_id: null
+          }))
+        }),
         'Deleted item: ' + oldData.description,
         req.profile ? req.profile.id : null
       )

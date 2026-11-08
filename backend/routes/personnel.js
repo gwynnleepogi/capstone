@@ -191,6 +191,23 @@ router.put('/account-requests/:id', requireAuth, requireRole('Administrator'), a
     return res.status(409).json({ error: 'This account request is no longer pending' })
   }
 
+  await createAuditLog(
+    'Updated',
+    null,
+    JSON.stringify({
+      employee_id: request.employee_id,
+      full_name: request.full_name,
+      email: request.email,
+      role: request.role,
+      department: request.department,
+      job_title: request.job_title,
+      status: request.status
+    }),
+    JSON.stringify(data),
+    'Updated pending account request for ' + data.full_name,
+    req.profile.id
+  )
+
   res.json({ data })
 })
 
@@ -349,7 +366,7 @@ router.post('/account-requests/:id/approve', requireAuth, requireRole('Administr
   }
 
   await createAuditLog(
-    'Created',
+    'Approved',
     null,
     null,
     JSON.stringify({ ...request, status: 'approved' }),
@@ -364,6 +381,16 @@ router.post('/account-requests/:id/approve', requireAuth, requireRole('Administr
 })
 
 router.post('/account-requests/:id/reject', requireAuth, requireRole('Administrator'), async (req, res) => {
+  const rejectionReason = String(req.body.rejection_reason || '').trim()
+
+  if (!rejectionReason) {
+    return res.status(400).json({ error: 'Please give a reason for rejecting this account request.' })
+  }
+
+  if (rejectionReason.length > 1000) {
+    return res.status(400).json({ error: 'The rejection reason must be 1000 characters or fewer.' })
+  }
+
   const supabaseAdmin = getSupabaseAdmin()
 
   if (!supabaseAdmin) {
@@ -372,7 +399,7 @@ router.post('/account-requests/:id/reject', requireAuth, requireRole('Administra
 
   const { data: request, error: requestError } = await supabaseAdmin
     .from('account_requests')
-    .select('id, auth_user_id')
+    .select('id, auth_user_id, employee_id, full_name, email, role, department, job_title, status')
     .eq('id', req.params.id)
     .eq('status', 'pending')
     .maybeSingle()
@@ -391,7 +418,8 @@ router.post('/account-requests/:id/reject', requireAuth, requireRole('Administra
     .update({
       status: 'rejected',
       reviewed_at: new Date().toISOString(),
-      reviewed_by: req.profile.id
+      reviewed_by: req.profile.id,
+      rejection_reason: rejectionReason
     })
     .eq('id', request.id)
     .eq('status', 'pending')
@@ -399,6 +427,12 @@ router.post('/account-requests/:id/reject', requireAuth, requireRole('Administra
     .maybeSingle()
 
   if (updateError) {
+    if (/rejection_reason/i.test(updateError.message || '')) {
+      return res.status(503).json({
+        error: 'Rejection reasons are not configured. Run backend/sql/rejection-reasons.sql in the Supabase SQL Editor.'
+      })
+    }
+
     return res.status(500).json({ error: updateError.message })
   }
 
@@ -415,6 +449,15 @@ router.post('/account-requests/:id/reject', requireAuth, requireRole('Administra
       error: 'The request was rejected, but its inactive sign-in record could not be removed.'
     })
   }
+
+  await createAuditLog(
+    'Rejected',
+    null,
+    JSON.stringify({ ...request, status: 'pending' }),
+    JSON.stringify({ ...request, status: 'rejected', rejection_reason: rejectionReason }),
+    'Rejected account request for ' + request.full_name + ': ' + rejectionReason,
+    req.profile.id
+  )
 
   res.json({ message: 'Account request rejected' })
 })

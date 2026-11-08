@@ -23,6 +23,41 @@
           {{ tab }}
         </button>
       </div>
+
+      <div class="d-flex flex-wrap gap-2 w-100">
+        <input
+          v-model.trim="search"
+          type="search"
+          class="form-control form-control-sm flex-grow-1"
+          style="min-width: 180px"
+          aria-label="Search return requests"
+          placeholder="Search requester, item, receipt, or reason"
+        />
+        <select
+          v-model="conditionFilter"
+          class="form-select form-select-sm"
+          style="max-width: 180px"
+          aria-label="Filter by item condition"
+        >
+          <option value="">All conditions</option>
+          <option value="Serviceable">Serviceable</option>
+          <option value="Unserviceable">Unserviceable</option>
+        </select>
+        <input
+          v-model="dateFrom"
+          type="date"
+          class="form-control form-control-sm"
+          style="max-width: 155px"
+          aria-label="Filter requests from date"
+        />
+        <input
+          v-model="dateTo"
+          type="date"
+          class="form-control form-control-sm"
+          style="max-width: 155px"
+          aria-label="Filter requests through date"
+        />
+      </div>
     </div>
 
     <div class="table-responsive">
@@ -48,7 +83,11 @@
 
           <tr v-else-if="!visibleRequests.length">
             <td colspan="9" class="text-center text-muted py-4">
-              {{ filter === 'Pending' ? 'No pending return requests.' : 'No return requests found.' }}
+              {{
+                search || conditionFilter || dateFrom || dateTo || filter !== 'Pending'
+                  ? 'No matching return requests.'
+                  : 'No pending return requests.'
+              }}
             </td>
           </tr>
 
@@ -198,6 +237,10 @@ export default {
       loading: true,
       saving: false,
       filter: 'Pending',
+      search: '',
+      conditionFilter: '',
+      dateFrom: '',
+      dateTo: '',
       tabs: ['Pending', 'Accepted', 'Rejected', 'All'],
       dialog: null
     }
@@ -209,9 +252,39 @@ export default {
     },
 
     visibleRequests() {
-      if (this.filter === 'All') return this.requests
+      const search = this.search.toLowerCase()
 
-      return this.requests.filter(request => request.status === this.filter)
+      return this.requests.filter(request => {
+        const statusMatches =
+          this.filter === 'All' || request.status === this.filter
+        const condition =
+          request.status === 'Accepted'
+            ? request.condition_after_return
+            : request.condition_declared
+        const conditionMatches =
+          !this.conditionFilter || condition === this.conditionFilter
+        const requestDate = String(request.created_at || '').slice(0, 10)
+        const fromDateMatches = !this.dateFrom || requestDate >= this.dateFrom
+        const toDateMatches = !this.dateTo || requestDate <= this.dateTo
+        const searchableText = [
+          request.requester?.full_name,
+          request.items?.description,
+          request.items?.property_number,
+          request.property_receipts?.receipt_number,
+          request.return_reason,
+          request.remarks,
+          request.review_remarks,
+          request.offices?.office_name
+        ].join(' ').toLowerCase()
+
+        return (
+          statusMatches &&
+          conditionMatches &&
+          fromDateMatches &&
+          toDateMatches &&
+          (!search || searchableText.includes(search))
+        )
+      })
     }
   },
 

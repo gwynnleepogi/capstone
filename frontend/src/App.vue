@@ -96,6 +96,13 @@
         >
           <i class="bi bi-receipt"></i>
           Acquisitions &amp; Issuance
+          <span
+            v-if="pendingIssuanceCount > 0"
+            class="request-count-badge"
+            :aria-label="`${pendingIssuanceCount} approved requests awaiting issuance`"
+          >
+            {{ pendingIssuanceCount > 99 ? '99+' : pendingIssuanceCount }}
+          </span>
         </router-link>
 
         <div v-if="canAccess(['Administrator'])" class="nav-section-label">
@@ -276,10 +283,12 @@ export default {
       menuOpen: false,
       currentUser: JSON.parse(localStorage.getItem('user') || 'null'),
       pendingRequestCount: 0,
+      pendingIssuanceCount: 0,
       pendingAccountRequestCount: 0,
       showQrScanner: false,
       pendingReturnCount: 0,
       requestCountTimer: null,
+      printPreviewRecoveryTimer: null,
       toast: {
         show: false,
         message: ''
@@ -293,7 +302,10 @@ export default {
     window.addEventListener('user-updated', this.handleUserUpdated)
     window.addEventListener('show-toast', this.handleToast)
     window.addEventListener('storage', this.handleStorageChange)
+    window.addEventListener('focus', this.recoverFromPrintPreview)
+    document.addEventListener('visibilitychange', this.handleVisibilityChange)
     window.addEventListener('item-requests-updated', this.refreshPendingRequestCount)
+    window.addEventListener('receipts-updated', this.refreshPendingIssuanceCount)
     window.addEventListener('return-requests-updated', this.refreshPendingRequestCount)
     window.addEventListener('account-requests-updated', this.refreshPendingAccountRequestCount)
     window.addEventListener('open-qr-scanner', this.openQrScanner)
@@ -316,12 +328,16 @@ export default {
     window.removeEventListener('user-updated', this.handleUserUpdated)
     window.removeEventListener('show-toast', this.handleToast)
     window.removeEventListener('storage', this.handleStorageChange)
+    window.removeEventListener('focus', this.recoverFromPrintPreview)
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange)
     window.removeEventListener('item-requests-updated', this.refreshPendingRequestCount)
+    window.removeEventListener('receipts-updated', this.refreshPendingIssuanceCount)
     window.removeEventListener('return-requests-updated', this.refreshPendingRequestCount)
     window.removeEventListener('account-requests-updated', this.refreshPendingAccountRequestCount)
     window.removeEventListener('open-qr-scanner', this.openQrScanner)
 
     clearInterval(this.requestCountTimer)
+    clearTimeout(this.printPreviewRecoveryTimer)
     clearTimeout(this.toastTimer)
     this.tableLabelObserver?.disconnect()
   },
@@ -375,12 +391,35 @@ export default {
       }
     },
 
+    handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        this.recoverFromPrintPreview()
+      }
+    },
+
+    recoverFromPrintPreview() {
+      clearTimeout(this.printPreviewRecoveryTimer)
+      this.printPreviewRecoveryTimer = setTimeout(() => {
+        if (document.querySelector('.modal.show')) {
+          return
+        }
+
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+          backdrop.remove()
+        })
+        document.body.classList.remove('modal-open')
+        document.body.style.removeProperty('overflow')
+        document.body.style.removeProperty('padding-right')
+      }, 500)
+    },
+
     async refreshPendingRequestCount() {
       if (
         !this.canAccess(['Administrator']) ||
         !localStorage.getItem('accessToken')
       ) {
         this.pendingRequestCount = 0
+        this.pendingIssuanceCount = 0
         this.pendingAccountRequestCount = 0
         this.pendingReturnCount = 0
         return
@@ -388,6 +427,7 @@ export default {
 
       this.refreshPendingReturnCount()
       this.refreshPendingAccountRequestCount()
+      this.refreshPendingIssuanceCount()
 
       try {
         const response = await fetch('/api/item-requests')
@@ -419,6 +459,29 @@ export default {
         }
       } catch (error) {
         console.error('Pending return count error:', error)
+      }
+    },
+
+    async refreshPendingIssuanceCount() {
+      if (
+        !this.canAccess(['Administrator']) ||
+        !localStorage.getItem('accessToken')
+      ) {
+        this.pendingIssuanceCount = 0
+        return
+      }
+
+      try {
+        const response = await fetch('/api/receipts/pending-issuance-count')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load pending issuance count')
+        }
+
+        this.pendingIssuanceCount = Number(data.count) || 0
+      } catch (error) {
+        console.error('Pending issuance count error:', error)
       }
     },
 
@@ -1618,6 +1681,79 @@ body {
     padding: .25rem .5rem;
     font-size: .75rem;
     min-height: 32px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .content .table-responsive.property-table-wrap {
+    overflow-x: auto !important;
+    overflow-y: hidden;
+  }
+
+  .content .table-responsive.property-table-wrap > .property-table {
+    display: table !important;
+    width: max-content !important;
+    min-width: 1400px !important;
+    table-layout: auto !important;
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  .content .table-responsive.property-table-wrap > .property-table > thead {
+    position: static;
+    display: table-header-group;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  .content .table-responsive.property-table-wrap > .property-table > tbody {
+    display: table-row-group;
+    gap: 0;
+  }
+
+  .content .table-responsive.property-table-wrap > .property-table > thead > tr,
+  .content .table-responsive.property-table-wrap > .property-table > tbody > tr {
+    display: table-row;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .content .table-responsive.property-table-wrap > .property-table th,
+  .content .table-responsive.property-table-wrap > .property-table td {
+    display: table-cell;
+    min-width: 0;
+    padding: 6px 8px;
+    border-right: 0;
+    text-align: left;
+    white-space: nowrap !important;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .content .table-responsive.property-table-wrap > .property-table > thead > tr > th:last-child,
+  .content .table-responsive.property-table-wrap > .property-table > tbody > tr > td:last-child:not([colspan]) {
+    min-width: 100px !important;
+    white-space: nowrap !important;
+  }
+
+  .content .table-responsive.property-table-wrap > .property-table > tbody > tr > td:last-child {
+    grid-column: auto;
+    flex-direction: initial;
+    align-items: initial;
+    justify-content: initial;
+    border-bottom: 1px solid var(--app-border);
+  }
+
+  .content .table-responsive.property-table-wrap > .property-table > tbody > tr > td:not([colspan])::before {
+    content: none;
   }
 }
 </style>

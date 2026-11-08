@@ -18,7 +18,7 @@ async function syncReturnedItem(itemId, condition, quantity) {
     .from('items')
     .update(updates)
     .eq('id', itemId)
-    .select('id, quantity')
+    .select('id, quantity, condition, status, accountable_employee')
     .single()
 }
 
@@ -163,7 +163,7 @@ router.post('/', async (req, res) => {
 
     const { data: item, error: inventoryError } = await supabase
       .from('items')
-      .select('id, description, property_number, quantity, status')
+      .select('id, description, property_number, quantity, status, condition, accountable_employee')
       .eq('id', receipt.item_id)
       .single()
 
@@ -200,7 +200,7 @@ router.post('/', async (req, res) => {
       return res.status(500).json({ error: error.message })
     }
 
-    const { error: syncError } = await syncReturnedItem(
+    const { data: updatedItem, error: syncError } = await syncReturnedItem(
       newReturn.item_id,
       newReturn.condition_after_return,
       updatedQuantity
@@ -221,17 +221,29 @@ router.post('/', async (req, res) => {
     }
 
     await createAuditLog(
-      'Created',
+      'Returned',
       newReturn.item_id,
-      null,
+      JSON.stringify({
+        description: item.description,
+        property_number: item.property_number,
+        status: item.status,
+        condition: item.condition,
+        accountable_employee: item.accountable_employee,
+        quantity: currentQuantity
+      }),
       JSON.stringify({
         description: item.description,
         property_number: item.property_number,
         receipt_number: receipt.receipt_number,
-        status: 'Returned',
-        quantity: updatedQuantity,
+        status: updatedItem.status,
+        condition: updatedItem.condition,
+        accountable_employee: updatedItem.accountable_employee,
+        old_quantity: currentQuantity,
+        new_quantity: updatedItem.quantity,
         condition_after_return: condition_after_return,
         return_date: newReturn.return_date,
+        returned_by: newReturn.returned_by,
+        office_id: newReturn.office_id,
         return_reason: newReturn.return_reason,
         remarks: newReturn.remarks
       }),
@@ -266,7 +278,7 @@ router.put('/:id', async (req, res) => {
 
     const { data: oldReturn, error: oldReturnError } = await supabase
       .from('item_returns')
-      .select('*, items (description, property_number)')
+      .select('*, items (id, description, property_number, condition, status, quantity, accountable_employee)')
       .eq('id', id)
       .single()
 
@@ -292,7 +304,7 @@ router.put('/:id', async (req, res) => {
       return res.status(500).json({ error: error.message })
     }
 
-    const { error: syncError } = await syncReturnedItem(
+    const { data: updatedItem, error: syncError } = await syncReturnedItem(
       updatedReturn.item_id,
       updatedReturn.condition_after_return
     )
@@ -325,6 +337,12 @@ router.put('/:id', async (req, res) => {
       JSON.stringify({
         description: oldReturn.items?.description,
         property_number: oldReturn.items?.property_number,
+        status: oldReturn.items?.status,
+        condition: oldReturn.items?.condition,
+        quantity: oldReturn.items?.quantity,
+        accountable_employee: oldReturn.items?.accountable_employee,
+        returned_by: oldReturn.returned_by,
+        office_id: oldReturn.office_id,
         return_date: oldReturn.return_date,
         condition_after_return: oldReturn.condition_after_return,
         return_reason: oldReturn.return_reason,
@@ -333,6 +351,12 @@ router.put('/:id', async (req, res) => {
       JSON.stringify({
         description: oldReturn.items?.description,
         property_number: oldReturn.items?.property_number,
+        status: updatedItem.status,
+        condition: updatedItem.condition,
+        quantity: updatedItem.quantity,
+        accountable_employee: updatedItem.accountable_employee,
+        returned_by: updatedReturn.returned_by,
+        office_id: updatedReturn.office_id,
         return_date: updatedReturn.return_date,
         condition_after_return: updatedReturn.condition_after_return,
         return_reason: updatedReturn.return_reason,
@@ -354,7 +378,7 @@ router.delete('/:id', async (req, res) => {
 
     const { data: deletedReturn, error: fetchError } = await supabase
       .from('item_returns')
-      .select('*, items (description, property_number)')
+      .select('*, items (id, description, property_number, condition, status, quantity, accountable_employee)')
       .eq('id', id)
       .single()
 
@@ -363,6 +387,7 @@ router.delete('/:id', async (req, res) => {
     }
 
     let itemBeforeDelete
+    let itemAfterDelete
     if (deletedReturn.property_receipt_id) {
       const { data: receipt, error: receiptError } = await supabase
         .from('property_receipts')
@@ -376,7 +401,7 @@ router.delete('/:id', async (req, res) => {
 
       const { data: item, error: itemError } = await supabase
         .from('items')
-        .select('id, quantity, condition, status, accountable_employee')
+        .select('id, description, property_number, quantity, condition, status, accountable_employee')
         .eq('id', deletedReturn.item_id)
         .single()
 
@@ -411,6 +436,7 @@ router.delete('/:id', async (req, res) => {
         condition: otherReturn?.condition_after_return || 'Serviceable',
         accountable_employee: null
       }
+      itemAfterDelete = restoredInventory
 
       const { error: updateItemError } = await supabase
         .from('items')
@@ -459,12 +485,23 @@ router.delete('/:id', async (req, res) => {
       JSON.stringify({
         description: deletedReturn.items?.description,
         property_number: deletedReturn.items?.property_number,
+        status: itemBeforeDelete?.status || deletedReturn.items?.status,
+        condition: itemBeforeDelete?.condition || deletedReturn.items?.condition,
+        quantity: itemBeforeDelete?.quantity ?? deletedReturn.items?.quantity,
+        accountable_employee: itemBeforeDelete?.accountable_employee ??
+          deletedReturn.items?.accountable_employee,
+        returned_by: deletedReturn.returned_by,
+        office_id: deletedReturn.office_id,
         return_date: deletedReturn.return_date,
         condition_after_return: deletedReturn.condition_after_return,
         return_reason: deletedReturn.return_reason,
         remarks: deletedReturn.remarks
       }),
-      null,
+      JSON.stringify(itemAfterDelete ? {
+        description: itemBeforeDelete.description,
+        property_number: itemBeforeDelete.property_number,
+        ...itemAfterDelete
+      } : {}),
       `Deleted return record for ${deletedReturn.items?.description || 'property'}`,
       req.profile?.id
     )

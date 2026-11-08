@@ -26,6 +26,16 @@
             class="form-select filter-select"
           >
             <option value="">All Actions</option>
+            <option value="Requested">Requested</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Accepted">Accepted</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Issued">Issued</option>
+            <option value="Transferred">Transferred</option>
+            <option value="Returned">Returned</option>
+            <option value="Reported">Reported</option>
+            <option value="Password Changed">Password Changed</option>
             <option value="Created">Created</option>
             <option value="Updated">Updated</option>
             <option value="Deleted">Deleted</option>
@@ -378,7 +388,9 @@ export default {
           this.formatDate(log.created_at),
           log.action,
           this.getItemName(log),
-          log.description
+          log.description,
+          ...this.detailEntries(log.old_value).map(entry => entry.value),
+          ...this.detailEntries(log.new_value).map(entry => entry.value)
         ]
           .join(' ')
           .toLowerCase()
@@ -692,68 +704,63 @@ export default {
       }
 
       const parsedValue = this.parseLogValue(value)
-      const parsed = Array.isArray(parsedValue)
-        ? parsedValue[0]
-        : parsedValue
+      const records = Array.isArray(parsedValue) ? parsedValue : [parsedValue]
+      const ignoredKeys = new Set([
+        'id',
+        'auth_user_id',
+        'created_at',
+        'updated_at',
+        'reviewed_by',
+        'signature_path'
+      ])
 
-      if (!parsed || typeof parsed !== 'object') {
-        return []
-      }
+      return records.flatMap((record, index) => {
+        if (!record || typeof record !== 'object' || Array.isArray(record)) {
+          return []
+        }
 
-      const allowedKeys = [
-        'property_number',
-        'description',
-        'serial_number',
-        'cost',
-        'acquisition_date',
-        'classification',
-        'condition',
-        'status',
-        'accountable_employee',
-        'responsibility_center',
-        'request_number',
-        'item_description',
-        'quantity',
-        'old_quantity',
-        'new_quantity',
-        'purpose',
-        'receipt_number',
-        'receipt_type',
-        'date_issued',
-        'return_date',
-        'transfer_date',
-        'transfer_type',
-        'from_employee',
-        'to_employee',
-        'from_office',
-        'to_office',
-        'condition_declared',
-        'condition_after_return',
-        'condition_after_transfer',
-        'resulting_status',
-        'return_reason',
-        'reason',
-        'review_remarks',
-        'remarks',
-        'office_name',
-        'supplier'
-      ]
+        const flatten = (value, prefix = '', depth = 0) => {
+          if (!value || typeof value !== 'object') {
+            return [{ key: prefix, value: this.formatDetailValue(value) }]
+          }
 
-      const entries = Object.entries(parsed)
-        .filter(([key]) => allowedKeys.includes(key))
-        .map(([key, value]) => ({
-          key: key,
-          value: this.formatDetailValue(value)
-        }))
+          if (Array.isArray(value)) {
+            return value.flatMap((entry, entryIndex) =>
+              flatten(entry, `${prefix} ${entryIndex + 1}`, depth + 1)
+            )
+          }
 
-      if (Array.isArray(parsedValue) && parsedValue.length > 1) {
-        entries.unshift({
-          key: 'records_count',
-          value: `${parsedValue.length} records`
+          if (depth >= 2) {
+            return [{ key: prefix, value: this.formatDetailValue(value) }]
+          }
+
+          return Object.entries(value).flatMap(([key, entry]) => {
+            if (
+              ignoredKeys.has(key.toLowerCase()) ||
+              /password|token|secret|credential/i.test(key)
+            ) {
+              return []
+            }
+
+            return flatten(entry, prefix ? `${prefix}.${key}` : key, depth + 1)
+          })
+        }
+
+        return Object.entries(record).flatMap(([key, entry]) => {
+          if (
+            ignoredKeys.has(key.toLowerCase()) ||
+            /password|token|secret|credential/i.test(key)
+          ) {
+            return []
+          }
+
+          return flatten(
+            entry,
+            records.length > 1 ? `Record ${index + 1}.${key}` : key,
+            1
+          )
         })
-      }
-
-      return entries
+      })
     },
 
     formatDetailValue(value) {
@@ -762,7 +769,11 @@ export default {
       }
 
       if (typeof value === 'object') {
-        return '-'
+        return Array.isArray(value)
+          ? value.map(entry => String(entry)).join(', ')
+          : Object.keys(value).length
+            ? '[Details]'
+            : '-'
       }
 
       return String(value)
@@ -793,9 +804,10 @@ export default {
         return_date: 'Return Date',
         transfer_date: 'Transfer Date',
         transfer_type: 'Transfer Type',
-        from_employee: 'Transferred From',
-        to_employee: 'Transferred To',
-        from_office: 'Transferred To Office',
+        from_employee: 'From Employee',
+        to_employee: 'To Employee',
+        from_office: 'From Office',
+        to_office: 'To Office',
         condition_declared: 'Reported Condition',
         condition_after_return: 'Condition After Return',
         condition_after_transfer: 'Condition After Transfer',
@@ -809,6 +821,9 @@ export default {
       }
 
       return labels[key] || key
+        .replace(/\./g, ' / ')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, character => character.toUpperCase())
     },
 
     formatDate(date) {
@@ -822,15 +837,24 @@ export default {
     getActionClass(action) {
       const normalizedAction = this.formatAction(action)
 
-      if (normalizedAction === 'Created') {
+      if ([
+        'Created',
+        'Requested',
+        'Approved',
+        'Accepted',
+        'Issued',
+        'Transferred',
+        'Returned',
+        'Reported'
+      ].includes(normalizedAction)) {
         return 'created'
       }
 
-      if (normalizedAction === 'Updated') {
+      if (['Updated', 'Password Changed'].includes(normalizedAction)) {
         return 'updated'
       }
 
-      if (normalizedAction === 'Deleted') {
+      if (['Deleted', 'Rejected', 'Cancelled'].includes(normalizedAction)) {
         return 'deleted'
       }
 
@@ -842,6 +866,17 @@ export default {
       const labels = {
         create: 'Created',
         created: 'Created',
+        requested: 'Requested',
+        approved: 'Approved',
+        rejected: 'Rejected',
+        accepted: 'Accepted',
+        cancelled: 'Cancelled',
+        canceled: 'Cancelled',
+        issued: 'Issued',
+        transferred: 'Transferred',
+        returned: 'Returned',
+        reported: 'Reported',
+        'password changed': 'Password Changed',
         update: 'Updated',
         updated: 'Updated',
         delete: 'Deleted',

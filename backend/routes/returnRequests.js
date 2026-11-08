@@ -274,7 +274,7 @@ router.post('/', async (req, res) => {
     }
 
     await createAuditLog(
-      'Created',
+      'Requested',
       receipt.item_id,
       null,
       JSON.stringify({
@@ -471,7 +471,7 @@ router.patch('/:id/accept', staffOnly, async (req, res) => {
     }
 
     await createAuditLog(
-      'Updated',
+      'Accepted',
       receipt.item_id,
       JSON.stringify({
         description: item.description,
@@ -549,7 +549,7 @@ router.patch('/:id/reject', staffOnly, async (req, res) => {
     }
 
     await createAuditLog(
-      'Updated',
+      'Rejected',
       request.item_id,
       JSON.stringify({
         description: request.items?.description,
@@ -612,7 +612,7 @@ router.patch('/:id/cancel', async (req, res) => {
     }
 
     await createAuditLog(
-      'Updated',
+      'Cancelled',
       request.item_id,
       JSON.stringify({
         description: request.items?.description,

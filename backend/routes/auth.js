@@ -1,5 +1,6 @@
 const express = require('express')
 const crypto = require('crypto')
+const { createClient } = require('@supabase/supabase-js')
 const router = express.Router()
 const supabase = require('../supabase')
 const {
@@ -8,9 +9,24 @@ const {
   adminCredentialsError
 } = require('../supabaseAdmin')
 const { accountRoles, normalizeDepartment } = require('../accountFields')
+const createAuditLog = require('../middleware/auditLog')
 
 const accountRequestsMigrationError =
   'Account registration is not configured yet. Run backend/sql/account-creation-requests.sql in the Supabase SQL Editor.'
+
+function createAuthClient() {
+  return createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_KEY,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
+      }
+    }
+  )
+}
 
 router.get('/signup-offices', async (req, res) => {
   const supabaseAdmin = getSupabaseAdmin()
@@ -172,6 +188,22 @@ router.post('/signup', async (req, res) => {
     return res.status(500).json({ error: requestError.message })
   }
 
+  await createAuditLog(
+    'Requested',
+    null,
+    null,
+    JSON.stringify({
+      employee_id: normalizedEmployeeId,
+      full_name: normalizedName,
+      email: normalizedEmail,
+      role,
+      department: selectedDepartment,
+      job_title: normalizedJobTitle,
+      status: 'pending'
+    }),
+    'Submitted account request for ' + normalizedName
+  )
+
   res.status(201).json({
     message: 'Your account request was submitted. You can sign in after an administrator approves it.',
     temporary_password: password
@@ -185,10 +217,27 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Email and password are required' })
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  })
+  const authClient = createAuthClient()
+  let loginResult
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    loginResult = await authClient.auth.signInWithPassword({
+      email: String(email).trim(),
+      password
+    })
+
+    if (
+      !loginResult.error ||
+      !/invalid login credentials/i.test(loginResult.error.message || '') ||
+      attempt === 2
+    ) {
+      break
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1)))
+  }
+
+  const { data, error } = loginResult
 
   if (error || !data.session || !data.user) {
     return res.status(401).json({ error: 'Invalid email or password' })
@@ -250,6 +299,7 @@ router.post('/login', async (req, res) => {
 
 router.post('/change-password', async (req, res) => {
   const token = req.headers.authorization?.replace(/^Bearer\s+/i, '')
+  const refreshToken = req.body?.refresh_token
   const password = req.body?.password
 
   if (!token) {
@@ -260,16 +310,44 @@ router.post('/change-password', async (req, res) => {
     return res.status(400).json({ error: 'Password must be at least 8 characters' })
   }
 
-  const { data, error } = await supabase.auth.getUser(token)
-
-  if (error || !data.user) {
-    return res.status(401).json({ error: 'Invalid login' })
-  }
-
   const supabaseAdmin = getSupabaseAdmin()
 
   if (!supabaseAdmin) {
     return res.status(503).json({ error: adminCredentialsError })
+  }
+
+  const authClient = createAuthClient()
+  let { data, error } = await authClient.auth.getUser(token)
+  let refreshedSession = null
+
+  if ((error || !data.user) && typeof refreshToken === 'string' && refreshToken) {
+    const refreshResult = await authClient.auth.refreshSession({
+      refresh_token: refreshToken
+    })
+
+    if (
+      refreshResult.error ||
+      !refreshResult.data.user ||
+      !refreshResult.data.session
+    ) {
+      console.error('Password change token refresh failed:', refreshResult.error)
+      return res.status(401).json({
+        error: 'Your sign-in expired. Sign in again with your temporary password to continue.',
+        reauthentication_required: true
+      })
+    }
+
+    data = { user: refreshResult.data.user }
+    error = null
+    refreshedSession = refreshResult.data.session
+  }
+
+  if (error || !data.user) {
+    console.error('Password change token validation failed:', error)
+    return res.status(401).json({
+      error: 'Your sign-in expired. Sign in again with your temporary password to continue.',
+      reauthentication_required: true
+    })
   }
 
   const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
@@ -287,11 +365,59 @@ router.post('/change-password', async (req, res) => {
     return res.status(isAdminAuthorizationError(updateError) ? 503 : 400).json({
       error: isAdminAuthorizationError(updateError)
         ? adminCredentialsError
-        : updateError.message
+        : updateError.message,
+      access_token: refreshedSession?.access_token,
+      refresh_token: refreshedSession?.refresh_token,
+      expires_at: refreshedSession?.expires_at
     })
   }
 
-  res.json({ message: 'Password updated successfully' })
+  const { data: sessionData, error: signInError } =
+    await createAuthClient().auth.signInWithPassword({
+      email: data.user.email,
+      password
+    })
+
+  if (
+    signInError ||
+    !sessionData.session ||
+    sessionData.user?.id !== data.user.id
+  ) {
+    console.error('Password changed, but new-password sign-in failed:', signInError)
+    return res.status(503).json({
+      error: 'Your password was changed, but automatic sign-in failed. Please sign in with your new password.',
+      reauthentication_required: true,
+      access_token: refreshedSession?.access_token,
+      refresh_token: refreshedSession?.refresh_token,
+      expires_at: refreshedSession?.expires_at
+    })
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_user_id', data.user.id)
+    .maybeSingle()
+
+  if (profileError) {
+    console.error('Password change audit profile lookup failed:', profileError)
+  }
+
+  await createAuditLog(
+    'Password Changed',
+    null,
+    JSON.stringify({ must_change_password: true }),
+    JSON.stringify({ must_change_password: false }),
+    'Changed account password',
+    profile?.id || null
+  )
+
+  res.json({
+    message: 'Password updated successfully',
+    access_token: sessionData.session.access_token,
+    refresh_token: sessionData.session.refresh_token,
+    expires_at: sessionData.session.expires_at
+  })
 })
 
 module.exports = router

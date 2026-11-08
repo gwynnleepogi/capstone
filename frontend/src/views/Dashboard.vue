@@ -964,7 +964,7 @@ h1 {
   padding: 0 8px;
   place-items: center;
   border-radius: 999px;
-  background: #2F5D3A;
+  background: #f80c0c;
   color: white;
   font-size: 1rem;
   font-weight: 800;

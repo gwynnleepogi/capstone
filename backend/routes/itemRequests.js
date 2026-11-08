@@ -243,10 +243,23 @@ router.patch(
   requireRole('Administrator'),
   async (req, res) => {
     const { status } = req.body
+    const rejectionReason = String(req.body.rejection_reason || '').trim()
 
     if (!['Approved', 'Rejected'].includes(status)) {
       return res.status(400).json({
         error: 'Request status must be Approved or Rejected'
+      })
+    }
+
+    if (status === 'Rejected' && !rejectionReason) {
+      return res.status(400).json({
+        error: 'Please give a reason for rejecting this item request.'
+      })
+    }
+
+    if (rejectionReason.length > 1000) {
+      return res.status(400).json({
+        error: 'The rejection reason must be 1000 characters or fewer.'
       })
     }
 
@@ -278,13 +291,22 @@ router.patch(
       error
     } = await supabase
       .from('item_requests')
-      .update({ status })
+      .update({
+        status,
+        rejection_reason: status === 'Rejected' ? rejectionReason : null
+      })
       .eq('id', req.params.id)
       .eq('status', 'Pending')
       .select()
       .maybeSingle()
 
     if (error) {
+      if (/rejection_reason/i.test(error.message || '')) {
+        return res.status(503).json({
+          error: 'Rejection reasons are not configured. Run backend/sql/rejection-reasons.sql in the Supabase SQL Editor.'
+        })
+      }
+
       return res.status(500).json({
         error: error.message
       })
@@ -329,7 +351,7 @@ router.patch(
     }
 
     await createAuditLog(
-      'Updated',
+      status,
       data.item_id,
       JSON.stringify(oldData),
       JSON.stringify(data),
@@ -560,7 +582,7 @@ router.post('/', async (req, res) => {
   }
 
   await createAuditLog(
-    'Created',
+    'Requested',
     data.item_id,
     null,
     JSON.stringify(data),
@@ -582,12 +604,26 @@ router.put(
       quantity,
       purpose,
       status,
+      rejection_reason,
       item_id
     } = req.body
+    const normalizedRejectionReason = String(rejection_reason || '').trim()
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
         error: 'Invalid request status'
+      })
+    }
+
+    if (status === 'Rejected' && !normalizedRejectionReason) {
+      return res.status(400).json({
+        error: 'Please give a reason for rejecting this item request.'
+      })
+    }
+
+    if (normalizedRejectionReason.length > 1000) {
+      return res.status(400).json({
+        error: 'The rejection reason must be 1000 characters or fewer.'
       })
     }
 
@@ -749,7 +785,10 @@ router.put(
         quantity: Number(quantity),
         purpose,
         item_id,
-        status
+        status,
+        rejection_reason: status === 'Rejected'
+          ? normalizedRejectionReason
+          : null
       })
       .eq('id', req.params.id)
       .select()
@@ -757,6 +796,12 @@ router.put(
 
     if (error) {
       console.log(error)
+
+      if (/rejection_reason/i.test(error.message || '')) {
+        return res.status(503).json({
+          error: 'Rejection reasons are not configured. Run backend/sql/rejection-reasons.sql in the Supabase SQL Editor.'
+        })
+      }
 
       return res.status(500).json({
         error: error.message
@@ -814,7 +859,7 @@ router.put(
     }
 
     await createAuditLog(
-      'Updated',
+      status,
       data.item_id,
       JSON.stringify(oldData),
       JSON.stringify(data),

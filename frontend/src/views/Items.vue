@@ -291,12 +291,16 @@
                 <label class="form-label">
                   Classification <span class="text-danger">*</span>
                 </label>
-                <SearchableSelect
-                  v-model="newItem.classification"
-                  :options="classificationOptions"
-                  placeholder="Select classification"
-                  required
+                <input
+                  type="text"
+                  class="form-control"
+                  :value="displayClassification(classificationFromCost(newItem.cost))"
+                  readonly
+                  aria-describedby="new-property-classification-help"
                 />
+                <small id="new-property-classification-help" class="form-text text-muted">
+                  Automatically determined by the property cost.
+                </small>
               </div>
 
               <div class="col-12 col-md-4">
@@ -430,7 +434,7 @@
                 </button>
               </th>
 
-              <th>Actions</th>
+              <th class="actions-column">Actions</th>
             </tr>
           </thead>
 
@@ -1446,6 +1450,7 @@ export default {
       `)
 
       printWindow.document.close()
+      this.closeItemDetails()
     },
 
     async fetchJson(url) {
@@ -1546,6 +1551,14 @@ export default {
       return classification || '-'
     },
 
+    classificationFromCost(cost) {
+      const amount = Number(cost)
+
+      if (!Number.isFinite(amount) || amount < 5000) return 'ICS Low'
+      if (amount < 50000) return 'ICS High'
+      return 'PAR'
+    },
+
     getClassificationClass(classification) {
       if (classification === 'PAR') return 'classification-par'
       if (classification === 'ICS High') return 'classification-high'
@@ -1561,6 +1574,7 @@ export default {
         // Tracking Type is no longer included.
         const payload = {
           ...this.newItem,
+          classification: this.classificationFromCost(this.newItem.cost),
           quantity: 1,
         }
 
@@ -2081,6 +2095,14 @@ h1 {
 
 .property-table .cost-column {
   min-width: 140px;
+}
+
+.property-table .actions-column {
+  width: 110px !important;
+  min-width: 110px !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 
 .property-table-wrap > .property-table > thead > tr > th,

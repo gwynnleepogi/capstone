@@ -18,7 +18,6 @@
 
       <section class="login-panel">
         <header class="form-heading">
-          <span class="eyebrow">SECURE ACCESS</span>
 
           <h1>
             {{
@@ -283,7 +282,7 @@
                 <span class="role-icon">
                   <i class="bi bi-mortarboard"></i>
                 </span>
-                <span class="role-label">Teaching</span>
+                <span class="role-label">Teaching Staff</span>
                 <i class="bi bi-check-circle-fill role-check"></i>
               </button>
 
@@ -297,7 +296,7 @@
                 <span class="role-icon">
                   <i class="bi bi-people"></i>
                 </span>
-                <span class="role-label">Non-Teaching</span>
+                <span class="role-label">Non-Teaching Staff</span>
                 <i class="bi bi-check-circle-fill role-check"></i>
               </button>
             </div>
@@ -775,14 +774,38 @@ export default {
             'Content-Type': 'application/json',
             Authorization: 'Bearer ' + localStorage.getItem('accessToken')
           },
-          body: JSON.stringify({ password: this.newPassword })
+          body: JSON.stringify({
+            password: this.newPassword,
+            refresh_token: localStorage.getItem('refreshToken')
+          })
         })
         const result = await response.json()
 
+        if (result.access_token && result.refresh_token) {
+          localStorage.setItem('accessToken', result.access_token)
+          localStorage.setItem('refreshToken', result.refresh_token)
+        }
+
         if (!response.ok) {
+          if (result.reauthentication_required) {
+            localStorage.removeItem('accessToken')
+            localStorage.removeItem('refreshToken')
+            localStorage.removeItem('mustChangePassword')
+            this.loginStep = 2
+            this.password = ''
+            this.newPassword = ''
+            this.confirmPassword = ''
+          }
+
           throw new Error(result.error || 'Unable to change password')
         }
 
+        if (!result.access_token || !result.refresh_token) {
+          throw new Error('The server did not return a valid sign-in session')
+        }
+
+        localStorage.setItem('accessToken', result.access_token)
+        localStorage.setItem('refreshToken', result.refresh_token)
         localStorage.removeItem('mustChangePassword')
         window.dispatchEvent(
           new CustomEvent('user-updated', {
@@ -872,6 +895,11 @@ export default {
         }
 
         localStorage.setItem('accessToken', result.access_token)
+        if (result.refresh_token) {
+          localStorage.setItem('refreshToken', result.refresh_token)
+        } else {
+          localStorage.removeItem('refreshToken')
+        }
         localStorage.setItem('user', JSON.stringify(result.user))
 
         if (result.must_change_password) {
@@ -933,6 +961,13 @@ export default {
   min-height: 100vh;
   min-height: 100dvh;
   padding: clamp(16px, 4vw, 48px);
+  background: var(--mint);
+}
+
+:global(html),
+:global(body),
+:global(#app) {
+  min-height: 100%;
   background: #f7f5e8;
 }
 
@@ -943,10 +978,10 @@ export default {
   margin: auto;
   min-height: min(620px, calc(100dvh - 64px));
   overflow: hidden;
-  border: 1px solid #e6e7dc;
+  border: 0;
   border-radius: 16px;
   background: #fff;
-  box-shadow: 0 10px 28px rgba(47, 93, 58, .1);
+  box-shadow: none;
 }
 
 .login-visual {
@@ -1064,6 +1099,9 @@ export default {
   align-self: center;
   margin: 0 auto;
   padding: clamp(28px, 4vw, 52px) clamp(28px, 4.5vw, 56px);
+  border-radius: 0 16px 16px 0;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(47, 93, 58, .1);
 }
 
 .form-heading {
@@ -1143,22 +1181,22 @@ export default {
 
 .role-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 11px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .role-button {
   position: relative;
   display: flex;
   min-width: 0;
-  min-height: 104px;
+  min-height: 116px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  padding: 16px 10px;
+  gap: 8px;
+  padding: 14px 8px;
   border: 1px solid #e1e5db;
-  border-radius: 8px;
+  border-radius: 12px;
   background: #fff;
   color: var(--ink);
   cursor: pointer;
@@ -1177,8 +1215,8 @@ export default {
   height: 40px;
   flex: 0 0 40px;
   place-items: center;
-  border-radius: 8px;
-  background: #f7f5e8;
+  border-radius: 10px;
+  background: #e6eee6;
   color: var(--green);
   font-size: 18px;
 }
@@ -1200,12 +1238,12 @@ export default {
 }
 
 .role-button.selected {
-  border-color: #d4b43e;
-  background: #fffdf4;
+  border-color: #4f7f52;
+  background: #eaf2e9;
 }
 
 .role-button.selected .role-icon {
-  background: var(--gold);
+  background: #d4e5d4;
   color: var(--forest);
 }
 
@@ -1349,8 +1387,8 @@ export default {
   margin-top: 8px;
   border: 0;
   border-radius: 7px;
-  background: #e8c547;
-  color: #2f5d3a;
+  background: #2f5d3a;
+  color: #fff;
   cursor: pointer;
   font: inherit;
   font-size: 14px;
@@ -1359,7 +1397,7 @@ export default {
 }
 
 .primary-button:hover:not(:disabled) {
-  background: #d9b536;
+  background: #244a2e;
 }
 
 .primary-button:disabled {
@@ -1497,6 +1535,7 @@ export default {
     overflow: hidden;
     border: 0;
     border-radius: 0;
+    background: var(--mint);
     box-shadow: none;
   }
 
@@ -1555,9 +1594,12 @@ export default {
   }
 
   .login-panel {
-    width: min(100%, 520px);
-    flex: 1 0 auto;
+    width: min(calc(100% - 32px), 520px);
+    flex: 0 0 auto;
+    margin: 0 auto 20px;
     padding: 30px 24px 28px;
+    border-radius: 0 0 16px 16px;
+    background: #fff;
   }
 
   .form-heading {
@@ -1591,9 +1633,9 @@ export default {
   }
 
   .role-button {
-    min-height: 92px;
+    min-height: 104px;
     gap: 7px;
-    padding: 12px 8px;
+    padding: 10px 5px;
   }
 
   .role-icon {
@@ -1604,7 +1646,7 @@ export default {
   }
 
   .role-label {
-    font-size: 12px;
+    font-size: 11px;
   }
 }
 </style>

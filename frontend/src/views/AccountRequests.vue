@@ -169,9 +169,23 @@
           <div class="alert alert-danger">
             Reject the account request for <strong>{{ editForm.full_name }}</strong>? The temporary sign-in account will be removed.
           </div>
+          <div class="mb-3">
+            <label class="form-label" for="account-rejection-reason">
+              Reason for rejecting <span class="text-danger">*</span>
+            </label>
+            <textarea
+              id="account-rejection-reason"
+              v-model.trim="rejectionReason"
+              class="form-control"
+              rows="3"
+              maxlength="1000"
+              required
+              placeholder="Explain why this account request is being rejected."
+            ></textarea>
+          </div>
           <div class="d-flex justify-content-end gap-2">
             <button type="button" class="btn btn-secondary" :disabled="saving" @click="step = 'edit'">Go back</button>
-            <button type="button" class="btn btn-danger" :disabled="saving" @click="reject">
+            <button type="button" class="btn btn-danger" :disabled="saving || !rejectionReason.trim()" @click="reject">
               {{ saving ? 'Rejecting...' : 'Confirm rejection' }}
             </button>
           </div>
@@ -197,7 +211,8 @@ export default {
       step: 'edit',
       editForm: {},
       editTitleSelection: '',
-      otherJobTitle: ''
+      otherJobTitle: '',
+      rejectionReason: ''
     }
   },
 
@@ -257,6 +272,7 @@ export default {
       }
       this.editTitleSelection = usesOtherTitle ? '__other__' : request.job_title
       this.otherJobTitle = usesOtherTitle ? request.job_title : ''
+      this.rejectionReason = ''
       this.step = 'edit'
     },
 
@@ -349,12 +365,25 @@ export default {
     },
 
     async reject() {
+      const reason = this.rejectionReason.trim()
+
+      if (!reason) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please give a reason for rejecting this account request.'
+        }))
+        return
+      }
+
       this.saving = true
 
       try {
         const response = await fetch(
           `/api/personnel/account-requests/${this.selectedRequest.id}/reject`,
-          { method: 'POST' }
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rejection_reason: reason })
+          }
         )
         const result = await response.json()
 

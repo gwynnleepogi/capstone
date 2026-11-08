@@ -4,6 +4,49 @@ const router = express.Router()
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
 
+router.get('/pending-issuance-count', async (req, res) => {
+  try {
+    const { data: requests, error: requestError } = await supabase
+      .from('item_requests')
+      .select('id')
+      .eq('status', 'Approved')
+
+    if (requestError) {
+      console.error('Pending issuance request lookup failed:', requestError)
+      return res.status(500).json({ error: requestError.message })
+    }
+
+    const requestIds = (requests || []).map(request => request.id)
+
+    if (!requestIds.length) {
+      return res.json({ count: 0 })
+    }
+
+    const { data: receipts, error: receiptError } = await supabase
+      .from('property_receipts')
+      .select('item_request_id')
+      .in('item_request_id', requestIds)
+
+    if (receiptError) {
+      console.error('Pending issuance receipt lookup failed:', receiptError)
+      return res.status(500).json({ error: receiptError.message })
+    }
+
+    const receiptedRequestIds = new Set(
+      (receipts || []).map(receipt => String(receipt.item_request_id))
+    )
+
+    res.json({
+      count: requestIds.filter(
+        id => !receiptedRequestIds.has(String(id))
+      ).length
+    })
+  } catch (error) {
+    console.error('Pending issuance count failed:', error)
+    res.status(500).json({ error: 'Failed to load pending issuance count' })
+  }
+})
+
 // GET ALL RECEIPTS
 router.get('/', async (req, res) => {
   try {
@@ -104,7 +147,7 @@ router.post('/', async (req, res) => {
     if (item_id) {
       const { data: item, error: itemError } = await supabase
         .from('items')
-        .select('id, description, property_number, status, accountable_employee')
+        .select('id, description, property_number, quantity, status, accountable_employee')
         .eq('id', item_id)
         .single()
 
@@ -191,16 +234,25 @@ router.post('/', async (req, res) => {
 
       try {
         await createAuditLog(
-          'Created',
+          'Issued',
           item_id,
-          null,
+          JSON.stringify({
+            description: item.description,
+            property_number: item.property_number,
+            status: item.status,
+            accountable_employee: item.accountable_employee
+          }),
           JSON.stringify({
             description: item.description,
             property_number: item.property_number,
             receipt_number: receipt.receipt_number,
             receipt_type,
             accountable_employee: recipient.full_name,
+            from_employee: 'Property Office',
+            to_employee: recipient.full_name,
             quantity: 1,
+            old_quantity: item.quantity,
+            new_quantity: item.quantity,
             status: item.status
           }),
           `Created ${receipt_type} receipt ${receipt.receipt_number} for ${item.description}`,
@@ -420,19 +472,29 @@ router.post('/', async (req, res) => {
     // Audit log
     try {
       await createAuditLog(
-        'Created',
+        'Issued',
         request.item_id,
-        null,
+        JSON.stringify({
+          description: item.description,
+          property_number: item.property_number,
+          status: item.status,
+          quantity: availableQuantity,
+          accountable_employee: item.accountable_employee,
+          request_status: request.status
+        }),
         JSON.stringify({
           description: item.description,
           property_number: item.property_number,
           receipt_number: receipt.receipt_number,
           receipt_type,
           accountable_employee: recipient.full_name,
+          from_employee: 'Property Office',
+          to_employee: recipient.full_name,
           quantity: 1,
           old_quantity: availableQuantity,
           new_quantity: remainingQuantity,
-          status: newStatus
+          status: newStatus,
+          request_status: 'Delivered'
         }),
         `Created ${receipt_type} receipt ${receipt.receipt_number} for ${item.description}`,
         req.profile?.id
@@ -579,7 +641,7 @@ router.delete('/:id', async (req, res) => {
     if (receipt.item_id && receipt.item_request_id) {
       const { data, error } = await supabase
         .from('items')
-        .select('id, quantity, status, accountable_employee')
+        .select('id, description, property_number, quantity, status, accountable_employee')
         .eq('id', receipt.item_id)
         .single()
 
@@ -656,13 +718,28 @@ router.delete('/:id', async (req, res) => {
         'Deleted',
         receipt.item_id,
         JSON.stringify({
+          description: receipt.item_id ? item?.description : null,
+          property_number: item?.property_number,
           receipt_number: receipt.receipt_number,
           receipt_type: receipt.receipt_type,
           quantity: receipt.quantity,
           date_issued: receipt.date_issued,
-          status: receipt.status
+          status: receipt.status,
+          inventory_quantity: item?.quantity,
+          inventory_status: item?.status,
+          accountable_employee: item?.accountable_employee,
+          request_status: receipt.item_request_id ? 'Delivered' : null
         }),
-        null,
+        JSON.stringify({
+          description: item?.description,
+          property_number: item?.property_number,
+          inventory_quantity: item
+            ? Number(item.quantity || 0) + Number(receipt.quantity)
+            : null,
+          inventory_status: item ? 'Available' : null,
+          accountable_employee: item ? null : undefined,
+          request_status: receipt.item_request_id ? 'Approved' : null
+        }),
         `Deleted receipt ${receipt.receipt_number}`,
         req.profile?.id
       )

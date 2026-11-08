@@ -169,13 +169,17 @@ router.post('/', async (req, res) => {
  
     const { data: item, error: itemError } = await supabase
       .from('items')
-      .select('id, description, property_number, quantity, status, condition, accountable_employee')
+      .select('id, description, property_number, quantity, status, condition, accountable_employee, responsibility_center')
       .eq('id', receipt.item_id)
       .single()
  
     if (itemError || !item) {
       return res.status(404).json({ error: 'Inventory item not found' })
     }
+
+    const previousHolder = (
+      await lookup('users', [receipt.issued_to], 'id, full_name')
+    )[receipt.issued_to]?.full_name || item.accountable_employee || 'Property Office'
  
     const transferDate = transfer_date || new Date().toISOString().split('T')[0]
  
@@ -250,7 +254,7 @@ router.post('/', async (req, res) => {
       }
  
       await createAuditLog(
-        'Created',
+        'Transferred',
         item.id,
         JSON.stringify({
           accountable_employee: item.accountable_employee,
@@ -260,15 +264,16 @@ router.post('/', async (req, res) => {
           description: item.description,
           property_number: item.property_number,
           transfer_type,
-          from_employee: item.accountable_employee || 'Previous holder',
+          from_employee: previousHolder,
           to_employee: recipient.full_name,
+          from_office: item.responsibility_center || null,
           transfer_date: transferDate,
           condition_after_transfer: item.condition,
           resulting_status: 'Issued',
           reason: reason || null,
           remarks: remarks || null
         }),
-        `Transferred ${item.description} from ${item.accountable_employee || 'previous holder'} to ${recipient.full_name}`,
+        `Transferred ${item.description} from ${previousHolder} to ${recipient.full_name}`,
         req.profile?.id
       )
  
@@ -374,7 +379,7 @@ router.post('/', async (req, res) => {
     }
  
     await createAuditLog(
-      'Created',
+      'Transferred',
       item.id,
       JSON.stringify({
         accountable_employee: item.accountable_employee,
@@ -386,7 +391,8 @@ router.post('/', async (req, res) => {
         description: item.description,
         property_number: item.property_number,
         transfer_type,
-        from_employee: item.accountable_employee || 'Previous holder',
+        from_employee: previousHolder,
+        from_office: item.responsibility_center || null,
         to_office: 'Property Office',
         transfer_date: transferDate,
         condition_after_transfer: condition_after_transfer,
@@ -395,7 +401,7 @@ router.post('/', async (req, res) => {
         reason: reason || null,
         remarks: remarks || null
       }),
-      `Transferred ${item.description} to Property Office (${condition_after_transfer}); status ${resultingStatus}; restored quantity ${receiptQuantity}`,
+      `Transferred ${item.description} from ${previousHolder} to Property Office (${condition_after_transfer}); status ${resultingStatus}; restored quantity ${receiptQuantity}`,
       req.profile?.id
     )
  

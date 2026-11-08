@@ -74,11 +74,12 @@ router.post('/', async (req, res) => {
   }
 
   await createAuditLog(
-    'Created',
-    data.id,
+    'Reported',
+    data.item_id,
     null,
     JSON.stringify(data),
-    'Added incident: ' + data.description
+    'Added incident: ' + data.description,
+    req.profile?.id
   )
 
   res.status(201).json(data)
@@ -145,10 +146,11 @@ router.put('/:id', async (req, res) => {
 
   await createAuditLog(
     'Updated',
-    data.id,
+    data.item_id,
     JSON.stringify(oldData),
     JSON.stringify(data),
-    'Updated incident: ' + data.description
+    'Updated incident: ' + data.description,
+    req.profile?.id
   )
 
   res.json(data)
@@ -192,10 +194,11 @@ router.delete('/:id', async (req, res) => {
 
   await createAuditLog(
     'Deleted',
-    req.params.id,
+    oldData.item_id,
     JSON.stringify(oldData),
     null,
-    'Deleted incident: ' + oldData.description
+    'Deleted incident: ' + oldData.description,
+    req.profile?.id
   )
 
   res.json({

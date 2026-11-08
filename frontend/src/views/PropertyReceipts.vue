@@ -1579,24 +1579,30 @@ export default {
       if (!this.selectedDetailsReceipt) return
 
       const receipt = this.selectedDetailsReceipt
+      const detailsModal = document.getElementById('receiptDetailsModal')
+      const openPrintDetails = () => this.openReceiptPrintModal(receipt)
 
-      Modal.getInstance(
-        document.getElementById('receiptDetailsModal')
-      )?.hide()
-
-      this.openReceiptPrintModal(receipt)
+      if (detailsModal.classList.contains('show')) {
+        detailsModal.addEventListener('hidden.bs.modal', openPrintDetails, { once: true })
+        Modal.getOrCreateInstance(detailsModal).hide()
+      } else {
+        openPrintDetails()
+      }
     },
 
     printSelectedRIS() {
       if (!this.selectedDetailsReceipt) return
 
       const receipt = this.selectedDetailsReceipt
+      const detailsModal = document.getElementById('receiptDetailsModal')
+      const openRISDetails = () => this.openRISModal(receipt)
 
-      Modal.getInstance(
-        document.getElementById('receiptDetailsModal')
-      )?.hide()
-
-      this.openRISModal(receipt)
+      if (detailsModal.classList.contains('show')) {
+        detailsModal.addEventListener('hidden.bs.modal', openRISDetails, { once: true })
+        Modal.getOrCreateInstance(detailsModal).hide()
+      } else {
+        openRISDetails()
+      }
     },
 
     async getReceipts() {
@@ -1775,6 +1781,8 @@ export default {
           )
         }
 
+        window.dispatchEvent(new Event('receipts-updated'))
+
         const modal = Modal.getOrCreateInstance(
           document.getElementById('receiptModal')
         )
@@ -1821,6 +1829,8 @@ export default {
             data.error || 'Failed to delete receipt'
           )
         }
+
+        window.dispatchEvent(new Event('receipts-updated'))
 
         await this.getReceipts()
         await this.getItems()
@@ -2071,20 +2081,28 @@ export default {
         return
       }
 
-      const modal = Modal.getOrCreateInstance(
-        document.getElementById('receiptPrintDetailsModal')
-      )
+      if (!this.getPrintPageSize(this.receiptPrintForm)) return
 
-      modal.hide()
+      const printWindow = window.open('', '_blank')
 
-      this.printReceipt(
+      if (!printWindow) {
+        this.showToast('Please allow pop-ups to print the receipt')
+        return
+      }
+
+      const modalElement = document.getElementById('receiptPrintDetailsModal')
+      const print = () => this.printReceipt(
         this.selectedPrintReceipt,
         {
           ...this.receiptPrintForm,
           signatureImages: { ...this.signatureImages },
           signatureDates: { ...this.signatureDates }
-        }
+        },
+        printWindow
       )
+
+      modalElement.addEventListener('hidden.bs.modal', print, { once: true })
+      Modal.getOrCreateInstance(modalElement).hide()
     },
 
     openRISModal(receipt) {
@@ -2169,20 +2187,28 @@ export default {
         return
       }
 
-      const modal = Modal.getOrCreateInstance(
-        document.getElementById('risDetailsModal')
-      )
+      if (!this.getPrintPageSize(this.risForm)) return
 
-      modal.hide()
+      const printWindow = window.open('', '_blank')
 
-      this.printRIS(
+      if (!printWindow) {
+        this.showToast('Please allow pop-ups to print the RIS')
+        return
+      }
+
+      const modalElement = document.getElementById('risDetailsModal')
+      const print = () => this.printRIS(
         this.selectedRISReceipt,
         {
           ...this.risForm,
           signatureImages: { ...this.signatureImages },
           signatureDates: { ...this.signatureDates }
-        }
+        },
+        printWindow
       )
+
+      modalElement.addEventListener('hidden.bs.modal', print, { once: true })
+      Modal.getOrCreateInstance(modalElement).hide()
     },
 
     getPrintPageSize(details) {
@@ -2213,7 +2239,7 @@ export default {
       return { width, height }
     },
 
-    printReceipt(receipt, details = {}) {
+    printReceipt(receipt, details = {}, targetWindow = null) {
       const pageSize = this.getPrintPageSize(details)
       if (!pageSize) return
 
@@ -2247,7 +2273,7 @@ export default {
         details.purpose || receipt.remarks || '-'
       )
 
-      const printWindow = window.open('', '_blank')
+      const printWindow = targetWindow || window.open('', '_blank')
 
       if (!printWindow) {
         this.showToast('Please allow pop-ups to print the receipt')
@@ -2427,7 +2453,7 @@ export default {
       printWindow.document.close()
     },
 
-printRIS(receipt, details = {}) {
+printRIS(receipt, details = {}, targetWindow = null) {
   const pageSize = this.getPrintPageSize(details)
   if (!pageSize) return
 
@@ -2449,7 +2475,7 @@ printRIS(receipt, details = {}) {
       ? `<img class="print-signature" src="${details.signatureImages[key]}" alt="Signature">`
       : ''
 
-  const printWindow = window.open('', '_blank')
+  const printWindow = targetWindow || window.open('', '_blank')
 
   if (!printWindow) {
     this.showToast('Please allow pop-ups to print the RIS')
@@ -2568,12 +2594,12 @@ printRIS(receipt, details = {}) {
         }
 
         :root {
-          --font-xxs: 7px;
-          --font-xs: 8px;
-          --font-sm: 9px;
-          --font-md: 10px;
-          --font-lg: 11px;
-          --font-xl: 14px;
+          --font-xxs: 11px;
+          --font-xs: 12px;
+          --font-sm: 13px;
+          --font-md: 14px;
+          --font-lg: 15px;
+          --font-xl: 18px;
         }
 
         body {
@@ -2817,6 +2843,7 @@ printRIS(receipt, details = {}) {
         .sign-table .sign-title {
           text-align: center;
           font-style: italic;
+          font-size: calc(var(--font-md) - 2px);
         }
 
         .sign-table .date-row td {
@@ -2829,14 +2856,14 @@ printRIS(receipt, details = {}) {
            ========================= */
 
         .small {
-          font-size: 9px;
+          font-size: 13px;
         }
 
         .instructions {
           margin-top: 0;
           border-top: 0.5px solid #000;
           padding: 5px 6px;
-          font-size: 7px;
+          font-size: 11px;
           line-height: 1.2;
         }
 
@@ -2865,7 +2892,7 @@ printRIS(receipt, details = {}) {
           right: 0;
           bottom: 0;
           padding-top: 4px;
-          font-size: 8px;
+          font-size: 12px;
           text-align: right;
         }
 

@@ -327,6 +327,20 @@
                   input-id="request-status-select"
                 />
               </div>
+
+              <div v-if="canManageRequests && form.status === 'Rejected'" class="mb-3">
+                <label class="form-label" for="edit-request-rejection-reason">
+                  Reason for rejecting <span class="text-danger">*</span>
+                </label>
+                <textarea
+                  id="edit-request-rejection-reason"
+                  v-model.trim="form.rejection_reason"
+                  class="form-control"
+                  rows="3"
+                  maxlength="1000"
+                  required
+                ></textarea>
+              </div>
             </div>
 
             <div class="modal-footer">
@@ -420,6 +434,11 @@
                 {{ requestDetails.status || '-' }}
               </dd>
 
+              <template v-if="requestDetails.rejection_reason">
+                <dt class="col-sm-4">Rejection reason</dt>
+                <dd class="col-sm-8">{{ requestDetails.rejection_reason }}</dd>
+              </template>
+
               <dt class="col-sm-4">Created</dt>
               <dd class="col-sm-8">
                 {{ requestDetails.created_at || '-' }}
@@ -457,6 +476,58 @@
         </div>
       </div>
     </div>
+
+    <div
+      class="modal fade"
+      id="rejectRequestModal"
+      tabindex="-1"
+      aria-labelledby="rejectRequestModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form @submit.prevent="submitRejection">
+            <div class="modal-header">
+              <h5 id="rejectRequestModalLabel" class="modal-title">Reject Item Request</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <p>
+                Provide a reason for rejecting request
+                {{ rejectingRequest?.request_number || '' }}.
+              </p>
+              <label class="form-label" for="request-rejection-reason">
+                Rejection reason <span class="text-danger">*</span>
+              </label>
+              <textarea
+                id="request-rejection-reason"
+                v-model.trim="rejectionReason"
+                class="form-control"
+                rows="3"
+                maxlength="1000"
+                required
+                placeholder="Explain why this item request is being rejected."
+              ></textarea>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button
+                type="submit"
+                class="btn btn-danger"
+                :disabled="updatingRequestId === rejectingRequest?.id || !rejectionReason.trim()"
+              >
+                {{ updatingRequestId === rejectingRequest?.id ? 'Rejecting...' : 'Confirm rejection' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -479,6 +550,8 @@ export default {
       saving: false,
       updatingRequestId: null,
       requestDetails: null,
+      rejectingRequest: null,
+      rejectionReason: '',
 
       search: '',
       statusFilter: '',
@@ -496,7 +569,8 @@ export default {
         item_id: '',
         quantity: 1,
         purpose: '',
-        status: 'Pending'
+        status: 'Pending',
+        rejection_reason: ''
       }
     }
   },
@@ -583,7 +657,8 @@ export default {
           request.personnel?.full_name,
           request.offices?.office_name,
           request.status,
-          request.purpose
+          request.purpose,
+          request.rejection_reason
         ]
           .join(' ')
           .toLowerCase()
@@ -712,7 +787,7 @@ export default {
       this.deleteRequest(id)
     },
 
-    async updateRequestStatus(request, status) {
+    async updateRequestStatus(request, status, rejectionReason = '') {
       if (
         !this.canManageRequests ||
         request.status !== 'Pending'
@@ -720,12 +795,12 @@ export default {
         return
       }
 
-      if (
-        status === 'Rejected' &&
-        !window.confirm(
-          `Reject request ${request.request_number || ''}?`
-        )
-      ) {
+      if (status === 'Rejected' && !rejectionReason.trim()) {
+        this.rejectingRequest = request
+        this.rejectionReason = ''
+        Modal.getOrCreateInstance(
+          document.getElementById('rejectRequestModal')
+        ).show()
         return
       }
 
@@ -739,7 +814,12 @@ export default {
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ status })
+            body: JSON.stringify({
+              status,
+              rejection_reason: status === 'Rejected'
+                ? rejectionReason.trim()
+                : null
+            })
           }
         )
 
@@ -770,6 +850,14 @@ export default {
             ? 'Request approved successfully. The property inventory has been refreshed.'
             : 'Request rejected successfully.'
         )
+
+        if (status === 'Rejected') {
+          Modal.getInstance(
+            document.getElementById('rejectRequestModal')
+          )?.hide()
+          this.rejectingRequest = null
+          this.rejectionReason = ''
+        }
       } catch (error) {
         console.log(
           'Update request status error:',
@@ -780,6 +868,16 @@ export default {
       } finally {
         this.updatingRequestId = null
       }
+    },
+
+    async submitRejection() {
+      if (!this.rejectingRequest || !this.rejectionReason.trim()) return
+
+      await this.updateRequestStatus(
+        this.rejectingRequest,
+        'Rejected',
+        this.rejectionReason
+      )
     },
 
     formatItem(item) {
@@ -961,7 +1059,8 @@ export default {
         item_id: '',
         quantity: 1,
         purpose: '',
-        status: 'Pending'
+        status: 'Pending',
+        rejection_reason: ''
       }
 
       Modal.getOrCreateInstance(
@@ -980,7 +1079,8 @@ export default {
         item_id: request.item_id || '',
         quantity: request.quantity || 1,
         purpose: request.purpose || '',
-        status: request.status || 'Pending'
+        status: request.status || 'Pending',
+        rejection_reason: request.rejection_reason || ''
       }
 
       if (
@@ -1023,7 +1123,10 @@ export default {
             purpose: this.form.purpose,
             status: this.canManageRequests
               ? this.form.status
-              : 'Pending'
+              : 'Pending',
+            rejection_reason: this.canManageRequests
+              ? this.form.rejection_reason
+              : null
           })
         })
 
