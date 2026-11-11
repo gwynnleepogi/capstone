@@ -1,0 +1,355 @@
+<template>
+  <div class="my-properties-page">
+    <header class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+      <div>
+        <h1 class="h3 mb-1">My Properties</h1>
+        <p class="text-secondary mb-0">Select a property to view its full details and QR code.</p>
+      </div>
+      <button type="button" class="btn btn-outline-success" :disabled="loading" @click="loadProperties">
+        <i class="bi bi-arrow-clockwise me-1"></i>
+        Refresh
+      </button>
+    </header>
+
+    <div v-if="loading" class="card">
+      <div class="card-body text-center py-5 text-muted">
+        <span class="spinner-border spinner-border-sm text-success me-2" role="status"></span>
+        Loading your issued properties...
+      </div>
+    </div>
+
+    <div v-else-if="error" class="alert alert-danger" role="alert">
+      {{ error }}
+      <button type="button" class="btn btn-sm btn-outline-danger ms-2" @click="loadProperties">
+        Try again
+      </button>
+    </div>
+
+    <div v-else-if="!properties.length" class="card">
+      <div class="card-body text-center py-5 text-muted">
+        <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
+        No issued properties are currently assigned to you.
+      </div>
+    </div>
+
+    <div v-else>
+      <div v-if="properties.length" class="card mb-3">
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-12 col-md">
+              <label for="property-search" class="form-label">Search properties</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input
+                  id="property-search"
+                  v-model.trim="searchQuery"
+                  type="search"
+                  class="form-control"
+                  placeholder="Search by ID or name"
+                >
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <label for="property-classification" class="form-label">Classification</label>
+              <select id="property-classification" v-model="selectedClassification" class="form-select">
+                <option value="">All classifications</option>
+                <option v-for="classification in classifications" :key="classification" :value="classification">
+                  {{ classification }}
+                </option>
+              </select>
+            </div>
+            <div class="col-12 col-md-auto d-flex align-items-center">
+              <span class="text-secondary small">
+                Showing {{ filteredProperties.length }} of {{ properties.length }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="properties.length && !filteredProperties.length" class="card">
+        <div class="card-body text-center py-4 text-muted">
+          No properties match your search or classification filter.
+        </div>
+      </div>
+
+      <div v-else class="row g-3">
+        <div v-for="receipt in filteredProperties" :key="receipt.id" class="col-12">
+          <article class="card property-card">
+          <button
+            type="button"
+            class="property-summary"
+            :aria-expanded="expandedReceiptId === receipt.id"
+            :aria-controls="`property-details-${receipt.id}`"
+            @click="toggleDetails(receipt.id)"
+          >
+            <span class="property-id">
+              ID: {{ receipt.items?.property_number || receipt.items?.id || '-' }}
+            </span>
+            <span class="property-name">{{ receipt.items?.description || 'Unnamed property' }}</span>
+            <i
+              class="bi"
+              :class="expandedReceiptId === receipt.id ? 'bi-chevron-up' : 'bi-chevron-down'"
+              aria-hidden="true"
+            ></i>
+          </button>
+
+          <div
+            v-if="expandedReceiptId === receipt.id"
+            :id="`property-details-${receipt.id}`"
+            class="card-body border-top"
+          >
+            <div class="row g-3 align-items-center">
+              <div class="col-12 col-md">
+                <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <div class="text-muted small">
+                      Property No. {{ receipt.items?.property_number || '-' }}
+                    </div>
+                    <h2 class="h5 mb-0">{{ receipt.items?.description || 'Unnamed property' }}</h2>
+                  </div>
+                  <span class="badge bg-primary">{{ receipt.status || 'Issued' }}</span>
+                </div>
+
+                <dl class="row property-details mb-0">
+                  <dt class="col-sm-4">Item ID</dt>
+                  <dd class="col-sm-8">{{ receipt.items?.id || receipt.item_id || '-' }}</dd>
+                  <dt class="col-sm-4">Receipt Number</dt>
+                  <dd class="col-sm-8">{{ receipt.receipt_number || '-' }}</dd>
+                  <dt class="col-sm-4">Date Issued</dt>
+                  <dd class="col-sm-8">{{ formatDate(receipt.date_issued) }}</dd>
+                  <dt class="col-sm-4">Quantity</dt>
+                  <dd class="col-sm-8">{{ receipt.quantity ?? '-' }}</dd>
+                  <dt class="col-sm-4">Serial Number</dt>
+                  <dd class="col-sm-8">{{ receipt.items?.serial_number || '-' }}</dd>
+                  <dt class="col-sm-4">Model Number</dt>
+                  <dd class="col-sm-8">{{ receipt.items?.model_number || '-' }}</dd>
+                  <dt class="col-sm-4">Unit of Measure</dt>
+                  <dd class="col-sm-8">{{ receipt.items?.unit || '-' }}</dd>
+                  <dt class="col-sm-4">Classification</dt>
+                  <dd class="col-sm-8">{{ receipt.items?.classification || '-' }}</dd>
+                  <dt class="col-sm-4">Condition</dt>
+                  <dd class="col-sm-8">{{ receipt.items?.condition || '-' }}</dd>
+                  <dt class="col-sm-4">Cost</dt>
+                  <dd class="col-sm-8">{{ formatCost(receipt.items?.cost) }}</dd>
+                  <dt class="col-sm-4">Acquisition Date</dt>
+                  <dd class="col-sm-8">{{ formatDate(receipt.items?.acquisition_date) }}</dd>
+                  <dt class="col-sm-4">Responsibility Center</dt>
+                  <dd class="col-sm-8">{{ receipt.items?.responsibility_center || '-' }}</dd>
+                  <dt class="col-sm-4">Accountable Employee</dt>
+                  <dd class="col-sm-8">{{ receipt.items?.accountable_employee || '-' }}</dd>
+                  <dt class="col-sm-4">Fund Cluster</dt>
+                  <dd class="col-sm-8">{{ receipt.items?.fund_cluster || '-' }}</dd>
+                </dl>
+              </div>
+
+              <div class="col-12 col-md-auto text-center qr-panel">
+                <img
+                  v-if="qrCodes[receipt.id]"
+                  :src="qrCodes[receipt.id]"
+                  :alt="`QR code for ${receipt.items?.property_number || receipt.items?.description || 'issued property'}`"
+                  class="property-qr"
+                >
+                <div v-else-if="qrErrors[receipt.id]" class="small text-danger">
+                  {{ qrErrors[receipt.id] }}
+                </div>
+                <div v-else class="small text-muted">Preparing QR code...</div>
+                <div class="small text-muted mt-1">Scan for property details</div>
+              </div>
+            </div>
+          </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import QRCode from 'qrcode'
+
+export default {
+  name: 'MyProperties',
+
+  data() {
+    return {
+      properties: [],
+      qrCodes: {},
+      qrErrors: {},
+      expandedReceiptId: null,
+      searchQuery: '',
+      selectedClassification: '',
+      loading: false,
+      error: ''
+    }
+  },
+
+  computed: {
+    classifications() {
+      return [...new Set(
+        this.properties
+          .map(receipt => receipt.items?.classification)
+          .filter(Boolean)
+      )].sort((a, b) => a.localeCompare(b))
+    },
+
+    filteredProperties() {
+      const query = this.searchQuery.toLocaleLowerCase()
+
+      return this.properties.filter(receipt => {
+        const item = receipt.items || {}
+        const matchesSearch = !query || [
+          item.id,
+          item.property_number,
+          item.description
+        ].some(value => String(value || '').toLocaleLowerCase().includes(query))
+        const matchesClassification = !this.selectedClassification ||
+          item.classification === this.selectedClassification
+
+        return matchesSearch && matchesClassification
+      })
+    }
+  },
+
+  mounted() {
+    this.loadProperties()
+  },
+
+  methods: {
+    async loadProperties() {
+      this.loading = true
+      this.error = ''
+
+      try {
+        const response = await fetch('/api/item-lookup/mine')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Unable to load your issued properties.')
+        }
+
+        if (!Array.isArray(data)) {
+          throw new Error('The issued properties response was invalid.')
+        }
+
+        this.properties = data
+        this.qrCodes = {}
+        this.qrErrors = {}
+        await Promise.all(data.map(receipt => this.generateQrCode(receipt)))
+      } catch (error) {
+        console.error('Failed to load your issued properties:', error)
+        this.error = error.message || 'Unable to load your issued properties.'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async generateQrCode(receipt) {
+      const itemId = receipt.items?.id
+
+      if (!itemId) {
+        this.qrErrors[receipt.id] = 'Item details are unavailable for this QR code.'
+        return
+      }
+
+      try {
+        const itemUrl = new URL(
+          `/items?item=${encodeURIComponent(itemId)}`,
+          window.location.origin
+        ).toString()
+        this.qrCodes[receipt.id] = await QRCode.toDataURL(itemUrl, {
+          errorCorrectionLevel: 'H',
+          margin: 2,
+          width: 240
+        })
+      } catch (error) {
+        console.error('Failed to generate property QR code:', error)
+        this.qrErrors[receipt.id] = 'Unable to generate this QR code.'
+      }
+    },
+
+    toggleDetails(receiptId) {
+      this.expandedReceiptId = this.expandedReceiptId === receiptId ? null : receiptId
+    },
+
+    formatDate(value) {
+      if (!value) return '-'
+
+      const date = new Date(`${value}T00:00:00`)
+      return Number.isNaN(date.getTime())
+        ? value
+        : date.toLocaleDateString('en-PH', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          })
+    },
+
+    formatCost(value) {
+      const amount = Number(value)
+      return Number.isFinite(amount)
+        ? amount.toLocaleString('en-PH', {
+            style: 'currency',
+            currency: 'PHP'
+          })
+        : '-'
+    }
+  }
+}
+</script>
+
+<style scoped>
+.property-card {
+  border-color: #e4e2d8;
+  overflow: hidden;
+}
+
+.property-summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: 0;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+}
+
+.property-summary:hover,
+.property-summary:focus-visible {
+  background: #f7f8f5;
+}
+
+.property-id {
+  color: #2f5d3a;
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.property-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.property-details dt,
+.property-details dd {
+  margin-bottom: 0.4rem;
+}
+
+.property-qr {
+  display: block;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto;
+  padding: 8px;
+  border: 1px solid #e4e2d8;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.qr-panel {
+  min-width: 210px;
+}
+</style>

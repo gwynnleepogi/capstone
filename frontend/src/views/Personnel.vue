@@ -228,6 +228,21 @@
                   <i class="bi bi-eye me-1"></i>
                   Details
                 </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-warning ms-1"
+                  :disabled="resettingPasswordId === person.id"
+                  @click="resetPersonnelPassword(person)"
+                  title="Issue a new temporary password"
+                >
+                  <span
+                    v-if="resettingPasswordId === person.id"
+                    class="spinner-border spinner-border-sm me-1"
+                    aria-hidden="true"
+                  ></span>
+                  <i v-else class="bi bi-key me-1"></i>
+                  Reset Password
+                </button>
               </td>
             </tr>
           </tbody>
@@ -297,6 +312,45 @@
                 </li>
               </ul>
             </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="resetPasswordResult"
+      class="modal fade show d-block"
+      tabindex="-1"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reset-password-title"
+      style="background-color: rgba(0, 0, 0, 0.5);"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="reset-password-title" class="modal-title">Temporary Password Ready</h5>
+            <button type="button" class="btn-close" aria-label="Close" @click="resetPasswordResult = null"></button>
+          </div>
+          <div class="modal-body">
+            <p>
+              Give this temporary password to {{ resetPasswordResult.full_name }} through a secure channel.
+              They must change it after signing in.
+            </p>
+            <label for="reset-temporary-password" class="form-label">Temporary password</label>
+            <input
+              id="reset-temporary-password"
+              class="form-control font-monospace"
+              :value="resetPasswordResult.password"
+              readonly
+              @focus="$event.target.select()"
+            >
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-success" @click="copyResetPassword">
+              <i class="bi bi-clipboard me-1"></i>Copy Password
+            </button>
+            <button type="button" class="btn btn-secondary" @click="resetPasswordResult = null">Close</button>
           </div>
         </div>
       </div>
@@ -666,6 +720,8 @@ export default {
       itemsLoading: false,
       personnelSaving: false,
       personnelCreating: false,
+      resettingPasswordId: null,
+      resetPasswordResult: null,
       newTitleSelection: '',
       newOtherJobTitle: '',
       newPersonnelForm: {
@@ -993,6 +1049,65 @@ export default {
       Modal.getOrCreateInstance(
         document.getElementById('personnelDetailsModal')
       ).show()
+    },
+
+    async resetPersonnelPassword(person) {
+      if (!person?.id || !person.auth_user_id) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'This personnel record has no sign-in account to reset.'
+        }))
+        return
+      }
+
+      if (!window.confirm(
+        `Reset the password for ${person.full_name}? Their current password will stop working and they will need to change the temporary password after signing in.`
+      )) {
+        return
+      }
+
+      this.resettingPasswordId = person.id
+
+      try {
+        const response = await apiRequest(
+          `/api/personnel/${encodeURIComponent(person.id)}/reset-password`,
+          { method: 'POST' }
+        )
+        const result = await response.json()
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to reset password')
+        }
+
+        if (!result.temporary_password) {
+          throw new Error('The server did not return a temporary password')
+        }
+
+        this.resetPasswordResult = {
+          full_name: person.full_name,
+          password: result.temporary_password
+        }
+      } catch (error) {
+        console.error('Personnel password reset failed:', error)
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: error.message || 'Failed to reset password'
+        }))
+      } finally {
+        this.resettingPasswordId = null
+      }
+    },
+
+    async copyResetPassword() {
+      try {
+        await navigator.clipboard.writeText(this.resetPasswordResult.password)
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Temporary password copied'
+        }))
+      } catch (error) {
+        console.error('Temporary password copy failed:', error)
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Unable to copy the temporary password'
+        }))
+      }
     },
 
     viewSelectedPersonnelItems() {

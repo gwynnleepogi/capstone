@@ -12,6 +12,7 @@ import Returns from '@/views/Returns.vue'
 import Transfers from '@/views/Transfers.vue'
 import Incidents from '@/views/Incidents.vue'
 import ReturnProperty from '@/views/ReturnProperty.vue'
+import MyProperties from '@/views/MyProperties.vue'
 import ItemDetails from '@/views/ItemDetails.vue'
 import AuditLogs from '@/views/AuditLogs.vue'
 import InventoryMovementHistory from '@/views/InventoryMovementHistory.vue'
@@ -93,6 +94,12 @@ const router = createRouter({
       path: '/my-returns',
       name: 'ReturnProperty',
       component: ReturnProperty,
+      meta: { roles: ['Teacher', 'Non-Teaching Staff'] }
+    },
+    {
+      path: '/my-properties',
+      name: 'MyProperties',
+      component: MyProperties,
       meta: { roles: ['Teacher', 'Non-Teaching Staff'] }
     },
     {

@@ -214,9 +214,7 @@ router.post('/', async (req, res) => {
         classification: itemClassification,
         condition: condition || 'Serviceable',
         accountable_employee: String(accountable_employee || '').trim() || null,
-        responsibility_center: String(accountable_employee || '').trim()
-          ? (String(responsibility_center || '').trim() || null)
-          : null,
+        responsibility_center: String(responsibility_center || '').trim() || null,
         fund_cluster: String(fund_cluster).trim(),
         status: String(accountable_employee || '').trim() ? 'Issued' : 'Available'
       })
@@ -324,9 +322,7 @@ router.put('/:id', async (req, res) => {
           ? (['Available', 'Assigned'].includes(status) ? 'Issued' : (status || 'Issued'))
           : 'Available',
         accountable_employee: String(accountable_employee || '').trim() || null,
-        responsibility_center: String(accountable_employee || '').trim()
-          ? (String(responsibility_center || '').trim() || null)
-          : null,
+        responsibility_center: String(responsibility_center || '').trim() || null,
         fund_cluster: String(fund_cluster).trim(),
         unit: String(unit || '').trim() || 'PC',
         article: String(article || '').trim() || null,

@@ -16,24 +16,63 @@
     </div>
 
     <div class="card">
+      <div class="card-header bg-white">
+        <div class="row g-2 align-items-center">
+          <div class="col-12 col-md">
+            <input
+              v-model.trim="receiptSearch"
+              type="search"
+              class="form-control"
+              placeholder="Search receipt number, item, issued to..."
+              aria-label="Search receipts"
+            >
+          </div>
+          <div class="col-6 col-md-3">
+            <select v-model="receiptTypeFilter" class="form-select" aria-label="Filter by receipt type">
+              <option value="">All Types</option>
+              <option value="PAR">PAR</option>
+              <option value="ICS">ICS</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <select v-model="receiptStatusFilter" class="form-select" aria-label="Filter by status">
+              <option value="">All Statuses</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
+        </div>
+      </div>
       <div class="card-body">
         <div class="table-responsive">
           <table class="table table-hover align-middle">
             <thead class="receipt-table-header">
               <tr>
-                <th>Receipt Number</th>
-                <th>Type</th>
-                <th>Item</th>
-                <th>Issued To</th>
-                <th>Date Issued</th>
-                <th>Status</th>
+                <th class="sortable" @click="sortReceiptsBy('receipt_number')">
+                  Receipt Number <i :class="receiptSortIcon('receipt_number')"></i>
+                </th>
+                <th class="sortable" @click="sortReceiptsBy('receipt_type')">
+                  Type <i :class="receiptSortIcon('receipt_type')"></i>
+                </th>
+                <th class="sortable" @click="sortReceiptsBy('item')">
+                  Item <i :class="receiptSortIcon('item')"></i>
+                </th>
+                <th class="sortable" @click="sortReceiptsBy('issued_to')">
+                  Issued To <i :class="receiptSortIcon('issued_to')"></i>
+                </th>
+                <th class="sortable" @click="sortReceiptsBy('date_issued')">
+                  Date Issued <i :class="receiptSortIcon('date_issued')"></i>
+                </th>
+                <th class="sortable" @click="sortReceiptsBy('status')">
+                  Status <i :class="receiptSortIcon('status')"></i>
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
 
             <tbody>
               <tr
-                v-for="receipt in receipts"
+                v-for="receipt in filteredReceipts"
                 :key="receipt.id"
               >
                 <td>
@@ -83,12 +122,12 @@
                 </td>
               </tr>
 
-              <tr v-if="receipts.length === 0">
+              <tr v-if="filteredReceipts.length === 0">
                 <td
                   colspan="7"
                   class="text-center text-muted py-4"
                 >
-                  No receipts found.
+                  {{ receipts.length ? 'No receipts match your search or filters.' : 'No receipts found.' }}
                 </td>
               </tr>
             </tbody>
@@ -1295,6 +1334,11 @@ export default {
   data() {
     return {
       receipts: [],
+      receiptSearch: '',
+      receiptTypeFilter: '',
+      receiptStatusFilter: '',
+      receiptSortKey: 'date_issued',
+      receiptSortDirection: 'desc',
       items: [],
       personnel: [],
       itemRequests: [],
@@ -1379,6 +1423,45 @@ export default {
   },
 
   computed: {
+    filteredReceipts() {
+      const search = this.receiptSearch.toLocaleLowerCase()
+
+      return this.receipts
+        .filter(receipt => {
+          const item = this.getReceiptItem(receipt)
+          const status = receipt.status || 'Delivered'
+          const matchesSearch = !search || [
+            receipt.receipt_number,
+            receipt.receipt_type,
+            item.property_number,
+            item.description,
+            this.getIssuedToName(receipt),
+            receipt.date_issued,
+            status,
+            this.getReceiptRemarks(receipt)
+          ].some(value => String(value || '').toLocaleLowerCase().includes(search))
+          const matchesType = !this.receiptTypeFilter ||
+            receipt.receipt_type === this.receiptTypeFilter
+          const matchesStatus = !this.receiptStatusFilter ||
+            status === this.receiptStatusFilter
+
+          return matchesSearch && matchesType && matchesStatus
+        })
+        .slice()
+        .sort((first, second) => {
+          const firstValue = this.getReceiptSortValue(first, this.receiptSortKey)
+          const secondValue = this.getReceiptSortValue(second, this.receiptSortKey)
+          const comparison = this.receiptSortKey === 'date_issued'
+            ? String(firstValue).localeCompare(String(secondValue))
+            : String(firstValue).localeCompare(String(secondValue), undefined, {
+                numeric: true,
+                sensitivity: 'base'
+              })
+
+          return this.receiptSortDirection === 'asc' ? comparison : -comparison
+        })
+    },
+
     printablePersonnel() {
       return [...this.personnel]
         .filter(person => person.full_name)
@@ -1457,6 +1540,44 @@ export default {
   },
 
   methods: {
+    getReceiptSortValue(receipt, key) {
+      if (key === 'item') {
+        return this.getReceiptItem(receipt).description || ''
+      }
+
+      if (key === 'issued_to') {
+        return this.getIssuedToName(receipt)
+      }
+
+      if (key === 'status') {
+        return receipt.status || 'Delivered'
+      }
+
+      return receipt[key] || ''
+    },
+
+    sortReceiptsBy(key) {
+      if (this.receiptSortKey === key) {
+        this.receiptSortDirection = this.receiptSortDirection === 'asc'
+          ? 'desc'
+          : 'asc'
+        return
+      }
+
+      this.receiptSortKey = key
+      this.receiptSortDirection = 'asc'
+    },
+
+    receiptSortIcon(key) {
+      if (this.receiptSortKey !== key) {
+        return 'bi bi-arrow-down-up ms-1'
+      }
+
+      return this.receiptSortDirection === 'asc'
+        ? 'bi bi-arrow-up ms-1'
+        : 'bi bi-arrow-down ms-1'
+    },
+
     getPersonnelTitle(name) {
       if (!name) return ''
 
@@ -2083,7 +2204,11 @@ export default {
 
       if (!this.getPrintPageSize(this.receiptPrintForm)) return
 
-      const printWindow = window.open('', '_blank')
+      const printWindow = window.open(
+        '',
+        '_blank',
+        'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes'
+      )
 
       if (!printWindow) {
         this.showToast('Please allow pop-ups to print the receipt')
@@ -2189,7 +2314,11 @@ export default {
 
       if (!this.getPrintPageSize(this.risForm)) return
 
-      const printWindow = window.open('', '_blank')
+      const printWindow = window.open(
+        '',
+        '_blank',
+        'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes'
+      )
 
       if (!printWindow) {
         this.showToast('Please allow pop-ups to print the RIS')
@@ -2273,7 +2402,11 @@ export default {
         details.purpose || receipt.remarks || '-'
       )
 
-      const printWindow = targetWindow || window.open('', '_blank')
+      const printWindow = targetWindow || window.open(
+        '',
+        '_blank',
+        'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes'
+      )
 
       if (!printWindow) {
         this.showToast('Please allow pop-ups to print the receipt')
@@ -2475,7 +2608,11 @@ printRIS(receipt, details = {}, targetWindow = null) {
       ? `<img class="print-signature" src="${details.signatureImages[key]}" alt="Signature">`
       : ''
 
-  const printWindow = targetWindow || window.open('', '_blank')
+  const printWindow = targetWindow || window.open(
+    '',
+    '_blank',
+    'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes'
+  )
 
   if (!printWindow) {
     this.showToast('Please allow pop-ups to print the RIS')
@@ -3586,6 +3723,15 @@ printRIS(receipt, details = {}, targetWindow = null) {
   background-color: #2f5d3a;
   color: #fff;
   white-space: nowrap;
+}
+
+.receipt-table-header th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.receipt-table-header th.sortable:hover {
+  background-color: #244a2e;
 }
 
 .card {

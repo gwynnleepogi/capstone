@@ -267,10 +267,12 @@
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Responsibility Center</label>
-                <SearchableSelect
-                  v-model="newItem.responsibility_center"
-                  :options="officeSelectOptions"
-                  placeholder="Search office (optional)"
+                <input
+                  v-model.trim="newItem.responsibility_center"
+                  type="text"
+                  class="form-control"
+                  list="office-options"
+                  placeholder="Search or type office (optional)"
                 />
               </div>
 
@@ -691,9 +693,14 @@
 
     <!-- EDIT PROPERTY -->
     <div v-if="editingItem" class="edit-overlay" @click.self="cancelEdit">
-      <div class="edit-sidebar">
-        <div class="edit-sidebar-header">
-          <h5 class="mb-0">Edit Property</h5>
+      <section
+        class="edit-dialog card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-item-title"
+      >
+        <div class="edit-dialog-header">
+          <h2 id="edit-item-title" class="h5 mb-0">Edit Property</h2>
 
           <button
             type="button"
@@ -703,8 +710,8 @@
           ></button>
         </div>
 
-        <form class="edit-sidebar-form" @submit.prevent="updateItem">
-          <div class="edit-sidebar-body">
+        <form class="edit-dialog-form" @submit.prevent="updateItem">
+          <div class="edit-dialog-body">
             <div class="mb-3">
               <label class="form-label">
                 Property Number <span class="text-danger">*</span>
@@ -873,7 +880,7 @@
             </div>
           </div>
 
-          <div class="edit-sidebar-footer">
+          <div class="edit-dialog-footer">
             <button type="button" class="btn btn-secondary" @click="cancelEdit">
               Cancel
             </button>
@@ -883,7 +890,7 @@
             </button>
           </div>
         </form>
-      </div>
+      </section>
     </div>
 
     <datalist id="unit-options">
@@ -892,6 +899,10 @@
 
     <datalist id="supplier-options">
       <option v-for="name in supplierOptions" :key="name" :value="name"></option>
+    </datalist>
+
+    <datalist id="office-options">
+      <option v-for="office in officeOptions" :key="office.id" :value="office.office_name"></option>
     </datalist>
 
   </div>
@@ -1235,7 +1246,11 @@ export default {
         return
       }
 
-      const printWindow = window.open('', '_blank', 'width=900,height=700')
+      const printWindow = window.open(
+        '',
+        '_blank',
+        'popup=yes,width=900,height=700,resizable=yes,scrollbars=yes'
+      )
 
       if (!printWindow) {
         window.dispatchEvent(new CustomEvent('show-toast', {
@@ -1492,7 +1507,6 @@ export default {
     autoFillOffice(form) {
       if (!form.accountable_employee) {
         form.status = 'Available'
-        form.responsibility_center = ''
         return
       }
 
@@ -1566,14 +1580,53 @@ export default {
       return 'classification-default'
     },
 
+    async ensureOfficeExists(officeName) {
+      const trimmedName = String(officeName || '').trim()
+
+      if (!trimmedName) {
+        return ''
+      }
+
+      const existingOffice = this.offices.find((office) =>
+        office && office.office_name && office.office_name.toLowerCase() === trimmedName.toLowerCase(),
+      )
+
+      if (existingOffice) {
+        return existingOffice.office_name
+      }
+
+      const response = await fetch('/api/offices', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          office_name: trimmedName,
+          office_code: '',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add office')
+      }
+
+      this.offices.unshift(data)
+      return data.office_name || trimmedName
+    },
+
     async addItem() {
       this.saving = true
 
       try {
+        const responsibilityCenter = await this.ensureOfficeExists(this.newItem.responsibility_center)
+
         // Every property is saved with quantity 1.
         // Tracking Type is no longer included.
         const payload = {
           ...this.newItem,
+          responsibility_center: responsibilityCenter,
           classification: this.classificationFromCost(this.newItem.cost),
           quantity: 1,
         }
@@ -2231,52 +2284,46 @@ h1 {
 .edit-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.35);
-  z-index: 1050;
+  z-index: 1055;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.45);
 }
 
-.edit-sidebar {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 430px;
-  max-width: 100%;
-  height: 100%;
-  background-color: white;
-  box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
+.edit-dialog {
+  width: min(820px, 100%);
+  max-height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-.edit-sidebar-header {
+.edit-dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
+  padding: 1rem;
   border-bottom: 1px solid #dee2e6;
-  background-color: #2f5d3a;
-  color: white;
+  background-color: #fff;
 }
 
-.edit-sidebar-header .btn-close {
-  filter: brightness(0) invert(1);
-}
-
-.edit-sidebar-form {
+.edit-dialog-form {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1 1 auto;
   min-height: 0;
 }
 
-.edit-sidebar-body {
-  padding: 20px;
+.edit-dialog-body {
+  padding: 1.25rem;
   overflow-y: auto;
   flex: 1;
 }
 
-.edit-sidebar-footer {
-  padding: 15px 20px;
+.edit-dialog-footer {
+  padding: 1rem 1.25rem;
   border-top: 1px solid #dee2e6;
   background-color: white;
   display: flex;
@@ -2285,15 +2332,15 @@ h1 {
 }
 
 @media (max-width: 576px) {
-  .edit-sidebar {
-    width: 100%;
+  .edit-overlay {
+    padding: 0.5rem;
   }
 
-  .edit-sidebar-footer {
+  .edit-dialog-footer {
     flex-wrap: wrap;
   }
 
-  .edit-sidebar-footer .btn {
+  .edit-dialog-footer .btn {
     flex: 1 1 130px;
   }
 }

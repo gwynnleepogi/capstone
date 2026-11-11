@@ -146,13 +146,24 @@
 
             <div class="mb-3">
               <label class="form-label">Reason for Return <span class="text-danger">*</span></label>
-              <textarea
-                v-model.trim="form.return_reason"
-                class="form-control"
-                rows="2"
+              <select v-model="form.return_reason" class="form-select" required>
+                <option value="">Select a reason</option>
+                <option value="End of Contract">End of Contract</option>
+                <option value="Transfer of Agency">Transfer of Agency</option>
+                <option value="Resignation">Resignation</option>
+                <option value="Change of Designation">Change of Designation</option>
+                <option value="Retirement">Retirement</option>
+                <option value="Others">Others</option>
+              </select>
+
+              <input
+                v-if="form.return_reason === 'Others'"
+                v-model.trim="form.otherReason"
+                type="text"
+                class="form-control mt-2"
+                placeholder="Enter reason"
                 required
-                placeholder="e.g. No longer needed, defective, end of use"
-              ></textarea>
+              />
             </div>
 
             <div>
@@ -196,6 +207,7 @@ export default {
         return_date: today(),
         condition_declared: 'Serviceable',
         return_reason: '',
+        otherReason: '',
         remarks: ''
       }
     }
@@ -245,6 +257,7 @@ export default {
         return_date: today(),
         condition_declared: 'Serviceable',
         return_reason: '',
+        otherReason: '',
         remarks: ''
       }
       this.showForm = true
@@ -266,7 +279,10 @@ export default {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             property_receipt_id: this.selected.id,
-            ...this.form
+            ...this.form,
+            return_reason: this.form.return_reason === 'Others'
+              ? `Others: ${this.form.otherReason.trim()}`
+              : this.form.return_reason
           })
         })
 

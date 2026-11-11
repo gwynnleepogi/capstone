@@ -1,4 +1,5 @@
 const express = require('express')
+const crypto = require('crypto')
 const router = express.Router()
 
 const supabase = require('../supabase')
@@ -574,6 +575,73 @@ router.post('/', requireAuth, requireRole('Administrator'), async (req, res) => 
     message: 'Personnel account created successfully',
     data: data
   })
+})
+
+router.post('/:id/reset-password', requireAuth, requireRole('Administrator'), async (req, res) => {
+  const { data: person, error: personError } = await supabase
+    .from('users')
+    .select('id, auth_user_id, full_name')
+    .eq('id', req.params.id)
+    .maybeSingle()
+
+  if (personError) {
+    console.error('Personnel password reset lookup failed:', personError)
+    return res.status(500).json({ error: 'Unable to find personnel account' })
+  }
+
+  if (!person) {
+    return res.status(404).json({ error: 'Personnel not found' })
+  }
+
+  if (!person.auth_user_id) {
+    return res.status(409).json({ error: 'This personnel record has no sign-in account' })
+  }
+
+  const supabaseAdmin = getSupabaseAdmin()
+
+  if (!supabaseAdmin) {
+    return res.status(503).json({ error: adminCredentialsError })
+  }
+
+  const { data: authAccount, error: authAccountError } =
+    await supabaseAdmin.auth.admin.getUserById(person.auth_user_id)
+
+  if (authAccountError || !authAccount.user) {
+    console.error('Personnel password reset account lookup failed:', authAccountError)
+    return res.status(409).json({ error: 'The sign-in account could not be found' })
+  }
+
+  const temporaryPassword = crypto.randomBytes(24).toString('base64url') + 'A1!'
+  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+    person.auth_user_id,
+    {
+      password: temporaryPassword,
+      user_metadata: {
+        ...authAccount.user.user_metadata,
+        must_change_password: true
+      }
+    }
+  )
+
+  if (updateError) {
+    console.error('Personnel password reset failed:', updateError)
+    return res.status(isAdminAuthorizationError(updateError) ? 503 : 400).json({
+      error: isAdminAuthorizationError(updateError)
+        ? adminCredentialsError
+        : updateError.message
+    })
+  }
+
+  await createAuditLog(
+    'Password Reset',
+    null,
+    null,
+    JSON.stringify({ must_change_password: true }),
+    'Reset sign-in password for personnel: ' + person.full_name,
+    req.profile.id
+  )
+
+  res.json({ temporary_password: temporaryPassword })
 })
 
 router.put('/:id', requireAuth, requireRole('Administrator'), async (req, res) => {

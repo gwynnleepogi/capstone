@@ -9,14 +9,6 @@
       </div>
 
       <div class="filter-section">
-        <div class="filter-group report-group">
-          <label for="movement-report">Report to Print</label>
-          <select id="movement-report" v-model="reportToPrint">
-            <option value="acquisition">Acquisition of Supplies and Materials</option>
-            <option value="issuance">Report of Supplies and Materials Issued</option>
-          </select>
-        </div>
-
         <div class="filter-group">
           <label for="movement-fund-cluster">Fund Cluster</label>
           <select id="movement-fund-cluster" v-model="selectedFundCluster">
@@ -142,15 +134,84 @@
 
           <button
             class="print-button"
-            :disabled="loading || Boolean(errorMessage) || !printRows.length || invalidDateRange"
-            @click="printReport"
+            :disabled="loading || Boolean(errorMessage) || invalidDateRange || (!getReportRowCount('acquisition') && !getReportRowCount('issuance'))"
+            @click="showPrintModal = true"
           >
             <i class="bi bi-printer"></i>
-            Print Report
+            Choose Report to Print
           </button>
 
         </div>
       </div>
+    </div>
+
+    <div
+      v-if="showPrintModal"
+      class="print-picker-backdrop"
+      @click.self="showPrintModal = false"
+      @keydown.esc="showPrintModal = false"
+    >
+      <section
+        class="print-picker card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="print-picker-title"
+      >
+        <div class="print-picker-header">
+          <div>
+            <h3 id="print-picker-title">Choose a report to print</h3>
+            <p>Select the report type. The current date range and fund cluster will be used.</p>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            @click="showPrintModal = false"
+          ></button>
+        </div>
+
+        <div class="print-picker-options">
+          <button
+            type="button"
+            class="print-option"
+            :disabled="!canPrintReport('acquisition')"
+            @click="printSelectedReport('acquisition')"
+          >
+            <span class="print-option-icon acquisition-icon">
+              <i class="bi bi-box-arrow-in-down"></i>
+            </span>
+            <span class="print-option-copy">
+              <strong>Print Acquisitions</strong>
+              <small>Acquisition of Supplies and Materials</small>
+              <small>{{ getReportRowCount('acquisition') }} matching record(s)</small>
+            </span>
+            <i class="bi bi-chevron-right"></i>
+          </button>
+
+          <button
+            type="button"
+            class="print-option"
+            :disabled="!canPrintReport('issuance')"
+            @click="printSelectedReport('issuance')"
+          >
+            <span class="print-option-icon issuance-icon">
+              <i class="bi bi-box-arrow-up-right"></i>
+            </span>
+            <span class="print-option-copy">
+              <strong>Print Issued</strong>
+              <small>Report of Supplies and Materials Issued</small>
+              <small>{{ getReportRowCount('issuance') }} matching record(s)</small>
+            </span>
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+
+        <div class="print-picker-footer">
+          <button type="button" class="close-footer-button" @click="showPrintModal = false">
+            Cancel
+          </button>
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -180,7 +241,8 @@ export default {
 
       movementType: 'all',
       reportToPrint: 'acquisition',
-      search: ''
+      search: '',
+      showPrintModal: false
     };
   },
 
@@ -329,6 +391,44 @@ export default {
       if (item.category === 'Acquisition') return 'badge-acquisition';
       if (item.category === 'Return') return 'badge-return';
       return 'badge-out';
+    },
+
+    getReportRowCount(reportType) {
+      if (this.invalidDateRange) {
+        return 0;
+      }
+
+      const category = reportType === 'issuance'
+        ? 'Issuance'
+        : 'Acquisition';
+
+      return this.movements.filter(item =>
+        item.category === category &&
+        item.date >= this.dateFrom &&
+        item.date <= this.dateTo &&
+        (
+          this.selectedFundCluster === 'ALL' ||
+          String(item.fundCluster || '').trim().toUpperCase() ===
+            this.selectedFundCluster.toUpperCase()
+        )
+      ).length;
+    },
+
+    canPrintReport(reportType) {
+      return !this.loading &&
+        !this.errorMessage &&
+        !this.invalidDateRange &&
+        this.getReportRowCount(reportType) > 0;
+    },
+
+    printSelectedReport(reportType) {
+      if (!this.canPrintReport(reportType)) {
+        return;
+      }
+
+      this.reportToPrint = reportType;
+      this.showPrintModal = false;
+      this.printReport();
     },
 
     getRelatedRecord(value) {
@@ -757,7 +857,11 @@ export default {
     },
 
     openReportWindow(title, bodyHtml, lineColor) {
-      const printWindow = window.open('', '_blank');
+      const printWindow = window.open(
+        '',
+        '_blank',
+        'popup=yes,width=1200,height=900,resizable=yes,scrollbars=yes'
+      );
 
       if (!printWindow) {
         window.dispatchEvent(new CustomEvent('show-toast', {
@@ -1612,10 +1716,6 @@ export default {
   font-size: 13px;
 }
 
-.report-group {
-  grid-column: 1 / -1;
-}
-
 .search-group {
   grid-column: span 2;
 }
@@ -1783,6 +1883,124 @@ th {
   background: #244a2e;
 }
 
+.print-picker-backdrop {
+  position: fixed;
+  z-index: 1100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 25, 18, 0.55);
+}
+
+.print-picker {
+  width: min(520px, 100%);
+  overflow: hidden;
+  border: 0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.22);
+}
+
+.print-picker-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid #e4e2d8;
+  background: #f7f5e8;
+}
+
+.print-picker-header h3 {
+  margin: 0 0 6px;
+  color: #2f5d3a;
+  font-size: 19px;
+}
+
+.print-picker-header p {
+  margin: 0;
+  color: #717a72;
+  font-size: 13px;
+}
+
+.print-picker-options {
+  display: grid;
+  gap: 10px;
+  padding: 20px 24px;
+}
+
+.print-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid #e4e2d8;
+  border-radius: 8px;
+  background: #fff;
+  color: #26332a;
+  text-align: left;
+  cursor: pointer;
+}
+
+.print-option:hover:not(:disabled) {
+  border-color: #2f5d3a;
+  background: #f8faf6;
+}
+
+.print-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.print-option-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  font-size: 19px;
+}
+
+.acquisition-icon {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.issuance-icon {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.print-option-copy {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+}
+
+.print-option-copy strong {
+  font-size: 14px;
+}
+
+.print-option-copy small {
+  color: #717a72;
+  font-size: 12px;
+}
+
+.print-option > .bi-chevron-right {
+  color: #717a72;
+}
+
+.print-picker-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 24px;
+  border-top: 1px solid #e4e2d8;
+  background: #fffdf6;
+}
+
 @media (max-width: 800px) {
   .inventory-page {
     padding: 12px;
@@ -1819,6 +2037,12 @@ th {
 
   .summary-card strong {
     font-size: 20px;
+  }
+
+  .print-picker-header,
+  .print-picker-options {
+    padding-right: 16px;
+    padding-left: 16px;
   }
 
   .filter-section {
