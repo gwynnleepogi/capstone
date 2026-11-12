@@ -124,8 +124,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Please select an issued receipt' })
     }
  
-    if (!['To Employee', 'To Property Office'].includes(transfer_type)) {
-      return res.status(400).json({ error: 'Transfer type must be To Employee or To Property Office' })
+    if (transfer_type !== 'To Employee') {
+      return res.status(400).json({ error: 'Transfer type must be To Employee' })
     }
  
     const { data: receipt, error: receiptError } = await supabase
@@ -197,7 +197,7 @@ router.post('/', async (req, res) => {
  
       if (item.condition !== 'Serviceable') {
         return res.status(400).json({
-          error: 'Unserviceable property cannot be transferred to an employee. Transfer it to the Property Office instead.'
+          error: 'Unserviceable property cannot be transferred to another employee.'
         })
       }
  
@@ -280,132 +280,6 @@ router.post('/', async (req, res) => {
       return res.status(201).json(transfer)
     }
  
-    // ---------------------------------------------------------------
-    // Transfer to Property Office: goes back into stock
-    //   Serviceable   -> Available
-    //   Unserviceable -> Returned (displayed as Returned and Unserviceable)
-    // ---------------------------------------------------------------
-    if (!CONDITIONS.includes(condition_after_transfer)) {
-      return res.status(400).json({ error: 'Condition must be Serviceable or Unserviceable' })
-    }
- 
-    const { data: legacyReturn, error: legacyReturnError } = await supabase
-      .from('item_returns')
-      .select('id')
-      .eq('item_id', receipt.item_id)
-      .is('property_receipt_id', null)
-      .maybeSingle()
- 
-    if (legacyReturnError) return res.status(500).json({ error: legacyReturnError.message })
-    if (legacyReturn) {
-      return res.status(409).json({
-        error: 'This item has an older return record without a linked receipt. Review its stock before transferring it.'
-      })
-    }
- 
-    const receiptQuantity = Number(receipt.quantity)
-    const currentQuantity = Number(item.quantity ?? 0)
-    const updatedQuantity = currentQuantity + receiptQuantity
- 
-    if (!Number.isInteger(receiptQuantity) || receiptQuantity < 1) {
-      return res.status(400).json({ error: 'The issued receipt quantity is invalid' })
-    }
-    if (!Number.isInteger(currentQuantity) || currentQuantity < 0 || !Number.isSafeInteger(updatedQuantity)) {
-      return res.status(400).json({ error: 'The inventory quantity is invalid' })
-    }
- 
-    const resultingStatus = getStatusForCondition(condition_after_transfer)
- 
-    const { data: transfer, error: insertError } = await supabase
-      .from('item_transfers')
-      .insert([{
-        item_id: item.id,
-        property_receipt_id: receipt.id,
-        transfer_type,
-        from_user_id: receipt.issued_to || null,
-        to_user_id: null,
-        office_id: office_id || null,
-        transfer_date: transferDate,
-        condition_after_transfer,
-        resulting_status: resultingStatus,
-        reason: reason || null,
-        remarks: remarks || null,
-        transferred_by: req.profile?.id || null
-      }])
-      .select()
-      .single()
- 
-    if (insertError) return res.status(500).json({ error: insertError.message })
- 
-    // Also log it as a return so the Returns tab and its safeguards stay in sync
-    const { data: newReturn, error: returnError } = await supabase
-      .from('item_returns')
-      .insert([{
-        item_id: item.id,
-        property_receipt_id: receipt.id,
-        returned_by: receipt.issued_to || null,
-        office_id: office_id || null,
-        return_date: transferDate,
-        condition_after_return: condition_after_transfer,
-        return_reason: reason || 'Transferred to Property Office',
-        remarks: ['Recorded via Transfers', remarks].filter(Boolean).join(' - ')
-      }])
-      .select()
-      .single()
- 
-    if (returnError) {
-      await supabase.from('item_transfers').delete().eq('id', transfer.id)
-      return res.status(returnError.code === '23505' ? 409 : 500).json({
-        error: returnError.code === '23505' ? 'This receipt has already been returned' : returnError.message
-      })
-    }
- 
-    const { error: itemUpdateError } = await supabase
-      .from('items')
-      .update({
-        quantity: updatedQuantity,
-        condition: condition_after_transfer,
-        status: resultingStatus,
-        accountable_employee: null
-      })
-      .eq('id', item.id)
- 
-    if (itemUpdateError) {
-      await supabase.from('item_returns').delete().eq('id', newReturn.id)
-      await supabase.from('item_transfers').delete().eq('id', transfer.id)
-      return res.status(500).json({
-        error: `Transfer was not completed because the item could not be updated: ${itemUpdateError.message}`
-      })
-    }
- 
-    await createAuditLog(
-      'Transferred',
-      item.id,
-      JSON.stringify({
-        accountable_employee: item.accountable_employee,
-        status: item.status,
-        condition: item.condition,
-        quantity: item.quantity
-      }),
-      JSON.stringify({
-        description: item.description,
-        property_number: item.property_number,
-        transfer_type,
-        from_employee: previousHolder,
-        from_office: item.responsibility_center || null,
-        to_office: 'Property Office',
-        transfer_date: transferDate,
-        condition_after_transfer: condition_after_transfer,
-        resulting_status: resultingStatus,
-        quantity: updatedQuantity,
-        reason: reason || null,
-        remarks: remarks || null
-      }),
-      `Transferred ${item.description} from ${previousHolder} to Property Office (${condition_after_transfer}); status ${resultingStatus}; restored quantity ${receiptQuantity}`,
-      req.profile?.id
-    )
- 
-    res.status(201).json(transfer)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }

@@ -154,12 +154,15 @@
               </div>
 
               <div class="col-12 col-md-6">
-                <label class="form-label">Article</label>
+                <label class="form-label">
+                  Article <span class="text-danger">*</span>
+                </label>
                 <input
                   v-model.trim="newItem.article"
                   type="text"
                   class="form-control"
                   placeholder="e.g. BAG"
+                  required
                 />
               </div>
 
@@ -237,12 +240,15 @@
               </div>
 
               <div class="col-12 col-md-6">
-                <label class="form-label">Supplier</label>
+                <label class="form-label">
+                  Supplier <span class="text-danger">*</span>
+                </label>
                 <input
                   v-model.trim="newItem.supplier"
                   type="text"
                   class="form-control"
                   list="supplier-options"
+                  required
                 />
               </div>
 
@@ -2091,6 +2097,7 @@ export default {
 </script>
 
 <style scoped>
+
 h1 {
   color: #2f5d3a;
 }
@@ -2161,6 +2168,53 @@ h1 {
 .property-table-wrap > .property-table > thead > tr > th,
 .property-table-wrap > .property-table > tbody > tr > td {
   padding: 6px 8px;
+}
+
+/* Freeze the first three columns */
+.property-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Unique ID */
+.property-table th:nth-child(1),
+.property-table td:nth-child(1) {
+  position: sticky;
+  left: 0;
+  min-width: 125px;
+  width: 125px;
+  background-color: #ffffff;
+  z-index: 2;
+}
+
+/* Property No. */
+.property-table th:nth-child(2),
+.property-table td:nth-child(2) {
+  position: sticky;
+  left: 125px;
+  min-width: 150px;
+  width: 150px;
+  background-color: #ffffff;
+  z-index: 2;
+}
+
+/* Description */
+.property-table th:nth-child(3),
+.property-table td:nth-child(3) {
+  position: sticky;
+  left: 275px;
+  min-width: 260px;
+  width: 260px;
+  background-color: #ffffff;
+  z-index: 2;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Sticky column headers */
+.property-table thead th:nth-child(-n+3) {
+  background-color: #2f5d3a;
+  color: #ffffff;
+  z-index: 4;
 }
 
 .property-details-button {
@@ -2329,6 +2383,51 @@ h1 {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+@media (max-width: 576px) {
+  .edit-overlay {
+    padding: 0.5rem;
+  }
+
+  .edit-dialog-footer {
+    flex-wrap: wrap;
+  }
+
+  .edit-dialog-footer .btn {
+    flex: 1 1 130px;
+  }
+}
+
+@media (max-width: 639.98px) {
+  .property-table-wrap > .property-table > tbody {
+    gap: 6px;
+  }
+
+  .property-table-wrap > .property-table > tbody > tr {
+    border-radius: 6px;
+    box-shadow: none;
+  }
+
+  .property-table-wrap > .property-table > tbody > tr > td {
+    gap: 1px;
+    padding: 4px 7px;
+    font-size: .75rem;
+    line-height: 1.25;
+  }
+
+  .property-table-wrap > .property-table > tbody > tr > td:last-child {
+    justify-content: flex-end;
+    padding: 3px 7px;
+  }
+
+  .property-table-wrap > .property-table > tbody > tr > td:last-child > .property-details-button {
+    flex: 0 0 auto;
+    min-height: 28px;
+    height: 28px;
+    padding: 3px 8px;
+    font-size: .75rem;
+  }
 }
 
 @media (max-width: 576px) {

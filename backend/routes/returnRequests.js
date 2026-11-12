@@ -434,7 +434,7 @@ router.patch('/:id/accept', staffOnly, async (req, res) => {
       .from('items')
       .update({
         condition: finalCondition,
-        status: 'Returned',
+        status: finalCondition === 'Serviceable' ? 'Available' : 'Returned',
         accountable_employee: null,
         quantity: updatedQuantity
       })

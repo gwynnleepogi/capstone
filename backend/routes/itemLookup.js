@@ -18,6 +18,7 @@ router.get('/mine', async (req, res) => {
         items (
           id,
           property_number,
+          article,
           description,
           serial_number,
           model_number,

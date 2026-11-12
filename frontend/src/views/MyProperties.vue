@@ -45,7 +45,7 @@
                   v-model.trim="searchQuery"
                   type="search"
                   class="form-control"
-                  placeholder="Search by ID or name"
+                  placeholder="Search by ID, article, or name"
                 >
               </div>
             </div>
@@ -86,6 +86,9 @@
             <span class="property-id">
               ID: {{ receipt.items?.property_number || receipt.items?.id || '-' }}
             </span>
+            <span class="property-article">
+              Article: {{ receipt.items?.article || '-' }}
+            </span>
             <span class="property-name">{{ receipt.items?.description || 'Unnamed property' }}</span>
             <i
               class="bi"
@@ -114,6 +117,8 @@
                 <dl class="row property-details mb-0">
                   <dt class="col-sm-4">Item ID</dt>
                   <dd class="col-sm-8">{{ receipt.items?.id || receipt.item_id || '-' }}</dd>
+                  <dt class="col-sm-4">Article</dt>
+                  <dd class="col-sm-8">{{ receipt.items?.article || '-' }}</dd>
                   <dt class="col-sm-4">Receipt Number</dt>
                   <dd class="col-sm-8">{{ receipt.receipt_number || '-' }}</dd>
                   <dt class="col-sm-4">Date Issued</dt>
@@ -201,6 +206,7 @@ export default {
         const matchesSearch = !query || [
           item.id,
           item.property_number,
+          item.article,
           item.description
         ].some(value => String(value || '').toLocaleLowerCase().includes(query))
         const matchesClassification = !this.selectedClassification ||
@@ -325,6 +331,12 @@ export default {
   color: #2f5d3a;
   font-size: 0.875rem;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.property-article {
+  color: #6c757d;
+  font-size: 0.875rem;
   white-space: nowrap;
 }
 

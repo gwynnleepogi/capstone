@@ -3,10 +3,18 @@ const router = express.Router()
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
 
+function getReturnedStatus(condition, quantity) {
+  if (condition === 'Serviceable') {
+    return Number(quantity ?? 0) > 0 ? 'Available' : 'Issued'
+  }
+
+  return 'Returned'
+}
+
 async function syncReturnedItem(itemId, condition, quantity) {
   const updates = {
     condition,
-    status: 'Returned',
+    status: getReturnedStatus(condition, quantity),
     accountable_employee: null
   }
 
@@ -430,10 +438,11 @@ router.delete('/:id', async (req, res) => {
         return res.status(500).json({ error: otherReturnError.message })
       }
 
+      const fallbackCondition = otherReturn?.condition_after_return || 'Serviceable'
       const restoredInventory = {
         quantity: nextQuantity,
-        status: otherReturn ? 'Returned' : nextQuantity > 0 ? 'Available' : 'Issued',
-        condition: otherReturn?.condition_after_return || 'Serviceable',
+        status: fallbackCondition === 'Serviceable' ? (nextQuantity > 0 ? 'Available' : 'Issued') : 'Returned',
+        condition: fallbackCondition,
         accountable_employee: null
       }
       itemAfterDelete = restoredInventory

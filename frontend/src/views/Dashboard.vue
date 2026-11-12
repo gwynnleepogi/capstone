@@ -971,8 +971,8 @@ h1 {
 }
 
 .account-pending-card .pending-count {
-  background: #d6ad2e;
-  color: #2d2b1f;
+  background: #f80c0c;
+  color: white;
 }
 
 .analytics-card {

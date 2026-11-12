@@ -3,17 +3,61 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2>Returns</h2>
-        <p class="text-muted">Manage returned property items</p>
+        <p class="text-muted">Manage return requests and recorded returns</p>
       </div>
 
-      <button class="btn btn-warning" @click="openAddModal">
+      <button
+        v-if="activeView === 'records'"
+        class="btn btn-warning"
+        @click="openAddModal"
+      >
         <i class="bi bi-arrow-return-left me-1"></i>
         Add Return
       </button>
     </div>
 
-    <ReturnRequestsPanel @changed="getReturns" />
+    <div class="btn-group mb-4" role="tablist" aria-label="Return views">
+      <button
+        id="return-requests-tab"
+        type="button"
+        role="tab"
+        class="btn"
+        :class="activeView === 'requests' ? 'btn-success' : 'btn-outline-success'"
+        :aria-selected="activeView === 'requests'"
+        aria-controls="return-requests-panel"
+        @click="activeView = 'requests'"
+      >
+        View Return Requests
+      </button>
+      <button
+        id="recorded-returns-tab"
+        type="button"
+        role="tab"
+        class="btn"
+        :class="activeView === 'records' ? 'btn-success' : 'btn-outline-success'"
+        :aria-selected="activeView === 'records'"
+        aria-controls="recorded-returns-panel"
+        @click="activeView = 'records'"
+      >
+        View Recorded Returns
+      </button>
+    </div>
 
+    <div
+      v-show="activeView === 'requests'"
+      id="return-requests-panel"
+      role="tabpanel"
+      aria-labelledby="return-requests-tab"
+    >
+      <ReturnRequestsPanel @changed="getReturns" />
+    </div>
+
+    <div
+      v-show="activeView === 'records'"
+      id="recorded-returns-panel"
+      role="tabpanel"
+      aria-labelledby="recorded-returns-tab"
+    >
     <div class="card mb-4">
       <div class="card-body">
         <div class="row g-3">
@@ -256,6 +300,7 @@
         </div>
       </div>
     </div>
+    </div>
 
     <div
       class="modal fade"
@@ -322,22 +367,12 @@
                   Returned By
                 </label>
 
-                <select
-                  class="form-select"
+                <SearchableSelect
                   v-model="form.returned_by"
-                >
-                  <option value="">
-                    Select Personnel
-                  </option>
-
-                  <option
-                    v-for="person in personnel"
-                    :key="person.id"
-                    :value="person.id"
-                  >
-                    {{ person.full_name }}
-                  </option>
-                </select>
+                  :options="personnelOptions"
+                  placeholder="Search returned by"
+                  @update:model-value="handleReturnedByChange"
+                />
               </div>
 
               <div class="mb-3">
@@ -400,11 +435,28 @@
                   Return Reason
                 </label>
 
-                <textarea
-                  class="form-control"
-                  rows="3"
+                <select
+                  class="form-select"
                   v-model="form.return_reason"
-                ></textarea>
+                  required
+                >
+                  <option value="">Select a reason</option>
+                  <option value="End of Contract">End of Contract</option>
+                  <option value="Transfer of Agency">Transfer of Agency</option>
+                  <option value="Resignation">Resignation</option>
+                  <option value="Change of Designation">Change of Designation</option>
+                  <option value="Retirement">Retirement</option>
+                  <option value="Others">Others</option>
+                </select>
+
+                <input
+                  v-if="form.return_reason === 'Others'"
+                  type="text"
+                  class="form-control mt-2"
+                  v-model.trim="form.otherReason"
+                  placeholder="Enter reason"
+                  required
+                >
               </div>
 
               <div class="mb-3">
@@ -515,17 +567,20 @@
 
 <script>
 import { Modal } from 'bootstrap'
+import SearchableSelect from '@/components/SearchableSelect.vue'
 import ReturnRequestsPanel from '@/components/ReturnRequestsPanel.vue'
 
 export default {
   name: 'Returns',
 
   components: {
+    SearchableSelect,
     ReturnRequestsPanel
   },
 
   data() {
     return {
+      activeView: 'records',
       returns: [],
       receipts: [],
       personnel: [],
@@ -554,12 +609,21 @@ export default {
         return_date: '',
         condition_after_return: 'Serviceable',
         return_reason: '',
+        otherReason: '',
         remarks: ''
       }
     }
   },
 
   computed: {
+    personnelOptions() {
+      return this.personnel.map(person => ({
+        value: person.id,
+        label: person.full_name
+          ? `${person.full_name}${person.job_title ? ` — ${person.job_title}` : ''}`
+          : 'Unknown employee'
+      }))
+    },
     selectedReceipt() {
       return this.receipts.find(
         receipt => receipt.id === this.form.property_receipt_id
@@ -695,6 +759,34 @@ export default {
     totalPages(newTotalPages) {
       if (this.currentPage > newTotalPages) {
         this.currentPage = newTotalPages
+      }
+    },
+
+    'form.property_receipt_id'() {
+      const receipt = this.selectedReceipt
+
+      if (!receipt) {
+        this.form.returned_by = ''
+        this.form.office_id = ''
+        return
+      }
+
+      const assignedUserId = receipt.issued_to || receipt.users?.id
+
+      if (assignedUserId) {
+        this.form.returned_by = String(assignedUserId)
+
+        const matchingPerson = this.personnel.find(
+          person => String(person.id) === String(assignedUserId)
+        )
+
+        if (matchingPerson && matchingPerson.office_id) {
+          this.form.office_id = String(matchingPerson.office_id)
+        } else if (receipt.users?.office_id) {
+          this.form.office_id = String(receipt.users.office_id)
+        }
+      } else {
+        this.form.returned_by = ''
       }
     }
   },
@@ -853,6 +945,35 @@ export default {
       }
     },
 
+    normalizeReturnReason(reason) {
+      const trimmed = String(reason || '').trim()
+
+      if (!trimmed) {
+        return { type: '', detail: '' }
+      }
+
+      if (trimmed.startsWith('Others:')) {
+        return {
+          type: 'Others',
+          detail: trimmed.replace(/^Others:\s*/i, '').trim()
+        }
+      }
+
+      return { type: trimmed, detail: '' }
+    },
+
+    handleReturnedByChange(value) {
+      this.form.returned_by = value
+
+      const selectedPerson = this.personnel.find(
+        person => String(person.id) === String(value)
+      )
+
+      if (selectedPerson && selectedPerson.office_id) {
+        this.form.office_id = String(selectedPerson.office_id)
+      }
+    },
+
     openAddModal() {
       this.editing = false
 
@@ -866,6 +987,7 @@ export default {
           .split('T')[0],
         condition_after_return: 'Serviceable',
         return_reason: '',
+        otherReason: '',
         remarks: ''
       }
 
@@ -881,6 +1003,8 @@ export default {
     editReturn(itemReturn) {
       this.editing = true
 
+      const { type, detail } = this.normalizeReturnReason(itemReturn.return_reason)
+
       this.form = {
         id: itemReturn.id,
         property_receipt_id: itemReturn.property_receipt_id || '',
@@ -889,7 +1013,8 @@ export default {
         return_date: itemReturn.return_date || '',
         condition_after_return:
           itemReturn.condition_after_return,
-        return_reason: itemReturn.return_reason || '',
+        return_reason: type || '',
+        otherReason: detail,
         remarks: itemReturn.remarks || ''
       }
 
@@ -941,6 +1066,10 @@ export default {
           method = 'PUT'
         }
 
+        const combinedReason = this.form.return_reason === 'Others'
+          ? `Others: ${this.form.otherReason.trim()}`
+          : this.form.return_reason
+
         const response = await fetch(url, {
           method: method,
 
@@ -955,7 +1084,7 @@ export default {
             return_date: this.form.return_date || null,
             condition_after_return:
               this.form.condition_after_return,
-            return_reason: this.form.return_reason,
+            return_reason: combinedReason,
             remarks: this.form.remarks
           })
         })

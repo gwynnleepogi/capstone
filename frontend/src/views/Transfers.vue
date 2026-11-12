@@ -4,7 +4,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2>Transfers</h2>
-        <p class="text-muted">Transfer issued property to another employee or back to the Property Office</p>
+        <p class="text-muted">Transfer issued property to another employee</p>
       </div>
 
       <button class="btn btn-warning" @click="openAddModal">
@@ -31,7 +31,6 @@
             <select class="form-select" v-model="typeFilter">
               <option value="">All Types</option>
               <option value="To Employee">To Employee</option>
-              <option value="To Property Office">To Property Office</option>
             </select>
           </div>
 
@@ -223,38 +222,13 @@
 
               <div class="mb-3">
                 <label class="form-label d-block">Transfer To</label>
-
-                <div class="form-check form-check-inline">
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    id="typeEmployee"
-                    value="To Employee"
-                    v-model="form.transfer_type"
-                    @change="resetEmployeeSearch"
-                  >
-                  <label class="form-check-label" for="typeEmployee">
-                    Another Employee
-                  </label>
-                </div>
-
-                <div class="form-check form-check-inline">
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    id="typeOffice"
-                    value="To Property Office"
-                    v-model="form.transfer_type"
-                    @change="resetEmployeeSearch"
-                  >
-                  <label class="form-check-label" for="typeOffice">
-                    Property Office (return to stock)
-                  </label>
+                <div class="text-muted small">
+                  Another employee only
                 </div>
               </div>
 
               <!-- Searchable Receiving Employee -->
-              <div v-if="form.transfer_type === 'To Employee'" class="mb-3">
+              <div class="mb-3">
                 <label class="form-label">Receiving Employee</label>
 
                 <div class="position-relative">
@@ -312,28 +286,7 @@
                   v-if="selectedReceipt && selectedReceipt.items?.condition !== 'Serviceable'"
                   class="form-text text-danger"
                 >
-                  This property is Unserviceable. It can only be transferred to the Property Office.
-                </div>
-              </div>
-
-              <div v-else class="mb-3">
-                <label class="form-label">Condition of Property</label>
-                <select
-                  class="form-select"
-                  v-model="form.condition_after_transfer"
-                  required
-                >
-                  <option value="Serviceable">Serviceable</option>
-                  <option value="Unserviceable">Unserviceable</option>
-                </select>
-
-                <div class="form-text">
-                  <template v-if="form.condition_after_transfer === 'Serviceable'">
-                    The property will be marked <strong>Available</strong> again.
-                  </template>
-                  <template v-else>
-                    The property will show as <strong>Returned and Unserviceable</strong> in the Properties tab.
-                  </template>
+                  This property is Unserviceable and cannot be transferred to another employee.
                 </div>
               </div>
 
@@ -579,7 +532,7 @@ export default {
     emptyForm() {
       return {
         property_receipt_id: '',
-        transfer_type: 'To Property Office',
+        transfer_type: 'To Employee',
         to_user_id: '',
         office_id: '',
         transfer_date: new Date().toISOString().split('T')[0],
@@ -670,10 +623,7 @@ export default {
     resetEmployeeSearch() {
       this.employeeSearch = ''
       this.showEmployeeOptions = false
-
-      if (this.form.transfer_type !== 'To Employee') {
-        this.form.to_user_id = ''
-      }
+      this.form.to_user_id = ''
     },
 
     async saveTransfer() {
@@ -687,16 +637,11 @@ export default {
           },
           body: JSON.stringify({
             property_receipt_id: this.form.property_receipt_id,
-            transfer_type: this.form.transfer_type,
-            to_user_id: this.form.transfer_type === 'To Employee'
-              ? this.form.to_user_id
-              : null,
+            transfer_type: 'To Employee',
+            to_user_id: this.form.to_user_id,
             office_id: this.form.office_id || null,
             transfer_date: this.form.transfer_date,
-            condition_after_transfer:
-              this.form.transfer_type === 'To Property Office'
-                ? this.form.condition_after_transfer
-                : null,
+            condition_after_transfer: null,
             reason: this.form.reason === 'Others'
               ? `Others: ${this.form.otherReason.trim()}`
               : this.form.reason,

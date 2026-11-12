@@ -854,7 +854,7 @@
                       v-model="personnelSearch.risRequestedBy"
                       class="form-control"
                       type="text"
-                      placeholder="Search name"
+                      placeholder="Search or enter name"
                       autocomplete="off"
                       required
                       role="combobox"
@@ -915,7 +915,7 @@
                       v-model="personnelSearch.risApprovedBy"
                       class="form-control"
                       type="text"
-                      placeholder="Search name"
+                      placeholder="Search or enter name"
                       autocomplete="off"
                       required
                       role="combobox"
@@ -976,7 +976,7 @@
                       v-model="personnelSearch.risIssuedBy"
                       class="form-control"
                       type="text"
-                      placeholder="Search name"
+                      placeholder="Search or enter name"
                       autocomplete="off"
                       required
                       role="combobox"
@@ -1037,7 +1037,7 @@
                       v-model="personnelSearch.risReceivedBy"
                       class="form-control"
                       type="text"
-                      placeholder="Search name"
+                      placeholder="Search or enter name"
                       autocomplete="off"
                       required
                       role="combobox"
@@ -1605,8 +1605,9 @@ export default {
     },
 
     onPersonnelSearch(form, searchKey, nameField, titleField) {
-      form[nameField] = ''
-      form[titleField] = ''
+      const fullName = this.personnelSearch[searchKey].trim()
+      form[nameField] = fullName
+      form[titleField] = this.getPersonnelTitle(fullName)
       this.showPersonnelOptions[searchKey] = true
     },
 

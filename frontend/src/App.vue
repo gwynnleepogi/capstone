@@ -137,7 +137,6 @@
         >
           <i class="bi bi-arrow-return-left"></i>
           Returns &amp; Incidents
-
           <span
             v-if="pendingReturnCount > 0"
             class="request-count-badge"
