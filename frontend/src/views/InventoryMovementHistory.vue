@@ -81,8 +81,8 @@
         <button @click="loadMovements">Try Again</button>
       </div>
 
-      <div v-else class="table-container">
-        <table>
+      <div v-else class="table-responsive table-container">
+        <table class="table table-hover align-middle">
           <thead>
             <tr>
               <th>Date</th>

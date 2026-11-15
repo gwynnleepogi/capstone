@@ -3,61 +3,24 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2>Returns</h2>
-        <p class="text-muted">Manage return requests and recorded returns</p>
+        <p class="text-muted">Manage returned property items</p>
       </div>
 
-      <button
-        v-if="activeView === 'records'"
-        class="btn btn-warning"
-        @click="openAddModal"
-      >
+      <button class="btn btn-warning" @click="openAddModal">
         <i class="bi bi-arrow-return-left me-1"></i>
         Add Return
       </button>
     </div>
 
-    <div class="btn-group mb-4" role="tablist" aria-label="Return views">
-      <button
-        id="return-requests-tab"
-        type="button"
-        role="tab"
-        class="btn"
-        :class="activeView === 'requests' ? 'btn-success' : 'btn-outline-success'"
-        :aria-selected="activeView === 'requests'"
-        aria-controls="return-requests-panel"
-        @click="activeView = 'requests'"
-      >
-        View Return Requests
-      </button>
-      <button
-        id="recorded-returns-tab"
-        type="button"
-        role="tab"
-        class="btn"
-        :class="activeView === 'records' ? 'btn-success' : 'btn-outline-success'"
-        :aria-selected="activeView === 'records'"
-        aria-controls="recorded-returns-panel"
-        @click="activeView = 'records'"
-      >
-        View Recorded Returns
-      </button>
+    <ReturnRequestsPanel @changed="getReturns" />
+
+    <div class="mt-5 pt-4 border-top mb-3">
+      <h3 id="recorded-returns-heading" class="h5 mb-1">Recorded Returns</h3>
+      <p class="text-muted mb-0">
+        Review returns that have already been recorded, separately from requests awaiting review.
+      </p>
     </div>
 
-    <div
-      v-show="activeView === 'requests'"
-      id="return-requests-panel"
-      role="tabpanel"
-      aria-labelledby="return-requests-tab"
-    >
-      <ReturnRequestsPanel @changed="getReturns" />
-    </div>
-
-    <div
-      v-show="activeView === 'records'"
-      id="recorded-returns-panel"
-      role="tabpanel"
-      aria-labelledby="recorded-returns-tab"
-    >
     <div class="card mb-4">
       <div class="card-body">
         <div class="row g-3">
@@ -299,7 +262,6 @@
           </nav>
         </div>
       </div>
-    </div>
     </div>
 
     <div
@@ -574,13 +536,12 @@ export default {
   name: 'Returns',
 
   components: {
-    SearchableSelect,
-    ReturnRequestsPanel
+    ReturnRequestsPanel,
+    SearchableSelect
   },
 
   data() {
     return {
-      activeView: 'records',
       returns: [],
       receipts: [],
       personnel: [],

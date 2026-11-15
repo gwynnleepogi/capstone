@@ -137,6 +137,7 @@
         >
           <i class="bi bi-arrow-return-left"></i>
           Returns &amp; Incidents
+
           <span
             v-if="pendingReturnCount > 0"
             class="request-count-badge"
@@ -1599,9 +1600,9 @@ body {
   }
 }
 
-@media (max-width: 639.98px) {
+@media (max-width: 767.98px) {
   .content .table-responsive {
-    overflow: visible;
+    overflow: visible !important;
   }
 
   .content .table-responsive > .table {
@@ -1690,79 +1691,6 @@ body {
     padding: .25rem .5rem;
     font-size: .75rem;
     min-height: 32px;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .content .table-responsive.property-table-wrap {
-    overflow-x: auto !important;
-    overflow-y: hidden;
-  }
-
-  .content .table-responsive.property-table-wrap > .property-table {
-    display: table !important;
-    width: max-content !important;
-    min-width: 1400px !important;
-    table-layout: auto !important;
-    border-collapse: collapse;
-    border-spacing: 0;
-  }
-
-  .content .table-responsive.property-table-wrap > .property-table > thead {
-    position: static;
-    display: table-header-group;
-    width: auto;
-    height: auto;
-    padding: 0;
-    margin: 0;
-    overflow: visible;
-    clip: auto;
-    white-space: normal;
-  }
-
-  .content .table-responsive.property-table-wrap > .property-table > tbody {
-    display: table-row-group;
-    gap: 0;
-  }
-
-  .content .table-responsive.property-table-wrap > .property-table > thead > tr,
-  .content .table-responsive.property-table-wrap > .property-table > tbody > tr {
-    display: table-row;
-    overflow: visible;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .content .table-responsive.property-table-wrap > .property-table th,
-  .content .table-responsive.property-table-wrap > .property-table td {
-    display: table-cell;
-    min-width: 0;
-    padding: 6px 8px;
-    border-right: 0;
-    text-align: left;
-    white-space: nowrap !important;
-    overflow-wrap: normal;
-    word-break: normal;
-  }
-
-  .content .table-responsive.property-table-wrap > .property-table > thead > tr > th:last-child,
-  .content .table-responsive.property-table-wrap > .property-table > tbody > tr > td:last-child:not([colspan]) {
-    min-width: 100px !important;
-    white-space: nowrap !important;
-  }
-
-  .content .table-responsive.property-table-wrap > .property-table > tbody > tr > td:last-child {
-    grid-column: auto;
-    flex-direction: initial;
-    align-items: initial;
-    justify-content: initial;
-    border-bottom: 1px solid var(--app-border);
-  }
-
-  .content .table-responsive.property-table-wrap > .property-table > tbody > tr > td:not([colspan])::before {
-    content: none;
   }
 }
 </style>
