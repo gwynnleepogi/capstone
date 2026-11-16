@@ -404,41 +404,6 @@
                   </div>
                 </div>
 
-                <div class="legend-item">
-                  <span class="legend-color lost-color"></span>
-
-                  <div>
-                    <p class="mb-0">Lost</p>
-                    <strong>{{ countStatus('Lost') }}</strong>
-                  </div>
-                </div>
-
-                <div class="legend-item">
-                  <span class="legend-color damaged-color"></span>
-
-                  <div>
-                    <p class="mb-0">Damaged</p>
-                    <strong>{{ countStatus('Damaged') }}</strong>
-                  </div>
-                </div>
-
-                <div class="legend-item">
-                  <span class="legend-color stolen-color"></span>
-
-                  <div>
-                    <p class="mb-0">Stolen</p>
-                    <strong>{{ countStatus('Stolen') }}</strong>
-                  </div>
-                </div>
-
-                <div class="legend-item">
-                  <span class="legend-color disposed-color"></span>
-
-                  <div>
-                    <p class="mb-0">Disposed</p>
-                    <strong>{{ countStatus('Disposed') }}</strong>
-                  </div>
-                </div>
 
               </div>
 
@@ -591,11 +556,7 @@ export default {
       return this.buildChartSegments([
         { name: 'Available', className: 'available-segment', count: this.countStatus('Available') },
         { name: 'Issued', className: 'issued-segment', count: this.countStatus('Issued') },
-        { name: 'Returned', className: 'returned-segment', count: this.countStatus('Returned') },
-        { name: 'Lost', className: 'lost-segment', count: this.countStatus('Lost') },
-        { name: 'Damaged', className: 'damaged-segment', count: this.countStatus('Damaged') },
-        { name: 'Stolen', className: 'stolen-segment', count: this.countStatus('Stolen') },
-        { name: 'Disposed', className: 'disposed-segment', count: this.countStatus('Disposed') }
+        { name: 'Returned', className: 'returned-segment', count: this.countStatus('Returned') }
       ])
     }
 
