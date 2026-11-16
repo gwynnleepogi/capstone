@@ -409,7 +409,7 @@
               class="table-responsive"
             >
               <table
-                class="table table-bordered table-hover align-middle"
+                class="table table-bordered table-hover align-middle table-assigned-items"
               >
                 <thead class="table-light">
                   <tr>
@@ -428,7 +428,7 @@
                     v-for="item in assignedItems"
                     :key="item.id"
                   >
-                    <td>
+                    <td class="text-nowrap">
                       {{ item.property_number || '-' }}
                     </td>
 
@@ -436,7 +436,7 @@
                       {{ item.description || '-' }}
                     </td>
 
-                    <td>
+                    <td class="text-nowrap">
                       {{ item.serial_number || '-' }}
                     </td>
 
@@ -447,7 +447,6 @@
                     <td>
                       {{ item.condition || '-' }}
                     </td>
-
                     <td>
                       <span
                         class="badge"
@@ -457,7 +456,7 @@
                       </span>
                     </td>
 
-                    <td>
+                    <td class="text-nowrap">
                       ₱{{ Number(item.cost || 0).toLocaleString() }}
                     </td>
                   </tr>
@@ -897,8 +896,7 @@ export default {
     },
 
     lastPersonnelNumber() {
-      const lastNumber =
-        this.currentPage *
+      const lastNumber =        this.currentPage *
         Number(this.itemsPerPage)
 
       return Math.min(
@@ -1347,8 +1345,7 @@ export default {
       }
     },
 
-    clearFilters() {
-      this.search = ''
+    clearFilters() {      this.search = ''
       this.roleFilter = ''
       this.officeFilter = ''
       this.currentPage = 1
@@ -1564,6 +1561,22 @@ h1 {
 .sortable {
   cursor: pointer;
   user-select: none;
+}
+
+.table-assigned-items {
+  min-width: 1050px;
+  table-layout: auto;
+}
+
+.table-assigned-items th,
+.table-assigned-items td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.table-assigned-items th:nth-child(2),
+.table-assigned-items td:nth-child(2) {
+  min-width: 350px;
 }
 
 .sortable:hover {
