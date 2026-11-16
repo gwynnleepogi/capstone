@@ -17,7 +17,6 @@ const BACKUP_TABLES = [
   'item_requests',
   'property_receipts',
   'item_returns',
-  'item_incidents',
   'incidents',
   'item_transfers',
   'return_requests',
