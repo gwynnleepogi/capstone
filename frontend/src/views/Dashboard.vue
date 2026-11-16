@@ -1075,13 +1075,9 @@ h1 {
 .chart-legend {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px 9px;
   align-items: start;
-}
-
-.classification-legend {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .status-legend {
