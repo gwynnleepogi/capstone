@@ -17,6 +17,7 @@ import ItemDetails from '@/views/ItemDetails.vue'
 import AuditLogs from '@/views/AuditLogs.vue'
 import InventoryMovementHistory from '@/views/InventoryMovementHistory.vue'
 import AccountRequests from '@/views/AccountRequests.vue'
+import PasswordResetRequests from '@/views/PasswordResetRequests.vue'
 
 
 const router = createRouter({
@@ -76,6 +77,12 @@ const router = createRouter({
       path: '/account-requests',
       name: 'AccountRequests',
       component: AccountRequests,
+      meta: { roles: ['Administrator'] }
+    },
+    {
+      path: '/password-reset-requests',
+      name: 'PasswordResetRequests',
+      component: PasswordResetRequests,
       meta: { roles: ['Administrator'] }
     },
     {

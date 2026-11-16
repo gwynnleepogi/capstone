@@ -17,12 +17,14 @@ const itemLookupRoutes = require('./routes/itemLookup')
 const auditLogsRoutes = require('./routes/auditLogs')
 const { requireAuth, requireRole } = require('./middleware/auth')
 const authRoutes = require('./routes/auth')
+const passwordResetRoutes = require('./routes/passwordResets')
 
 const app = express()
 
 app.use(cors())
 app.use(express.json())
 app.use('/api/auth', authRoutes)
+app.use('/api/password-resets', passwordResetRoutes)
 app.use('/api/item-documents', itemDocumentsRoutes)
 
 app.get('/', (req, res) => {

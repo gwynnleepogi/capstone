@@ -1,3 +1,4 @@
+
 <template>
   <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -26,7 +27,6 @@
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">Search</label>
-
             <input
               type="text"
               class="form-control"
@@ -37,11 +37,7 @@
 
           <div class="col-md-3">
             <label class="form-label">Condition</label>
-
-            <select
-              class="form-select"
-              v-model="conditionFilter"
-            >
+            <select class="form-select" v-model="conditionFilter">
               <option value="">All Conditions</option>
               <option value="Serviceable">Serviceable</option>
               <option value="Unserviceable">Unserviceable</option>
@@ -50,13 +46,8 @@
 
           <div class="col-md-3">
             <label class="form-label">Office</label>
-
-            <select
-              class="form-select"
-              v-model="officeFilter"
-            >
+            <select class="form-select" v-model="officeFilter">
               <option value="">All Offices</option>
-
               <option
                 v-for="office in offices"
                 :key="office.id"
@@ -76,42 +67,27 @@
           <table class="table table-hover align-middle">
             <thead>
               <tr>
-                <th
-                  class="sortable"
-                  @click="sortBy('item')"
-                >
+                <th class="sortable" @click="sortBy('item')">
                   Item
                   <i :class="getSortIcon('item')"></i>
                 </th>
 
-                <th
-                  class="sortable"
-                  @click="sortBy('returned_by')"
-                >
+                <th class="sortable" @click="sortBy('returned_by')">
                   Returned By
                   <i :class="getSortIcon('returned_by')"></i>
                 </th>
 
-                <th
-                  class="sortable"
-                  @click="sortBy('office')"
-                >
+                <th class="sortable" @click="sortBy('office')">
                   Office
                   <i :class="getSortIcon('office')"></i>
                 </th>
 
-                <th
-                  class="sortable"
-                  @click="sortBy('return_date')"
-                >
+                <th class="sortable" @click="sortBy('return_date')">
                   Return Date
                   <i :class="getSortIcon('return_date')"></i>
                 </th>
 
-                <th
-                  class="sortable"
-                  @click="sortBy('condition')"
-                >
+                <th class="sortable" @click="sortBy('condition')">
                   Condition
                   <i :class="getSortIcon('condition')"></i>
                 </th>
@@ -122,13 +98,8 @@
             </thead>
 
             <tbody>
-              <tr
-                v-for="itemReturn in paginatedReturns"
-                :key="itemReturn.id"
-              >
-                <td>
-                  {{ itemReturn.items?.description || '-' }}
-                </td>
+              <tr v-for="itemReturn in paginatedReturns" :key="itemReturn.id">
+                <td>{{ itemReturn.items?.description || '-' }}</td>
 
                 <td>
                   {{
@@ -138,13 +109,9 @@
                   }}
                 </td>
 
-                <td>
-                  {{ itemReturn.offices?.office_name || '-' }}
-                </td>
+                <td>{{ itemReturn.offices?.office_name || '-' }}</td>
 
-                <td>
-                  {{ itemReturn.return_date || '-' }}
-                </td>
+                <td>{{ itemReturn.return_date || '-' }}</td>
 
                 <td>
                   <span
@@ -159,9 +126,7 @@
                   </span>
                 </td>
 
-                <td>
-                  {{ itemReturn.return_reason || '-' }}
-                </td>
+                <td>{{ itemReturn.return_reason || '-' }}</td>
 
                 <td>
                   <button
@@ -176,10 +141,7 @@
               </tr>
 
               <tr v-if="paginatedReturns.length === 0">
-                <td
-                  colspan="7"
-                  class="text-center text-muted py-4"
-                >
+                <td colspan="7" class="text-center text-muted py-4">
                   No returns found.
                 </td>
               </tr>
@@ -192,9 +154,7 @@
           class="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-3"
         >
           <div class="d-flex align-items-center gap-2">
-            <label class="mb-0 text-muted small">
-              Show
-            </label>
+            <label class="mb-0 text-muted small">Show</label>
 
             <select
               class="form-select form-select-sm"
@@ -207,9 +167,7 @@
               <option :value="50">50</option>
             </select>
 
-            <span class="text-muted small">
-              entries
-            </span>
+            <span class="text-muted small">entries</span>
           </div>
 
           <div class="text-muted small">
@@ -219,10 +177,7 @@
 
           <nav>
             <ul class="pagination pagination-sm mb-0">
-              <li
-                class="page-item"
-                :class="{ disabled: currentPage === 1 }"
-              >
+              <li class="page-item" :class="{ disabled: currentPage === 1 }">
                 <button
                   class="page-link"
                   @click="previousPage"
@@ -238,18 +193,12 @@
                 class="page-item"
                 :class="{ active: currentPage === page }"
               >
-                <button
-                  class="page-link"
-                  @click="goToPage(page)"
-                >
+                <button class="page-link" @click="goToPage(page)">
                   {{ page }}
                 </button>
               </li>
 
-              <li
-                class="page-item"
-                :class="{ disabled: currentPage === totalPages }"
-              >
+              <li class="page-item" :class="{ disabled: currentPage === totalPages }">
                 <button
                   class="page-link"
                   @click="nextPage"
@@ -264,11 +213,8 @@
       </div>
     </div>
 
-    <div
-      class="modal fade"
-      id="returnModal"
-      tabindex="-1"
-    >
+    <!-- Add / Edit Return Modal -->
+    <div class="modal fade" id="returnModal" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
@@ -287,7 +233,7 @@
             <div class="modal-body">
               <div class="mb-3">
                 <label class="form-label">
-                  Issued Receipt
+                  Issued Receipt <span class="text-danger">*</span>
                 </label>
 
                 <select
@@ -296,22 +242,26 @@
                   v-model="form.property_receipt_id"
                   required
                 >
-                  <option value="">
-                    Select an issued receipt
-                  </option>
+                  <option value="">Select an issued receipt</option>
 
                   <option
                     v-for="receipt in eligibleReceipts"
                     :key="receipt.id"
-                    :value="receipt.id"
+                    :value="String(receipt.id)"
                   >
-                    {{ receipt.receipt_number }} — {{ receipt.items?.description || 'Item' }} ({{ receipt.quantity }})
+                    {{ receipt.receipt_number }} — {{ receipt.items?.description || 'Item' }}
+                    ({{ receipt.quantity }})
                   </option>
                 </select>
+
                 <div v-else class="form-control-plaintext">
                   {{ selectedReceipt?.receipt_number || 'Receipt details unavailable' }}
                 </div>
-                <div v-if="!editing && eligibleReceipts.length === 0" class="form-text text-warning">
+
+                <div
+                  v-if="!editing && eligibleReceipts.length === 0"
+                  class="form-text text-warning"
+                >
                   No unreturned issued receipts are available.
                 </div>
               </div>
@@ -326,7 +276,7 @@
 
               <div class="mb-3">
                 <label class="form-label">
-                  Returned By
+                  Returned By <span class="text-danger">*</span>
                 </label>
 
                 <SearchableSelect
@@ -335,46 +285,50 @@
                   placeholder="Search returned by"
                   @update:model-value="handleReturnedByChange"
                 />
+
+                <div class="form-text">
+                  Automatically filled based on the selected receipt. You can still change it.
+                </div>
               </div>
 
               <div class="mb-3">
                 <label class="form-label">
-                  Office
+                  Office <span class="text-danger">*</span>
                 </label>
 
-                <select
-                  class="form-select"
-                  v-model="form.office_id"
-                >
-                  <option value="">
-                    Select Office
-                  </option>
+                <select class="form-select" v-model="form.office_id">
+                  <option value="">Select Office</option>
 
                   <option
                     v-for="office in offices"
                     :key="office.id"
-                    :value="office.id"
+                    :value="String(office.id)"
                   >
                     {{ office.office_name }}
                   </option>
                 </select>
+
+                <div class="form-text">
+                  Automatically filled based on the selected employee. You can still change it.
+                </div>
               </div>
 
               <div class="mb-3">
                 <label class="form-label">
-                  Return Date
+                  Return Date <span class="text-danger">*</span>
                 </label>
 
                 <input
                   type="date"
                   class="form-control"
                   v-model="form.return_date"
+                  required
                 >
               </div>
 
               <div class="mb-3">
                 <label class="form-label">
-                  Condition After Return
+                  Condition After Return <span class="text-danger">*</span>
                 </label>
 
                 <select
@@ -382,19 +336,14 @@
                   v-model="form.condition_after_return"
                   required
                 >
-                  <option value="Serviceable">
-                    Serviceable
-                  </option>
-
-                  <option value="Unserviceable">
-                    Unserviceable
-                  </option>
+                  <option value="Serviceable">Serviceable</option>
+                  <option value="Unserviceable">Unserviceable</option>
                 </select>
               </div>
 
               <div class="mb-3">
                 <label class="form-label">
-                  Return Reason
+                  Return Reason <span class="text-danger">*</span>
                 </label>
 
                 <select
@@ -422,9 +371,7 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">
-                  Remarks
-                </label>
+                <label class="form-label">Remarks</label>
 
                 <textarea
                   class="form-control"
@@ -448,11 +395,7 @@
                 class="btn btn-warning"
                 :disabled="saving"
               >
-                <i
-                  v-if="!saving"
-                  class="bi bi-check-lg me-1"
-                ></i>
-
+                <i v-if="!saving" class="bi bi-check-lg me-1"></i>
                 {{ saving ? 'Saving...' : 'Save Return' }}
               </button>
             </div>
@@ -461,6 +404,7 @@
       </div>
     </div>
 
+    <!-- Return Details Modal -->
     <div
       class="modal fade"
       id="returnDetailsModal"
@@ -471,46 +415,94 @@
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 id="returnDetailsModalLabel" class="modal-title">Returned Property Details</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <h5 id="returnDetailsModalLabel" class="modal-title">
+              Returned Property Details
+            </h5>
+
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
+
           <div v-if="selectedReturn" class="modal-body">
             <dl class="row mb-0">
               <dt class="col-sm-4">Property Number</dt>
               <dd class="col-sm-8">{{ selectedReturn.items?.property_number || '-' }}</dd>
+
               <dt class="col-sm-4">Description</dt>
               <dd class="col-sm-8">{{ selectedReturn.items?.description || '-' }}</dd>
+
               <dt class="col-sm-4">Serial Number</dt>
               <dd class="col-sm-8">{{ selectedReturn.items?.serial_number || '-' }}</dd>
+
               <dt class="col-sm-4">Returned Receipt</dt>
-              <dd class="col-sm-8">{{ selectedReturn.property_receipts?.receipt_number || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ selectedReturn.property_receipts?.receipt_number || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Quantity Restored to Stock</dt>
-              <dd class="col-sm-8">{{ selectedReturn.property_receipts?.quantity ?? '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ selectedReturn.property_receipts?.quantity ?? '-' }}
+              </dd>
+
               <dt class="col-sm-4">Inventory Status</dt>
-              <dd class="col-sm-8"><span class="badge bg-info text-dark">{{ selectedReturn.items?.status || 'Returned' }}</span></dd>
+              <dd class="col-sm-8">
+                <span class="badge bg-info text-dark">
+                  {{ selectedReturn.items?.status || 'Returned' }}
+                </span>
+              </dd>
+
               <dt class="col-sm-4">Condition After Return</dt>
               <dd class="col-sm-8">
-                <span class="badge" :class="selectedReturn.condition_after_return === 'Serviceable' ? 'bg-success' : 'bg-danger'">
+                <span
+                  class="badge"
+                  :class="
+                    selectedReturn.condition_after_return === 'Serviceable'
+                      ? 'bg-success'
+                      : 'bg-danger'
+                  "
+                >
                   {{ selectedReturn.condition_after_return || '-' }}
                 </span>
               </dd>
+
               <dt class="col-sm-4">Returned By</dt>
-              <dd class="col-sm-8">{{ selectedReturn.users?.full_name || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ selectedReturn.personnel?.full_name || selectedReturn.users?.full_name || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Office</dt>
-              <dd class="col-sm-8">{{ selectedReturn.offices?.office_name || '-' }}</dd>
+              <dd class="col-sm-8">
+                {{ selectedReturn.offices?.office_name || '-' }}
+              </dd>
+
               <dt class="col-sm-4">Return Date</dt>
               <dd class="col-sm-8">{{ selectedReturn.return_date || '-' }}</dd>
+
               <dt class="col-sm-4">Reason</dt>
               <dd class="col-sm-8">{{ selectedReturn.return_reason || '-' }}</dd>
+
               <dt class="col-sm-4">Remarks</dt>
               <dd class="col-sm-8">{{ selectedReturn.remarks || '-' }}</dd>
             </dl>
           </div>
+
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-outline-warning" @click="editSelectedReturn">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              Close
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-outline-warning"
+              @click="editSelectedReturn"
+            >
               <i class="bi bi-pencil me-1"></i>Edit
             </button>
+
             <button
               type="button"
               class="btn btn-outline-danger"
@@ -579,32 +571,34 @@ export default {
   computed: {
     personnelOptions() {
       return this.personnel.map(person => ({
-        value: person.id,
+        value: String(person.id),
         label: person.full_name
           ? `${person.full_name}${person.job_title ? ` — ${person.job_title}` : ''}`
           : 'Unknown employee'
       }))
     },
+
     selectedReceipt() {
       return this.receipts.find(
-        receipt => receipt.id === this.form.property_receipt_id
+        receipt => String(receipt.id) === String(this.form.property_receipt_id)
       ) || null
     },
 
     eligibleReceipts() {
       const returnedReceiptIds = new Set(
-        this.returns.map(itemReturn => itemReturn.property_receipt_id)
+        this.returns.map(itemReturn => String(itemReturn.property_receipt_id))
       )
+
       const itemsWithUnlinkedReturns = new Set(
         this.returns
           .filter(itemReturn => !itemReturn.property_receipt_id)
-          .map(itemReturn => itemReturn.item_id)
+          .map(itemReturn => String(itemReturn.item_id))
       )
 
       return this.receipts.filter(receipt =>
         receipt.status === 'Issued' &&
-        !returnedReceiptIds.has(receipt.id) &&
-        !itemsWithUnlinkedReturns.has(receipt.item_id)
+        !returnedReceiptIds.has(String(receipt.id)) &&
+        !itemsWithUnlinkedReturns.has(String(receipt.item_id))
       )
     },
 
@@ -621,9 +615,7 @@ export default {
         ).toLowerCase()
 
         const officeName = String(itemReturn.offices?.office_name || '').toLowerCase()
-
         const returnReason = String(itemReturn.return_reason || '').toLowerCase()
-
         const condition = String(itemReturn.condition_after_return || '').toLowerCase()
 
         const matchesSearch =
@@ -642,16 +634,11 @@ export default {
           !this.officeFilter ||
           itemReturn.offices?.office_name === this.officeFilter
 
-        return (
-          matchesSearch &&
-          matchesCondition &&
-          matchesOffice
-        )
+        return matchesSearch && matchesCondition && matchesOffice
       })
 
       return filtered.sort((a, b) => {
         const firstValue = this.getSortValue(a, this.sortColumn)
-
         const secondValue = this.getSortValue(b, this.sortColumn)
 
         if (firstValue < secondValue) {
@@ -667,29 +654,17 @@ export default {
     },
 
     totalPages() {
-      return Math.max(
-        1,
-        Math.ceil(
-          this.filteredReturns.length / this.itemsPerPage
-        )
-      )
+      return Math.max(1, Math.ceil(this.filteredReturns.length / this.itemsPerPage))
     },
 
     paginatedReturns() {
-      const start =
-        (this.currentPage - 1) * this.itemsPerPage
-
-      const end = start + this.itemsPerPage
-
-      return this.filteredReturns.slice(start, end)
+      const start = (this.currentPage - 1) * this.itemsPerPage
+      return this.filteredReturns.slice(start, start + this.itemsPerPage)
     },
 
     firstReturnNumber() {
-      if (this.filteredReturns.length === 0) {
-        return 0
-      }
-
-      return ((this.currentPage - 1) * this.itemsPerPage + 1)
+      if (this.filteredReturns.length === 0) return 0
+      return (this.currentPage - 1) * this.itemsPerPage + 1
     },
 
     lastReturnNumber() {
@@ -723,31 +698,13 @@ export default {
       }
     },
 
+    personnel() {
+      this.populateReturnRecipient()
+    },
+
     'form.property_receipt_id'() {
-      const receipt = this.selectedReceipt
-
-      if (!receipt) {
-        this.form.returned_by = ''
-        this.form.office_id = ''
-        return
-      }
-
-      const assignedUserId = receipt.issued_to || receipt.users?.id
-
-      if (assignedUserId) {
-        this.form.returned_by = String(assignedUserId)
-
-        const matchingPerson = this.personnel.find(
-          person => String(person.id) === String(assignedUserId)
-        )
-
-        if (matchingPerson && matchingPerson.office_id) {
-          this.form.office_id = String(matchingPerson.office_id)
-        } else if (receipt.users?.office_id) {
-          this.form.office_id = String(receipt.users.office_id)
-        }
-      } else {
-        this.form.returned_by = ''
+      if (!this.editing) {
+        this.populateReturnRecipient()
       }
     }
   },
@@ -760,6 +717,62 @@ export default {
   },
 
   methods: {
+    // Automatically fill Returned By and Office from the selected receipt
+    populateReturnRecipient() {
+      const receipt = this.selectedReceipt
+
+      if (!receipt) {
+        this.form.returned_by = ''
+        this.form.office_id = ''
+        return
+      }
+
+      // Possible employee/user ID fields from the receipt response
+      const assignedUserId =
+        receipt.issued_to ||
+        receipt.user_id ||
+        receipt.personnel_id ||
+        receipt.users?.id ||
+        receipt.personnel?.id ||
+        receipt.users?.personnel_id ||
+        receipt.users?.personnel?.id
+
+      if (!assignedUserId) {
+        this.form.returned_by = ''
+        this.form.office_id = ''
+        return
+      }
+
+      // Match the receipt's assigned user with the personnel list
+      const matchingPerson = this.personnel.find(person =>
+        String(person.id) === String(assignedUserId) ||
+        String(person.user_id) === String(assignedUserId)
+      )
+
+      if (matchingPerson) {
+        // Use the personnel ID because SearchableSelect uses personnel IDs
+        this.form.returned_by = String(matchingPerson.id)
+
+        const officeId =
+          matchingPerson.office_id ||
+          receipt.office_id ||
+          receipt.users?.office_id ||
+          receipt.personnel?.office_id
+
+        this.form.office_id = officeId ? String(officeId) : ''
+      } else {
+        // Keep the office if it is available from the receipt's user relation
+        this.form.returned_by = ''
+
+        const officeId =
+          receipt.office_id ||
+          receipt.users?.office_id ||
+          receipt.personnel?.office_id
+
+        this.form.office_id = officeId ? String(officeId) : ''
+      }
+    },
+
     getSortValue(itemReturn, column) {
       if (column === 'item') {
         return String(itemReturn.items?.description || '').toLowerCase()
@@ -791,9 +804,7 @@ export default {
     sortBy(column) {
       if (this.sortColumn === column) {
         this.sortDirection =
-          this.sortDirection === 'asc'
-            ? 'desc'
-            : 'asc'
+          this.sortDirection === 'asc' ? 'desc' : 'asc'
       } else {
         this.sortColumn = column
         this.sortDirection = 'asc'
@@ -805,11 +816,9 @@ export default {
         return 'bi bi-arrow-down-up text-muted ms-1'
       }
 
-      if (this.sortDirection === 'asc') {
-        return 'bi bi-arrow-up ms-1'
-      }
-
-      return 'bi bi-arrow-down ms-1'
+      return this.sortDirection === 'asc'
+        ? 'bi bi-arrow-up ms-1'
+        : 'bi bi-arrow-down ms-1'
     },
 
     goToPage(page) {
@@ -832,19 +841,14 @@ export default {
 
     async getReturns() {
       try {
-        const response = await fetch(
-          '/api/returns'
-        )
-
+        const response = await fetch('/api/returns')
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(
-            data.error || 'Failed to load returns'
-          )
+          throw new Error(data.error || 'Failed to load returns')
         }
 
-        this.returns = data
+        this.returns = Array.isArray(data) ? data : []
       } catch (error) {
         console.log(error)
 
@@ -866,24 +870,27 @@ export default {
         }
 
         this.receipts = Array.isArray(data) ? data : []
+
+        // Recheck the selected receipt after loading
+        this.populateReturnRecipient()
       } catch (error) {
         console.log(error)
+
         window.dispatchEvent(
-          new CustomEvent('show-toast', { detail: error.message })
+          new CustomEvent('show-toast', {
+            detail: error.message
+          })
         )
       }
     },
 
     async getPersonnel() {
       try {
-        const response = await fetch(
-          '/api/personnel'
-        )
-
+        const response = await fetch('/api/personnel')
         const data = await response.json()
 
         if (response.ok) {
-          this.personnel = data
+          this.personnel = Array.isArray(data) ? data : []
         }
       } catch (error) {
         console.log(error)
@@ -892,14 +899,11 @@ export default {
 
     async getOffices() {
       try {
-        const response = await fetch(
-          '/api/offices'
-        )
-
+        const response = await fetch('/api/offices')
         const data = await response.json()
 
         if (response.ok) {
-          this.offices = data
+          this.offices = Array.isArray(data) ? data : []
         }
       } catch (error) {
         console.log(error)
@@ -943,20 +947,15 @@ export default {
         property_receipt_id: '',
         returned_by: '',
         office_id: '',
-        return_date: new Date()
-          .toISOString()
-          .split('T')[0],
+        return_date: new Date().toISOString().split('T')[0],
         condition_after_return: 'Serviceable',
         return_reason: '',
         otherReason: '',
         remarks: ''
       }
 
-      const modalElement =
-        document.getElementById('returnModal')
-
-      const modal =
-        Modal.getOrCreateInstance(modalElement)
+      const modalElement = document.getElementById('returnModal')
+      const modal = Modal.getOrCreateInstance(modalElement)
 
       modal.show()
     },
@@ -968,28 +967,31 @@ export default {
 
       this.form = {
         id: itemReturn.id,
-        property_receipt_id: itemReturn.property_receipt_id || '',
-        returned_by: itemReturn.returned_by || '',
-        office_id: itemReturn.office_id || '',
+        property_receipt_id: itemReturn.property_receipt_id
+          ? String(itemReturn.property_receipt_id)
+          : '',
+        returned_by: itemReturn.returned_by
+          ? String(itemReturn.returned_by)
+          : '',
+        office_id: itemReturn.office_id
+          ? String(itemReturn.office_id)
+          : '',
         return_date: itemReturn.return_date || '',
-        condition_after_return:
-          itemReturn.condition_after_return,
+        condition_after_return: itemReturn.condition_after_return,
         return_reason: type || '',
         otherReason: detail,
         remarks: itemReturn.remarks || ''
       }
 
-      const modalElement =
-        document.getElementById('returnModal')
-
-      const modal =
-        Modal.getOrCreateInstance(modalElement)
+      const modalElement = document.getElementById('returnModal')
+      const modal = Modal.getOrCreateInstance(modalElement)
 
       modal.show()
     },
 
     viewReturnDetails(itemReturn) {
       this.selectedReturn = itemReturn
+
       Modal.getOrCreateInstance(
         document.getElementById('returnDetailsModal')
       ).show()
@@ -997,33 +999,76 @@ export default {
 
     editSelectedReturn() {
       if (!this.selectedReturn) return
+
       const itemReturn = this.selectedReturn
-      Modal.getInstance(document.getElementById('returnDetailsModal'))?.hide()
+
+      Modal.getInstance(
+        document.getElementById('returnDetailsModal')
+      )?.hide()
+
       this.editReturn(itemReturn)
     },
 
     async deleteSelectedReturn() {
       if (!this.selectedReturn) return
+
       const id = this.selectedReturn.id
       const deleted = await this.deleteReturn(id)
+
       if (deleted) {
-        Modal.getInstance(document.getElementById('returnDetailsModal'))?.hide()
+        Modal.getInstance(
+          document.getElementById('returnDetailsModal')
+        )?.hide()
       }
     },
 
     async saveReturn() {
+      if (this.saving) return
+
+      if (!this.form.property_receipt_id) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Please select an issued receipt.'
+          })
+        )
+        return
+      }
+
+      if (!this.form.returned_by) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Please select who returned the property.'
+          })
+        )
+        return
+      }
+
+      if (!this.form.office_id) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Please select an office.'
+          })
+        )
+        return
+      }
+
+      if (this.form.return_reason === 'Others' && !this.form.otherReason.trim()) {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: 'Please enter the return reason.'
+          })
+        )
+        return
+      }
+
       this.saving = true
 
       try {
-        let url =
-          '/api/returns'
-
+        let url = '/api/returns'
         let method = 'POST'
 
         if (this.editing) {
-          url =
-            `/api/returns/${this.form.id}`
-
+          url = `/api/returns/${this.form.id}`
           method = 'PUT'
         }
 
@@ -1032,19 +1077,16 @@ export default {
           : this.form.return_reason
 
         const response = await fetch(url, {
-          method: method,
-
+          method,
           headers: {
             'Content-Type': 'application/json'
           },
-
           body: JSON.stringify({
             property_receipt_id: this.form.property_receipt_id,
             returned_by: this.form.returned_by || null,
             office_id: this.form.office_id || null,
             return_date: this.form.return_date || null,
-            condition_after_return:
-              this.form.condition_after_return,
+            condition_after_return: this.form.condition_after_return,
             return_reason: combinedReason,
             remarks: this.form.remarks
           })
@@ -1053,16 +1095,11 @@ export default {
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(
-            data.error || 'Failed to save return'
-          )
+          throw new Error(data.error || 'Failed to save return')
         }
 
-        const modalElement =
-          document.getElementById('returnModal')
-
-        const modal =
-          Modal.getOrCreateInstance(modalElement)
+        const modalElement = document.getElementById('returnModal')
+        const modal = Modal.getOrCreateInstance(modalElement)
 
         modal.hide()
 
@@ -1094,23 +1131,16 @@ export default {
         return false
       }
 
-      if (
-        !confirm(
-          'Are you sure you want to delete this return?'
-        )
-      ) {
+      if (!confirm('Are you sure you want to delete this return?')) {
         return false
       }
 
       this.deletingReturnId = id
 
       try {
-        const response = await fetch(
-          `/api/returns/${id}`,
-          {
-            method: 'DELETE'
-          }
-        )
+        const response = await fetch(`/api/returns/${id}`, {
+          method: 'DELETE'
+        })
 
         const responseText = await response.text()
         let data = {}
@@ -1119,14 +1149,14 @@ export default {
           try {
             data = JSON.parse(responseText)
           } catch {
-            throw new Error('The server returned an invalid response while deleting the return.')
+            throw new Error(
+              'The server returned an invalid response while deleting the return.'
+            )
           }
         }
 
         if (!response.ok) {
-          throw new Error(
-            data.error || 'Failed to delete return'
-          )
+          throw new Error(data.error || 'Failed to delete return')
         }
 
         await this.getReturns()
@@ -1137,6 +1167,7 @@ export default {
             detail: 'Return deleted successfully'
           })
         )
+
         return true
       } catch (error) {
         console.log(error)
@@ -1146,6 +1177,7 @@ export default {
             detail: error.message
           })
         )
+
         return false
       } finally {
         this.deletingReturnId = null
@@ -1181,6 +1213,5 @@ export default {
     max-width: calc(100% - 1rem);
     margin: .5rem auto;
   }
-
 }
 </style>

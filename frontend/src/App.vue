@@ -232,6 +232,23 @@
             {{ pendingAccountRequestCount > 99 ? '99+' : pendingAccountRequestCount }}
           </span>
         </router-link>
+
+        <router-link
+          v-if="canAccess(['Administrator'])"
+          to="/password-reset-requests"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-key"></i>
+          Password Reset Requests
+          <span
+            v-if="pendingPasswordResetCount > 0"
+            class="request-count-badge"
+            :aria-label="`${pendingPasswordResetCount} pending password reset requests`"
+          >
+            {{ pendingPasswordResetCount > 99 ? '99+' : pendingPasswordResetCount }}
+          </span>
+        </router-link>
       </nav>
 
       <div class="sidebar-bottom">
@@ -295,6 +312,7 @@ export default {
       pendingRequestCount: 0,
       pendingIssuanceCount: 0,
       pendingAccountRequestCount: 0,
+      pendingPasswordResetCount: 0,
       showQrScanner: false,
       pendingReturnCount: 0,
       requestCountTimer: null,
@@ -318,6 +336,7 @@ export default {
     window.addEventListener('receipts-updated', this.refreshPendingIssuanceCount)
     window.addEventListener('return-requests-updated', this.refreshPendingRequestCount)
     window.addEventListener('account-requests-updated', this.refreshPendingAccountRequestCount)
+    window.addEventListener('password-reset-requests-updated', this.refreshPendingPasswordResetCount)
     window.addEventListener('open-qr-scanner', this.openQrScanner)
 
     this.tableLabelObserver = new MutationObserver(
@@ -344,6 +363,7 @@ export default {
     window.removeEventListener('receipts-updated', this.refreshPendingIssuanceCount)
     window.removeEventListener('return-requests-updated', this.refreshPendingRequestCount)
     window.removeEventListener('account-requests-updated', this.refreshPendingAccountRequestCount)
+    window.removeEventListener('password-reset-requests-updated', this.refreshPendingPasswordResetCount)
     window.removeEventListener('open-qr-scanner', this.openQrScanner)
 
     clearInterval(this.requestCountTimer)
@@ -438,6 +458,7 @@ export default {
       this.refreshPendingReturnCount()
       this.refreshPendingAccountRequestCount()
       this.refreshPendingIssuanceCount()
+      this.refreshPendingPasswordResetCount()
 
       try {
         const response = await fetch('/api/item-requests')
@@ -522,6 +543,39 @@ export default {
       }
     },
 
+    async refreshPendingPasswordResetCount() {
+      if (
+        !this.canAccess(['Administrator']) ||
+        !localStorage.getItem('accessToken')
+      ) {
+        this.pendingPasswordResetCount = 0
+        return
+      }
+
+      try {
+        const response = await fetch('/api/password-resets', {
+          headers: {
+            Authorization: 'Bearer ' + localStorage.getItem('accessToken')
+          }
+        })
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load password reset requests')
+        }
+
+        if (!Array.isArray(data)) {
+          throw new Error('The password reset requests response was not a list')
+        }
+
+        this.pendingPasswordResetCount = data.filter(
+          request => request.status === 'pending'
+        ).length
+      } catch (error) {
+        console.error('Pending password reset count error:', error)
+      }
+    },
+
     canAccess(roles) {
       return roles.includes(this.currentUser?.role)
     },
@@ -576,6 +630,7 @@ export default {
       this.currentUser = null
       this.pendingRequestCount = 0
       this.pendingAccountRequestCount = 0
+      this.pendingPasswordResetCount = 0
       this.menuOpen = false
 
       localStorage.removeItem('accessToken')

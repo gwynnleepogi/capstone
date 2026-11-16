@@ -1,9 +1,13 @@
+
 const express = require('express')
 const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
 
+// ==========================================
+// HELPER FUNCTIONS
+// ==========================================
 function getItemReferenceError(error, operation) {
   if (error.code !== '23503') {
     return null
@@ -16,6 +20,14 @@ function getItemReferenceError(error, operation) {
   }
 
   return `This item cannot be ${operation} because it is referenced by existing records.`
+}
+
+function cleanText(value) {
+  return String(value || '').trim()
+}
+
+function getResponsibilityCenter(value) {
+  return cleanText(value) || null
 }
 
 // ==========================================
@@ -61,6 +73,7 @@ router.post('/:id/document-link', async (req, res) => {
     }
 
     const viewUrl = `/items?item=${encodeURIComponent(item.id)}`
+
     res.json({ viewUrl })
   } catch (error) {
     console.error('Failed to create item document link:', error)
@@ -93,7 +106,10 @@ router.get('/options', async (req, res) => {
       return res.status(500).json({ error: officesError.message })
     }
 
-    res.json({ personnel, offices })
+    res.json({
+      personnel: personnel || [],
+      offices: offices || []
+    })
   } catch (error) {
     console.log(error)
     res.status(500).json({ error: 'Failed to load options' })
@@ -126,7 +142,8 @@ router.get('/assigned/:employeeName', async (req, res) => {
 })
 
 // ==========================================
-// 5. CREATE ITEM (With Bulk Add Support)
+// 5. CREATE ITEM
+// With Bulk Add Support
 // ==========================================
 router.post('/', async (req, res) => {
   try {
@@ -139,7 +156,6 @@ router.post('/', async (req, res) => {
       quantity,
       acquisition_date,
       condition,
-      status,
       accountable_employee,
       responsibility_center,
       fund_cluster,
@@ -152,13 +168,17 @@ router.post('/', async (req, res) => {
     } = req.body
 
     if (!fund_cluster || !String(fund_cluster).trim()) {
-      return res.status(400).json({ error: 'Fund Cluster is required.' })
+      return res.status(400).json({
+        error: 'Fund Cluster is required.'
+      })
     }
 
     const itemCost = Number(cost ?? 0)
 
     if (!Number.isFinite(itemCost) || itemCost < 0) {
-      return res.status(400).json({ error: 'Cost must be a non-negative number.' })
+      return res.status(400).json({
+        error: 'Cost must be a non-negative number.'
+      })
     }
 
     const itemClassification = itemCost >= 50000
@@ -176,21 +196,26 @@ router.post('/', async (req, res) => {
     }
 
     if (requestedQty > 1 && (!property_number || !String(property_number).trim())) {
-      return res.status(400).json({ 
-        error: 'Property Number is required when adding more than 1 item.' 
+      return res.status(400).json({
+        error: 'Property Number is required when adding more than 1 item.'
       })
     }
+
+    const employeeName = cleanText(accountable_employee)
+    const responsibilityCenter = getResponsibilityCenter(responsibility_center)
 
     const itemsToInsert = []
 
     for (let i = 0; i < requestedQty; i++) {
-      let currentPropNum = String(property_number || '').trim()
+      let currentPropNum = cleanText(property_number)
 
       if (requestedQty > 1) {
         const match = currentPropNum.match(/^(.*?)(\d+)$/)
+
         if (match) {
           const prefix = match[1]
           const num = parseInt(match[2], 10) + i
+
           currentPropNum = `${prefix}${num.toString().padStart(match[2].length, '0')}`
         } else {
           currentPropNum = `${currentPropNum}-${i + 1}`
@@ -203,20 +228,22 @@ router.post('/', async (req, res) => {
         model_number: model_number || null,
         serial_number: i === 0 ? (serial_number || null) : null,
         cost: itemCost,
-        quantity: 1, // FORCE 1 per row for strict 1-to-1 asset tracking
-        unit: String(unit || '').trim() || 'PC',
-        article: String(article || '').trim() || null,
-        dr_ci_si_number: String(dr_ci_si_number || '').trim() || null,
-        po_number: String(po_number || '').trim() || null,
-        supplier: String(supplier || '').trim() || null,
-        remarks: String(remarks || '').trim() || null,
+        quantity: 1,
+        unit: cleanText(unit) || 'PC',
+        article: cleanText(article) || null,
+        dr_ci_si_number: cleanText(dr_ci_si_number) || null,
+        po_number: cleanText(po_number) || null,
+        supplier: cleanText(supplier) || null,
+        remarks: cleanText(remarks) || null,
         acquisition_date: acquisition_date || null,
         classification: itemClassification,
         condition: condition || 'Serviceable',
-        accountable_employee: String(accountable_employee || '').trim() || null,
-        responsibility_center: String(responsibility_center || '').trim() || null,
-        fund_cluster: String(fund_cluster).trim(),
-        status: String(accountable_employee || '').trim() ? 'Issued' : 'Available'
+        accountable_employee: employeeName || null,
+        responsibility_center: responsibilityCenter,
+        fund_cluster: cleanText(fund_cluster),
+
+        // Automatically set status based on employee assignment.
+        status: employeeName ? 'Issued' : 'Available'
       })
     }
 
@@ -233,8 +260,8 @@ router.post('/', async (req, res) => {
     try {
       const firstItem = data[0]
       const lastItem = data[data.length - 1]
-      
-      const logMessage = requestedQty > 1 
+
+      const logMessage = requestedQty > 1
         ? `Bulk added ${data.length} items: ${description} (${firstItem.property_number} to ${lastItem.property_number})`
         : `Added item: ${firstItem.description}`
 
@@ -259,6 +286,8 @@ router.post('/', async (req, res) => {
 
 // ==========================================
 // 6. UPDATE ITEM
+// Automatically updates status based on
+// Accountable Employee assignment.
 // ==========================================
 router.put('/:id', async (req, res) => {
   try {
@@ -272,7 +301,6 @@ router.put('/:id', async (req, res) => {
       acquisition_date,
       classification,
       condition,
-      status,
       accountable_employee,
       responsibility_center,
       fund_cluster,
@@ -285,7 +313,9 @@ router.put('/:id', async (req, res) => {
     } = req.body
 
     if (!fund_cluster || !String(fund_cluster).trim()) {
-      return res.status(400).json({ error: 'Fund Cluster is required.' })
+      return res.status(400).json({
+        error: 'Fund Cluster is required.'
+      })
     }
 
     const itemQuantity = Number(quantity ?? 1)
@@ -303,8 +333,17 @@ router.put('/:id', async (req, res) => {
       .single()
 
     if (oldError || !oldData) {
-      return res.status(404).json({ error: 'Item not found' })
+      return res.status(404).json({
+        error: 'Item not found'
+      })
     }
+
+    const employeeName = cleanText(accountable_employee)
+
+    // Preserve the existing value if the field is not sent.
+    const responsibilityCenter = responsibility_center === undefined
+      ? oldData.responsibility_center
+      : getResponsibilityCenter(responsibility_center)
 
     const { data, error } = await supabase
       .from('items')
@@ -318,18 +357,20 @@ router.put('/:id', async (req, res) => {
         acquisition_date: acquisition_date || null,
         classification: classification || 'PAR',
         condition: condition || 'Serviceable',
-        status: String(accountable_employee || '').trim()
-          ? (['Available', 'Assigned'].includes(status) ? 'Issued' : (status || 'Issued'))
-          : 'Available',
-        accountable_employee: String(accountable_employee || '').trim() || null,
-        responsibility_center: String(responsibility_center || '').trim() || null,
-        fund_cluster: String(fund_cluster).trim(),
-        unit: String(unit || '').trim() || 'PC',
-        article: String(article || '').trim() || null,
-        dr_ci_si_number: String(dr_ci_si_number || '').trim() || null,
-        po_number: String(po_number || '').trim() || null,
-        supplier: String(supplier || '').trim() || null,
-        remarks: String(remarks || '').trim() || null
+
+        // If an employee is assigned, status is always Issued.
+        // If no employee is assigned, status is Available.
+        status: employeeName ? 'Issued' : 'Available',
+
+        accountable_employee: employeeName || null,
+        responsibility_center: responsibilityCenter,
+        fund_cluster: cleanText(fund_cluster),
+        unit: cleanText(unit) || 'PC',
+        article: cleanText(article) || null,
+        dr_ci_si_number: cleanText(dr_ci_si_number) || null,
+        po_number: cleanText(po_number) || null,
+        supplier: cleanText(supplier) || null,
+        remarks: cleanText(remarks) || null
       })
       .eq('id', req.params.id)
       .select()
@@ -337,11 +378,18 @@ router.put('/:id', async (req, res) => {
 
     if (error) {
       console.log(error)
+
       const referenceError = getItemReferenceError(error, 'updated')
+
       if (referenceError) {
-        return res.status(409).json({ error: referenceError })
+        return res.status(409).json({
+          error: referenceError
+        })
       }
-      return res.status(500).json({ error: error.message })
+
+      return res.status(500).json({
+        error: error.message
+      })
     }
 
     try {
@@ -360,7 +408,9 @@ router.put('/:id', async (req, res) => {
     res.json(data)
   } catch (error) {
     console.log(error)
-    res.status(500).json({ error: 'Failed to update item' })
+    res.status(500).json({
+      error: 'Failed to update item'
+    })
   }
 })
 
@@ -376,7 +426,9 @@ router.delete('/:id', async (req, res) => {
       .single()
 
     if (oldError || !oldData) {
-      return res.status(404).json({ error: 'Item not found' })
+      return res.status(404).json({
+        error: 'Item not found'
+      })
     }
 
     const {
@@ -390,6 +442,7 @@ router.delete('/:id', async (req, res) => {
 
     if (requestError) {
       console.log(requestError)
+
       return res.status(500).json({
         error: 'Could not preserve item request history.',
         details: requestError.message
@@ -403,11 +456,18 @@ router.delete('/:id', async (req, res) => {
 
     if (deleteError) {
       console.log(deleteError)
+
       const referenceError = getItemReferenceError(deleteError, 'deleted')
+
       if (referenceError) {
-        return res.status(409).json({ error: referenceError })
+        return res.status(409).json({
+          error: referenceError
+        })
       }
-      return res.status(500).json({ error: deleteError.message })
+
+      return res.status(500).json({
+        error: deleteError.message
+      })
     }
 
     try {
@@ -429,10 +489,14 @@ router.delete('/:id', async (req, res) => {
       console.log('Audit log error:', auditError)
     }
 
-    res.json({ message: 'Item deleted successfully' })
+    res.json({
+      message: 'Item deleted successfully'
+    })
   } catch (error) {
     console.log(error)
-    res.status(500).json({ error: 'Failed to delete item' })
+    res.status(500).json({
+      error: 'Failed to delete item'
+    })
   }
 })
 

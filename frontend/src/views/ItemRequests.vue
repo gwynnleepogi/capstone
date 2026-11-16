@@ -35,12 +35,20 @@
             placeholder="Search item requests..."
           />
 
-          <SearchableSelect
+          <!-- Normal Status Filter Dropdown -->
+          <select
             v-model="statusFilter"
-            class="filter-select"
-            :options="requestStatusOptions"
-            placeholder="All Statuses"
-          />
+            class="form-select filter-select"
+          >
+            <option value="">All Status</option>
+            <option
+              v-for="status in requestStatusOptions"
+              :key="status"
+              :value="status"
+            >
+              {{ status }}
+            </option>
+          </select>
 
           <select
             v-model.number="itemsPerPage"
@@ -217,6 +225,7 @@
       </div>
     </div>
 
+    <!-- Add/Edit Request Modal -->
     <div class="modal fade" id="requestModal" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -234,20 +243,6 @@
 
           <form @submit.prevent="saveRequest">
             <div class="modal-body">
-              <div class="mb-3">
-                <label class="form-label">Request Number</label>
-                <input
-                  v-model="form.request_number"
-                  type="text"
-                  class="form-control"
-                  :placeholder="editing ? 'Request number' : 'Generated automatically when saved'"
-                  readonly
-                />
-                <small v-if="!editing" class="text-muted">
-                  The system will assign the next number automatically.
-                </small>
-              </div>
-
               <div class="mb-3">
                 <label class="form-label">Item (from Inventory)</label>
 
@@ -283,7 +278,6 @@
                 </div>
               </div>
 
-
               <div v-if="canManageRequests" class="mb-3">
                 <label class="form-label">Requested By</label>
 
@@ -317,21 +311,33 @@
                 ></textarea>
               </div>
 
+              <!-- Normal Status Dropdown -->
               <div v-if="canManageRequests" class="mb-3">
                 <label class="form-label">Status</label>
 
-                <SearchableSelect
+                <select
                   v-model="form.status"
-                  :options="requestStatusOptions"
-                  placeholder="Select status"
-                  input-id="request-status-select"
-                />
+                  class="form-select"
+                  required
+                >
+                  <option
+                    v-for="status in requestStatusOptions"
+                    :key="status"
+                    :value="status"
+                  >
+                    {{ status }}
+                  </option>
+                </select>
               </div>
 
-              <div v-if="canManageRequests && form.status === 'Rejected'" class="mb-3">
+              <div
+                v-if="canManageRequests && form.status === 'Rejected'"
+                class="mb-3"
+              >
                 <label class="form-label" for="edit-request-rejection-reason">
                   Reason for rejecting <span class="text-danger">*</span>
                 </label>
+
                 <textarea
                   id="edit-request-rejection-reason"
                   v-model.trim="form.rejection_reason"
@@ -365,6 +371,7 @@
       </div>
     </div>
 
+    <!-- Request Details Modal -->
     <div
       class="modal fade"
       id="requestDetailsModal"
@@ -436,7 +443,9 @@
 
               <template v-if="requestDetails.rejection_reason">
                 <dt class="col-sm-4">Rejection reason</dt>
-                <dd class="col-sm-8">{{ requestDetails.rejection_reason }}</dd>
+                <dd class="col-sm-8">
+                  {{ requestDetails.rejection_reason }}
+                </dd>
               </template>
 
               <dt class="col-sm-4">Created</dt>
@@ -477,6 +486,7 @@
       </div>
     </div>
 
+    <!-- Reject Request Modal -->
     <div
       class="modal fade"
       id="rejectRequestModal"
@@ -488,7 +498,10 @@
         <div class="modal-content">
           <form @submit.prevent="submitRejection">
             <div class="modal-header">
-              <h5 id="rejectRequestModalLabel" class="modal-title">Reject Item Request</h5>
+              <h5 id="rejectRequestModalLabel" class="modal-title">
+                Reject Item Request
+              </h5>
+
               <button
                 type="button"
                 class="btn-close"
@@ -496,14 +509,17 @@
                 aria-label="Close"
               ></button>
             </div>
+
             <div class="modal-body">
               <p>
                 Provide a reason for rejecting request
                 {{ rejectingRequest?.request_number || '' }}.
               </p>
+
               <label class="form-label" for="request-rejection-reason">
                 Rejection reason <span class="text-danger">*</span>
               </label>
+
               <textarea
                 id="request-rejection-reason"
                 v-model.trim="rejectionReason"
@@ -514,14 +530,29 @@
                 placeholder="Explain why this item request is being rejected."
               ></textarea>
             </div>
+
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+
               <button
                 type="submit"
                 class="btn btn-danger"
-                :disabled="updatingRequestId === rejectingRequest?.id || !rejectionReason.trim()"
+                :disabled="
+                  updatingRequestId === rejectingRequest?.id ||
+                  !rejectionReason.trim()
+                "
               >
-                {{ updatingRequestId === rejectingRequest?.id ? 'Rejecting...' : 'Confirm rejection' }}
+                {{
+                  updatingRequestId === rejectingRequest?.id
+                    ? 'Rejecting...'
+                    : 'Confirm rejection'
+                }}
               </button>
             </div>
           </form>
@@ -609,7 +640,10 @@ export default {
             sensitivity: 'base'
           })
         )
-        .map(person => ({ value: person.id, label: person.full_name }))
+        .map(person => ({
+          value: person.id,
+          label: person.full_name
+        }))
     },
 
     officeSelectOptions() {
@@ -620,7 +654,10 @@ export default {
             sensitivity: 'base'
           })
         )
-        .map(office => ({ value: office.id, label: office.office_name }))
+        .map(office => ({
+          value: office.id,
+          label: office.office_name
+        }))
     },
 
     currentUser() {
@@ -798,9 +835,11 @@ export default {
       if (status === 'Rejected' && !rejectionReason.trim()) {
         this.rejectingRequest = request
         this.rejectionReason = ''
+
         Modal.getOrCreateInstance(
           document.getElementById('rejectRequestModal')
         ).show()
+
         return
       }
 
@@ -855,6 +894,7 @@ export default {
           Modal.getInstance(
             document.getElementById('rejectRequestModal')
           )?.hide()
+
           this.rejectingRequest = null
           this.rejectionReason = ''
         }

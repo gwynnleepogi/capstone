@@ -29,7 +29,9 @@
                     ? 'Welcome back'
                     : loginStep === 3
                       ? 'Set a new password'
-                      : 'Sign in to continue'
+                      : loginStep === 4
+                        ? 'Request password reset'
+                        : 'Sign in to continue'
             }}
           </h1>
 
@@ -43,7 +45,9 @@
                     ? 'Choose your personnel type to get started.'
                     : loginStep === 3
                       ? 'Your temporary password must be changed before continuing.'
-                      : 'Enter your account details below.'
+                      : loginStep === 4
+                        ? 'Enter your registered email and Employee ID. The administrator will review your request.'
+                        : 'Enter your account details below.'
             }}
           </p>
         </header>
@@ -362,6 +366,10 @@
               <i v-if="!loading" class="bi bi-arrow-right"></i>
             </button>
 
+            <button type="button" class="text-button" @click="openForgotPassword">
+              Forgot Password?
+            </button>
+
             <button
               type="button"
               class="text-button"
@@ -370,6 +378,29 @@
               <i class="bi bi-arrow-left"></i>
               Change personnel type
             </button>
+          </template>
+
+          <template v-else-if="loginStep === 4">
+            <div class="field">
+              <label for="reset-email">Registered email address</label>
+              <div class="input-wrap">
+                <i class="bi bi-envelope"></i>
+                <input id="reset-email" v-model.trim="resetForm.email" type="email" autocomplete="email" required placeholder="you@example.com">
+              </div>
+            </div>
+            <div class="field">
+              <label for="reset-employee-id">Employee ID</label>
+              <div class="input-wrap">
+                <i class="bi bi-person-vcard"></i>
+                <input id="reset-employee-id" v-model.trim="resetForm.employee_id" type="text" autocomplete="off" required>
+              </div>
+            </div>
+            <button type="submit" class="primary-button" :disabled="loading">
+              {{ loading ? 'Submitting...' : 'Submit reset request' }}
+              <i v-if="!loading" class="bi bi-arrow-right"></i>
+            </button>
+            <button type="button" class="text-button" @click="loginStep = 2">Back to sign in</button>
+            <p v-if="resetSubmitted" class="text-success small mt-2">{{ resetSubmitted }}</p>
           </template>
 
           <template v-else-if="loginStep === 3">
@@ -455,7 +486,9 @@ export default {
         job_title: ''
       },
       newPassword: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      resetForm: { email: '', employee_id: '' },
+      resetSubmitted: ''
     }
   },
 
@@ -510,7 +543,38 @@ export default {
         return this.changeTemporaryPassword()
       }
 
+      if (this.loginStep === 4) {
+        return this.submitPasswordReset()
+      }
+
       return this.login()
+    },
+
+    openForgotPassword() {
+      this.resetForm.email = this.email || ''
+      this.resetForm.employee_id = ''
+      this.resetSubmitted = ''
+      this.loginStep = 4
+    },
+
+    async submitPasswordReset() {
+      this.loading = true
+      this.resetSubmitted = ''
+      try {
+        const response = await fetch('/api/password-resets/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.resetForm)
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Unable to submit request')
+        this.resetSubmitted = result.message || 'Request submitted for administrator review.'
+        this.resetForm.employee_id = ''
+      } catch (error) {
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: error.message || 'Unable to submit request' }))
+      } finally {
+        this.loading = false
+      }
     },
 
     openSignup() {
@@ -1026,7 +1090,7 @@ export default {
 .visual-circle {
   position: relative;
   display: grid;
-  width: min(100%, clamp(200px, 22vw, 270px));
+  width: min(100%, clamp(230px, 25vw, 310px));
   flex: 0 0 auto;
   margin: auto 0;
   aspect-ratio: 1;
@@ -1038,7 +1102,7 @@ export default {
 
 .logo-medallion {
   display: grid;
-  width: 60%;
+  width: 72%;
   aspect-ratio: 1;
   place-items: center;
   border: 4px solid #e8c547;
@@ -1048,8 +1112,8 @@ export default {
 
 .logo-medallion img {
   display: block;
-  width: 68%;
-  height: 68%;
+  width: 80%;
+  height: 80%;
   object-fit: contain;
 }
 
@@ -1561,12 +1625,12 @@ export default {
   }
 
   .visual-circle {
-    width: 104px;
+    width: 124px;
     margin: 0;
   }
 
   .logo-medallion {
-    width: 76%;
+    width: 82%;
   }
 
   .visual-copy {
@@ -1621,7 +1685,7 @@ export default {
   }
 
   .visual-circle {
-    width: 92px;
+    width: 108px;
   }
 
   .login-panel {

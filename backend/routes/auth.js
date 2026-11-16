@@ -356,7 +356,8 @@ router.post('/change-password', async (req, res) => {
       password,
       user_metadata: {
         ...data.user.user_metadata,
-        must_change_password: false
+        must_change_password: false,
+        password_reset_required: false
       }
     }
   )

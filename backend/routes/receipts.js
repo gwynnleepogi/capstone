@@ -4,11 +4,19 @@ const router = express.Router()
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
 
+// ==========================================
+// PENDING ISSUANCE COUNT
+// Counts:
+// 1. Approved requests without receipts
+// 2. Issued properties with accountable employees
+//    that do not yet have receipts
+// ==========================================
 router.get('/pending-issuance-count', async (req, res) => {
   try {
+    // Get approved requests.
     const { data: requests, error: requestError } = await supabase
       .from('item_requests')
-      .select('id')
+      .select('id, item_id')
       .eq('status', 'Approved')
 
     if (requestError) {
@@ -16,38 +24,76 @@ router.get('/pending-issuance-count', async (req, res) => {
       return res.status(500).json({ error: requestError.message })
     }
 
-    const requestIds = (requests || []).map(request => request.id)
-
-    if (!requestIds.length) {
-      return res.json({ count: 0 })
-    }
-
+    // Get existing receipts.
     const { data: receipts, error: receiptError } = await supabase
       .from('property_receipts')
-      .select('item_request_id')
-      .in('item_request_id', requestIds)
+      .select('item_id, item_request_id')
 
     if (receiptError) {
       console.error('Pending issuance receipt lookup failed:', receiptError)
       return res.status(500).json({ error: receiptError.message })
     }
 
+    const allReceipts = receipts || []
+
     const receiptedRequestIds = new Set(
-      (receipts || []).map(receipt => String(receipt.item_request_id))
+      allReceipts
+        .filter(receipt => receipt.item_request_id)
+        .map(receipt => String(receipt.item_request_id))
+    )
+
+    const receiptedItemIds = new Set(
+      allReceipts
+        .filter(receipt => receipt.item_id)
+        .map(receipt => String(receipt.item_id))
+    )
+
+    // Approved requests without receipts.
+    const pendingRequests = (requests || []).filter(
+      request => !receiptedRequestIds.has(String(request.id))
+    )
+
+    // Get properties that are already issued and assigned.
+    const { data: items, error: itemError } = await supabase
+      .from('items')
+      .select('id')
+      .eq('status', 'Issued')
+      .not('accountable_employee', 'is', null)
+      .neq('accountable_employee', '')
+
+    if (itemError) {
+      console.error('Pending issuance property lookup failed:', itemError)
+      return res.status(500).json({ error: itemError.message })
+    }
+
+    // Avoid counting properties that already have receipts.
+    // Also avoid counting an item twice when its approved
+    // request is already included in the pending request count.
+    const pendingRequestItemIds = new Set(
+      pendingRequests
+        .filter(request => request.item_id)
+        .map(request => String(request.item_id))
+    )
+
+    const pendingProperties = (items || []).filter(item =>
+      !receiptedItemIds.has(String(item.id)) &&
+      !pendingRequestItemIds.has(String(item.id))
     )
 
     res.json({
-      count: requestIds.filter(
-        id => !receiptedRequestIds.has(String(id))
-      ).length
+      count: pendingRequests.length + pendingProperties.length
     })
   } catch (error) {
     console.error('Pending issuance count failed:', error)
-    res.status(500).json({ error: 'Failed to load pending issuance count' })
+    res.status(500).json({
+      error: 'Failed to load pending issuance count'
+    })
   }
 })
 
+// ==========================================
 // GET ALL RECEIPTS
+// ==========================================
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -63,7 +109,7 @@ router.get('/', async (req, res) => {
         item_requests (
           id, request_number, item_description, quantity, purpose, status,
           requested_by, office_id,
-          users (id, full_name, signature_path),
+          users (id, full_name, signature_path, office_id),
           offices (id, office_name)
         )
       `)
@@ -80,7 +126,9 @@ router.get('/', async (req, res) => {
   }
 })
 
+// ==========================================
 // GET ONE RECEIPT
+// ==========================================
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -92,7 +140,7 @@ router.get('/:id', async (req, res) => {
           cost, acquisition_date, quantity, condition, status,
           accountable_employee, responsibility_center, fund_cluster, unit
         ),
-        users (id, full_name, signature_path),
+        users (id, full_name, signature_path, office_id),
         item_requests (
           id, request_number, item_description, quantity, purpose, status,
           requested_by, office_id,
@@ -114,7 +162,9 @@ router.get('/:id', async (req, res) => {
   }
 })
 
+// ==========================================
 // CREATE RECEIPT - ONE UNIT PER APPROVED REQUEST OR ASSIGNED PROPERTY
+// ==========================================
 router.post('/', async (req, res) => {
   try {
     const {
@@ -144,6 +194,9 @@ router.post('/', async (req, res) => {
       })
     }
 
+    // ==========================================
+    // RECEIPT FOR ASSIGNED PROPERTY
+    // ==========================================
     if (item_id) {
       const { data: item, error: itemError } = await supabase
         .from('items')
@@ -210,6 +263,7 @@ router.post('/', async (req, res) => {
       }
 
       const recipient = recipients[0]
+
       const { data: receipt, error: receiptError } = await supabase
         .from('property_receipts')
         .insert([{
@@ -269,7 +323,9 @@ router.post('/', async (req, res) => {
       })
     }
 
-    // Find request
+    // ==========================================
+    // RECEIPT FOR APPROVED ITEM REQUEST
+    // ==========================================
     const { data: request, error: requestError } = await supabase
       .from('item_requests')
       .select('*, users (id, full_name)')
@@ -296,14 +352,12 @@ router.post('/', async (req, res) => {
       })
     }
 
-    // Every request must be for exactly one unit
     if (Number(request.quantity) !== 1) {
       return res.status(400).json({
         error: 'Each item request must have a quantity of 1. Please update the request first.'
       })
     }
 
-    // Prevent duplicate receipts
     const {
       data: existingReceipt,
       error: existingError
@@ -325,7 +379,6 @@ router.post('/', async (req, res) => {
       })
     }
 
-    // Find item without tracking_type
     const { data: item, error: itemError } = await supabase
       .from('items')
       .select(`
@@ -370,7 +423,6 @@ router.post('/', async (req, res) => {
       })
     }
 
-    // Find recipient
     const { data: recipient, error: recipientError } = await supabase
       .from('users')
       .select('id, full_name')
@@ -383,7 +435,6 @@ router.post('/', async (req, res) => {
       })
     }
 
-    // Always issue one unit
     const quantityToIssue = 1
     const remainingQuantity = availableQuantity - quantityToIssue
 
@@ -391,12 +442,10 @@ router.post('/', async (req, res) => {
       ? 'Available'
       : 'Issued'
 
-    // Only assign the employee when no stock remains
     const newAccountableEmployee = remainingQuantity === 0
       ? recipient.full_name
       : null
 
-    // Create receipt
     const { data: receipt, error: receiptError } = await supabase
       .from('property_receipts')
       .insert([{
@@ -420,7 +469,6 @@ router.post('/', async (req, res) => {
       })
     }
 
-    // Reduce stock by one
     const { data: updatedItem, error: updateItemError } = await supabase
       .from('items')
       .update({
@@ -443,7 +491,6 @@ router.post('/', async (req, res) => {
       })
     }
 
-    // Mark request as delivered
     const { error: requestUpdateError } = await supabase
       .from('item_requests')
       .update({ status: 'Delivered' })
@@ -469,7 +516,6 @@ router.post('/', async (req, res) => {
       })
     }
 
-    // Audit log
     try {
       await createAuditLog(
         'Issued',
@@ -516,7 +562,9 @@ router.post('/', async (req, res) => {
   }
 })
 
+// ==========================================
 // UPDATE RECEIPT DETAILS
+// ==========================================
 router.put('/:id', async (req, res) => {
   try {
     const {
@@ -618,7 +666,9 @@ router.put('/:id', async (req, res) => {
   }
 })
 
+// ==========================================
 // DELETE RECEIPT AND RESTORE STOCK
+// ==========================================
 router.delete('/:id', async (req, res) => {
   try {
     const {

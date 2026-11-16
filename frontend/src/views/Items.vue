@@ -1,4 +1,3 @@
-
 <template>
   <div class="container-fluid">
     <div class="row align-items-center mb-4">
@@ -24,7 +23,6 @@
               <span class="input-group-text">
                 <i class="bi bi-search"></i>
               </span>
-
               <input
                 v-model="search"
                 type="text"
@@ -107,7 +105,6 @@
       >
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
           <strong id="add-item-title">Add New Property</strong>
-
           <button
             type="button"
             class="btn-close"
@@ -182,7 +179,6 @@
                 <label class="form-label">
                   Cost <span class="text-danger">*</span>
                 </label>
-
                 <div class="input-group">
                   <span class="input-group-text">₱</span>
                   <input
@@ -286,7 +282,6 @@
                 <label class="form-label">
                   Fund Cluster <span class="text-danger">*</span>
                 </label>
-
                 <SearchableSelect
                   v-model="newItem.fund_cluster"
                   :options="fundClusterOptions"
@@ -345,7 +340,6 @@
             >
               Cancel
             </button>
-
             <button type="submit" class="btn btn-success" :disabled="saving">
               {{ saving ? 'Saving...' : 'Save Property' }}
             </button>
@@ -369,85 +363,71 @@
                   Unique ID <i :class="sortIcon('property_tag_identifier')"></i>
                 </button>
               </th>
-
               <th>
                 <button type="button" class="sort-header" @click="sortBy('property_number')">
                   Property No. <i :class="sortIcon('property_number')"></i>
                 </button>
               </th>
-
               <th>
                 <button type="button" class="sort-header" @click="sortBy('article')">
                   Article <i :class="sortIcon('article')"></i>
                 </button>
               </th>
-
               <th>
                 <button type="button" class="sort-header" @click="sortBy('description')">
                   Description <i :class="sortIcon('description')"></i>
                 </button>
               </th>
-
               <th>
                 <button type="button" class="sort-header" @click="sortBy('serial_number')">
                   Serial No. <i :class="sortIcon('serial_number')"></i>
                 </button>
               </th>
-
               <th class="cost-column">
                 <button type="button" class="sort-header" @click="sortBy('cost')">
                   Cost <i :class="sortIcon('cost')"></i>
                 </button>
               </th>
-
               <th>
                 <button type="button" class="sort-header" @click="sortBy('acquisition_date')">
                   Acquisition Date <i :class="sortIcon('acquisition_date')"></i>
                 </button>
               </th>
-
               <th>
                 <button type="button" class="sort-header" @click="sortBy('created_at')">
                   Date Inputted <i :class="sortIcon('created_at')"></i>
                 </button>
               </th>
-
               <th>
                 <button type="button" class="sort-header" @click="sortBy('classification')">
                   Classification <i :class="sortIcon('classification')"></i>
                 </button>
               </th>
-
               <th>
                 <button type="button" class="sort-header" @click="sortBy('fund_cluster')">
                   Fund Cluster <i :class="sortIcon('fund_cluster')"></i>
                 </button>
               </th>
-
               <th>
                 <button type="button" class="sort-header" @click="sortBy('condition')">
                   Condition <i :class="sortIcon('condition')"></i>
                 </button>
               </th>
-
               <th>
                 <button type="button" class="sort-header" @click="sortBy('status')">
                   Status <i :class="sortIcon('status')"></i>
                 </button>
               </th>
-
               <th>
                 <button type="button" class="sort-header" @click="sortBy('accountable_employee')">
                   Accountable Employee <i :class="sortIcon('accountable_employee')"></i>
                 </button>
               </th>
-
               <th>
                 <button type="button" class="sort-header" @click="sortBy('responsibility_center')">
                   Responsibility Center <i :class="sortIcon('responsibility_center')"></i>
                 </button>
               </th>
-
               <th class="actions-column">Actions</th>
             </tr>
           </thead>
@@ -456,11 +436,9 @@
             <tr v-if="loading">
               <td colspan="15" class="text-center py-5">Loading properties...</td>
             </tr>
-
             <tr v-else-if="error">
               <td colspan="15" class="text-center text-danger py-5">{{ error }}</td>
             </tr>
-
             <tr v-else-if="filteredItems.length === 0">
               <td colspan="15" class="text-center text-secondary py-5">
                 No properties found.
@@ -476,41 +454,31 @@
                     : 'NOT ASSIGNED'
                 }}
               </td>
-
               <td>{{ item.property_number || '-' }}</td>
               <td>{{ item.article || '-' }}</td>
               <td>{{ item.description || '-' }}</td>
               <td>{{ item.serial_number || '-' }}</td>
               <td class="cost-column">₱{{ item.cost || 0 }}</td>
               <td>{{ item.acquisition_date || '-' }}</td>
-
-              <td>
-                {{ item.created_at ? item.created_at.slice(0, 10) : '-' }}
-              </td>
-
+              <td>{{ item.created_at ? item.created_at.slice(0, 10) : '-' }}</td>
               <td>
                 <span class="badge" :class="getClassificationClass(item.classification)">
                   {{ displayClassification(item.classification) }}
                 </span>
               </td>
-
               <td>{{ item.fund_cluster || '-' }}</td>
-
               <td>
                 <span class="badge" :class="getConditionClass(item.condition)">
                   {{ item.condition || '-' }}
                 </span>
               </td>
-
               <td>
                 <span class="badge" :class="getStatusClass(item.status)">
                   {{ item.status || '-' }}
                 </span>
               </td>
-
               <td>{{ item.accountable_employee || '-' }}</td>
               <td>{{ item.responsibility_center || '-' }}</td>
-
               <td>
                 <button
                   type="button"
@@ -538,7 +506,6 @@
       >
         <div class="card-header d-flex justify-content-between align-items-center">
           <h2 id="item-details-title" class="h5 mb-0">Property Details</h2>
-
           <button
             type="button"
             class="btn-close"
@@ -556,11 +523,9 @@
                   :alt="'QR code for property ' + (detailItem.property_number || '')"
                 />
               </div>
-
               <div v-else-if="qrCodeError" class="text-danger small">
                 {{ qrCodeError }}
               </div>
-
               <div v-else class="text-secondary">
                 Generating QR code...
               </div>
@@ -568,11 +533,9 @@
               <div class="fw-semibold mt-2">
                 {{ detailItem.property_number || 'No property number' }}
               </div>
-
               <small class="text-secondary d-block">
                 Scan to view property details
               </small>
-
               <small v-if="isLocalDevelopmentHost" class="text-warning d-block mt-2">
                 For phone scanning, open this app using your laptop's Wi-Fi address,
                 not localhost.
@@ -583,55 +546,42 @@
               <dl class="row mb-0 item-detail-list">
                 <dt class="col-sm-5">Article</dt>
                 <dd class="col-sm-7">{{ detailItem.article || '-' }}</dd>
-
                 <dt class="col-sm-5">Description</dt>
                 <dd class="col-sm-7">{{ detailItem.description || '-' }}</dd>
-
                 <dt class="col-sm-5">Model Number</dt>
                 <dd class="col-sm-7">{{ detailItem.model_number || '-' }}</dd>
-
                 <dt class="col-sm-5">Serial Number</dt>
                 <dd class="col-sm-7">{{ detailItem.serial_number || '-' }}</dd>
-
                 <dt class="col-sm-5">Cost</dt>
                 <dd class="col-sm-7">₱{{ detailItem.cost || 0 }}</dd>
-
                 <dt class="col-sm-5">Acquisition Date</dt>
                 <dd class="col-sm-7">{{ detailItem.acquisition_date || '-' }}</dd>
-
                 <dt class="col-sm-5">Date Inputted</dt>
                 <dd class="col-sm-7">
                   {{ detailItem.created_at ? detailItem.created_at.slice(0, 10) : '-' }}
                 </dd>
-
                 <dt class="col-sm-5">Classification</dt>
                 <dd class="col-sm-7">
                   {{ displayClassification(detailItem.classification) }}
                 </dd>
-
                 <dt class="col-sm-5">Condition</dt>
                 <dd class="col-sm-7">
                   <span class="badge" :class="getConditionClass(detailItem.condition)">
                     {{ detailItem.condition || '-' }}
                   </span>
                 </dd>
-
                 <dt class="col-sm-5">Status</dt>
                 <dd class="col-sm-7">
                   <span class="badge" :class="getStatusClass(detailItem.status)">
                     {{ detailItem.status || '-' }}
                   </span>
                 </dd>
-
                 <dt class="col-sm-5">Accountable Employee</dt>
                 <dd class="col-sm-7">{{ detailItem.accountable_employee || '-' }}</dd>
-
                 <dt class="col-sm-5">Responsibility Center</dt>
                 <dd class="col-sm-7">{{ detailItem.responsibility_center || '-' }}</dd>
-
                 <dt class="col-sm-5">Fund Cluster</dt>
                 <dd class="col-sm-7">{{ detailItem.fund_cluster || '-' }}</dd>
-
                 <dt class="col-sm-5">Unit of Measure</dt>
                 <dd class="col-sm-7">
                   {{
@@ -640,16 +590,12 @@
                       : '-'
                   }}
                 </dd>
-
                 <dt class="col-sm-5">DR/CI/SI Number</dt>
                 <dd class="col-sm-7">{{ detailItem.dr_ci_si_number || '-' }}</dd>
-
                 <dt class="col-sm-5">Property Order No.</dt>
                 <dd class="col-sm-7">{{ detailItem.po_number || '-' }}</dd>
-
                 <dt class="col-sm-5">Supplier</dt>
                 <dd class="col-sm-7">{{ detailItem.supplier || '-' }}</dd>
-
                 <dt class="col-sm-5">Remarks</dt>
                 <dd class="col-sm-7">{{ detailItem.remarks || '-' }}</dd>
               </dl>
@@ -661,7 +607,6 @@
           <button type="button" class="btn btn-secondary" @click="closeItemDetails">
             Close
           </button>
-
           <button
             type="button"
             class="btn btn-outline-success"
@@ -671,7 +616,6 @@
             <i class="bi bi-download me-1"></i>
             {{ downloadingDocument ? 'Preparing document...' : 'Download DOCX' }}
           </button>
-
           <button
             type="button"
             class="btn btn-outline-primary"
@@ -681,7 +625,6 @@
             <i class="bi bi-printer me-1"></i>
             Print Property Tag
           </button>
-
           <button
             type="button"
             class="btn btn-outline-warning"
@@ -690,7 +633,6 @@
             <i class="bi bi-pencil me-1"></i>
             Edit Property
           </button>
-
           <button
             type="button"
             class="btn btn-outline-danger"
@@ -714,7 +656,6 @@
       >
         <div class="edit-dialog-header">
           <h2 id="edit-item-title" class="h5 mb-0">Edit Property</h2>
-
           <button
             type="button"
             class="btn-close"
@@ -739,7 +680,6 @@
                 </label>
                 <input v-model="editForm.model_number" type="text" class="form-control" required />
               </div>
-
               <div class="col-12 col-md-6">
                 <label class="form-label">Serial Number</label>
                 <input
@@ -897,7 +837,6 @@
             <button type="button" class="btn btn-secondary" @click="cancelEdit">
               Cancel
             </button>
-
             <button type="submit" class="btn btn-success" :disabled="updating">
               {{ updating ? 'Updating...' : 'Update Property' }}
             </button>
@@ -917,7 +856,6 @@
     <datalist id="office-options">
       <option v-for="office in officeOptions" :key="office.id" :value="office.office_name"></option>
     </datalist>
-
   </div>
 </template>
 
@@ -983,11 +921,7 @@ async function createQrWithLogo(text) {
 
   const padding = 6
   const maxLogo = boxSize - padding * 2
-  const scale = Math.min(
-    maxLogo / logoImage.width,
-    maxLogo / logoImage.height,
-  )
-
+  const scale = Math.min(maxLogo / logoImage.width, maxLogo / logoImage.height)
   const logoWidth = logoImage.width * scale
   const logoHeight = logoImage.height * scale
 
@@ -1049,8 +983,6 @@ export default {
       editingItem: null,
       deletingItemId: null,
 
-      // Quantity is kept internally at 1.
-      // Tracking Type is no longer used.
       newItem: {
         property_number: '',
         description: '',
@@ -1102,7 +1034,7 @@ export default {
       return [
         { value: 'PAR', label: 'Property Acknowledgement Receipt' },
         { value: 'ICS High', label: 'Inventory Custodian Slip - High Value' },
-        { value: 'ICS Low', label: 'Inventory Custodian Slip - Low Value' }
+        { value: 'ICS Low', label: 'Inventory Custodian Slip - Low Value' },
       ]
     },
 
@@ -1119,7 +1051,7 @@ export default {
         'Lost',
         'Damaged',
         'Stolen',
-        'Disposed'
+        'Disposed',
       ]
     },
 
@@ -1127,8 +1059,8 @@ export default {
       return [...this.personnelOptions]
         .sort((first, second) =>
           first.full_name.localeCompare(second.full_name, undefined, {
-            sensitivity: 'base'
-          })
+            sensitivity: 'base',
+          }),
         )
         .map(person => ({ value: person.full_name, label: person.full_name }))
     },
@@ -1136,7 +1068,7 @@ export default {
     officeSelectOptions() {
       return this.officeOptions.map(office => ({
         value: office.office_name,
-        label: office.office_name
+        label: office.office_name,
       }))
     },
 
@@ -1201,17 +1133,17 @@ export default {
     },
 
     personnelOptions() {
-      return this.personnel.filter((person) => person && person.full_name)
+      return this.personnel.filter(person => person && person.full_name)
     },
 
     supplierOptions() {
       return this.suppliers
-        .map((supplier) => supplier && supplier.supplier_name)
+        .map(supplier => supplier && supplier.supplier_name)
         .filter(Boolean)
     },
 
     officeOptions() {
-      return this.offices.filter((office) => office && office.office_name)
+      return this.offices.filter(office => office && office.office_name)
     },
 
     isLocalDevelopmentHost() {
@@ -1250,6 +1182,11 @@ export default {
         : 'bi bi-arrow-down sort-icon'
     },
 
+    // ADDED: Refresh the Acquisitions and Issuance sidebar badge.
+    notifyIssuanceUpdate() {
+      window.dispatchEvent(new Event('receipts-updated'))
+    },
+
     printPropertyTag() {
       const item = this.detailItem
 
@@ -1263,7 +1200,7 @@ export default {
       const printWindow = window.open(
         '',
         '_blank',
-        'popup=yes,width=900,height=700,resizable=yes,scrollbars=yes'
+        'popup=yes,width=900,height=700,resizable=yes,scrollbars=yes',
       )
 
       if (!printWindow) {
@@ -1273,8 +1210,8 @@ export default {
         return
       }
 
-      const escape = (value) =>
-        String(value ?? '-').replace(/[&<>"']/g, (character) =>
+      const escape = value =>
+        String(value ?? '-').replace(/[&<>"']/g, character =>
           ({
             '&': '&amp;',
             '<': '&lt;',
@@ -1291,8 +1228,9 @@ export default {
             maximumFractionDigits: 2,
           })
         : '0.00'
+
       const accountableEmployeeTitle = this.personnel.find(
-        (person) => person.full_name === item.accountable_employee,
+        person => person.full_name === item.accountable_employee,
       )?.job_title || ''
 
       printWindow.document.write(`
@@ -1407,12 +1345,10 @@ export default {
                     )}
                   </span>
                 </div>
-
                 <div class="cell property-number">
                   <span class="label">Property Number</span>
                   <strong class="value">${escape(item.property_number)}</strong>
                 </div>
-
                 <div class="cell two-col">
                   <div>
                     <span class="label">Office / Division</span>
@@ -1424,7 +1360,6 @@ export default {
                     ${accountableEmployeeTitle ? `<span class="label">Title: ${escape(accountableEmployeeTitle)}</span>` : ''}
                   </div>
                 </div>
-
                 <div class="cell two-col">
                   <div>
                     <span class="label">Acquisition Date</span>
@@ -1435,13 +1370,11 @@ export default {
                     <strong class="value">₱${formattedCost}</strong>
                   </div>
                 </div>
-
                 <div class="cell description">
                   ${item.article ? `<span class="label">Article</span><strong class="value">${escape(item.article)}</strong>` : ''}
                   <span class="label">Description of Property</span>
                   <strong class="value">${escape(item.description)}</strong>
                 </div>
-
                 <div class="cell model-serial">
                   <div>
                     <span class="label">Model Number</span>
@@ -1455,7 +1388,6 @@ export default {
                     <img src="${this.detailQrCode}" alt="Item QR code">
                   </div>
                 </div>
-
                 <div class="cell inventory">
                   <span class="label">
                     Date of Inventory &amp; Signature of Inventory Team
@@ -1464,7 +1396,6 @@ export default {
                     <span></span><span></span><span></span>
                   </div>
                 </div>
-
                 <div class="cell warning">
                   TAMPERING OF THIS LABEL IS STRICTLY PROHIBITED
                 </div>
@@ -1511,7 +1442,7 @@ export default {
         this.suppliers = Array.isArray(results[2].value) ? results[2].value : []
       }
 
-      if (results.slice(0, 2).some((result) => result.status === 'rejected')) {
+      if (results.slice(0, 2).some(result => result.status === 'rejected')) {
         window.dispatchEvent(new CustomEvent('show-toast', {
           detail: 'Failed to load personnel and office options',
         }))
@@ -1527,14 +1458,14 @@ export default {
       form.status = 'Issued'
 
       const person = this.personnel.find(
-        (p) => p.full_name === form.accountable_employee,
+        p => p.full_name === form.accountable_employee,
       )
 
       if (!person || !person.office_id) {
         return
       }
 
-      const office = this.offices.find((o) => o.id === person.office_id)
+      const office = this.offices.find(o => o.id === person.office_id)
 
       if (office) {
         form.responsibility_center = office.office_name
@@ -1569,7 +1500,7 @@ export default {
     },
 
     countClassification(classification) {
-      return this.items.filter((item) => item.classification === classification).length
+      return this.items.filter(item => item.classification === classification).length
     },
 
     displayClassification(classification) {
@@ -1601,8 +1532,10 @@ export default {
         return ''
       }
 
-      const existingOffice = this.offices.find((office) =>
-        office && office.office_name && office.office_name.toLowerCase() === trimmedName.toLowerCase(),
+      const existingOffice = this.offices.find(office =>
+        office &&
+        office.office_name &&
+        office.office_name.toLowerCase() === trimmedName.toLowerCase(),
       )
 
       if (existingOffice) {
@@ -1634,10 +1567,10 @@ export default {
       this.saving = true
 
       try {
-        const responsibilityCenter = await this.ensureOfficeExists(this.newItem.responsibility_center)
+        const responsibilityCenter = await this.ensureOfficeExists(
+          this.newItem.responsibility_center,
+        )
 
-        // Every property is saved with quantity 1.
-        // Tracking Type is no longer included.
         const payload = {
           ...this.newItem,
           responsibility_center: responsibilityCenter,
@@ -1659,7 +1592,6 @@ export default {
           throw new Error(data.error || 'Failed to add property')
         }
 
-        // The backend may return an array when adding properties.
         if (Array.isArray(data)) {
           this.items.unshift(...data)
         } else {
@@ -1668,6 +1600,9 @@ export default {
 
         this.resetForm()
         this.showAddForm = false
+
+        // ADDED: Refresh the Acquisitions and Issuance badge.
+        this.notifyIssuanceUpdate()
 
         window.dispatchEvent(new CustomEvent('show-toast', {
           detail: 'Property added successfully',
@@ -1792,10 +1727,9 @@ export default {
 
         const qrImage = Uint8Array.from(
           atob(base64QrCode),
-          (character) => character.charCodeAt(0),
+          character => character.charCodeAt(0),
         )
 
-        // Tracking Type and Quantity are not included in the document.
         const itemDetails = [
           ['Property Number', item.property_number || '-'],
           ['Description', item.description || '-'],
@@ -1825,7 +1759,6 @@ export default {
                   text: 'Property Details',
                   heading: HeadingLevel.TITLE,
                 }),
-
                 ...itemDetails.map(([label, value]) =>
                   new Paragraph({
                     children: [
@@ -1837,7 +1770,6 @@ export default {
                     ],
                   }),
                 ),
-
                 new Paragraph({
                   children: [
                     new ImageRun({
@@ -1894,7 +1826,7 @@ export default {
       }
 
       const item = this.items.find(
-        (currentItem) => String(currentItem.id) === String(itemId),
+        currentItem => String(currentItem.id) === String(itemId),
       )
 
       if (!item) {
@@ -1941,8 +1873,6 @@ export default {
       this.updating = true
 
       try {
-        // Keep each property at quantity 1.
-        // No Tracking Type is sent.
         const payload = {
           ...this.editForm,
           quantity: 1,
@@ -1963,7 +1893,7 @@ export default {
         }
 
         const index = this.items.findIndex(
-          (item) => item.id === this.editingItem.id,
+          item => item.id === this.editingItem.id,
         )
 
         if (index !== -1) {
@@ -1975,6 +1905,9 @@ export default {
         }
 
         this.editingItem = null
+
+        // ADDED: Refresh the Acquisitions and Issuance badge.
+        this.notifyIssuanceUpdate()
 
         window.dispatchEvent(new CustomEvent('show-toast', {
           detail: 'Property updated successfully',
@@ -2028,7 +1961,7 @@ export default {
         }
 
         this.items = this.items.filter(
-          (currentItem) => currentItem.id !== item.id,
+          currentItem => currentItem.id !== item.id,
         )
 
         if (this.editingItem && this.editingItem.id === item.id) {
@@ -2081,7 +2014,6 @@ export default {
         remarks: '',
       }
     },
-
 
     getConditionClass(condition) {
       if (condition === 'Serviceable') return 'bg-success'
