@@ -18,13 +18,15 @@ const auditLogsRoutes = require('./routes/auditLogs')
 const { requireAuth, requireRole } = require('./middleware/auth')
 const authRoutes = require('./routes/auth')
 const passwordResetRoutes = require('./routes/passwordResets')
+const backupRoutes = require('./routes/backup')
 
 const app = express()
 
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '50mb' }))
 app.use('/api/auth', authRoutes)
 app.use('/api/password-resets', passwordResetRoutes)
+app.use('/api/backup', requireAuth, requireRole('Administrator'), backupRoutes)
 app.use('/api/item-documents', itemDocumentsRoutes)
 
 app.get('/', (req, res) => {
