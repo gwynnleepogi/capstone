@@ -18,6 +18,7 @@ import AuditLogs from '@/views/AuditLogs.vue'
 import InventoryMovementHistory from '@/views/InventoryMovementHistory.vue'
 import AccountRequests from '@/views/AccountRequests.vue'
 import PasswordResetRequests from '@/views/PasswordResetRequests.vue'
+import BackupRestore from '@/views/BackupRestore.vue'
 
 
 const router = createRouter({
@@ -137,6 +138,12 @@ const router = createRouter({
       path: '/returns-incidents',
       name: 'ReturnIncidents',
       redirect: { name: 'Returns' },
+      meta: { roles: ['Administrator'] }
+    },
+    {
+      path: '/backup-restore',
+      name: 'BackupRestore',
+      component: BackupRestore,
       meta: { roles: ['Administrator'] }
     },
     {
