@@ -1080,10 +1080,6 @@ h1 {
   align-items: start;
 }
 
-.status-legend {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .legend-item {
   display: flex;
   align-items: flex-start;
@@ -1169,14 +1165,6 @@ h1 {
   vertical-align: middle;
 }
 
-@media (max-width: 1200px) {
-
-  .status-legend {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-}
-
 @media (max-width: 992px) {
 
   .chart-layout {
@@ -1186,10 +1174,6 @@ h1 {
 
   .doughnut-chart {
     width: min(100%, 148px);
-  }
-
-  .status-legend {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
 }
@@ -1219,8 +1203,8 @@ h1 {
   }
 
   .status-legend {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px 8px;
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .classification-legend {
