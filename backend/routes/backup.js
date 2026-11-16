@@ -147,6 +147,23 @@ router.post('/restore', async (req, res) => {
     })
   }
 
+  // Validate every record before writing anything, so a malformed later
+  // table does not cause an avoidable partial restore.
+  for (const table of BACKUP_TABLES) {
+    const rows = backup.tables[table] || []
+
+    if (rows.some(row =>
+      !row ||
+      typeof row !== 'object' ||
+      Array.isArray(row) ||
+      !row.id
+    )) {
+      return res.status(400).json({
+        error: 'The backup contains a record without an ID in table: ' + table
+      })
+    }
+  }
+
   try {
     let restoredRecords = 0
 
@@ -157,17 +174,6 @@ router.post('/restore', async (req, res) => {
 
       for (let index = 0; index < rows.length; index += 500) {
         const batch = rows.slice(index, index + 500)
-
-        if (batch.some(row =>
-          !row ||
-          typeof row !== 'object' ||
-          Array.isArray(row) ||
-          !row.id
-        )) {
-          return res.status(400).json({
-            error: 'The backup contains a record without an ID in table: ' + table
-          })
-        }
 
         const { error } = await client
           .from(table)
