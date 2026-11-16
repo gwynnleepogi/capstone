@@ -589,9 +589,30 @@
               <dt class="col-sm-4">Created</dt>
               <dd class="col-sm-8">{{ formatDate(selectedPersonnel.created_at) }}</dd>
             </dl>
-            <button type="button" class="btn btn-outline-danger btn-sm mt-3" @click="deleteSelectedPersonnel">
-              <i class="bi bi-trash me-1"></i>Delete this personnel
-            </button>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+              <button
+                type="button"
+                class="btn btn-outline-info btn-sm"
+                :disabled="resettingPasswordId === selectedPersonnel.id || !selectedPersonnel.auth_user_id"
+                @click="resetPersonnelPassword(selectedPersonnel)"
+                title="Issue a new temporary password"
+              >
+                <span
+                  v-if="resettingPasswordId === selectedPersonnel.id"
+                  class="spinner-border spinner-border-sm me-1"
+                  aria-hidden="true"
+                ></span>
+                <i v-else class="bi bi-key me-1"></i>
+                Reset Password
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-danger btn-sm"
+                @click="deleteSelectedPersonnel"
+              >
+                <i class="bi bi-trash me-1"></i>Delete this personnel
+              </button>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
