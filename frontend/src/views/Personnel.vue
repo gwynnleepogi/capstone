@@ -302,45 +302,6 @@
       </div>
     </div>
 
-    <div
-      v-if="resetPasswordResult"
-      class="modal fade show d-block"
-      tabindex="-1"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="reset-password-title"
-      style="background-color: rgba(0, 0, 0, 0.5);"
-    >
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 id="reset-password-title" class="modal-title">Temporary Password Ready</h5>
-            <button type="button" class="btn-close" aria-label="Close" @click="resetPasswordResult = null"></button>
-          </div>
-          <div class="modal-body">
-            <p>
-              Give this temporary password to {{ resetPasswordResult.full_name }} through a secure channel.
-              They must change it after signing in.
-            </p>
-            <label for="reset-temporary-password" class="form-label">Temporary password</label>
-            <input
-              id="reset-temporary-password"
-              class="form-control font-monospace"
-              :value="resetPasswordResult.password"
-              readonly
-              @focus="$event.target.select()"
-            >
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-outline-success" @click="copyResetPassword">
-              <i class="bi bi-clipboard me-1"></i>Copy Password
-            </button>
-            <button type="button" class="btn btn-secondary" @click="resetPasswordResult = null">Close</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- ASSIGNED ITEMS MODAL -->
 
     <div
@@ -574,6 +535,25 @@
               <dt class="col-sm-4">Created</dt>
               <dd class="col-sm-8">{{ formatDate(selectedPersonnel.created_at) }}</dd>
             </dl>
+
+            <div v-if="resetPasswordResult && resetPasswordResult.person_id === selectedPersonnel.id" class="alert alert-success mt-3 mb-0">
+              <strong class="d-block mb-2">Temporary Password Ready</strong>
+              <p class="mb-2 small">
+                Give this password to {{ selectedPersonnel.full_name }} through a secure channel. They must change it after signing in.
+              </p>
+              <label for="reset-temporary-password" class="form-label">Temporary password</label>
+              <input
+                id="reset-temporary-password"
+                class="form-control font-monospace mb-2"
+                :value="resetPasswordResult.password"
+                readonly
+                @focus="$event.target.select()"
+              >
+              <button type="button" class="btn btn-sm btn-outline-success" @click="copyResetPassword">
+                <i class="bi bi-clipboard me-1"></i>Copy Password
+              </button>
+            </div>
+
             <div class="d-flex flex-wrap gap-2 mt-3">
               <button
                 type="button"
@@ -1050,6 +1030,7 @@ export default {
 
     viewPersonnelDetails(person) {
       this.selectedPersonnel = person
+      this.resetPasswordResult = null
       Modal.getOrCreateInstance(
         document.getElementById('personnelDetailsModal')
       ).show()
@@ -1087,7 +1068,7 @@ export default {
         }
 
         this.resetPasswordResult = {
-          full_name: person.full_name,
+          person_id: person.id,
           password: result.temporary_password
         }
       } catch (error) {
