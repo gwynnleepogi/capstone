@@ -228,21 +228,6 @@
                   <i class="bi bi-eye me-1"></i>
                   Details
                 </button>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-warning ms-1"
-                  :disabled="resettingPasswordId === person.id"
-                  @click="resetPersonnelPassword(person)"
-                  title="Issue a new temporary password"
-                >
-                  <span
-                    v-if="resettingPasswordId === person.id"
-                    class="spinner-border spinner-border-sm me-1"
-                    aria-hidden="true"
-                  ></span>
-                  <i v-else class="bi bi-key me-1"></i>
-                  Reset Password
-                </button>
               </td>
             </tr>
           </tbody>
