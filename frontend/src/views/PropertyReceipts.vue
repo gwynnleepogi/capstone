@@ -66,7 +66,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="receipt in filteredReceipts" :key="receipt.id">
+              <tr v-for="receipt in paginatedReceipts" :key="receipt.id">
                 <td>{{ receipt.receipt_number || '-' }}</td>
                 <td>
                   <span class="badge bg-secondary">{{ receipt.receipt_type || '-' }}</span>
@@ -92,6 +92,24 @@
               </tr>
             </tbody>
           </table>
+        </div>
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 mt-3">
+          <small class="text-muted">
+            Showing {{ paginationStart }} to {{ paginationEnd }} of {{ filteredReceipts.length }} requests
+          </small>
+          <nav aria-label="Acquisitions and issuance pagination">
+            <ul class="pagination pagination-sm mb-0">
+              <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                <button type="button" class="page-link" :disabled="currentPage === 1" @click="currentPage--">Previous</button>
+              </li>
+              <li v-for="page in totalPages" :key="page" class="page-item" :class="{ active: currentPage === page }">
+                <button type="button" class="page-link" @click="currentPage = page">{{ page }}</button>
+              </li>
+              <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                <button type="button" class="page-link" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
+              </li>
+            </ul>
+          </nav>
         </div>
       </div>
     </div>
@@ -513,6 +531,8 @@ export default {
       receiptStatusFilter: '',
       receiptSortKey: 'date_issued',
       receiptSortDirection: 'desc',
+      currentPage: 1,
+      pageSize: 10,
       items: [],
       personnel: [],
       itemRequests: [],
@@ -636,6 +656,23 @@ export default {
         })
     },
 
+    paginatedReceipts() {
+      const start = (this.currentPage - 1) * this.pageSize
+      return this.filteredReceipts.slice(start, start + this.pageSize)
+    },
+
+    totalPages() {
+      return Math.max(1, Math.ceil(this.filteredReceipts.length / this.pageSize))
+    },
+
+    paginationStart() {
+      return this.filteredReceipts.length ? (this.currentPage - 1) * this.pageSize + 1 : 0
+    },
+
+    paginationEnd() {
+      return Math.min(this.currentPage * this.pageSize, this.filteredReceipts.length)
+    },
+
     printablePersonnel() {
       return [...this.personnel]
         .filter(person => person.full_name)
@@ -704,6 +741,15 @@ export default {
   beforeUnmount() {
     window.removeEventListener('focus', this.getItemRequests)
     window.removeEventListener('item-requests-updated', this.getItemRequests)
+  },
+
+  watch: {
+    receiptSearch() { this.currentPage = 1 },
+    receiptTypeFilter() { this.currentPage = 1 },
+    receiptStatusFilter() { this.currentPage = 1 },
+    filteredReceipts() {
+      if (this.currentPage > this.totalPages) this.currentPage = this.totalPages
+    }
   },
 
   methods: {
