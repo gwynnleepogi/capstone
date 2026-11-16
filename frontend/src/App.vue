@@ -249,6 +249,16 @@
             {{ pendingPasswordResetCount > 99 ? '99+' : pendingPasswordResetCount }}
           </span>
         </router-link>
+
+        <router-link
+          v-if="canAccess(['Administrator'])"
+          to="/backup-restore"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-database-check"></i>
+          Backup &amp; Restore
+        </router-link>
       </nav>
 
       <div class="sidebar-bottom">
