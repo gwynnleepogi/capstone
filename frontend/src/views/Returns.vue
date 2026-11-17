@@ -11,10 +11,10 @@
         <button
           type="button"
           class="btn btn-outline-success d-flex align-items-center gap-2"
-          @click="showReturnRequests = !showReturnRequests"
+          @click="openReturnRequestsModal"
         >
-          <i class="bi" :class="showReturnRequests ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-          {{ showReturnRequests ? 'Hide Return Requests' : 'Show Return Requests' }}
+          <i class="bi bi-inbox me-1"></i>
+          Return Requests
         </button>
 
         <button class="btn btn-warning" @click="openAddModal">
@@ -24,10 +24,34 @@
       </div>
     </div>
 
-    <ReturnRequestsPanel
-      :show-requests="showReturnRequests"
-      @changed="getReturns"
-    />
+    <!-- Return Requests Modal -->
+    <div
+      class="modal fade"
+      id="returnRequestsModal"
+      tabindex="-1"
+      aria-labelledby="returnRequestsModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h5 id="returnRequestsModalLabel" class="modal-title">Return Requests</h5>
+              <p class="text-muted small mb-0">Review and accept property return requests.</p>
+            </div>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <ReturnRequestsPanel @changed="getReturns" />
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="mt-5 pt-4 border-top mb-3">
       <h3 id="recorded-returns-heading" class="h5 mb-1">Recorded Returns</h3>
@@ -553,7 +577,6 @@ export default {
       personnel: [],
       offices: [],
       selectedReturn: null,
-      showReturnRequests: false,
 
       search: '',
       conditionFilter: '',
@@ -952,6 +975,11 @@ export default {
       if (selectedPerson && selectedPerson.office_id) {
         this.form.office_id = String(selectedPerson.office_id)
       }
+    },
+
+    openReturnRequestsModal() {
+      const modalElement = document.getElementById('returnRequestsModal')
+      Modal.getOrCreateInstance(modalElement).show()
     },
 
     openAddModal() {
