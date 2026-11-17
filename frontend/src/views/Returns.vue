@@ -7,13 +7,27 @@
         <p class="text-muted">Manage returned property items</p>
       </div>
 
-      <button class="btn btn-warning" @click="openAddModal">
-        <i class="bi bi-arrow-return-left me-1"></i>
-        Add Return
-      </button>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          class="btn btn-outline-success d-flex align-items-center gap-2"
+          @click="showReturnRequests = !showReturnRequests"
+        >
+          <i class="bi" :class="showReturnRequests ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          {{ showReturnRequests ? 'Hide Return Requests' : 'Show Return Requests' }}
+        </button>
+
+        <button class="btn btn-warning" @click="openAddModal">
+          <i class="bi bi-arrow-return-left me-1"></i>
+          Add Return
+        </button>
+      </div>
     </div>
 
-    <ReturnRequestsPanel @changed="getReturns" />
+    <ReturnRequestsPanel
+      :show-requests="showReturnRequests"
+      @changed="getReturns"
+    />
 
     <div class="mt-5 pt-4 border-top mb-3">
       <h3 id="recorded-returns-heading" class="h5 mb-1">Recorded Returns</h3>
@@ -539,6 +553,7 @@ export default {
       personnel: [],
       offices: [],
       selectedReturn: null,
+      showReturnRequests: false,
 
       search: '',
       conditionFilter: '',
