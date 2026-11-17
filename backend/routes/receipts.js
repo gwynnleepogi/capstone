@@ -188,10 +188,39 @@ router.post('/', async (req, res) => {
       })
     }
 
-    if (!receipt_number || !String(receipt_number).trim()) {
-      return res.status(400).json({
-        error: 'Receipt number is required'
-      })
+    let finalReceiptNumber = receipt_number
+
+    if (!receipt_number || !String(finalReceiptNumber).trim()) {
+      const { data: existingReceipts, error: numberLookupError } = await supabase
+        .from('property_receipts')
+        .select('receipt_number')
+
+      if (numberLookupError) {
+        return res.status(500).json({
+          error: 'Unable to generate receipt number'
+        })
+      }
+
+      let highestNumber = -1
+      for (const existing of existingReceipts || []) {
+        const match = String(existing.receipt_number || '').match(/^(\d{5})-(\d{4})$/)
+        if (match) {
+          const numericValue = Number(match[1]) * 10000 + Number(match[2])
+          if (numericValue > highestNumber) highestNumber = numericValue
+        }
+      }
+
+      const nextNumber = highestNumber + 1
+      if (nextNumber > 999999999) {
+        return res.status(409).json({
+          error: 'Receipt number limit has been reached'
+        })
+      }
+
+      finalReceiptNumber =
+        String(Math.floor(nextNumber / 10000)).padStart(5, '0') +
+        '-' +
+        String(nextNumber % 10000).padStart(4, '0')
     }
 
     // ==========================================
@@ -269,7 +298,7 @@ router.post('/', async (req, res) => {
         .insert([{
           item_id,
           receipt_type,
-          receipt_number: String(receipt_number).trim(),
+          receipt_number: String(finalReceiptNumber).trim(),
           issued_to: recipient.id,
           quantity: 1,
           date_issued: date_issued ||
@@ -452,7 +481,7 @@ router.post('/', async (req, res) => {
         item_id: request.item_id,
         item_request_id,
         receipt_type,
-        receipt_number: String(receipt_number).trim(),
+        receipt_number: String(finalReceiptNumber).trim(),
         issued_to: request.requested_by,
         quantity: 1,
         date_issued: date_issued ||
@@ -581,7 +610,7 @@ router.put('/:id', async (req, res) => {
       })
     }
 
-    if (!receipt_number || !String(receipt_number).trim()) {
+    if (!receipt_number || !String(finalReceiptNumber).trim()) {
       return res.status(400).json({
         error: 'Receipt number is required'
       })
@@ -604,7 +633,7 @@ router.put('/:id', async (req, res) => {
 
     const updates = {
       receipt_type,
-      receipt_number: String(receipt_number).trim(),
+      receipt_number: String(finalReceiptNumber).trim(),
       date_issued: date_issued || null,
       remarks: remarks || null
     }
