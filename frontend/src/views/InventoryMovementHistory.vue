@@ -316,7 +316,7 @@ export default {
       showCertificationModal: false,
       certificationCustodian: '',
       certificationAccountingStaff: '',
-      certificationDate: this.toDateString(new Date())
+      certificationDate: ''
     };
   },
 
