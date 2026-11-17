@@ -125,7 +125,7 @@
         <div class="footer-actions">
           <button
             class="print-button excel-button"
-            :disabled="loading || Boolean(errorMessage) || !printRows.length || invalidDateRange"
+            :disabled="loading || Boolean(errorMessage) || !filteredMovements.length || invalidDateRange"
             @click="openDetailsModal('excel')"
           >
             <i class="bi bi-file-earmark-excel"></i>
