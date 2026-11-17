@@ -126,7 +126,7 @@
           <button
             class="print-button excel-button"
             :disabled="loading || Boolean(errorMessage) || !printRows.length || invalidDateRange"
-            @click="openDetailsModal('excel')"
+            @click="exportAcquisitionExcel"
           >
             <i class="bi bi-file-earmark-excel"></i>
             Export Excel
@@ -213,17 +213,6 @@
         </div>
       </section>
     </div>
-    <div v-if="showDetailsModal" class="print-picker-backdrop" @click.self="showDetailsModal = false" @keydown.esc="showDetailsModal = false">
-      <section class="print-picker card details-picker" role="dialog" aria-modal="true" aria-labelledby="movement-details-title">
-        <div class="print-picker-header"><div><h3 id="movement-details-title">Report Signatory Details</h3><p>Enter the name and date for the report. A signature image is optional.</p></div><button type="button" class="btn-close" aria-label="Close" @click="showDetailsModal = false"></button></div>
-        <div class="details-form">
-          <div class="details-field"><label for="movement-signer-name">Printed Name</label><input id="movement-signer-name" v-model="signerName" type="text" class="form-control" placeholder="Enter full name"></div>
-          <div class="details-field"><label for="movement-signer-date">Date</label><input id="movement-signer-date" v-model="signerDate" type="date" class="form-control"></div>
-          <div class="details-field"><label for="movement-signer-signature">Picture of Signature <span class="optional-label">(Optional)</span></label><input id="movement-signer-signature" type="file" class="form-control" accept="image/*" @change="handleSignatureUpload"><small class="text-muted">Upload an image file.</small><div v-if="signerSignature" class="signature-preview"><img :src="signerSignature" alt="Signature preview"><button type="button" class="btn btn-sm btn-outline-danger" @click="signerSignature = ''">Remove</button></div></div>
-        </div>
-        <div class="print-picker-footer details-footer"><button type="button" class="close-footer-button secondary-button" @click="showDetailsModal = false">Cancel</button><button type="button" class="close-footer-button" @click="continueReportAction">{{ detailsAction === 'excel' ? 'Download Excel' : 'Continue to Print' }}</button></div>
-      </section>
-    </div>
   </div>
 </template>
 
@@ -253,12 +242,7 @@ export default {
       movementType: 'all',
       reportToPrint: 'acquisition',
       search: '',
-      showPrintModal: false,
-      showDetailsModal: false,
-      detailsAction: 'print',
-      signerName: '',
-      signerDate: '',
-      signerSignature: ''
+      showPrintModal: false
     };
   },
 
@@ -369,213 +353,851 @@ export default {
   },
 
   methods: {
-    openDetailsModal(action) {
-      this.detailsAction = action;
-      this.signerDate = this.toDateString(new Date());
-      this.signerSignature = '';
-      this.showDetailsModal = true;
-    },
-
-    printSelectedReport(reportType) {
-      this.reportToPrint = reportType;
-      this.showPrintModal = false;
-      this.openDetailsModal('print');
-    },
-
-    canPrintReport(reportType) {
-      return this.movements.some(item =>
-        item.category === (reportType === 'issuance' ? 'Issuance' : 'Acquisition') &&
-        item.date >= this.dateFrom &&
-        item.date <= this.dateTo &&
-        (this.selectedFundCluster === 'ALL' ||
-          String(item.fundCluster || '').trim().toUpperCase() === this.selectedFundCluster.toUpperCase())
-      );
-    },
-
-    getReportRowCount(reportType) {
-      const category = reportType === 'issuance' ? 'Issuance' : 'Acquisition';
-      return this.movements.filter(item =>
-        item.category === category &&
-        item.date >= this.dateFrom &&
-        item.date <= this.dateTo &&
-        (this.selectedFundCluster === 'ALL' ||
-          String(item.fundCluster || '').trim().toUpperCase() === this.selectedFundCluster.toUpperCase())
-      ).length;
-    },
-
     setDefaultDates() {
       const today = new Date();
-      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      this.dateFrom = this.toDateString(firstDay);
-      this.dateTo = this.toDateString(today);
+
+      if (!this.dateFrom) {
+        this.dateFrom = '2000-01-01';
+      }
+
+      if (!this.dateTo) {
+        this.dateTo = this.toDateString(today);
+      }
     },
 
     toDateString(date) {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
+
       return year + '-' + month + '-' + day;
     },
 
-    formatDate(value) {
-      if (!value) return 'N/A';
-      const parts = String(value).substring(0, 10).split('-');
-      if (parts.length !== 3) return value;
-      return parts[1] + '/' + parts[2] + '/' + parts[0];
+    formatDate(date) {
+      if (!date) {
+        return 'N/A';
+      }
+
+      const parsedDate = new Date(date + 'T00:00:00');
+
+      if (isNaN(parsedDate.getTime())) {
+        return date;
+      }
+
+      return parsedDate.toLocaleDateString();
     },
 
     badgeClass(item) {
       if (item.category === 'Acquisition') return 'badge-acquisition';
-      if (item.category === 'Issuance') return 'badge-out';
       if (item.category === 'Return') return 'badge-return';
-      return 'badge-in';
+      return 'badge-out';
     },
 
-    cleanUnit(value) {
-      return String(value || '').trim();
+    getReportRowCount(reportType) {
+      if (this.invalidDateRange) {
+        return 0;
+      }
+
+      const category = reportType === 'issuance'
+        ? 'Issuance'
+        : 'Acquisition';
+
+      return this.movements.filter(item =>
+        item.category === category &&
+        item.date >= this.dateFrom &&
+        item.date <= this.dateTo &&
+        (
+          this.selectedFundCluster === 'ALL' ||
+          String(item.fundCluster || '').trim().toUpperCase() ===
+            this.selectedFundCluster.toUpperCase()
+        )
+      ).length;
+    },
+
+    canPrintReport(reportType) {
+      return !this.loading &&
+        !this.errorMessage &&
+        !this.invalidDateRange &&
+        this.getReportRowCount(reportType) > 0;
+    },
+
+    printSelectedReport(reportType) {
+      if (!this.canPrintReport(reportType)) {
+        return;
+      }
+
+      this.reportToPrint = reportType;
+      this.showPrintModal = false;
+      this.printReport();
     },
 
     getRelatedRecord(value) {
-      if (Array.isArray(value)) return value[0] || {};
+      if (Array.isArray(value)) {
+        return value[0] || {};
+      }
+
       return value || {};
     },
 
     escapeHtml(value) {
-      return String(value === null || value === undefined ? '' : value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+      return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[character]);
+    },
+
+    formatLongDate(date) {
+      if (!date) return '';
+
+      const parsed = new Date(date + 'T00:00:00');
+
+      if (isNaN(parsed.getTime())) {
+        return date;
+      }
+
+      return parsed
+        .toLocaleDateString('en-US', {
+          month: 'long',
+          day: '2-digit',
+          year: 'numeric'
+        })
+        .replace(',', '');
     },
 
     formatMoney(value) {
-      return Number(value || 0).toLocaleString('en-PH', {
-        style: 'currency',
-        currency: 'PHP'
+      return Number(value || 0).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
       });
     },
 
-    printReport() {
-      const rows = this.printRows;
-      const title = this.reportToPrint === 'issuance'
-        ? 'REPORT ON SUPPLIES AND MATERIALS ISSUED'
-        : 'ACQUISITION OF SUPPLIES AND MATERIALS';
-      const tableRows = rows.map((item, index) => `
-        <tr>
-          <td>${this.escapeHtml(this.formatDate(item.date))}</td>
-          <td>${this.escapeHtml(item.propertyNumber || 'N/A')}</td>
-          <td>${this.escapeHtml(item.description || 'N/A')}</td>
-          <td>${this.escapeHtml(item.reference || 'N/A')}</td>
-          <td>${this.escapeHtml(item.quantity)}</td>
-          <td>${this.escapeHtml(item.person || item.supplier || 'N/A')}</td>
-          <td>${this.escapeHtml(item.destination || 'N/A')}</td>
-        </tr>
-      `).join('');
-      const signature = this.signerSignature
-        ? `<img src="${this.signerSignature}" alt="Signature" style="display:block;max-width:180px;max-height:65px;object-fit:contain;margin:8px auto">`
-        : '';
-      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
-        <style>
-          body{font-family:Arial,sans-serif;color:#222;padding:24px}
-          h2{text-align:center;margin-bottom:4px}
-          .subtitle{text-align:center;margin:0 0 20px;color:#555}
-          table{width:100%;border-collapse:collapse;font-size:12px}
-          th,td{border:1px solid #555;padding:7px;text-align:left}
-          th{background:#e9eee9}
-          .signatory{margin:48px 0 0 auto;width:260px;text-align:center}
-          .signatory-name{font-weight:bold;text-transform:uppercase;border-bottom:1px solid #222;padding:5px}
-          @media print{body{padding:0}}
-        </style></head><body>
-        <h2>${title}</h2>
-        <p class="subtitle">Fund Cluster: ${this.escapeHtml(this.selectedFundCluster)} | Date: ${this.escapeHtml(this.formatDate(this.dateFrom))} - ${this.escapeHtml(this.formatDate(this.dateTo))}</p>
-        <table><thead><tr><th>Date</th><th>Property No.</th><th>Description</th><th>Reference</th><th>Quantity</th><th>Recipient / Source</th><th>Destination</th></tr></thead>
-        <tbody>${tableRows}</tbody></table>
-        <div class="signatory">${signature}<div class="signatory-name">${this.escapeHtml(this.signerName)}</div><div>Signature over Printed Name</div><div>Date: ${this.escapeHtml(this.formatDate(this.signerDate))}</div></div>
-        <script>window.onload=function(){window.print()};window.onafterprint=function(){window.close()}<\/script>
-        </body></html>`;
-      const printWindow = window.open('', '_blank', 'width=1100,height=850');
-      if (!printWindow) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Please allow pop-ups to print the report.' }));
+    cleanUnit(value) {
+      const unit = String(value ?? '').trim();
+      return unit && unit.toLowerCase() !== 'unit' ? unit : '';
+    },
+
+    async exportAcquisitionExcel() {
+      if (this.invalidDateRange || !this.printRows.length) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: this.invalidDateRange
+            ? this.dateRangeError
+            : 'There are no records to export for the selected report.'
+        }));
         return;
       }
-      printWindow.document.open();
-      printWindow.document.write(html);
+
+      try {
+        const imported = await import('exceljs');
+        const ExcelJS = imported.default || imported;
+        const workbook = new ExcelJS.Workbook();
+
+        const isIssuance = this.reportToPrint === 'issuance';
+        const title = isIssuance
+          ? 'REPORT ON SUPPLIES AND MATERIALS ISSUED'
+          : 'ACQUISITION OF SUPPLIES AND MATERIALS';
+
+        const lastColumn = isIssuance ? 'L' : 'L';
+
+        const worksheet = workbook.addWorksheet(
+          isIssuance ? 'Properties Issued' : 'Office Property Acquisition',
+          {
+            pageSetup: {
+              paperSize: 9,
+              orientation: 'landscape',
+              fitToPage: true,
+              fitToWidth: 1,
+              fitToHeight: 0,
+              horizontalCentered: true,
+              verticalCentered: false,
+              margins: {
+                left: 0.25,
+                right: 0.25,
+                top: 0.5,
+                bottom: 0.5,
+                header: 0.2,
+                footer: 0.2
+              }
+            },
+            views: [{ state: 'frozen', ySplit: 8 }]
+          }
+        );
+
+        /* HEADER */
+
+        worksheet.mergeCells('A1:' + lastColumn + '1');
+        worksheet.getCell('A1').value = 'Republic of the Philippines';
+
+        worksheet.mergeCells('A2:' + lastColumn + '2');
+        worksheet.getCell('A2').value = 'NUEVA VIZCAYA STATE UNIVERSITY';
+
+        worksheet.mergeCells('A3:' + lastColumn + '3');
+        worksheet.getCell('A3').value = 'Bambang, Nueva Vizcaya';
+
+        worksheet.mergeCells('A4:' + lastColumn + '4');
+        worksheet.getCell('A4').value = title;
+
+        worksheet.mergeCells('A5:' + lastColumn + '5');
+        worksheet.getCell('A5').value =
+          'For the period of ' +
+          this.formatLongDate(this.dateFrom) +
+          ' - ' +
+          this.formatLongDate(this.dateTo);
+
+        worksheet.mergeCells('A6:' + lastColumn + '6');
+        worksheet.getCell('A6').value =
+          'FUND CLUSTER: ' +
+          (this.selectedFundCluster === 'ALL'
+            ? '(ALL)'
+            : this.selectedFundCluster);
+
+        ['A1', 'A2', 'A3', 'A4', 'A5', 'A6'].forEach(address => {
+          worksheet.getCell(address).alignment = {
+            horizontal: 'center',
+            vertical: 'middle',
+            wrapText: true
+          };
+
+          worksheet.getCell(address).font = {
+            name: 'Arial',
+            bold: address === 'A2' || address === 'A4',
+            size: address === 'A4' ? 14 : 11
+          };
+        });
+
+        worksheet.getRow(1).height = 20;
+        worksheet.getRow(2).height = 22;
+        worksheet.getRow(3).height = 20;
+        worksheet.getRow(4).height = 25;
+        worksheet.getRow(5).height = 22;
+        worksheet.getRow(6).height = 20;
+
+        /* TABLE HEADERS */
+
+        worksheet.addRow([]);
+
+        const headers = isIssuance
+          ? [
+              'Date Delivered',
+              'Reference No.',
+              'RC Code',
+              'SN',
+              'Property No.',
+              'Description',
+              'Unit',
+              'QTY',
+              'U-Cost',
+              'Amount',
+              'Name',
+              'Destination'
+            ]
+          : [
+              'Acquisition Date',
+              'Article',
+              'Description',
+              'Item No.',
+              'Unit of Measure',
+              'Cost per Unit',
+              'DR/CI/SI Number',
+              'Property Order No.',
+              'Qty',
+              'Value',
+              'Supplier',
+              'Remarks'
+            ];
+
+        const headerRow = worksheet.addRow(headers);
+
+        headerRow.font = {
+          name: 'Arial',
+          bold: true,
+          size: 9
+        };
+
+        headerRow.alignment = {
+          horizontal: 'center',
+          vertical: 'middle',
+          wrapText: true
+        };
+
+        headerRow.height = 34;
+
+        headerRow.eachCell(cell => {
+          cell.border = {
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+        });
+
+        let grandTotal = 0;
+
+        this.printRows.forEach((item, index) => {
+          const quantity = Number(item.quantity || 0);
+          const unitCost = Number(item.unitCost || 0);
+          const amount = quantity * unitCost;
+
+          grandTotal += amount;
+
+          const values = isIssuance
+            ? [
+                item.date || '',
+                item.reference || '',
+                item.rcCode || '',
+                index + 1,
+                item.propertyNumber || '',
+                item.description || '',
+                item.unit || '',
+                quantity,
+                unitCost,
+                amount,
+                item.name || item.person || '',
+                item.destination || ''
+              ]
+            : [
+                item.date || '',
+                item.article || '',
+                item.description || '',
+                item.itemNo || index + 1,
+                item.unit || '',
+                unitCost,
+                item.drNumber || '',
+                item.poNumber || '',
+                quantity,
+                amount,
+                item.supplier || '',
+                item.remarks || ''
+              ];
+
+          const row = worksheet.addRow(values);
+
+          row.font = {
+            name: 'Arial',
+            size: 9
+          };
+
+          row.alignment = {
+            vertical: 'middle',
+            wrapText: true
+          };
+
+          row.eachCell(cell => {
+            cell.border = {
+              top: { style: 'thin' },
+              bottom: { style: 'thin' },
+              left: { style: 'thin' },
+              right: { style: 'thin' }
+            };
+          });
+
+          if (isIssuance) {
+            row.getCell(1).numFmt = 'yyyy-mm-dd';
+            row.getCell(8).numFmt = '0';
+            row.getCell(9).numFmt = '#,##0.00';
+            row.getCell(10).numFmt = '#,##0.00';
+          } else {
+            row.getCell(1).numFmt = 'yyyy-mm-dd';
+            row.getCell(6).numFmt = '#,##0.00';
+            row.getCell(9).numFmt = '0';
+            row.getCell(10).numFmt = '#,##0.00';
+          }
+        });
+
+        /* TOTAL */
+
+        const totalRow = worksheet.addRow(
+          isIssuance
+            ? [
+                'TOTAL', '', '', '', '', '', '', '', '',
+                grandTotal, '', ''
+              ]
+            : [
+                'GRAND TOTAL', '', '', '', '', '', '', '', '',
+                grandTotal, '', ''
+              ]
+        );
+
+        totalRow.font = {
+          name: 'Arial',
+          bold: true,
+          size: 10
+        };
+
+        totalRow.getCell(10).numFmt = '#,##0.00';
+
+        totalRow.eachCell(cell => {
+          cell.border = {
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+
+          cell.alignment = {
+            vertical: 'middle'
+          };
+        });
+
+        /* COLUMN WIDTHS */
+
+        worksheet.columns = isIssuance
+          ? [
+              { width: 15 },
+              { width: 17 },
+              { width: 13 },
+              { width: 7 },
+              { width: 17 },
+              { width: 30 },
+              { width: 9 },
+              { width: 7 },
+              { width: 13 },
+              { width: 14 },
+              { width: 22 },
+              { width: 25 }
+            ]
+          : [
+              { width: 16 },
+              { width: 18 },
+              { width: 30 },
+              { width: 14 },
+              { width: 16 },
+              { width: 18 },
+              { width: 20 },
+              { width: 24 },
+              { width: 10 },
+              { width: 16 },
+              { width: 22 },
+              { width: 24 }
+            ];
+
+        worksheet.autoFilter = {
+          from: 'A8',
+          to: lastColumn + '8'
+        };
+
+        worksheet.headerFooter.oddFooter = {
+          center: 'Page &P of &N'
+        };
+
+        const buffer = await workbook.xlsx.writeBuffer();
+
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.download =
+          (isIssuance
+            ? 'Properties_Issued_'
+            : 'Office_Property_Acquisition_') +
+          this.dateFrom + '_to_' + this.dateTo + '.xlsx';
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (error) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Unable to export Excel report: ' +
+            (error.message || 'Unknown error')
+        }));
+      }
+    },
+
+    printReport() {
+      if (this.invalidDateRange) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: this.dateRangeError
+        }));
+        return;
+      }
+
+      if (!this.printRows.length) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'There are no records for the selected report, fund cluster and date range.'
+        }));
+        return;
+      }
+
+      if (this.reportToPrint === 'issuance') {
+        this.printIssuanceReport();
+      } else {
+        this.printAcquisitionReport();
+      }
+    },
+
+    buildReportHeader(title, options = {}) {
+      const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href;
+
+      return `
+        <div class="appendix">${options.appendix ? this.escapeHtml(options.appendix) : ''}</div>
+        <div class="header">
+          <div class="logo-box">
+            <img class="logo" src="${logoUrl}" alt="NVSU Logo">
+          </div>
+          <div class="school">
+            <div>Republic of the Philippines</div>
+            <div class="name">NUEVA VIZCAYA STATE UNIVERSITY</div>
+            <div>Bambang, Nueva Vizcaya</div>
+          </div>
+          <div class="title">${this.escapeHtml(title)}</div>
+          <div class="period">
+            For the period of
+            ${this.escapeHtml(this.formatLongDate(this.dateFrom))}
+            - ${this.escapeHtml(this.formatLongDate(this.dateTo))}
+          </div>
+        </div>`;
+    },
+
+    openReportWindow(title, bodyHtml, lineColor) {
+      const printWindow = window.open(
+        '',
+        '_blank',
+        'popup=yes,width=1200,height=900,resizable=yes,scrollbars=yes'
+      );
+
+      if (!printWindow) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please allow pop-ups to print the report.'
+        }));
+        return;
+      }
+
+      printWindow.document.write(`<!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>${this.escapeHtml(title)}</title>
+            <style>
+              @page {
+                size: landscape;
+                margin: 12mm;
+                @bottom-right {
+                  content: "Page " counter(page) " of " counter(pages);
+                  font-family: Arial, sans-serif;
+                  font-size: 9px;
+                  color: #000;
+                }
+              }
+
+              * { box-sizing: border-box; }
+
+              body {
+                font-family: Calibri, Arial, sans-serif;
+                color: #000;
+                font-size: 10px;
+                margin: 0;
+              }
+
+              .appendix {
+                text-align: right;
+                font-style: italic;
+                font-size: 11px;
+                height: 14px;
+              }
+
+              .header {
+                position: relative;
+                width: 100%;
+                min-height: 92px;
+                margin-bottom: 8px;
+                border: 1px solid #999;
+                text-align: center;
+              }
+
+              .logo-box {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 90px;
+                height: 92px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-right: 1px solid #999;
+              }
+
+              .logo {
+                width: 62px;
+                height: 62px;
+                object-fit: contain;
+                display: block;
+              }
+
+              .school {
+                height: 58px;
+                padding-top: 8px;
+                color: #000;
+                font-weight: bold;
+                line-height: 1.25;
+                font-size: 13px;
+                border-bottom: 1px solid #999;
+                margin-left: 90px;
+              }
+
+              .school .name { font-size: 15px; }
+
+              .title {
+                margin-left: 90px;
+                padding: 5px 8px;
+                font-weight: bold;
+                font-size: 13px;
+                text-transform: uppercase;
+              }
+
+              .period {
+                margin-top: 7px;
+                font-size: 12px;
+                border-top: 1px solid #999;
+                padding-top: 5px;
+              }
+
+              .fund {
+                margin: 8px 0 4px;
+                font-size: 11px;
+                font-weight: bold;
+              }
+
+              .fund span { margin-left: 6px; }
+
+              table.report {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+              }
+
+              .report th,
+              .report td {
+                border: 0.5px solid ${lineColor};
+                padding: 3px 4px;
+                vertical-align: middle;
+                overflow-wrap: anywhere;
+              }
+
+              .report th {
+                font-weight: bold;
+                text-align: center;
+              }
+
+              .center { text-align: center; }
+              .number { text-align: right; }
+
+              .total-row td {
+                font-weight: bold;
+                font-size: 11px;
+              }
+
+              .certify {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+                table-layout: fixed;
+                page-break-inside: avoid;
+              }
+
+              .certify td {
+                border: 1px solid #555;
+                padding: 8px 10px;
+                vertical-align: top;
+              }
+
+              .certify .certification-text {
+                height: auto;
+                padding: 9px 10px;
+                text-align: center;
+                vertical-align: middle;
+              }
+
+              .certify .lead {
+                font-weight: bold;
+                font-size: 11px;
+                text-align: center;
+              }
+
+              .certify .signature-cell {
+                height: 96px;
+                vertical-align: bottom;
+                text-align: center;
+              }
+
+              .certify .signature-line {
+                width: 92%;
+                height: 43px;
+                margin: 0 auto 5px;
+                border-bottom: 1px solid #000;
+              }
+
+              .certify .sig-label {
+                margin: 0;
+                font-weight: bold;
+                font-style: italic;
+                text-align: center;
+                font-size: 9px;
+                line-height: 1.25;
+              }
+
+              .certify .date-cell .signature-line {
+                width: 90%;
+                height: 43px;
+              }
+
+              @media print {
+                body {
+                  print-color-adjust: exact;
+                  -webkit-print-color-adjust: exact;
+                }
+
+                thead { display: table-header-group; }
+                tr { page-break-inside: avoid; }
+              }
+            </style>
+          </head>
+          <body>
+            ${bodyHtml}
+            <script>
+              window.onafterprint = function () { window.close(); };
+              window.onload = function () {
+                var logo = document.querySelector('.logo');
+
+                if (logo && !logo.complete) {
+                  logo.onload = function () { window.print(); };
+                  logo.onerror = function () { window.print(); };
+                } else {
+                  window.print();
+                }
+              };
+            <\/script>
+          </body>
+        </html>`);
+
       printWindow.document.close();
     },
 
-    exportAcquisitionExcel() {
-      const rows = this.filteredMovements;
-      const tableRows = rows.map(item => `
+    printAcquisitionReport() {
+      const title = 'ACQUISITION OF SUPPLIES AND MATERIALS';
+      const e = value => this.escapeHtml(
+        value === null || value === undefined || value === '' ? '' : value
+      );
+
+      const fundCluster = this.selectedFundCluster === 'ALL'
+        ? 'ALL'
+        : this.selectedFundCluster;
+
+      const valueOf = item =>
+        Number(item.quantity || 0) * Number(item.unitCost || 0);
+
+      const grandTotal = this.printRows.reduce(
+        (sum, item) => sum + valueOf(item),
+        0
+      );
+
+      const rows = this.printRows.map((item, index) => `
         <tr>
-          <td>${this.escapeHtml(this.formatDate(item.date))}</td>
-          <td>${this.escapeHtml(item.propertyNumber || '')}</td>
-          <td>${this.escapeHtml(item.description || '')}</td>
-          <td>${this.escapeHtml(item.category || '')}</td>
-          <td>${this.escapeHtml(item.quantity)}</td>
-          <td>${this.escapeHtml(item.reference || '')}</td>
-          <td>${this.escapeHtml(item.person || '')}</td>
-          <td>${this.escapeHtml(item.destination || '')}</td>
-          <td>${this.escapeHtml(item.fundCluster || '')}</td>
+          <td class="center">${e(this.formatDate(item.date))}</td>
+          <td>${e(item.article)}</td>
+          <td>${e(item.description)}</td>
+          <td class="center">${e(item.itemNo || index + 1)}</td>
+          <td class="center">${e(item.unit)}</td>
+          <td class="number">${this.formatMoney(item.unitCost)}</td>
+          <td class="center">${e(item.drNumber)}</td>
+          <td class="center">${e(item.poNumber)}</td>
+          <td class="number">${e(item.quantity)}</td>
+          <td class="number">${this.formatMoney(valueOf(item))}</td>
+          <td>${e(item.supplier)}</td>
+          <td>${e(item.remarks)}</td>
         </tr>
       `).join('');
-      const signature = this.signerSignature
-        ? `<img src="${this.signerSignature}" alt="Signature" width="150" height="55">`
-        : '';
-      const workbook = `<html><head><meta charset="UTF-8"></head><body>
-        <h2>Inventory Movement History</h2>
-        <p>Fund Cluster: ${this.escapeHtml(this.selectedFundCluster)}</p>
-        <p>Date Range: ${this.escapeHtml(this.formatDate(this.dateFrom))} - ${this.escapeHtml(this.formatDate(this.dateTo))}</p>
-        <table border="1"><thead><tr><th>Date</th><th>Property No.</th><th>Description</th><th>Movement</th><th>Quantity</th><th>Reference</th><th>Recipient / Source</th><th>Destination</th><th>Fund Cluster</th></tr></thead><tbody>${tableRows}</tbody></table>
-        <br><br><table><tr><td>Prepared by:</td></tr><tr><td>${signature}</td></tr><tr><td><strong>${this.escapeHtml(this.signerName)}</strong></td></tr><tr><td>Signature over Printed Name</td></tr><tr><td>Date: ${this.escapeHtml(this.formatDate(this.signerDate))}</td></tr></table>
-        </body></html>`;
-      const blob = new Blob([workbook], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'inventory-movement-history.xls';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    },
 
-    handleSignatureUpload(event) {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
-      if (!file.type.startsWith('image/')) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Please select an image file.' }));
-        event.target.value = '';
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => { this.signerSignature = reader.result; };
-      reader.onerror = () => window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Unable to read the signature image.' }));
-      reader.readAsDataURL(file);
-    },
-
-    continueReportAction() {
-      if (!this.signerName.trim() || !this.signerDate) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Please enter the printed name and date.' }));
-        return;
-      }
-      this.showDetailsModal = false;
-      if (this.detailsAction === 'excel') this.exportAcquisitionExcel();
-      else this.printReport();
-    },
-
-    buildSignatureMarkup() {
-      const signature = this.signerSignature
-        ? '<img class="report-signature-image" src="' + this.signerSignature + '" alt="Signature">'
-        : '';
-      return `
-        <div class="report-signatory">
-          ${signature}
-          <div class="report-signatory-name">${this.escapeHtml(this.signerName)}</div>
-          <div>Signature over Printed Name</div>
-          <div>Date: ${this.escapeHtml(this.formatDate(this.signerDate))}</div>
+      const body = `
+        ${this.buildReportHeader(title)}
+        <div class="fund">
+          FUND CLUSTER:<span>${this.escapeHtml(fundCluster)}</span>
         </div>
-      `;
+
+        <table class="report">
+          <colgroup>
+            <col style="width: 9%">
+            <col style="width: 8%">
+            <col style="width: 15%">
+            <col style="width: 5%">
+            <col style="width: 7%">
+            <col style="width: 7%">
+            <col style="width: 8%">
+            <col style="width: 8%">
+            <col style="width: 5%">
+            <col style="width: 8%">
+            <col style="width: 10%">
+            <col style="width: 10%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>ACQUISITION DATE</th>
+              <th>ARTICLE</th>
+              <th>DESCRIPTION</th>
+              <th>ITEM NO.</th>
+              <th>UNIT OF MEASURE</th>
+              <th>COST PER UNIT</th>
+              <th>DR/CI/SI NUMBER</th>
+              <th>PROPERTY ORDER NO.</th>
+              <th>QTY</th>
+              <th>VALUE</th>
+              <th>SUPPLIER</th>
+              <th>REMARKS</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+            <tr class="total-row">
+              <td colspan="9">GRAND TOTAL</td>
+              <td class="number">${this.formatMoney(grandTotal)}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table class="certify">
+          <colgroup>
+            <col style="width: 40%">
+            <col style="width: 40%">
+            <col style="width: 20%">
+          </colgroup>
+          <tbody>
+            <tr>
+              <td colspan="3" class="certification-text">
+                <div class="lead">
+                  I hereby certify to the correctness of the above information.
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="signature-cell">
+                <div class="signature-line"></div>
+                <div class="sig-label">
+                  Signature over Printed Name of Supply/Property Custodian
+                </div>
+              </td>
+              <td class="signature-cell">
+                <div class="signature-line"></div>
+                <div class="sig-label">
+                  Signature over Printed Name of Designated Accounting Staff
+                </div>
+              </td>
+              <td class="signature-cell date-cell">
+                <div class="signature-line"></div>
+                <div class="sig-label">Date</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>`;
+
+      this.openReportWindow(title, body, '#000');
     },
 
     printIssuanceReport() {
@@ -664,7 +1286,44 @@ export default {
           </tbody>
         </table>
 
-        ${this.buildSignatureMarkup()}`;
+        <table class="certify">
+          <colgroup>
+            <col style="width: 40%">
+            <col style="width: 40%">
+            <col style="width: 20%">
+          </colgroup>
+
+          <tbody>
+            <tr>
+              <td colspan="3" class="certification-text">
+                <div class="lead">
+                  I hereby certify to the correctness of the above information.
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="signature-cell">
+                <div class="signature-line"></div>
+                <div class="sig-label">
+                  Signature over Printed Name of Supply/Property Custodian
+                </div>
+              </td>
+
+              <td class="signature-cell">
+                <div class="signature-line"></div>
+                <div class="sig-label">
+                  Signature over Printed Name of Designated Accounting Staff
+                </div>
+              </td>
+
+              <td class="signature-cell date-cell">
+                <div class="signature-line"></div>
+                <div class="sig-label">Date</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>`;
 
       this.openReportWindow(title, body, '#000');
     },
@@ -1334,14 +1993,6 @@ th {
   color: #717a72;
 }
 
-.details-form { display: grid; gap: 16px; padding: 22px 24px; }
-.details-field { display: grid; gap: 7px; }
-.details-field label { font-size: 13px; font-weight: 600; color: #26332a; }
-.optional-label { color: #717a72; font-weight: 400; }
-.signature-preview { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
-.signature-preview img { max-width: 180px; max-height: 70px; object-fit: contain; border: 1px solid #e4e2d8; border-radius: 6px; padding: 5px; }
-.details-footer { gap: 10px; }
-.secondary-button { background: #6c757d; }
 .print-picker-footer {
   display: flex;
   justify-content: flex-end;
