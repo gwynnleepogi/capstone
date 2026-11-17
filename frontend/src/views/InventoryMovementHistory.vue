@@ -125,7 +125,7 @@
         <div class="footer-actions">
           <button
             class="print-button excel-button"
-            :disabled="loading || Boolean(errorMessage) || !filteredMovements.length || invalidDateRange"
+            :disabled="loading || Boolean(errorMessage) || !printRows.length || invalidDateRange"
             @click="openDetailsModal('excel')"
           >
             <i class="bi bi-file-earmark-excel"></i>
@@ -228,7 +228,6 @@
 </template>
 
 <script>
-import ExcelJS from 'exceljs';
 export default {
   name: 'InventoryMovementHistory',
 
@@ -370,31 +369,6 @@ export default {
   },
 
   methods: {
-    setDefaultDates() {
-      const today = new Date();
-      const localToday = new Date(
-        today.getTime() - today.getTimezoneOffset() * 60000
-      ).toISOString().slice(0, 10);
-
-      // Start early enough to include older property records by default.
-      this.dateFrom = '2000-01-01';
-      this.dateTo = localToday;
-    },
-
-    getRelatedRecord(value) {
-      if (Array.isArray(value)) {
-        return value.length ? value[0] : {};
-      }
-
-      return value && typeof value === 'object' ? value : {};
-    },
-
-    cleanUnit(value) {
-      return value === null || value === undefined
-        ? ''
-        : String(value).trim();
-    },
-
     openDetailsModal(action) {
       this.detailsAction = action;
       this.signerDate = this.toDateString(new Date());
@@ -425,179 +399,11 @@ export default {
       else this.printReport();
     },
 
-    async exportAcquisitionExcel() {
-      if (this.invalidDateRange || !this.filteredMovements.length) {
-        window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: this.invalidDateRange
-            ? this.dateRangeError
-            : 'There are no inventory movements to export for the selected filters.'
-        }));
-        return;
-      }
-
-      try {
-        const workbook = new ExcelJS.Workbook();
-        const lastColumn = 'G';
-        const worksheet = workbook.addWorksheet('Inventory Movement History', {
-          pageSetup: {
-            paperSize: 9,
-            orientation: 'landscape',
-            fitToPage: true,
-            fitToWidth: 1,
-            fitToHeight: 0,
-            horizontalCentered: true,
-            verticalCentered: false,
-            margins: {
-              left: 0.25,
-              right: 0.25,
-              top: 0.5,
-              bottom: 0.5,
-              header: 0.2,
-              footer: 0.2
-            }
-          },
-          views: [{ state: 'frozen', ySplit: 7 }]
-        });
-
-        worksheet.mergeCells('A1:' + lastColumn + '1');
-        worksheet.getCell('A1').value = 'Republic of the Philippines';
-        worksheet.mergeCells('A2:' + lastColumn + '2');
-        worksheet.getCell('A2').value = 'NUEVA VIZCAYA STATE UNIVERSITY';
-        worksheet.mergeCells('A3:' + lastColumn + '3');
-        worksheet.getCell('A3').value = 'Bambang, Nueva Vizcaya';
-        worksheet.mergeCells('A4:' + lastColumn + '4');
-        worksheet.getCell('A4').value = 'INVENTORY MOVEMENT HISTORY';
-        worksheet.mergeCells('A5:' + lastColumn + '5');
-        worksheet.getCell('A5').value =
-          'For the period of ' + this.formatLongDate(this.dateFrom) +
-          ' - ' + this.formatLongDate(this.dateTo);
-        worksheet.mergeCells('A6:' + lastColumn + '6');
-        worksheet.getCell('A6').value =
-          'FUND CLUSTER: ' +
-          (this.selectedFundCluster === 'ALL' ? '(ALL)' : this.selectedFundCluster);
-
-        ['A1', 'A2', 'A3', 'A4', 'A5', 'A6'].forEach(address => {
-          worksheet.getCell(address).alignment = {
-            horizontal: 'center',
-            vertical: 'middle',
-            wrapText: true
-          };
-          worksheet.getCell(address).font = {
-            name: 'Arial',
-            bold: address === 'A2' || address === 'A4',
-            size: address === 'A4' ? 14 : 11
-          };
-        });
-
-        worksheet.getRow(1).height = 20;
-        worksheet.getRow(2).height = 22;
-        worksheet.getRow(3).height = 20;
-        worksheet.getRow(4).height = 25;
-        worksheet.getRow(5).height = 22;
-        worksheet.getRow(6).height = 20;
-        worksheet.addRow([]);
-
-        const headerRow = worksheet.addRow([
-          'Date',
-          'Property No.',
-          'Description',
-          'Movement',
-          'Quantity',
-          'Reference',
-          'Recipient / Source'
-        ]);
-        headerRow.font = { name: 'Arial', bold: true, size: 9 };
-        headerRow.alignment = {
-          horizontal: 'center',
-          vertical: 'middle',
-          wrapText: true
-        };
-        headerRow.height = 34;
-        headerRow.eachCell(cell => {
-          cell.border = {
-            top: { style: 'thin' },
-            bottom: { style: 'thin' },
-            left: { style: 'thin' },
-            right: { style: 'thin' }
-          };
-        });
-
-        let totalQuantity = 0;
-        this.filteredMovements.forEach(item => {
-          const quantity = Number(item.quantity || 0);
-          totalQuantity += quantity;
-          const row = worksheet.addRow([
-            item.date || '',
-            item.propertyNumber || '',
-            item.description || '',
-            item.category || '',
-            quantity,
-            item.reference || '',
-            item.person || item.name || item.destination || ''
-          ]);
-          row.font = { name: 'Arial', size: 9 };
-          row.alignment = { vertical: 'middle', wrapText: true };
-          row.eachCell(cell => {
-            cell.border = {
-              top: { style: 'thin' },
-              bottom: { style: 'thin' },
-              left: { style: 'thin' },
-              right: { style: 'thin' }
-            };
-          });
-          row.getCell(1).numFmt = 'yyyy-mm-dd';
-          row.getCell(5).numFmt = '0';
-        });
-
-        const totalRow = worksheet.addRow([
-          'TOTAL', '', '', '', totalQuantity, '', ''
-        ]);
-        totalRow.font = { name: 'Arial', bold: true, size: 10 };
-        totalRow.eachCell(cell => {
-          cell.border = {
-            top: { style: 'thin' },
-            bottom: { style: 'thin' },
-            left: { style: 'thin' },
-            right: { style: 'thin' }
-          };
-        });
-
-        worksheet.columns = [
-          { width: 16 },
-          { width: 20 },
-          { width: 38 },
-          { width: 16 },
-          { width: 12 },
-          { width: 22 },
-          { width: 30 }
-        ];
-        worksheet.autoFilter = { from: 'A8', to: 'G8' };
-        worksheet.headerFooter.oddFooter = { center: 'Page &P of &N' };
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'Inventory_Movement_History_' +
-          this.dateFrom + '_to_' + this.dateTo + '.xlsx';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      } catch (error) {
-        window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: 'Unable to export Excel report: ' +
-            (error.message || 'Unknown error')
-        }));
-      }
-    },
-
     buildSignatureMarkup() {
       const signature = this.signerSignature ? '<img class="report-signature-image" src="' + this.signerSignature + '" alt="Signature">' : '';
-      return '<table class="certify"><tbody><tr><td colspan="2" class="certification-text"><div class="lead">I hereby certify to the correctness of the above information.</div></td></tr><tr><td class="signature-cell"><div class="signature-image-area">' + signature + '</div><div class="signature-line"></div><div class="signer-name">' + this.escapeHtml(this.signerName) + '</div><div class="sig-label">Signature over Printed Name</div></td><td class="signature-cell date-cell"><div class="signature-line"></div><div class="signer-name">' + this.escapeHtml(this.formatDate(this.signerDate)) + '</div><div class="sig-label">Date</div></td></tr></tbody></table>';
+      return '${this.buildSignatureMarkup()}`;
+
+      this.openReportWindow(title, body, '#000');
     },
 
     printIssuanceReport() {
