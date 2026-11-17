@@ -32,7 +32,7 @@
       aria-labelledby="returnRequestsModalLabel"
       aria-hidden="true"
     >
-      <div class="modal-dialog modal-xl modal-dialog-scrollable return-requests-modal-dialog">
+      <div class="modal-dialog modal-dialog-scrollable return-requests-modal-dialog" style="width: calc(100vw - 2rem); max-width: none; margin: .5rem auto;">
         <div class="modal-content">
           <div class="modal-header">
             <div>
