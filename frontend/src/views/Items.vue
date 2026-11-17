@@ -59,37 +59,6 @@
       </div>
     </div>
 
-    <!-- PROPERTY SUMMARY -->
-    <div class="row g-3 mb-3">
-      <div class="col-6 col-lg-3">
-        <div class="border rounded p-3 bg-white">
-          <small class="text-secondary">Total Properties</small>
-          <h4 class="mb-0 mt-1">{{ items.length }}</h4>
-        </div>
-      </div>
-
-      <div class="col-6 col-lg-3">
-        <div class="border rounded p-3 bg-white">
-          <small class="text-secondary">Property Acknowledgement Receipt</small>
-          <h4 class="mb-0 mt-1">{{ countClassification('PAR') }}</h4>
-        </div>
-      </div>
-
-      <div class="col-6 col-lg-3">
-        <div class="border rounded p-3 bg-white">
-          <small class="text-secondary">Inventory Custodian Slip - High Value</small>
-          <h4 class="mb-0 mt-1">{{ countClassification('ICS High') }}</h4>
-        </div>
-      </div>
-
-      <div class="col-6 col-lg-3">
-        <div class="border rounded p-3 bg-white">
-          <small class="text-secondary">Inventory Custodian Slip - Low Value</small>
-          <h4 class="mb-0 mt-1">{{ countClassification('ICS Low') }}</h4>
-        </div>
-      </div>
-    </div>
-
     <!-- ADD PROPERTY -->
     <div
       v-if="showAddForm"
