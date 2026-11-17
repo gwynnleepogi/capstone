@@ -213,6 +213,76 @@
         </div>
       </section>
     </div>
+
+    <div
+      v-if="showCertificationModal"
+      class="print-picker-backdrop"
+      @click.self="showCertificationModal = false"
+      @keydown.esc="showCertificationModal = false"
+    >
+      <section
+        class="print-picker certification-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="certification-modal-title"
+      >
+        <div class="print-picker-header">
+          <div>
+            <h3 id="certification-modal-title">Certification Details</h3>
+            <p>Enter the required details before printing the report.</p>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            @click="showCertificationModal = false"
+          ></button>
+        </div>
+
+        <form class="certification-form" @submit.prevent="confirmCertificationAndPrint">
+          <div class="certification-field">
+            <label for="custodian-printed-name">Supply/Property Custodian Printed Name <span>*</span></label>
+            <input
+              id="custodian-printed-name"
+              v-model.trim="certificationCustodian"
+              type="text"
+              placeholder="Enter full name"
+              required
+            >
+          </div>
+
+          <div class="certification-field">
+            <label for="accounting-printed-name">Designated Accounting Staff Printed Name <span>*</span></label>
+            <input
+              id="accounting-printed-name"
+              v-model.trim="certificationAccountingStaff"
+              type="text"
+              placeholder="Enter full name"
+              required
+            >
+          </div>
+
+          <div class="certification-field">
+            <label for="certification-date">Date <span>*</span></label>
+            <input
+              id="certification-date"
+              v-model="certificationDate"
+              type="date"
+              required
+            >
+          </div>
+
+          <div class="certification-actions">
+            <button type="button" class="close-footer-button" @click="showCertificationModal = false">
+              Cancel
+            </button>
+            <button type="submit" class="print-button">
+              Continue to Print
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -242,7 +312,11 @@ export default {
       movementType: 'all',
       reportToPrint: 'acquisition',
       search: '',
-      showPrintModal: false
+      showPrintModal: false,
+      showCertificationModal: false,
+      certificationCustodian: '',
+      certificationAccountingStaff: '',
+      certificationDate: this.toDateString(new Date())
     };
   },
 
@@ -428,6 +502,19 @@ export default {
 
       this.reportToPrint = reportType;
       this.showPrintModal = false;
+      this.showCertificationModal = true;
+    },
+
+    confirmCertificationAndPrint() {
+      if (
+        !this.certificationCustodian.trim() ||
+        !this.certificationAccountingStaff.trim() ||
+        !this.certificationDate
+      ) {
+        return;
+      }
+
+      this.showCertificationModal = false;
       this.printReport();
     },
 
@@ -1179,18 +1266,21 @@ export default {
             <tr>
               <td class="signature-cell">
                 <div class="signature-line"></div>
+                <div class="printed-name">${e(this.certificationCustodian)}</div>
                 <div class="sig-label">
                   Signature over Printed Name of Supply/Property Custodian
                 </div>
               </td>
               <td class="signature-cell">
                 <div class="signature-line"></div>
+                <div class="printed-name">${e(this.certificationAccountingStaff)}</div>
                 <div class="sig-label">
                   Signature over Printed Name of Designated Accounting Staff
                 </div>
               </td>
               <td class="signature-cell date-cell">
                 <div class="signature-line"></div>
+                <div class="printed-name">${e(this.formatLongDate(this.certificationDate))}</div>
                 <div class="sig-label">Date</div>
               </td>
             </tr>
@@ -1305,6 +1395,7 @@ export default {
             <tr>
               <td class="signature-cell">
                 <div class="signature-line"></div>
+                <div class="printed-name">${e(this.certificationCustodian)}</div>
                 <div class="sig-label">
                   Signature over Printed Name of Supply/Property Custodian
                 </div>
@@ -1312,6 +1403,7 @@ export default {
 
               <td class="signature-cell">
                 <div class="signature-line"></div>
+                <div class="printed-name">${e(this.certificationAccountingStaff)}</div>
                 <div class="sig-label">
                   Signature over Printed Name of Designated Accounting Staff
                 </div>
@@ -1319,6 +1411,7 @@ export default {
 
               <td class="signature-cell date-cell">
                 <div class="signature-line"></div>
+                <div class="printed-name">${e(this.formatLongDate(this.certificationDate))}</div>
                 <div class="sig-label">Date</div>
               </td>
             </tr>
@@ -1999,6 +2092,57 @@ th {
   padding: 14px 24px;
   border-top: 1px solid #e4e2d8;
   background: #fffdf6;
+}
+
+.certification-form {
+  display: grid;
+  gap: 16px;
+  padding: 22px 24px 24px;
+}
+
+.certification-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.certification-field label {
+  color: #26332a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.certification-field label span {
+  color: #b91c1c;
+}
+
+.certification-field input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dfe3d9;
+  border-radius: 6px;
+  background: #fff;
+  color: #26332a;
+  font: inherit;
+}
+
+.certification-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.print-picker .print-button {
+  font: inherit;
+}
+
+.printed-name {
+  min-height: 13px;
+  margin: 0 auto 3px;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
 }
 
 @media (max-width: 800px) {
