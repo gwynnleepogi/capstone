@@ -228,6 +228,8 @@
 </template>
 
 <script>
+import ExcelJS from 'exceljs'
+
 export default {
   name: 'InventoryMovementHistory',
 
@@ -504,78 +506,128 @@ export default {
       printWindow.document.close();
     },
 
-    exportAcquisitionExcel() {
-      const rows = this.filteredMovements;
-      const tableRows = rows.map(item => `
-        <tr>
-          <td>${this.escapeHtml(this.formatDate(item.date))}</td>
-          <td>${this.escapeHtml(item.propertyNumber || '')}</td>
-          <td>${this.escapeHtml(item.description || '')}</td>
-          <td>${this.escapeHtml(item.category || '')}</td>
-          <td>${this.escapeHtml(item.quantity)}</td>
-          <td>${this.escapeHtml(item.reference || '')}</td>
-          <td>${this.escapeHtml(item.person || '')}</td>
-          <td>${this.escapeHtml(item.destination || '')}</td>
-          <td>${this.escapeHtml(item.fundCluster || '')}</td>
-        </tr>
-      `).join('');
-      const signature = this.signerSignature
-        ? `<img src="${this.signerSignature}" alt="Signature" width="150" height="55">`
-        : '';
-      const workbook = `<html><head><meta charset="UTF-8"></head><body>
-        <h2>Inventory Movement History</h2>
-        <p>Fund Cluster: ${this.escapeHtml(this.selectedFundCluster)}</p>
-        <p>Date Range: ${this.escapeHtml(this.formatDate(this.dateFrom))} - ${this.escapeHtml(this.formatDate(this.dateTo))}</p>
-        <table border="1"><thead><tr><th>Date</th><th>Property No.</th><th>Description</th><th>Movement</th><th>Quantity</th><th>Reference</th><th>Recipient / Source</th><th>Destination</th><th>Fund Cluster</th></tr></thead><tbody>${tableRows}</tbody></table>
-        <br><br><table><tr><td>Prepared by:</td></tr><tr><td>${signature}</td></tr><tr><td><strong>${this.escapeHtml(this.signerName)}</strong></td></tr><tr><td>Signature over Printed Name</td></tr><tr><td>Date: ${this.escapeHtml(this.formatDate(this.signerDate))}</td></tr></table>
-        </body></html>`;
-      const blob = new Blob([workbook], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'inventory-movement-history.xls';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    },
+    async exportAcquisitionExcel() {
+      try {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Movement History');
 
-    handleSignatureUpload(event) {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
-      if (!file.type.startsWith('image/')) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Please select an image file.' }));
-        event.target.value = '';
-        return;
+        worksheet.mergeCells('A1:I1');
+        worksheet.getCell('A1').value = 'INVENTORY MOVEMENT HISTORY';
+        worksheet.getCell('A1').font = { bold: true, size: 16 };
+        worksheet.getCell('A1').alignment = { horizontal: 'center' };
+
+        worksheet.mergeCells('A2:I2');
+        worksheet.getCell('A2').value =
+          'Fund Cluster: ' + this.selectedFundCluster +
+          ' | Date Range: ' + this.formatDate(this.dateFrom) +
+          ' - ' + this.formatDate(this.dateTo);
+        worksheet.getCell('A2').alignment = { horizontal: 'center' };
+
+        worksheet.addRow([]);
+        const header = worksheet.addRow([
+          'Date',
+          'Property No.',
+          'Description',
+          'Movement',
+          'Quantity',
+          'Reference',
+          'Recipient / Source',
+          'Destination',
+          'Fund Cluster'
+        ]);
+        header.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        header.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF2F5D3A' }
+        };
+        header.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+
+        this.filteredMovements.forEach(item => {
+          worksheet.addRow([
+            this.formatDate(item.date),
+            item.propertyNumber || '',
+            item.description || '',
+            item.category || '',
+            Number(item.quantity || 0),
+            item.reference || '',
+            item.person || '',
+            item.destination || '',
+            item.fundCluster || ''
+          ]);
+        });
+
+        worksheet.columns = [
+          { width: 15 },
+          { width: 20 },
+          { width: 34 },
+          { width: 16 },
+          { width: 12 },
+          { width: 20 },
+          { width: 26 },
+          { width: 24 },
+          { width: 18 }
+        ];
+
+        worksheet.eachRow((row, rowNumber) => {
+          if (rowNumber > 3) {
+            row.alignment = { vertical: 'middle', wrapText: true };
+            if (rowNumber % 2 === 0) {
+              row.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFF7F9F6' }
+              };
+            }
+          }
+        });
+
+        const signatureStartRow = worksheet.rowCount + 3;
+        worksheet.getCell('A' + signatureStartRow).value = 'Prepared by:';
+        worksheet.getCell('A' + signatureStartRow).font = { bold: true };
+        worksheet.getCell('A' + (signatureStartRow + 2)).value = this.signerName;
+        worksheet.getCell('A' + (signatureStartRow + 2)).font = { bold: true, underline: true };
+        worksheet.getCell('A' + (signatureStartRow + 3)).value = 'Signature over Printed Name';
+        worksheet.getCell('A' + (signatureStartRow + 4)).value = 'Date: ' + this.formatDate(this.signerDate);
+
+        if (this.signerSignature) {
+          const extension = this.signerSignature.startsWith('data:image/png')
+            ? 'png'
+            : this.signerSignature.startsWith('data:image/jpeg') ||
+              this.signerSignature.startsWith('data:image/jpg')
+              ? 'jpeg'
+              : this.signerSignature.startsWith('data:image/gif')
+                ? 'gif'
+                : 'png';
+          const imageId = workbook.addImage({
+            base64: this.signerSignature,
+            extension
+          });
+          worksheet.addImage(imageId, {
+            tl: { col: 0, row: signatureStartRow },
+            ext: { width: 160, height: 55 }
+          });
+          worksheet.getRow(signatureStartRow + 1).height = 34;
+        }
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'inventory-movement-history.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Excel export error:', error);
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Unable to export the Excel file. Please try again.'
+        }));
       }
-      const reader = new FileReader();
-      reader.onload = () => { this.signerSignature = reader.result; };
-      reader.onerror = () => window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Unable to read the signature image.' }));
-      reader.readAsDataURL(file);
-    },
-
-    continueReportAction() {
-      if (!this.signerName.trim() || !this.signerDate) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Please enter the printed name and date.' }));
-        return;
-      }
-      this.showDetailsModal = false;
-      if (this.detailsAction === 'excel') this.exportAcquisitionExcel();
-      else this.printReport();
-    },
-
-    buildSignatureMarkup() {
-      const signature = this.signerSignature
-        ? '<img class="report-signature-image" src="' + this.signerSignature + '" alt="Signature">'
-        : '';
-      return `
-        <div class="report-signatory">
-          ${signature}
-          <div class="report-signatory-name">${this.escapeHtml(this.signerName)}</div>
-          <div>Signature over Printed Name</div>
-          <div>Date: ${this.escapeHtml(this.formatDate(this.signerDate))}</div>
-        </div>
-      `;
     },
 
     printIssuanceReport() {
