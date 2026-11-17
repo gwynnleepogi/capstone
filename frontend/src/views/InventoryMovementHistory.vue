@@ -1116,17 +1116,18 @@ export default {
 
               .certify .signature-line {
                 width: 92%;
-                height: 24px;
-                margin: 0 auto 5px;
+                height: 8px;
+                margin: 0 auto 2px;
                 border-bottom: 1px solid #000;
               }
 
               .certify .printed-name {
-                min-height: 13px;
-                margin: 0 auto 2px;
-                font-size: 10px;
+                min-height: 16px;
+                margin: 0 auto;
+                font-size: 12px;
                 font-weight: bold;
                 text-align: center;
+                line-height: 1.15;
               }
 
               .certify .sig-label {
