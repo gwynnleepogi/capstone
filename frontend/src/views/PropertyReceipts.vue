@@ -135,7 +135,15 @@
               <!-- RECEIPT NUMBER -->
               <div class="mb-3">
                 <label class="form-label">Receipt Number</label>
-                <input type="text" class="form-control" v-model="form.receipt_number" required>
+                <input
+                  type="text"
+                  class="form-control"
+                  :value="editing ? form.receipt_number : 'Auto-generated when saved'"
+                  readonly
+                >
+                <small v-if="!editing" class="form-text text-muted">
+                  The system will generate the next receipt number automatically.
+                </small>
               </div>
               <div class="mb-3" v-if="!editing">
                 <label class="form-label">Receipt For</label>
@@ -1036,7 +1044,7 @@ export default {
 
         const body = {
           receipt_type: automaticReceiptType,
-          receipt_number: this.form.receipt_number,
+          ...(this.editing ? { receipt_number: this.form.receipt_number } : {}),
           date_issued: this.form.date_issued || null,
           remarks: this.form.remarks || null
         }
