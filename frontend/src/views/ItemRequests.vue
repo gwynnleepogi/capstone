@@ -137,7 +137,7 @@
                 <td class="request-actions-cell">
                   <div class="request-actions">
                     <button
-                      class="btn btn-sm btn-outline-primary"
+                      class="btn btn-sm btn-outline-primary details-action"
                       @click="viewRequestDetails(request)"
                       title="View request details"
                     >
@@ -152,7 +152,7 @@
                       "
                     >
                       <button
-                        class="btn btn-sm btn-outline-success"
+                        class="btn btn-sm btn-outline-success accept-action"
                         :disabled="updatingRequestId === request.id"
                         @click="updateRequestStatus(request, 'Approved')"
                         title="Accept request"
@@ -1167,7 +1167,7 @@ export default {
 }
 
 .request-actions-cell {
-  min-width: 230px;
+  min-width: 245px;
 }
 
 .request-actions {
@@ -1181,6 +1181,17 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.request-actions .details-action {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.request-actions .accept-action {
+  min-width: 105px;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 .sort-icon {
