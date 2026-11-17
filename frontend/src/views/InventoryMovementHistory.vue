@@ -613,7 +613,7 @@ export default {
         </body>
         </html>`;
 
-      const blob = new Blob(['\\ufeff', workbookHtml], {
+      const blob = new Blob(['\uFEFF', workbookHtml], {
         type: 'application/vnd.ms-excel;charset=utf-8;'
       });
       const url = URL.createObjectURL(blob);
