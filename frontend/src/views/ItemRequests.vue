@@ -1189,6 +1189,7 @@ export default {
 }
 
 .request-actions .accept-action {
+  margin-left: 8px;
   min-width: 105px;
   padding-left: 16px;
   padding-right: 16px;
