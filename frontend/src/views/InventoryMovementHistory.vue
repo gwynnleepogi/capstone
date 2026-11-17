@@ -125,7 +125,7 @@
         <div class="footer-actions">
           <button
             class="print-button excel-button"
-            :disabled="loading || Boolean(errorMessage) || !printRows.length || invalidDateRange"
+            :disabled="loading || Boolean(errorMessage) || !filteredMovements.length || invalidDateRange"
             @click="openDetailsModal('excel')"
           >
             <i class="bi bi-file-earmark-excel"></i>
@@ -401,76 +401,55 @@ export default {
     },
 
     async exportAcquisitionExcel() {
-      if (this.invalidDateRange || !this.printRows.length) {
+      if (this.invalidDateRange || !this.filteredMovements.length) {
         window.dispatchEvent(new CustomEvent('show-toast', {
           detail: this.invalidDateRange
             ? this.dateRangeError
-            : 'There are no records to export for the selected report.'
+            : 'There are no inventory movements to export for the selected filters.'
         }));
         return;
       }
 
       try {
         const workbook = new ExcelJS.Workbook();
-
-        const isIssuance = this.reportToPrint === 'issuance';
-        const title = isIssuance
-          ? 'REPORT ON SUPPLIES AND MATERIALS ISSUED'
-          : 'ACQUISITION OF SUPPLIES AND MATERIALS';
-
-        const lastColumn = isIssuance ? 'L' : 'L';
-
-        const worksheet = workbook.addWorksheet(
-          isIssuance ? 'Properties Issued' : 'Office Property Acquisition',
-          {
-            pageSetup: {
-              paperSize: 9,
-              orientation: 'landscape',
-              fitToPage: true,
-              fitToWidth: 1,
-              fitToHeight: 0,
-              horizontalCentered: true,
-              verticalCentered: false,
-              margins: {
-                left: 0.25,
-                right: 0.25,
-                top: 0.5,
-                bottom: 0.5,
-                header: 0.2,
-                footer: 0.2
-              }
-            },
-            views: [{ state: 'frozen', ySplit: 8 }]
-          }
-        );
-
-        /* HEADER */
+        const lastColumn = 'G';
+        const worksheet = workbook.addWorksheet('Inventory Movement History', {
+          pageSetup: {
+            paperSize: 9,
+            orientation: 'landscape',
+            fitToPage: true,
+            fitToWidth: 1,
+            fitToHeight: 0,
+            horizontalCentered: true,
+            verticalCentered: false,
+            margins: {
+              left: 0.25,
+              right: 0.25,
+              top: 0.5,
+              bottom: 0.5,
+              header: 0.2,
+              footer: 0.2
+            }
+          },
+          views: [{ state: 'frozen', ySplit: 7 }]
+        });
 
         worksheet.mergeCells('A1:' + lastColumn + '1');
         worksheet.getCell('A1').value = 'Republic of the Philippines';
-
         worksheet.mergeCells('A2:' + lastColumn + '2');
         worksheet.getCell('A2').value = 'NUEVA VIZCAYA STATE UNIVERSITY';
-
         worksheet.mergeCells('A3:' + lastColumn + '3');
         worksheet.getCell('A3').value = 'Bambang, Nueva Vizcaya';
-
         worksheet.mergeCells('A4:' + lastColumn + '4');
-        worksheet.getCell('A4').value = title;
-
+        worksheet.getCell('A4').value = 'INVENTORY MOVEMENT HISTORY';
         worksheet.mergeCells('A5:' + lastColumn + '5');
         worksheet.getCell('A5').value =
-          'For the period of ' +
-          this.formatLongDate(this.dateFrom) +
-          ' - ' +
-          this.formatLongDate(this.dateTo);
-
+          'For the period of ' + this.formatLongDate(this.dateFrom) +
+          ' - ' + this.formatLongDate(this.dateTo);
         worksheet.mergeCells('A6:' + lastColumn + '6');
         worksheet.getCell('A6').value =
           'FUND CLUSTER: ' +
-          (this.selectedFundCluster === 'ALL'
-            ? '(ALL)'
-            : this.selectedFundCluster);
+          (this.selectedFundCluster === 'ALL' ? '(ALL)' : this.selectedFundCluster);
 
         ['A1', 'A2', 'A3', 'A4', 'A5', 'A6'].forEach(address => {
           worksheet.getCell(address).alignment = {
@@ -478,7 +457,6 @@ export default {
             vertical: 'middle',
             wrapText: true
           };
-
           worksheet.getCell(address).font = {
             name: 'Arial',
             bold: address === 'A2' || address === 'A4',
@@ -492,57 +470,24 @@ export default {
         worksheet.getRow(4).height = 25;
         worksheet.getRow(5).height = 22;
         worksheet.getRow(6).height = 20;
-
-        /* TABLE HEADERS */
-
         worksheet.addRow([]);
 
-        const headers = isIssuance
-          ? [
-              'Date Delivered',
-              'Reference No.',
-              'RC Code',
-              'SN',
-              'Property No.',
-              'Description',
-              'Unit',
-              'QTY',
-              'U-Cost',
-              'Amount',
-              'Name',
-              'Destination'
-            ]
-          : [
-              'Acquisition Date',
-              'Article',
-              'Description',
-              'Item No.',
-              'Unit of Measure',
-              'Cost per Unit',
-              'DR/CI/SI Number',
-              'Property Order No.',
-              'Qty',
-              'Value',
-              'Supplier',
-              'Remarks'
-            ];
-
-        const headerRow = worksheet.addRow(headers);
-
-        headerRow.font = {
-          name: 'Arial',
-          bold: true,
-          size: 9
-        };
-
+        const headerRow = worksheet.addRow([
+          'Date',
+          'Property No.',
+          'Description',
+          'Movement',
+          'Quantity',
+          'Reference',
+          'Recipient / Source'
+        ]);
+        headerRow.font = { name: 'Arial', bold: true, size: 9 };
         headerRow.alignment = {
           horizontal: 'center',
           vertical: 'middle',
           wrapText: true
         };
-
         headerRow.height = 34;
-
         headerRow.eachCell(cell => {
           cell.border = {
             top: { style: 'thin' },
@@ -552,57 +497,21 @@ export default {
           };
         });
 
-        let grandTotal = 0;
-
-        this.printRows.forEach((item, index) => {
+        let totalQuantity = 0;
+        this.filteredMovements.forEach(item => {
           const quantity = Number(item.quantity || 0);
-          const unitCost = Number(item.unitCost || 0);
-          const amount = quantity * unitCost;
-
-          grandTotal += amount;
-
-          const values = isIssuance
-            ? [
-                item.date || '',
-                item.reference || '',
-                item.rcCode || '',
-                index + 1,
-                item.propertyNumber || '',
-                item.description || '',
-                item.unit || '',
-                quantity,
-                unitCost,
-                amount,
-                item.name || item.person || '',
-                item.destination || ''
-              ]
-            : [
-                item.date || '',
-                item.article || '',
-                item.description || '',
-                item.itemNo || index + 1,
-                item.unit || '',
-                unitCost,
-                item.drNumber || '',
-                item.poNumber || '',
-                quantity,
-                amount,
-                item.supplier || '',
-                item.remarks || ''
-              ];
-
-          const row = worksheet.addRow(values);
-
-          row.font = {
-            name: 'Arial',
-            size: 9
-          };
-
-          row.alignment = {
-            vertical: 'middle',
-            wrapText: true
-          };
-
+          totalQuantity += quantity;
+          const row = worksheet.addRow([
+            item.date || '',
+            item.propertyNumber || '',
+            item.description || '',
+            item.category || '',
+            quantity,
+            item.reference || '',
+            item.person || item.name || item.destination || ''
+          ]);
+          row.font = { name: 'Arial', size: 9 };
+          row.alignment = { vertical: 'middle', wrapText: true };
           row.eachCell(cell => {
             cell.border = {
               top: { style: 'thin' },
@@ -611,42 +520,14 @@ export default {
               right: { style: 'thin' }
             };
           });
-
-          if (isIssuance) {
-            row.getCell(1).numFmt = 'yyyy-mm-dd';
-            row.getCell(8).numFmt = '0';
-            row.getCell(9).numFmt = '#,##0.00';
-            row.getCell(10).numFmt = '#,##0.00';
-          } else {
-            row.getCell(1).numFmt = 'yyyy-mm-dd';
-            row.getCell(6).numFmt = '#,##0.00';
-            row.getCell(9).numFmt = '0';
-            row.getCell(10).numFmt = '#,##0.00';
-          }
+          row.getCell(1).numFmt = 'yyyy-mm-dd';
+          row.getCell(5).numFmt = '0';
         });
 
-        /* TOTAL */
-
-        const totalRow = worksheet.addRow(
-          isIssuance
-            ? [
-                'TOTAL', '', '', '', '', '', '', '', '',
-                grandTotal, '', ''
-              ]
-            : [
-                'GRAND TOTAL', '', '', '', '', '', '', '', '',
-                grandTotal, '', ''
-              ]
-        );
-
-        totalRow.font = {
-          name: 'Arial',
-          bold: true,
-          size: 10
-        };
-
-        totalRow.getCell(10).numFmt = '#,##0.00';
-
+        const totalRow = worksheet.addRow([
+          'TOTAL', '', '', '', totalQuantity, '', ''
+        ]);
+        totalRow.font = { name: 'Arial', bold: true, size: 10 };
         totalRow.eachCell(cell => {
           cell.border = {
             top: { style: 'thin' },
@@ -654,73 +535,32 @@ export default {
             left: { style: 'thin' },
             right: { style: 'thin' }
           };
-
-          cell.alignment = {
-            vertical: 'middle'
-          };
         });
 
-        /* COLUMN WIDTHS */
-
-        worksheet.columns = isIssuance
-          ? [
-              { width: 15 },
-              { width: 17 },
-              { width: 13 },
-              { width: 7 },
-              { width: 17 },
-              { width: 30 },
-              { width: 9 },
-              { width: 7 },
-              { width: 13 },
-              { width: 14 },
-              { width: 22 },
-              { width: 25 }
-            ]
-          : [
-              { width: 16 },
-              { width: 18 },
-              { width: 30 },
-              { width: 14 },
-              { width: 16 },
-              { width: 18 },
-              { width: 20 },
-              { width: 24 },
-              { width: 10 },
-              { width: 16 },
-              { width: 22 },
-              { width: 24 }
-            ];
-
-        worksheet.autoFilter = {
-          from: 'A8',
-          to: lastColumn + '8'
-        };
-
-        worksheet.headerFooter.oddFooter = {
-          center: 'Page &P of &N'
-        };
+        worksheet.columns = [
+          { width: 16 },
+          { width: 20 },
+          { width: 38 },
+          { width: 16 },
+          { width: 12 },
+          { width: 22 },
+          { width: 30 }
+        ];
+        worksheet.autoFilter = { from: 'A8', to: 'G8' };
+        worksheet.headerFooter.oddFooter = { center: 'Page &P of &N' };
 
         const buffer = await workbook.xlsx.writeBuffer();
-
         const blob = new Blob([buffer], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
-
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-
         link.href = url;
-        link.download =
-          (isIssuance
-            ? 'Properties_Issued_'
-            : 'Office_Property_Acquisition_') +
+        link.download = 'Inventory_Movement_History_' +
           this.dateFrom + '_to_' + this.dateTo + '.xlsx';
-
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       } catch (error) {
         window.dispatchEvent(new CustomEvent('show-toast', {
