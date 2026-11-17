@@ -126,7 +126,7 @@
           <button
             class="print-button excel-button"
             :disabled="loading || Boolean(errorMessage) || !printRows.length || invalidDateRange"
-            @click="exportAcquisitionExcel"
+            @click="openDetailsModal('excel')"
           >
             <i class="bi bi-file-earmark-excel"></i>
             Export Excel
@@ -213,6 +213,17 @@
         </div>
       </section>
     </div>
+    <div v-if="showDetailsModal" class="print-picker-backdrop" @click.self="showDetailsModal = false" @keydown.esc="showDetailsModal = false">
+      <section class="print-picker card details-picker" role="dialog" aria-modal="true" aria-labelledby="movement-details-title">
+        <div class="print-picker-header"><div><h3 id="movement-details-title">Report Signatory Details</h3><p>Enter the name and date for the report. A signature image is optional.</p></div><button type="button" class="btn-close" aria-label="Close" @click="showDetailsModal = false"></button></div>
+        <div class="details-form">
+          <div class="details-field"><label for="movement-signer-name">Printed Name</label><input id="movement-signer-name" v-model="signerName" type="text" class="form-control" placeholder="Enter full name"></div>
+          <div class="details-field"><label for="movement-signer-date">Date</label><input id="movement-signer-date" v-model="signerDate" type="date" class="form-control"></div>
+          <div class="details-field"><label for="movement-signer-signature">Picture of Signature <span class="optional-label">(Optional)</span></label><input id="movement-signer-signature" type="file" class="form-control" accept="image/*" @change="handleSignatureUpload"><small class="text-muted">Upload an image file.</small><div v-if="signerSignature" class="signature-preview"><img :src="signerSignature" alt="Signature preview"><button type="button" class="btn btn-sm btn-outline-danger" @click="signerSignature = ''">Remove</button></div></div>
+        </div>
+        <div class="print-picker-footer details-footer"><button type="button" class="close-footer-button secondary-button" @click="showDetailsModal = false">Cancel</button><button type="button" class="close-footer-button" @click="continueReportAction">{{ detailsAction === 'excel' ? 'Download Excel' : 'Continue to Print' }}</button></div>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -242,7 +253,12 @@ export default {
       movementType: 'all',
       reportToPrint: 'acquisition',
       search: '',
-      showPrintModal: false
+      showPrintModal: false,
+      showDetailsModal: false,
+      detailsAction: 'print',
+      signerName: '',
+      signerDate: '',
+      signerSignature: ''
     };
   },
 
@@ -353,6 +369,40 @@ export default {
   },
 
   methods: {
+    openDetailsModal(action) {
+      this.detailsAction = action;
+      this.signerDate = this.toDateString(new Date());
+      this.showDetailsModal = true;
+    },
+
+    handleSignatureUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Please select an image file.' }));
+        event.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => { this.signerSignature = reader.result; };
+      reader.onerror = () => window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Unable to read the signature image.' }));
+      reader.readAsDataURL(file);
+    },
+
+    continueReportAction() {
+      if (!this.signerName.trim() || !this.signerDate) {
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Please enter the printed name and date.' }));
+        return;
+      }
+      this.showDetailsModal = false;
+      if (this.detailsAction === 'excel') this.exportAcquisitionExcel();
+      else this.printReport();
+    },
+
+    buildSignatureMarkup() {
+      const signature = this.signerSignature ? '<img class="report-signature-image" src="' + this.signerSignature + '" alt="Signature">' : '';
+      return '<table class="certify"><tbody><tr><td colspan="2" class="certification-text"><div class="lead">I hereby certify to the correctness of the above information.</div></td></tr><tr><td class="signature-cell"><div class="signature-image-area">' + signature + '</div><div class="signature-line"></div><div class="signer-name">' + this.escapeHtml(this.signerName) + '</div><div class="sig-label">Signature over Printed Name</div></td><td class="signature-cell date-cell"><div class="signature-line"></div><div class="signer-name">' + this.escapeHtml(this.formatDate(this.signerDate)) + '</div><div class="sig-label">Date</div></td></tr></tbody></table>';
+    },
     setDefaultDates() {
       const today = new Date();
 
@@ -428,7 +478,7 @@ export default {
 
       this.reportToPrint = reportType;
       this.showPrintModal = false;
-      this.printReport();
+      this.openDetailsModal('print');
     },
 
     getRelatedRecord(value) {
@@ -741,6 +791,33 @@ export default {
           };
         });
 
+        /* REPORT SIGNATORY DETAILS */
+        const signatoryStartRow = worksheet.lastRow.number + 2;
+        worksheet.mergeCells('A' + signatoryStartRow + ':L' + signatoryStartRow);
+        worksheet.getCell('A' + signatoryStartRow).value = 'I hereby certify to the correctness of the above information.';
+        worksheet.getCell('A' + signatoryStartRow).alignment = { horizontal: 'center' };
+        worksheet.getCell('A' + signatoryStartRow).font = { name: 'Arial', bold: true, size: 10 };
+        worksheet.mergeCells('A' + (signatoryStartRow + 1) + ':F' + (signatoryStartRow + 1));
+        worksheet.mergeCells('G' + (signatoryStartRow + 1) + ':L' + (signatoryStartRow + 1));
+        worksheet.getCell('A' + (signatoryStartRow + 1)).value = this.signerName;
+        worksheet.getCell('G' + (signatoryStartRow + 1)).value = this.formatDate(this.signerDate);
+        worksheet.getCell('A' + (signatoryStartRow + 1)).alignment = { horizontal: 'center', vertical: 'bottom' };
+        worksheet.getCell('G' + (signatoryStartRow + 1)).alignment = { horizontal: 'center', vertical: 'bottom' };
+        worksheet.mergeCells('A' + (signatoryStartRow + 2) + ':F' + (signatoryStartRow + 2));
+        worksheet.mergeCells('G' + (signatoryStartRow + 2) + ':L' + (signatoryStartRow + 2));
+        worksheet.getCell('A' + (signatoryStartRow + 2)).value = 'Signature over Printed Name';
+        worksheet.getCell('G' + (signatoryStartRow + 2)).value = 'Date';
+        worksheet.getCell('A' + (signatoryStartRow + 2)).alignment = { horizontal: 'center' };
+        worksheet.getCell('G' + (signatoryStartRow + 2)).alignment = { horizontal: 'center' };
+        worksheet.getRow(signatoryStartRow + 1).height = 24;
+        worksheet.getRow(signatoryStartRow + 2).height = 20;
+        if (this.signerSignature) {
+          const imageParts = this.signerSignature.split(',');
+          const extension = this.signerSignature.includes('image/png') ? 'png' : 'jpeg';
+          const imageId = workbook.addImage({ base64: imageParts[1], extension });
+          worksheet.addImage(imageId, { tl: { col: 1, row: signatoryStartRow }, br: { col: 5, row: signatoryStartRow + 1 } });
+        }
+
         /* COLUMN WIDTHS */
 
         worksheet.columns = isIssuance
@@ -1043,6 +1120,9 @@ export default {
                 line-height: 1.25;
               }
 
+              .certify .signer-name { font-weight: bold; text-align: center; margin: 3px 0; }
+              .certify .signature-image-area { height: 38px; display: flex; align-items: center; justify-content: center; }
+              .certify .report-signature-image { max-width: 150px; max-height: 36px; object-fit: contain; }
               .certify .date-cell .signature-line {
                 width: 90%;
                 height: 43px;
@@ -1195,7 +1275,8 @@ export default {
               </td>
             </tr>
           </tbody>
-        </table>`;
+        </table>
+        ${this.buildSignatureMarkup()}`;
 
       this.openReportWindow(title, body, '#000');
     },
@@ -1323,7 +1404,8 @@ export default {
               </td>
             </tr>
           </tbody>
-        </table>`;
+        </table>
+        ${this.buildSignatureMarkup()}`;
 
       this.openReportWindow(title, body, '#000');
     },
@@ -1993,6 +2075,14 @@ th {
   color: #717a72;
 }
 
+.details-form { display: grid; gap: 16px; padding: 22px 24px; }
+.details-field { display: grid; gap: 7px; }
+.details-field label { font-size: 13px; font-weight: 600; color: #26332a; }
+.optional-label { color: #717a72; font-weight: 400; }
+.signature-preview { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.signature-preview img { max-width: 180px; max-height: 70px; object-fit: contain; border: 1px solid #e4e2d8; border-radius: 6px; padding: 5px; }
+.details-footer { gap: 10px; }
+.secondary-button { background: #6c757d; }
 .print-picker-footer {
   display: flex;
   justify-content: flex-end;
