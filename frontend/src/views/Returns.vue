@@ -1232,8 +1232,8 @@ export default {
 
 <style scoped>
 .return-requests-modal-dialog {
-  width: calc(100% - 2rem);
-  max-width: 1500px;
+  width: calc(100% - 1rem);
+  max-width: 1800px;
 }
 
 .sortable {
