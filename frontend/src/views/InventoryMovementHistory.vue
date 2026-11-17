@@ -228,8 +228,6 @@
 </template>
 
 <script>
-import ExcelJS from 'exceljs'
-
 export default {
   name: 'InventoryMovementHistory',
 
@@ -376,6 +374,30 @@ export default {
       this.signerDate = this.toDateString(new Date());
       this.signerSignature = '';
       this.showDetailsModal = true;
+    },
+
+    continueReportAction() {
+      if (!this.signerName.trim()) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please enter the printed name.'
+        }));
+        return;
+      }
+
+      if (!this.signerDate) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please enter the date.'
+        }));
+        return;
+      }
+
+      this.showDetailsModal = false;
+
+      if (this.detailsAction === 'excel') {
+        this.exportAcquisitionExcel();
+      } else {
+        this.printReport();
+      }
     },
 
     handleSignatureUpload(event) {
@@ -530,128 +552,78 @@ export default {
       printWindow.document.close();
     },
 
-    async exportAcquisitionExcel() {
-      try {
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Movement History');
+    exportAcquisitionExcel() {
+      const rows = this.filteredMovements;
+      const tableRows = rows.map(item => `
+        <tr>
+          <td>${this.escapeHtml(this.formatDate(item.date))}</td>
+          <td>${this.escapeHtml(item.propertyNumber || '')}</td>
+          <td>${this.escapeHtml(item.description || '')}</td>
+          <td>${this.escapeHtml(item.category || '')}</td>
+          <td>${this.escapeHtml(item.quantity)}</td>
+          <td>${this.escapeHtml(item.reference || '')}</td>
+          <td>${this.escapeHtml(item.person || item.supplier || '')}</td>
+          <td>${this.escapeHtml(item.destination || '')}</td>
+          <td>${this.escapeHtml(item.fundCluster || '')}</td>
+        </tr>
+      `).join('');
 
-        worksheet.mergeCells('A1:I1');
-        worksheet.getCell('A1').value = 'INVENTORY MOVEMENT HISTORY';
-        worksheet.getCell('A1').font = { bold: true, size: 16 };
-        worksheet.getCell('A1').alignment = { horizontal: 'center' };
+      const signature = this.signerSignature
+        ? `<img src="${this.signerSignature}" alt="Signature" style="max-width:180px;max-height:65px;object-fit:contain;display:block;margin:8px 0">`
+        : '';
 
-        worksheet.mergeCells('A2:I2');
-        worksheet.getCell('A2').value =
-          'Fund Cluster: ' + this.selectedFundCluster +
-          ' | Date Range: ' + this.formatDate(this.dateFrom) +
-          ' - ' + this.formatDate(this.dateTo);
-        worksheet.getCell('A2').alignment = { horizontal: 'center' };
+      const workbookHtml = `<!DOCTYPE html>
+        <html xmlns:o="urn:schemas-microsoft-com:office:office"
+              xmlns:x="urn:schemas-microsoft-com:office:excel"
+              xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="UTF-8">
+          <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Movement History</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+          <style>
+            body{font-family:Arial,sans-serif}
+            table{border-collapse:collapse}
+            th,td{border:1px solid #777;padding:7px}
+            th{background:#2f5d3a;color:#fff;font-weight:bold}
+            .heading{text-align:center;font-size:16pt;font-weight:bold}
+            .subheading{text-align:center}
+          </style>
+        </head>
+        <body>
+          <table>
+            <tr><td colspan="9" class="heading">INVENTORY MOVEMENT HISTORY</td></tr>
+            <tr><td colspan="9" class="subheading">Fund Cluster: ${this.escapeHtml(this.selectedFundCluster)} | Date Range: ${this.escapeHtml(this.formatDate(this.dateFrom))} - ${this.escapeHtml(this.formatDate(this.dateTo))}</td></tr>
+          </table>
+          <br>
+          <table>
+            <thead><tr>
+              <th>Date</th><th>Property No.</th><th>Description</th><th>Movement</th>
+              <th>Quantity</th><th>Reference</th><th>Recipient / Source</th>
+              <th>Destination</th><th>Fund Cluster</th>
+            </tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+          <br><br>
+          <table>
+            <tr><td>Prepared by:</td></tr>
+            <tr><td>${signature}</td></tr>
+            <tr><td><strong>${this.escapeHtml(this.signerName)}</strong></td></tr>
+            <tr><td>Signature over Printed Name</td></tr>
+            <tr><td>Date: ${this.escapeHtml(this.formatDate(this.signerDate))}</td></tr>
+          </table>
+        </body>
+        </html>`;
 
-        worksheet.addRow([]);
-        const header = worksheet.addRow([
-          'Date',
-          'Property No.',
-          'Description',
-          'Movement',
-          'Quantity',
-          'Reference',
-          'Recipient / Source',
-          'Destination',
-          'Fund Cluster'
-        ]);
-        header.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        header.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FF2F5D3A' }
-        };
-        header.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-
-        this.filteredMovements.forEach(item => {
-          worksheet.addRow([
-            this.formatDate(item.date),
-            item.propertyNumber || '',
-            item.description || '',
-            item.category || '',
-            Number(item.quantity || 0),
-            item.reference || '',
-            item.person || '',
-            item.destination || '',
-            item.fundCluster || ''
-          ]);
-        });
-
-        worksheet.columns = [
-          { width: 15 },
-          { width: 20 },
-          { width: 34 },
-          { width: 16 },
-          { width: 12 },
-          { width: 20 },
-          { width: 26 },
-          { width: 24 },
-          { width: 18 }
-        ];
-
-        worksheet.eachRow((row, rowNumber) => {
-          if (rowNumber > 3) {
-            row.alignment = { vertical: 'middle', wrapText: true };
-            if (rowNumber % 2 === 0) {
-              row.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FFF7F9F6' }
-              };
-            }
-          }
-        });
-
-        const signatureStartRow = worksheet.rowCount + 3;
-        worksheet.getCell('A' + signatureStartRow).value = 'Prepared by:';
-        worksheet.getCell('A' + signatureStartRow).font = { bold: true };
-        worksheet.getCell('A' + (signatureStartRow + 2)).value = this.signerName;
-        worksheet.getCell('A' + (signatureStartRow + 2)).font = { bold: true, underline: true };
-        worksheet.getCell('A' + (signatureStartRow + 3)).value = 'Signature over Printed Name';
-        worksheet.getCell('A' + (signatureStartRow + 4)).value = 'Date: ' + this.formatDate(this.signerDate);
-
-        if (this.signerSignature) {
-          const extension = this.signerSignature.startsWith('data:image/png')
-            ? 'png'
-            : this.signerSignature.startsWith('data:image/jpeg') ||
-              this.signerSignature.startsWith('data:image/jpg')
-              ? 'jpeg'
-              : this.signerSignature.startsWith('data:image/gif')
-                ? 'gif'
-                : 'png';
-          const imageId = workbook.addImage({
-            base64: this.signerSignature,
-            extension
-          });
-          worksheet.addImage(imageId, {
-            tl: { col: 0, row: signatureStartRow },
-            ext: { width: 160, height: 55 }
-          });
-          worksheet.getRow(signatureStartRow + 1).height = 34;
-        }
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'inventory-movement-history.xlsx';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Excel export error:', error);
-        window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: 'Unable to export the Excel file. Please try again.'
-        }));
-      }
+      const blob = new Blob(['\\ufeff', workbookHtml], {
+        type: 'application/vnd.ms-excel;charset=utf-8;'
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'inventory-movement-history.xls';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     },
 
     printIssuanceReport() {
