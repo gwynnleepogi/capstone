@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showRequests" class="card mb-4 return-requests-card">
+  <div class="card return-requests-card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
       <div>
         <strong>Return Requests</strong>
@@ -201,13 +201,6 @@
 <script>
 export default {
   name: 'ReturnRequestsPanel',
-
-  props: {
-    showRequests: {
-      type: Boolean,
-      default: false
-    }
-  },
 
   emits: ['changed'],
 
