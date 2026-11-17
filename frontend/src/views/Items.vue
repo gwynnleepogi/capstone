@@ -33,27 +33,54 @@
           </div>
 
           <div class="col-12 col-md-3">
-            <SearchableSelect
+            <select
               v-model="selectedClassification"
-              :options="classificationOptions"
-              placeholder="All Classification"
-            />
+              class="form-select"
+              aria-label="Filter by classification"
+            >
+              <option value="">All Classification</option>
+              <option
+                v-for="option in classificationOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
           </div>
 
           <div class="col-12 col-md-2">
-            <SearchableSelect
+            <select
               v-model="selectedFundCluster"
-              :options="fundClusterOptions"
-              placeholder="All Fund Cluster"
-            />
+              class="form-select"
+              aria-label="Filter by fund cluster"
+            >
+              <option value="">All Fund Cluster</option>
+              <option
+                v-for="option in fundClusterOptions"
+                :key="option"
+                :value="option"
+              >
+                {{ option }}
+              </option>
+            </select>
           </div>
 
           <div class="col-12 col-md-2">
-            <SearchableSelect
+            <select
               v-model="selectedStatus"
-              :options="statusOptions"
-              placeholder="All Status"
-            />
+              class="form-select"
+              aria-label="Filter by status"
+            >
+              <option value="">All Status</option>
+              <option
+                v-for="option in statusOptions"
+                :key="option"
+                :value="option"
+              >
+                {{ option }}
+              </option>
+            </select>
           </div>
         </div>
       </div>
