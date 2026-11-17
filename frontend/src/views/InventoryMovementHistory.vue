@@ -370,6 +370,31 @@ export default {
   },
 
   methods: {
+    setDefaultDates() {
+      const today = new Date();
+      const localToday = new Date(
+        today.getTime() - today.getTimezoneOffset() * 60000
+      ).toISOString().slice(0, 10);
+
+      // Start early enough to include older property records by default.
+      this.dateFrom = '2000-01-01';
+      this.dateTo = localToday;
+    },
+
+    getRelatedRecord(value) {
+      if (Array.isArray(value)) {
+        return value.length ? value[0] : {};
+      }
+
+      return value && typeof value === 'object' ? value : {};
+    },
+
+    cleanUnit(value) {
+      return value === null || value === undefined
+        ? ''
+        : String(value).trim();
+    },
+
     openDetailsModal(action) {
       this.detailsAction = action;
       this.signerDate = this.toDateString(new Date());
