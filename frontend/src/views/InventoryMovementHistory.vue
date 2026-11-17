@@ -1116,9 +1116,17 @@ export default {
 
               .certify .signature-line {
                 width: 92%;
-                height: 43px;
+                height: 24px;
                 margin: 0 auto 5px;
                 border-bottom: 1px solid #000;
+              }
+
+              .certify .printed-name {
+                min-height: 13px;
+                margin: 0 auto 2px;
+                font-size: 10px;
+                font-weight: bold;
+                text-align: center;
               }
 
               .certify .sig-label {
@@ -1132,7 +1140,6 @@ export default {
 
               .certify .date-cell .signature-line {
                 width: 90%;
-                height: 43px;
               }
 
               @media print {
