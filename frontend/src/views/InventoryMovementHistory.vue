@@ -219,7 +219,7 @@
         <div class="details-form">
           <div class="details-field"><label for="movement-signer-name">Printed Name</label><input id="movement-signer-name" v-model="signerName" type="text" class="form-control" placeholder="Enter full name"></div>
           <div class="details-field"><label for="movement-signer-date">Date</label><input id="movement-signer-date" v-model="signerDate" type="date" class="form-control"></div>
-          <div class="details-field"><label for="movement-signer-signature">Picture of Signature <span class="optional-label">(Optional)</span></label><input id="movement-signer-signature" type="file" class="form-control" accept="image/*" @change="handleSignatureUpload"><small class="text-muted">Upload an image file.</small><div v-if="signerSignature" class="signature-preview"><img :src="signerSignature" alt="Signature preview"><button type="button" class="btn btn-sm btn-outline-danger" @click="signerSignature = ''">Remove</button></div></div>
+          <div class="details-field"><label for="movement-signer-signature">Picture of Signature <span class="optional-label">(Optional)</span></label><input id="movement-signer-signature" type="file" class="form-control" accept="image/png,image/jpeg" @change="handleSignatureUpload"><small class="text-muted">Upload an image file.</small><div v-if="signerSignature" class="signature-preview"><img :src="signerSignature" alt="Signature preview"><button type="button" class="btn btn-sm btn-outline-danger" @click="signerSignature = ''">Remove</button></div></div>
         </div>
         <div class="print-picker-footer details-footer"><button type="button" class="close-footer-button secondary-button" @click="showDetailsModal = false">Cancel</button><button type="button" class="close-footer-button" @click="continueReportAction">{{ detailsAction === 'excel' ? 'Download Excel' : 'Continue to Print' }}</button></div>
       </section>
@@ -376,6 +376,30 @@ export default {
       this.signerDate = this.toDateString(new Date());
       this.signerSignature = '';
       this.showDetailsModal = true;
+    },
+
+    handleSignatureUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      if (!['image/png', 'image/jpeg'].includes(file.type)) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please select a PNG or JPG signature image.'
+        }));
+        event.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.signerSignature = reader.result;
+      };
+      reader.onerror = () => {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Unable to read the signature image.'
+        }));
+      };
+      reader.readAsDataURL(file);
     },
 
     printSelectedReport(reportType) {
