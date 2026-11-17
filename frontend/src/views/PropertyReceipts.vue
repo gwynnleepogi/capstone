@@ -127,10 +127,10 @@
               <!-- RECEIPT TYPE -->
               <div class="mb-3">
                 <label class="form-label">Receipt Type</label>
-                <select class="form-select" v-model="form.receipt_type" required>
-                  <option value="PAR">PAR — ₱50,000 and above</option>
-                  <option value="ICS">ICS — below ₱50,000</option>
-                </select>
+                <div class="form-control bg-light" aria-readonly="true">
+                  {{ getReceiptTypeForItem(editing ? editingItem : selectedReceiptItem) || form.receipt_type }}
+                </div>
+                <small class="text-muted">Receipt type is automatically determined by the item's cost.</small>
               </div>
               <!-- RECEIPT NUMBER -->
               <div class="mb-3">
