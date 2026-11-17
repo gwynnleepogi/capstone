@@ -411,8 +411,6 @@ export default {
       }
 
       try {
-        const imported = await import('exceljs');
-        const ExcelJS = imported.default || imported;
         const workbook = new ExcelJS.Workbook();
 
         const isIssuance = this.reportToPrint === 'issuance';
