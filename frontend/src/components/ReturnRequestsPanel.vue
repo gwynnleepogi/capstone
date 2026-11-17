@@ -7,7 +7,7 @@
           {{ pendingCount }} pending
         </span>
         <div class="small text-muted">
-          Teachers and Non-Teaching Staff ask to return property here. Accept to put the stock back, or reject with a reason.
+          Teachers and Non-Teaching Staff ask to return property here. Accept to put the stock back.
         </div>
       </div>
 
@@ -129,14 +129,6 @@
                   <i class="bi bi-check-lg me-1"></i>
                   Accept
                 </button>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-danger"
-                  @click="openReject(request)"
-                >
-                  <i class="bi bi-x-lg me-1"></i>
-                  Reject
-                </button>
               </template>
             </td>
           </tr>
@@ -144,13 +136,11 @@
       </table>
     </div>
 
-    <!-- Accept / Reject dialog -->
+    <!-- Accept dialog -->
     <div v-if="dialog" class="rr-overlay" tabindex="-1" @keydown.esc="closeDialog">
       <section class="rr-dialog card" role="dialog" aria-modal="true" aria-labelledby="rr-title">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-          <strong id="rr-title">
-            {{ dialog.mode === 'accept' ? 'Accept Return' : 'Reject Return' }}
-          </strong>
+          <strong id="rr-title">Accept Return</strong>
           <button type="button" class="btn-close" aria-label="Close" @click="closeDialog"></button>
         </div>
 
@@ -188,22 +178,6 @@
               </p>
             </template>
 
-            <template v-else>
-              <div>
-                <label class="form-label">Reason for rejecting <span class="text-danger">*</span></label>
-                <textarea
-                  v-model.trim="dialog.remarks"
-                  class="form-control"
-                  rows="3"
-                  required
-                  placeholder="e.g. Item was not brought in, wrong item, please bring it to the property office"
-                ></textarea>
-              </div>
-
-              <p class="small text-muted mt-3 mb-0">
-                Rejecting changes nothing in stock. The property stays issued to the user.
-              </p>
-            </template>
           </div>
 
           <div class="card-footer bg-white text-end">
@@ -212,11 +186,10 @@
             </button>
             <button
               type="submit"
-              class="btn"
-              :class="dialog.mode === 'accept' ? 'btn-success' : 'btn-danger'"
+              class="btn btn-success"
               :disabled="saving"
             >
-              {{ saving ? 'Saving...' : dialog.mode === 'accept' ? 'Accept Return' : 'Reject Return' }}
+              {{ saving ? 'Saving...' : 'Accept Return' }}
             </button>
           </div>
         </form>
@@ -241,7 +214,7 @@ export default {
       conditionFilter: '',
       dateFrom: '',
       dateTo: '',
-      tabs: ['Pending', 'Accepted', 'Rejected', 'All'],
+      tabs: ['Pending', 'Accepted', 'All'],
       dialog: null
     }
   },
@@ -325,10 +298,6 @@ export default {
       }
     },
 
-    openReject(request) {
-      this.dialog = { mode: 'reject', request, remarks: '' }
-    },
-
     closeDialog() {
       this.dialog = null
     },
@@ -336,24 +305,18 @@ export default {
     async submitDialog() {
       if (!this.dialog || this.saving) return
 
-      const { mode, request, condition, remarks } = this.dialog
-
-      if (mode === 'reject' && !remarks) {
-        this.toast('Please give a reason for rejecting this return.')
-        return
-      }
+      const { request, condition, remarks } = this.dialog
 
       this.saving = true
 
       try {
-        const response = await fetch(`/api/return-requests/${request.id}/${mode}`, {
+        const response = await fetch(`/api/return-requests/${request.id}/accept`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(
-            mode === 'accept'
-              ? { condition_after_return: condition, review_remarks: remarks }
-              : { review_remarks: remarks }
-          )
+          body: JSON.stringify({
+            condition_after_return: condition,
+            review_remarks: remarks || null
+          })
         })
         const data = await response.json().catch(() => ({}))
 
@@ -361,7 +324,7 @@ export default {
           throw new Error(data.error || 'Could not update the return request')
         }
 
-        this.toast(mode === 'accept' ? 'Return accepted and stock restored.' : 'Return request rejected.')
+        this.toast('Return accepted and stock restored.')
         this.closeDialog()
         await this.loadRequests()
 
