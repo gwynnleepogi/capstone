@@ -1265,22 +1265,22 @@ export default {
             </tr>
             <tr>
               <td class="signature-cell">
-                <div class="signature-line"></div>
                 <div class="printed-name">${e(this.certificationCustodian)}</div>
+                <div class="signature-line"></div>
                 <div class="sig-label">
                   Signature over Printed Name of Supply/Property Custodian
                 </div>
               </td>
               <td class="signature-cell">
-                <div class="signature-line"></div>
                 <div class="printed-name">${e(this.certificationAccountingStaff)}</div>
+                <div class="signature-line"></div>
                 <div class="sig-label">
                   Signature over Printed Name of Designated Accounting Staff
                 </div>
               </td>
               <td class="signature-cell date-cell">
-                <div class="signature-line"></div>
                 <div class="printed-name">${e(this.formatLongDate(this.certificationDate))}</div>
+                <div class="signature-line"></div>
                 <div class="sig-label">Date</div>
               </td>
             </tr>
@@ -1394,24 +1394,24 @@ export default {
 
             <tr>
               <td class="signature-cell">
-                <div class="signature-line"></div>
                 <div class="printed-name">${e(this.certificationCustodian)}</div>
+                <div class="signature-line"></div>
                 <div class="sig-label">
                   Signature over Printed Name of Supply/Property Custodian
                 </div>
               </td>
 
               <td class="signature-cell">
-                <div class="signature-line"></div>
                 <div class="printed-name">${e(this.certificationAccountingStaff)}</div>
+                <div class="signature-line"></div>
                 <div class="sig-label">
                   Signature over Printed Name of Designated Accounting Staff
                 </div>
               </td>
 
               <td class="signature-cell date-cell">
-                <div class="signature-line"></div>
                 <div class="printed-name">${e(this.formatLongDate(this.certificationDate))}</div>
+                <div class="signature-line"></div>
                 <div class="sig-label">Date</div>
               </td>
             </tr>
