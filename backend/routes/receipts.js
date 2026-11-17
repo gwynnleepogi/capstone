@@ -610,7 +610,7 @@ router.put('/:id', async (req, res) => {
       })
     }
 
-    if (!receipt_number || !String(finalReceiptNumber).trim()) {
+    if (!receipt_number || !String(receipt_number).trim()) {
       return res.status(400).json({
         error: 'Receipt number is required'
       })
@@ -633,7 +633,7 @@ router.put('/:id', async (req, res) => {
 
     const updates = {
       receipt_type,
-      receipt_number: String(finalReceiptNumber).trim(),
+      receipt_number: String(receipt_number).trim(),
       date_issued: date_issued || null,
       remarks: remarks || null
     }
