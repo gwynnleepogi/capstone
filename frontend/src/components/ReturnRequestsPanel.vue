@@ -209,12 +209,12 @@ export default {
       requests: [],
       loading: true,
       saving: false,
-      filter: 'Pending',
+      filter: 'All',
       search: '',
       conditionFilter: '',
       dateFrom: '',
       dateTo: '',
-      tabs: ['Pending', 'Accepted', 'All'],
+      tabs: ['All', 'Pending', 'Accepted'],
       dialog: null
     }
   },
