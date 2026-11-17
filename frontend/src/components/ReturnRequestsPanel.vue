@@ -1,5 +1,19 @@
 <template>
-  <div class="card mb-4 return-requests-card">
+  <div class="mb-4">
+    <button
+      type="button"
+      class="btn btn-outline-success d-flex align-items-center gap-2"
+      @click="showRequests = !showRequests"
+    >
+      <i class="bi" :class="showRequests ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+      {{ showRequests ? 'Hide Return Requests' : 'Show Return Requests' }}
+      <span v-if="pendingCount" class="badge bg-warning text-dark">
+        {{ pendingCount }} pending
+      </span>
+    </button>
+  </div>
+
+  <div v-if="showRequests" class="card mb-4 return-requests-card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
       <div>
         <strong>Return Requests</strong>
@@ -209,6 +223,7 @@ export default {
       requests: [],
       loading: true,
       saving: false,
+      showRequests: false,
       filter: 'Pending',
       search: '',
       conditionFilter: '',
