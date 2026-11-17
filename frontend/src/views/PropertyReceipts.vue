@@ -135,15 +135,9 @@
               <!-- RECEIPT NUMBER -->
               <div class="mb-3">
                 <label class="form-label">Receipt Number</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  :value="editing ? form.receipt_number : 'Auto-generated when saved'"
-                  readonly
-                >
-                <small v-if="!editing" class="form-text text-muted">
-                  The system will generate the next receipt number automatically.
-                </small>
+                <div class="form-control bg-light" aria-readonly="true">
+                  {{ editing ? form.receipt_number : nextReceiptNumber }}
+                </div>
               </div>
               <div class="mb-3" v-if="!editing">
                 <label class="form-label">Receipt For</label>
@@ -627,6 +621,23 @@ export default {
   },
 
   computed: {
+    nextReceiptNumber() {
+      let highestNumber = -1
+
+      for (const receipt of this.receipts || []) {
+        const match = String(receipt.receipt_number || '').match(/^(\d{5})-(\d{4})$/)
+        if (match) {
+          const numericValue = Number(match[1]) * 10000 + Number(match[2])
+          if (numericValue > highestNumber) highestNumber = numericValue
+        }
+      }
+
+      const nextNumber = highestNumber + 1
+      return String(Math.floor(nextNumber / 10000)).padStart(5, '0') +
+        '-' +
+        String(nextNumber % 10000).padStart(4, '0')
+    },
+
     filteredReceipts() {
       const search = this.receiptSearch.toLocaleLowerCase()
 
