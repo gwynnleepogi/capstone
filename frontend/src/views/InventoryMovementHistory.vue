@@ -372,7 +372,172 @@ export default {
     openDetailsModal(action) {
       this.detailsAction = action;
       this.signerDate = this.toDateString(new Date());
+      this.signerSignature = '';
       this.showDetailsModal = true;
+    },
+
+    printSelectedReport(reportType) {
+      this.reportToPrint = reportType;
+      this.showPrintModal = false;
+      this.openDetailsModal('print');
+    },
+
+    canPrintReport(reportType) {
+      return this.movements.some(item =>
+        item.category === (reportType === 'issuance' ? 'Issuance' : 'Acquisition') &&
+        item.date >= this.dateFrom &&
+        item.date <= this.dateTo &&
+        (this.selectedFundCluster === 'ALL' ||
+          String(item.fundCluster || '').trim().toUpperCase() === this.selectedFundCluster.toUpperCase())
+      );
+    },
+
+    getReportRowCount(reportType) {
+      const category = reportType === 'issuance' ? 'Issuance' : 'Acquisition';
+      return this.movements.filter(item =>
+        item.category === category &&
+        item.date >= this.dateFrom &&
+        item.date <= this.dateTo &&
+        (this.selectedFundCluster === 'ALL' ||
+          String(item.fundCluster || '').trim().toUpperCase() === this.selectedFundCluster.toUpperCase())
+      ).length;
+    },
+
+    setDefaultDates() {
+      const today = new Date();
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      this.dateFrom = this.toDateString(firstDay);
+      this.dateTo = this.toDateString(today);
+    },
+
+    toDateString(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return year + '-' + month + '-' + day;
+    },
+
+    formatDate(value) {
+      if (!value) return 'N/A';
+      const parts = String(value).substring(0, 10).split('-');
+      if (parts.length !== 3) return value;
+      return parts[1] + '/' + parts[2] + '/' + parts[0];
+    },
+
+    badgeClass(item) {
+      if (item.category === 'Acquisition') return 'badge-acquisition';
+      if (item.category === 'Issuance') return 'badge-out';
+      if (item.category === 'Return') return 'badge-return';
+      return 'badge-in';
+    },
+
+    cleanUnit(value) {
+      return String(value || '').trim();
+    },
+
+    getRelatedRecord(value) {
+      if (Array.isArray(value)) return value[0] || {};
+      return value || {};
+    },
+
+    escapeHtml(value) {
+      return String(value === null || value === undefined ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+
+    formatMoney(value) {
+      return Number(value || 0).toLocaleString('en-PH', {
+        style: 'currency',
+        currency: 'PHP'
+      });
+    },
+
+    printReport() {
+      const rows = this.printRows;
+      const title = this.reportToPrint === 'issuance'
+        ? 'REPORT ON SUPPLIES AND MATERIALS ISSUED'
+        : 'ACQUISITION OF SUPPLIES AND MATERIALS';
+      const tableRows = rows.map((item, index) => `
+        <tr>
+          <td>${this.escapeHtml(this.formatDate(item.date))}</td>
+          <td>${this.escapeHtml(item.propertyNumber || 'N/A')}</td>
+          <td>${this.escapeHtml(item.description || 'N/A')}</td>
+          <td>${this.escapeHtml(item.reference || 'N/A')}</td>
+          <td>${this.escapeHtml(item.quantity)}</td>
+          <td>${this.escapeHtml(item.person || item.supplier || 'N/A')}</td>
+          <td>${this.escapeHtml(item.destination || 'N/A')}</td>
+        </tr>
+      `).join('');
+      const signature = this.signerSignature
+        ? `<img src="${this.signerSignature}" alt="Signature" style="display:block;max-width:180px;max-height:65px;object-fit:contain;margin:8px auto">`
+        : '';
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+        <style>
+          body{font-family:Arial,sans-serif;color:#222;padding:24px}
+          h2{text-align:center;margin-bottom:4px}
+          .subtitle{text-align:center;margin:0 0 20px;color:#555}
+          table{width:100%;border-collapse:collapse;font-size:12px}
+          th,td{border:1px solid #555;padding:7px;text-align:left}
+          th{background:#e9eee9}
+          .signatory{margin:48px 0 0 auto;width:260px;text-align:center}
+          .signatory-name{font-weight:bold;text-transform:uppercase;border-bottom:1px solid #222;padding:5px}
+          @media print{body{padding:0}}
+        </style></head><body>
+        <h2>${title}</h2>
+        <p class="subtitle">Fund Cluster: ${this.escapeHtml(this.selectedFundCluster)} | Date: ${this.escapeHtml(this.formatDate(this.dateFrom))} - ${this.escapeHtml(this.formatDate(this.dateTo))}</p>
+        <table><thead><tr><th>Date</th><th>Property No.</th><th>Description</th><th>Reference</th><th>Quantity</th><th>Recipient / Source</th><th>Destination</th></tr></thead>
+        <tbody>${tableRows}</tbody></table>
+        <div class="signatory">${signature}<div class="signatory-name">${this.escapeHtml(this.signerName)}</div><div>Signature over Printed Name</div><div>Date: ${this.escapeHtml(this.formatDate(this.signerDate))}</div></div>
+        <script>window.onload=function(){window.print()};window.onafterprint=function(){window.close()}<\/script>
+        </body></html>`;
+      const printWindow = window.open('', '_blank', 'width=1100,height=850');
+      if (!printWindow) {
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Please allow pop-ups to print the report.' }));
+        return;
+      }
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+    },
+
+    exportAcquisitionExcel() {
+      const rows = this.filteredMovements;
+      const tableRows = rows.map(item => `
+        <tr>
+          <td>${this.escapeHtml(this.formatDate(item.date))}</td>
+          <td>${this.escapeHtml(item.propertyNumber || '')}</td>
+          <td>${this.escapeHtml(item.description || '')}</td>
+          <td>${this.escapeHtml(item.category || '')}</td>
+          <td>${this.escapeHtml(item.quantity)}</td>
+          <td>${this.escapeHtml(item.reference || '')}</td>
+          <td>${this.escapeHtml(item.person || '')}</td>
+          <td>${this.escapeHtml(item.destination || '')}</td>
+          <td>${this.escapeHtml(item.fundCluster || '')}</td>
+        </tr>
+      `).join('');
+      const signature = this.signerSignature
+        ? `<img src="${this.signerSignature}" alt="Signature" width="150" height="55">`
+        : '';
+      const workbook = `<html><head><meta charset="UTF-8"></head><body>
+        <h2>Inventory Movement History</h2>
+        <p>Fund Cluster: ${this.escapeHtml(this.selectedFundCluster)}</p>
+        <p>Date Range: ${this.escapeHtml(this.formatDate(this.dateFrom))} - ${this.escapeHtml(this.formatDate(this.dateTo))}</p>
+        <table border="1"><thead><tr><th>Date</th><th>Property No.</th><th>Description</th><th>Movement</th><th>Quantity</th><th>Reference</th><th>Recipient / Source</th><th>Destination</th><th>Fund Cluster</th></tr></thead><tbody>${tableRows}</tbody></table>
+        <br><br><table><tr><td>Prepared by:</td></tr><tr><td>${signature}</td></tr><tr><td><strong>${this.escapeHtml(this.signerName)}</strong></td></tr><tr><td>Signature over Printed Name</td></tr><tr><td>Date: ${this.escapeHtml(this.formatDate(this.signerDate))}</td></tr></table>
+        </body></html>`;
+      const blob = new Blob([workbook], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'inventory-movement-history.xls';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     },
 
     handleSignatureUpload(event) {
@@ -400,10 +565,17 @@ export default {
     },
 
     buildSignatureMarkup() {
-      const signature = this.signerSignature ? '<img class="report-signature-image" src="' + this.signerSignature + '" alt="Signature">' : '';
-      return '${this.buildSignatureMarkup()}`;
-
-      this.openReportWindow(title, body, '#000');
+      const signature = this.signerSignature
+        ? '<img class="report-signature-image" src="' + this.signerSignature + '" alt="Signature">'
+        : '';
+      return `
+        <div class="report-signatory">
+          ${signature}
+          <div class="report-signatory-name">${this.escapeHtml(this.signerName)}</div>
+          <div>Signature over Printed Name</div>
+          <div>Date: ${this.escapeHtml(this.formatDate(this.signerDate))}</div>
+        </div>
+      `;
     },
 
     printIssuanceReport() {
