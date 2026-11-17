@@ -461,9 +461,9 @@ export default {
         worksheet.mergeCells('A5:' + lastColumn + '5');
         worksheet.getCell('A5').value =
           'For the period of ' +
-          this.formatDate(this.dateFrom) +
+          this.formatLongDate(this.dateFrom) +
           ' - ' +
-          this.formatDate(this.dateTo);
+          this.formatLongDate(this.dateTo);
 
         worksheet.mergeCells('A6:' + lastColumn + '6');
         worksheet.getCell('A6').value =
@@ -659,33 +659,6 @@ export default {
             vertical: 'middle'
           };
         });
-
-        /* REPORT SIGNATORY DETAILS */
-        const signatoryStartRow = worksheet.lastRow.number + 2;
-        worksheet.mergeCells('A' + signatoryStartRow + ':L' + signatoryStartRow);
-        worksheet.getCell('A' + signatoryStartRow).value = 'I hereby certify to the correctness of the above information.';
-        worksheet.getCell('A' + signatoryStartRow).alignment = { horizontal: 'center' };
-        worksheet.getCell('A' + signatoryStartRow).font = { name: 'Arial', bold: true, size: 10 };
-        worksheet.mergeCells('A' + (signatoryStartRow + 1) + ':F' + (signatoryStartRow + 1));
-        worksheet.mergeCells('G' + (signatoryStartRow + 1) + ':L' + (signatoryStartRow + 1));
-        worksheet.getCell('A' + (signatoryStartRow + 1)).value = this.signerName;
-        worksheet.getCell('G' + (signatoryStartRow + 1)).value = this.formatDate(this.signerDate);
-        worksheet.getCell('A' + (signatoryStartRow + 1)).alignment = { horizontal: 'center', vertical: 'bottom' };
-        worksheet.getCell('G' + (signatoryStartRow + 1)).alignment = { horizontal: 'center', vertical: 'bottom' };
-        worksheet.mergeCells('A' + (signatoryStartRow + 2) + ':F' + (signatoryStartRow + 2));
-        worksheet.mergeCells('G' + (signatoryStartRow + 2) + ':L' + (signatoryStartRow + 2));
-        worksheet.getCell('A' + (signatoryStartRow + 2)).value = 'Signature over Printed Name';
-        worksheet.getCell('G' + (signatoryStartRow + 2)).value = 'Date';
-        worksheet.getCell('A' + (signatoryStartRow + 2)).alignment = { horizontal: 'center' };
-        worksheet.getCell('G' + (signatoryStartRow + 2)).alignment = { horizontal: 'center' };
-        worksheet.getRow(signatoryStartRow + 1).height = 24;
-        worksheet.getRow(signatoryStartRow + 2).height = 20;
-        if (this.signerSignature) {
-          const imageParts = this.signerSignature.split(',');
-          const extension = this.signerSignature.includes('image/png') ? 'png' : 'jpeg';
-          const imageId = workbook.addImage({ base64: imageParts[1], extension });
-          worksheet.addImage(imageId, { tl: { col: 1, row: signatoryStartRow }, br: { col: 5, row: signatoryStartRow + 1 } });
-        }
 
         /* COLUMN WIDTHS */
 
