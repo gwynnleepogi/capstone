@@ -32,7 +32,7 @@
       aria-labelledby="returnRequestsModalLabel"
       aria-hidden="true"
     >
-      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable return-requests-modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
             <div>
@@ -1231,6 +1231,11 @@ export default {
 </script>
 
 <style scoped>
+.return-requests-modal-dialog {
+  width: calc(100% - 2rem);
+  max-width: 1500px;
+}
+
 .sortable {
   cursor: pointer;
   white-space: nowrap;
