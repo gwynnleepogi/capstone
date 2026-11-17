@@ -32,7 +32,7 @@
       aria-labelledby="returnRequestsModalLabel"
       aria-hidden="true"
     >
-      <div class="modal-dialog modal-dialog-scrollable return-requests-modal-dialog" style="width: calc(100vw - 2rem); max-width: none; margin: .5rem auto;">
+      <div class="modal-dialog modal-dialog-scrollable return-requests-modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
             <div>
@@ -1232,10 +1232,13 @@ export default {
 
 <style scoped>
 .return-requests-modal-dialog {
-  width: 98vw;
-  max-width: none;
-  margin-left: auto;
-  margin-right: auto;
+  width: 1500px !important;
+  max-width: calc(100vw - 2rem) !important;
+  margin: .5rem auto !important;
+}
+
+.return-requests-modal-dialog .modal-content {
+  width: 100%;
 }
 
 .sortable {
