@@ -1433,7 +1433,7 @@ export default {
 
     async getPersonnelAndOffices() {
       const results = await Promise.allSettled([
-        this.fetchJson('/api/personnel'),
+        this.fetchJson('/api/personnel-directory'),
         this.fetchJson('/api/offices'),
         this.fetchJson('/api/suppliers'),
       ])
