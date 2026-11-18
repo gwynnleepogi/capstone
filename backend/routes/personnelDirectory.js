@@ -1,15 +1,27 @@
 const express = require('express')
 const router = express.Router()
 
-const supabase = require('../supabase')
+const { getSupabaseAdmin, adminCredentialsError } = require('../supabaseAdmin')
 const createAuditLog = require('../middleware/auditLog')
+
+function getDatabase(res) {
+  const database = getSupabaseAdmin()
+  if (!database) {
+    res.status(503).json({ error: adminCredentialsError })
+    return null
+  }
+  return database
+}
 
 function clean(value) {
   return String(value || '').trim()
 }
 
 router.get('/', async (req, res) => {
-  const { data, error } = await supabase
+  const database = getDatabase(res)
+  if (!database) return
+
+  const { data, error } = await database
     .from('personnel_directory')
     .select('id, employee_id, full_name, job_title, office_id, created_at, offices ( office_name )')
     .order('full_name', { ascending: true })
@@ -23,6 +35,9 @@ router.get('/', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
+  const database = getDatabase(res)
+  if (!database) return
+
   const employee_id = clean(req.body.employee_id) || null
   const full_name = clean(req.body.full_name)
   const job_title = clean(req.body.job_title) || null
@@ -32,7 +47,7 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Full name is required.' })
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await database
     .from('personnel_directory')
     .insert({ employee_id, full_name, job_title, office_id })
     .select('id, employee_id, full_name, job_title, office_id, created_at, offices ( office_name )')
@@ -54,6 +69,9 @@ router.post('/', async (req, res) => {
 })
 
 router.put('/:id', async (req, res) => {
+  const database = getDatabase(res)
+  if (!database) return
+
   const employee_id = clean(req.body.employee_id) || null
   const full_name = clean(req.body.full_name)
   const job_title = clean(req.body.job_title) || null
@@ -63,7 +81,7 @@ router.put('/:id', async (req, res) => {
     return res.status(400).json({ error: 'Full name is required.' })
   }
 
-  const { data: oldData, error: oldError } = await supabase
+  const { data: oldData, error: oldError } = await database
     .from('personnel_directory')
     .select('*')
     .eq('id', req.params.id)
@@ -73,7 +91,7 @@ router.put('/:id', async (req, res) => {
     return res.status(404).json({ error: 'Personnel record not found.' })
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await database
     .from('personnel_directory')
     .update({ employee_id, full_name, job_title, office_id, updated_at: new Date().toISOString() })
     .eq('id', req.params.id)
@@ -96,7 +114,10 @@ router.put('/:id', async (req, res) => {
 })
 
 router.delete('/:id', async (req, res) => {
-  const { data: oldData, error: oldError } = await supabase
+  const database = getDatabase(res)
+  if (!database) return
+
+  const { data: oldData, error: oldError } = await database
     .from('personnel_directory')
     .select('*')
     .eq('id', req.params.id)
@@ -106,7 +127,7 @@ router.delete('/:id', async (req, res) => {
     return res.status(404).json({ error: 'Personnel record not found.' })
   }
 
-  const { error } = await supabase
+  const { error } = await database
     .from('personnel_directory')
     .delete()
     .eq('id', req.params.id)
