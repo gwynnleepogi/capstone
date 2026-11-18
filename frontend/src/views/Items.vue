@@ -1178,11 +1178,6 @@ export default {
       this.openItemFromRoute(itemId)
     },
 
-    'editForm.accountable_employee'() {
-      if (this.editingItem) {
-        this.autoFillOffice(this.editForm)
-      }
-    },
   },
 
   methods: {
