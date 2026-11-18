@@ -137,7 +137,7 @@
 
             <tbody>
               <tr v-for="itemReturn in paginatedReturns" :key="itemReturn.id">
-                <td>{{ itemReturn.items?.description || '-' }}</td>
+                <td>{{ itemReturn.items?.description || 'Original property record deleted' }}</td>
 
                 <td>
                   {{
@@ -466,13 +466,13 @@
           <div v-if="selectedReturn" class="modal-body">
             <dl class="row mb-0">
               <dt class="col-sm-4">Property Number</dt>
-              <dd class="col-sm-8">{{ selectedReturn.items?.property_number || '-' }}</dd>
+              <dd class="col-sm-8">{{ selectedReturn.items?.property_number || 'Unavailable — original property record was deleted' }}</dd>
 
               <dt class="col-sm-4">Description</dt>
-              <dd class="col-sm-8">{{ selectedReturn.items?.description || '-' }}</dd>
+              <dd class="col-sm-8">{{ selectedReturn.items?.description || 'Original property record deleted; return history is retained.' }}</dd>
 
               <dt class="col-sm-4">Serial Number</dt>
-              <dd class="col-sm-8">{{ selectedReturn.items?.serial_number || '-' }}</dd>
+              <dd class="col-sm-8">{{ selectedReturn.items?.serial_number || 'Unavailable — original property record was deleted' }}</dd>
 
               <dt class="col-sm-4">Returned Receipt</dt>
               <dd class="col-sm-8">
@@ -487,7 +487,7 @@
               <dt class="col-sm-4">Inventory Status</dt>
               <dd class="col-sm-8">
                 <span class="badge bg-info text-dark">
-                  {{ selectedReturn.items?.status || 'Returned' }}
+                  {{ selectedReturn.items?.status || 'Original property record deleted' }}
                 </span>
               </dd>
 
@@ -1055,7 +1055,7 @@ export default {
         return Number.isNaN(parsed.getTime()) ? safe(value) : parsed.toLocaleDateString('en-PH')
       }
       const rows = Array.from({ length: 15 }, (_, i) => i === 0
-        ? `<tr><td>1</td><td>${quantity}</td><td></td><td class="desc">${safe(item.description)}</td><td></td><td>${safe(returnedBy)}</td><td>${safe(record.remarks || record.return_reason || '')}</td></tr>`
+        ? `<tr><td>1</td><td>${quantity}</td><td></td><td class="desc">${safe(item.description || 'Original property record deleted')}</td><td></td><td>${safe(returnedBy)}</td><td>${safe(record.remarks || record.return_reason || '')}</td></tr>`
         : `<tr><td>${i + 1}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')
       const logo = new URL('../assets/LOGO.png', import.meta.url).href
       const win = window.open('', '_blank', 'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes')
