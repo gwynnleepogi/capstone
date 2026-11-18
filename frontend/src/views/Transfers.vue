@@ -61,6 +61,7 @@
                 <th>Condition</th>
                 <th>Property Status</th>
                 <th>Reason</th>
+                <th class="text-center">Action</th>
               </tr>
             </thead>
 
@@ -112,10 +113,15 @@
                 </td>
 
                 <td>{{ transfer.reason || '-' }}</td>
+                <td class="text-center">
+                  <button type="button" class="btn btn-sm btn-outline-primary" @click="openTransferRequestPrint(transfer)">
+                    <i class="bi bi-printer me-1"></i>Print RPT
+                  </button>
+                </td>
               </tr>
 
               <tr v-if="paginatedTransfers.length === 0">
-                <td colspan="8" class="text-center text-muted py-4">
+                <td colspan="9" class="text-center text-muted py-4">
                   No transfers found.
                 </td>
               </tr>
@@ -380,6 +386,60 @@
         </div>
       </div>
     </div>
+    <div class="modal fade" id="propertyTransferRequestModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Print Request for Property Transfer</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small">Complete the approval and signatory details before printing the Request for Property Transfer form.</p>
+            <div class="mb-3">
+              <label class="form-label">RPT No.</label>
+              <input class="form-control" v-model.trim="requestPrintDetails.rptNumber" placeholder="Enter RPT number">
+            </div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Requested by - Printed Name</label>
+                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.name">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Requested by - Designation</label>
+                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.designation">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Approved by - Printed Name</label>
+                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.name">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Approved by - Designation</label>
+                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.designation">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Concurred by - Printed Name</label>
+                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.name">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Concurred by - Designation</label>
+                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.designation">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Action Taken (Property Officer)</label>
+                <textarea class="form-control" rows="2" v-model.trim="requestPrintDetails.actionTaken"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" @click="printPropertyTransferRequest">
+              <i class="bi bi-printer me-1"></i>Print Request
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal fade" id="transferPrintModal" tabindex="-1">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -450,6 +510,8 @@ export default {
       itemsPerPage: 10,
       saving: false,
       transferPrintData: null,
+      selectedRequestTransfer: null,
+      requestPrintDetails: this.emptyRequestPrintDetails(),
       acknowledgementClassifications: [
         'NEW', 'RENEWAL', 'UPDATING', 'TRANSFER',
         'CLEARANCE-w/ Retain Accountability',
@@ -617,6 +679,16 @@ export default {
   },
 
   methods: {
+    emptyRequestPrintDetails() {
+      return {
+        rptNumber: '',
+        requestedBy: { name: '', designation: '' },
+        approvedBy: { name: '', designation: '' },
+        concurredBy: { name: '', designation: '' },
+        actionTaken: ''
+      }
+    },
+
     emptyPrintDetails() {
       const today = new Date().toISOString().split('T')[0]
       return {
@@ -799,6 +871,106 @@ export default {
       } finally {
         this.saving = false
       }
+    },
+
+    openTransferRequestPrint(transfer) {
+      this.selectedRequestTransfer = transfer
+      this.requestPrintDetails = this.emptyRequestPrintDetails()
+      this.requestPrintDetails.requestedBy.name = transfer.from_user?.full_name || ''
+      this.requestPrintDetails.requestedBy.designation = transfer.from_user?.job_title || ''
+      Modal.getOrCreateInstance(document.getElementById('propertyTransferRequestModal')).show()
+    },
+
+    printPropertyTransferRequest() {
+      const transfer = this.selectedRequestTransfer
+      if (!transfer) {
+        this.toast('Transfer details are not available.')
+        return
+      }
+
+      const details = this.requestPrintDetails
+      const esc = this.escapePrint
+      const item = transfer.items || {}
+      const receipt = transfer.property_receipts || {}
+      const fromName = transfer.from_user?.full_name || item.accountable_employee || '-'
+      const toName = transfer.to_user?.full_name || '-'
+      const fromCenter = item.responsibility_center || '-'
+      const toCenter = transfer.offices?.office_name || '-'
+      const quantity = Number(receipt.quantity || 1)
+      const amount = Number(item.cost || 0) * quantity
+      const condition = transfer.condition_after_transfer || item.condition || '-'
+      const formatDate = value => value ? new Date(value + 'T00:00:00').toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '-'
+      const printWindow = window.open('', '_blank', 'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes')
+      if (!printWindow) {
+        this.toast('Please allow pop-ups to print the request.')
+        return
+      }
+
+      const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
+      printWindow.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Request for Property Transfer</title>
+<style>
+@page{size:8.5in 13in portrait;margin:10mm}*{box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:10px;margin:0}
+.header{display:grid;grid-template-columns:70px 1fr;align-items:center;border:1px solid #777;text-align:center}
+.logo{width:48px;height:48px;object-fit:contain;margin:auto}
+.school{font-weight:bold;font-size:14px}.campus{font-size:10px;line-height:1.25}
+h1{text-align:center;font-size:14px;margin:8px 0 3px}
+.rpt{text-align:center;font-weight:bold;margin-bottom:14px}
+.date{text-align:right;margin:0 5px 8px}
+.info{width:100%;border-collapse:collapse;margin-bottom:0}
+.info td{border:1px solid #777;padding:6px 7px;height:26px}
+.info .label{width:28%;font-weight:bold}
+.items{width:100%;border-collapse:collapse;table-layout:fixed}
+.items th,.items td{border:1px solid #777;padding:5px 4px;vertical-align:middle}
+.items th{text-align:center;font-weight:bold}
+.items td{height:30px}
+.center{text-align:center}.number{text-align:right}
+.reason{width:100%;border-collapse:collapse;margin-top:8px}
+.reason td{border:1px solid #777;padding:7px;height:40px}
+.approvals{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:0}
+.approvals th,.approvals td{border:1px solid #777;padding:6px 5px}
+.approvals th{text-align:center;height:34px}
+.approvals .row-label{font-weight:bold;width:12%}
+.approvals .sign-cell{height:25px}
+.action-cell{height:90px;vertical-align:top}
+.instructions{margin-top:10px;border:1px solid #777;padding:8px 12px;font-size:10px;line-height:1.35}
+.instructions h2{text-align:center;text-decoration:underline;font-size:12px;margin:2px 0 8px}
+.instructions p{margin:0 0 7px}
+.footer{margin-top:12px;font-size:10px}
+</style></head><body>
+<div class="header"><img class="logo" src="${logoUrl}" alt="NVSU Logo"><div><div>Republic of the Philippines</div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div class="campus">Bambang Campus<br>Bambang, Nueva Vizcaya</div></div></div>
+<h1>REQUEST FOR PROPERTY TRANSFER</h1>
+<div class="rpt">RPT No.: ${esc(details.rptNumber)}</div>
+<div class="date">Date: ${esc(formatDate(transfer.transfer_date))}</div>
+<table class="info">
+<tr><td class="label">From Accountable Employee /<br>Responsibility Center:</td><td>${esc(fromName)} / ${esc(fromCenter)}</td></tr>
+<tr><td class="label">To Accountable Employee /<br>Responsibility Center:</td><td>${esc(toName)} / ${esc(toCenter)}</td></tr>
+</table>
+<table class="items">
+<thead><tr><th style="width:12%">DATE<br>ACQUIRED</th><th style="width:17%">PROPERTY NO.</th><th style="width:37%">DESCRIPTION</th><th style="width:15%">AMOUNT</th><th style="width:19%">CONDITION OF PPE</th></tr></thead>
+<tbody><tr><td class="center">${esc(formatDate(item.acquisition_date || transfer.transfer_date))}</td><td class="center">${esc(item.property_number)}</td><td>${esc(item.description)}</td><td class="number">${amount.toLocaleString('en-PH',{minimumFractionDigits:2})}</td><td class="center">${esc(condition)}</td></tr></tbody>
+</table>
+<table class="reason"><tr><td style="width:15%;font-weight:bold">Reason for<br>Transfer:</td><td>${esc(transfer.reason || transfer.remarks || '')}</td></tr></table>
+<table class="approvals">
+<tr><th style="width:12%"></th><th>Requested by:</th><th>Approved by:</th><th>Concurred by:</th><th>Action Taken (to be filled by the Property Officer)</th></tr>
+<tr><td class="row-label">Signature:</td><td class="sign-cell"></td><td></td><td></td><td class="action-cell" rowspan="4">${esc(details.actionTaken)}</td></tr>
+<tr><td class="row-label">Printed Name:</td><td>${esc(details.requestedBy.name)}</td><td>${esc(details.approvedBy.name)}</td><td>${esc(details.concurredBy.name)}</td></tr>
+<tr><td class="row-label">Designation:</td><td>${esc(details.requestedBy.designation)}</td><td>${esc(details.approvedBy.designation)}</td><td>${esc(details.concurredBy.designation)}</td></tr>
+<tr><td class="row-label">Date:</td><td>${esc(formatDate(transfer.transfer_date))}</td><td></td><td></td></tr>
+</table>
+<div class="instructions">
+<h2>INSTRUCTIONS</h2>
+<p><strong>A.</strong> The RPT shall be used by the accountable employee to request transfer of property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Immediate Supervisor for the approval, by the personnel who will receive the property and the Property Officer to act on the request;</p>
+<p><strong>B.</strong> The property to be transferred shall be inspected/checked first by the assigned receiving employee/user before affixing his/her signature on the "concurred" portion of this form;</p>
+<p><strong>C.</strong> This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</p>
+<p><strong>D.</strong> The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</p>
+<p><strong>E.</strong> This form shall be prepared in two (2) copies distributed as follows:<br>Original – Supply and/or Property Division/Unit's file<br>Copy 2 – Accounting Division/Unit (to be attached to Property Transfer Report)</p>
+</div>
+<div class="footer">NVSU-FR-SMO-02-00 (121421)</div>
+<script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script>
+</body></html>`)
+      printWindow.document.close()
     },
 
     escapePrint(value) {
