@@ -114,8 +114,8 @@
 
                 <td>{{ transfer.reason || '-' }}</td>
                 <td class="text-center">
-                  <button type="button" class="btn btn-sm btn-outline-primary" @click="openTransferRequestPrint(transfer)">
-                    <i class="bi bi-printer me-1"></i>Print RPT
+                  <button type="button" class="btn btn-sm btn-outline-secondary" @click="openTransferDetails(transfer)">
+                    <i class="bi bi-eye me-1"></i>Details
                   </button>
                 </td>
               </tr>
@@ -386,6 +386,64 @@
         </div>
       </div>
     </div>
+    <div class="modal fade" id="transferDetailsModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Transfer Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" v-if="selectedTransferDetails">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <small class="text-muted d-block">Property</small>
+                <strong>{{ selectedTransferDetails.items?.description || '-' }}</strong>
+              </div>
+              <div class="col-md-6">
+                <small class="text-muted d-block">Property Number</small>
+                <strong>{{ selectedTransferDetails.items?.property_number || '-' }}</strong>
+              </div>
+              <div class="col-md-6">
+                <small class="text-muted d-block">From Accountable Employee</small>
+                <strong>{{ selectedTransferDetails.from_user?.full_name || selectedTransferDetails.items?.accountable_employee || '-' }}</strong>
+              </div>
+              <div class="col-md-6">
+                <small class="text-muted d-block">To Accountable Employee / Office</small>
+                <strong>{{ selectedTransferDetails.to_user?.full_name || selectedTransferDetails.offices?.office_name || 'Property Office' }}</strong>
+              </div>
+              <div class="col-md-6">
+                <small class="text-muted d-block">Transfer Date</small>
+                <strong>{{ selectedTransferDetails.transfer_date || '-' }}</strong>
+              </div>
+              <div class="col-md-6">
+                <small class="text-muted d-block">Condition</small>
+                <strong>{{ selectedTransferDetails.condition_after_transfer || '-' }}</strong>
+              </div>
+              <div class="col-12">
+                <small class="text-muted d-block">Reason for Transfer</small>
+                <strong>{{ selectedTransferDetails.reason || '-' }}</strong>
+              </div>
+              <div class="col-12" v-if="selectedTransferDetails.remarks">
+                <small class="text-muted d-block">Remarks</small>
+                <strong>{{ selectedTransferDetails.remarks }}</strong>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="d-flex gap-2 flex-wrap">
+              <button type="button" class="btn btn-outline-primary" @click="printRPTFromDetails">
+                <i class="bi bi-printer me-1"></i>Print RPT
+              </button>
+              <button type="button" class="btn btn-success" @click="printReceiptFromDetails">
+                <i class="bi bi-receipt me-1"></i>Print Property Acknowledgement Receipt - Transfer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal fade" id="propertyTransferRequestModal" tabindex="-1">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -511,6 +569,7 @@ export default {
       saving: false,
       transferPrintData: null,
       selectedRequestTransfer: null,
+      selectedTransferDetails: null,
       requestPrintDetails: this.emptyRequestPrintDetails(),
       acknowledgementClassifications: [
         'NEW', 'RENEWAL', 'UPDATING', 'TRANSFER',
@@ -871,6 +930,23 @@ export default {
       } finally {
         this.saving = false
       }
+    },
+
+    openTransferDetails(transfer) {
+      this.selectedTransferDetails = transfer
+      Modal.getOrCreateInstance(document.getElementById('transferDetailsModal')).show()
+    },
+
+    printRPTFromDetails() {
+      const transfer = this.selectedTransferDetails
+      Modal.getOrCreateInstance(document.getElementById('transferDetailsModal')).hide()
+      this.openTransferRequestPrint(transfer)
+    },
+
+    printReceiptFromDetails() {
+      const transfer = this.selectedTransferDetails
+      Modal.getOrCreateInstance(document.getElementById('transferDetailsModal')).hide()
+      this.openExistingTransferReceipt(transfer)
     },
 
     openExistingTransferReceipt(transfer) {
