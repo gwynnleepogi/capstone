@@ -254,23 +254,29 @@
               </div>
 
               <div class="col-12 col-md-6">
-                <label class="form-label">Accountable Employee</label>
+                <label class="form-label">
+                  Accountable Employee <span class="text-danger">*</span>
+                </label>
                 <SearchableSelect
                   v-model="newItem.accountable_employee"
                   :options="personnelSelectOptions"
-                  placeholder="Search personnel (optional)"
+                  placeholder="Search and select accountable employee"
+                  required
                   @update:model-value="autoFillOffice(newItem)"
                 />
               </div>
 
               <div class="col-12 col-md-6">
-                <label class="form-label">Responsibility Center</label>
+                <label class="form-label">
+                  Responsibility Center <span class="text-danger">*</span>
+                </label>
                 <input
                   v-model.trim="newItem.responsibility_center"
                   type="text"
                   class="form-control"
                   list="office-options"
-                  placeholder="Search or type office (optional)"
+                  placeholder="Search or type responsibility center"
+                  required
                 />
               </div>
 
@@ -798,21 +804,27 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Accountable Employee</label>
+              <label class="form-label">
+                Accountable Employee <span class="text-danger">*</span>
+              </label>
               <SearchableSelect
                 v-model="editForm.accountable_employee"
                 :options="personnelSelectOptions"
-                placeholder="Search personnel (optional)"
+                placeholder="Search and select accountable employee"
+                required
                 @update:model-value="autoFillOffice(editForm)"
               />
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Responsibility Center</label>
+              <label class="form-label">
+                Responsibility Center <span class="text-danger">*</span>
+              </label>
               <SearchableSelect
                 v-model="editForm.responsibility_center"
                 :options="officeSelectOptions"
-                placeholder="Search office (optional)"
+                placeholder="Search and select responsibility center"
+                required
               />
             </div>
 
