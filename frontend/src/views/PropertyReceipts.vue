@@ -140,6 +140,25 @@
                 </div>
               </div>
               <div class="mb-3" v-if="!editing">
+                <label class="form-label">Receipt Source</label>
+                <select class="form-select" v-model="form.receipt_source" @change="resetReceiptSourceSelection">
+                  <option value="property">Assigned Property</option>
+                  <option value="request">Approved Item Request</option>
+                </select>
+              </div>
+
+              <div class="mb-3" v-if="!editing && form.receipt_source === 'request'">
+                <label class="form-label">Approved Item Request</label>
+                <select class="form-select" v-model="form.item_request_id" @change="updateReceiptTypeForSelectedRequest" required>
+                  <option value="">Select Approved Request</option>
+                  <option v-for="request in filteredItemRequests" :key="request.id" :value="request.id">
+                    {{ request.request_number || 'Request' }} - {{ request.item_description }} ({{ request.users?.full_name || request.requested_by_name || 'Requester' }})
+                  </option>
+                </select>
+                <small class="text-muted" v-if="!filteredItemRequests.length">No approved requests are waiting for a receipt.</small>
+              </div>
+
+              <div class="mb-3" v-if="!editing && form.receipt_source === 'property'">
                 <label class="form-label">Assigned Property</label>
                 <select class="form-select" v-model="form.item_id" @change="updateReceiptTypeForSelectedProperty" required>
                   <option value="">
@@ -151,9 +170,7 @@
                 </select>
                 <small class="text-muted">
                   Properties added with an accountable employee are automatically eligible for an acquisition receipt.
-                  <button type="button" class="btn btn-link btn-sm p-0 ms-1" @click="getItems">
-                    Refresh list
-                  </button>
+                  <button type="button" class="btn btn-link btn-sm p-0 ms-1" @click="getItems">Refresh list</button>
                 </small>
               </div>
 
@@ -641,9 +658,17 @@ export default {
     },
 
     filteredItemRequests() {
+      const receiptedRequestIds = new Set(
+        this.receipts
+          .filter(receipt => receipt.item_request_id)
+          .map(receipt => String(receipt.item_request_id))
+      )
+      const pendingRequests = this.itemRequests.filter(request =>
+        !receiptedRequestIds.has(String(request.id))
+      )
       const search = this.itemRequestSearch.trim().toLowerCase()
-      if (!search) return this.itemRequests
-      return this.itemRequests.filter(request => {
+      if (!search) return pendingRequests
+      return pendingRequests.filter(request => {
         const text = `${request.request_number || ''} ${request.item_description || ''}`.toLowerCase()
         return text.includes(search)
       })
@@ -668,6 +693,9 @@ export default {
     },
 
     selectedReceiptItem() {
+      if (this.form.receipt_source === 'request') {
+        return this.getRequestItem(this.selectedRequest)
+      }
       return this.selectedAssignedItem || {}
     },
 
@@ -998,7 +1026,15 @@ export default {
         if (this.editing) {
           url = `/api/receipts/${this.form.id}`
           method = 'PUT'
+        } else if (this.form.receipt_source === 'request') {
+          if (!this.form.item_request_id) {
+            throw new Error('Please select an approved item request')
+          }
+          body.item_request_id = this.form.item_request_id
         } else {
+          if (!this.form.item_id) {
+            throw new Error('Please select an assigned property')
+          }
           body.item_id = this.form.item_id
         }
 
@@ -1012,11 +1048,13 @@ export default {
         if (!response.ok) throw new Error(data.error || 'Failed to save receipt')
 
         window.dispatchEvent(new Event('receipts-updated'))
+        window.dispatchEvent(new Event('item-requests-updated'))
         const modal = Modal.getOrCreateInstance(document.getElementById('receiptModal'))
         modal.hide()
 
         await this.getReceipts()
         await this.getItems()
+        await this.getItemRequests()
 
         this.showToast(this.editing ? 'Receipt updated successfully' : 'Receipt created successfully')
       } catch (error) {
