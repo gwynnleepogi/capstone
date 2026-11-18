@@ -1094,40 +1094,40 @@ export default {
       printWindow.document.write(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Request for Property Transfer</title>
 <style>
-@page{size:${selectedPaperSize} portrait;margin:9mm}
+@page{size:${selectedPaperSize} portrait;margin:6mm}
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
-body{font-size:10px}
-.sheet{width:100%;min-height:0;padding:8px 10px 12px;position:relative}
-.header{min-height:96px;border:1px solid #999;display:grid;grid-template-columns:68px 1fr;align-items:stretch;text-align:center}
-.logo-cell{min-height:96px;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
-.logo{width:48px;height:48px;object-fit:contain}
-.header-text{display:flex;flex-direction:column;justify-content:center;font-size:11px;line-height:1.2;font-weight:bold;padding:5px 8px}
-.header-text .school{font-size:13px}
-.header-title{font-size:14px;font-weight:bold;text-align:center;border-top:1px solid #999;margin:5px -8px 0;padding:5px 4px 1px}
-.rpt{font-weight:bold;text-align:right;padding:4px 0;font-size:11px}
-.rpt-number{display:inline-block;min-width:105px;text-align:center;border-bottom:1px solid #111;padding:0 5px 2px}
-.date{margin:13px 0 5px 8px}
+html,body{margin:0!important;padding:0!important;width:auto!important;color:#111;font-family:Arial,Helvetica,sans-serif}
+body{font-size:9px}
+.sheet{width:100%;min-height:0;padding:4px 6px 5px;position:relative}
+.header{min-height:76px;border:1px solid #999;display:grid;grid-template-columns:60px 1fr;align-items:stretch;text-align:center}
+.logo-cell{min-height:76px;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
+.logo{width:43px;height:43px;object-fit:contain}
+.header-text{display:flex;flex-direction:column;justify-content:center;font-size:10px;line-height:1.1;font-weight:bold;padding:4px 6px}
+.header-text .school{font-size:12px}
+.header-title{font-size:13px;font-weight:bold;text-align:center;border-top:1px solid #999;margin:4px -6px 0;padding:4px 3px 0}
+.rpt{font-weight:bold;text-align:right;padding:3px 0;font-size:10px}
+.rpt-number{display:inline-block;min-width:105px;text-align:center;border-bottom:1px solid #111;padding:0 5px 1px}
+.date{margin:7px 0 4px 6px}
 .info,.items,.reason,.approvals{width:100%;border-collapse:collapse;table-layout:fixed}
-.info td{border:1px solid #888;padding:4px 6px;height:25px;font-size:10px}
+.info td{border:1px solid #888;padding:3px 5px;height:21px;font-size:9px}
 .info .label{width:29%}
-.items th,.items td{border:1px solid #888;padding:4px 3px}
-.items th{text-align:center;font-weight:bold;height:34px;font-size:10px}
-.items td{height:26px}
-.items tbody tr:first-child td{height:31px}
+.items th,.items td{border:1px solid #888;padding:2px}
+.items th{text-align:center;font-weight:bold;height:25px;font-size:9px}
+.items td{height:17px}
+.items tbody tr:first-child td{height:21px}
 .center{text-align:center}.right{text-align:right}
-.reason td{border:1px solid #888;padding:5px 7px;height:42px}
-.approvals th,.approvals td{border:1px solid #888;padding:4px 5px}
-.approvals th{text-align:center;height:36px;font-size:10px}
-.approvals td{height:24px}
+.reason td{border:1px solid #888;padding:3px 5px;height:30px}
+.approvals th,.approvals td{border:1px solid #888;padding:2px 4px}
+.approvals th{text-align:center;height:27px;font-size:9px}
+.approvals td{height:18px}
 .approvals .row-label{font-weight:bold;width:12%}
 .approvals .action{vertical-align:top}
-.instructions{border:1px solid #888;padding:8px 12px 10px;font-size:10px;line-height:1.35}
-.instructions h2{text-align:center;text-decoration:underline;font-size:12px;margin:2px 0 9px}
-.instructions p{margin:0 0 8px}
-.instructions .copies{text-align:center;margin-top:10px}
-.form-code{margin-top:6px;text-align:left;font-size:9px}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{min-height:0;break-inside:avoid;page-break-inside:avoid}}
+.instructions{border:1px solid #888;padding:5px 8px 6px;font-size:8.5px;line-height:1.2}
+.instructions h2{text-align:center;text-decoration:underline;font-size:10px;margin:1px 0 5px}
+.instructions p{margin:0 0 4px}
+.instructions .copies{text-align:center;margin-top:5px}
+.form-code{margin-top:4px;text-align:left;font-size:8px}
+@media print{html,body{margin:0!important;padding:0!important}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{min-height:0;break-inside:avoid;page-break-inside:avoid}}
 </style></head><body>
 <div class="sheet">
 <div class="header"><div class="logo-cell"><img class="logo" src="${logoUrl}" alt="NVSU"></div><div class="header-text"><div>Republic of the Philippines</div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div>Bambang, Nueva Vizcaya</div><div class="header-title">REQUEST FOR PROPERTY TRANSFER</div></div></div>
@@ -1141,7 +1141,7 @@ body{font-size:10px}
 <thead><tr><th style="width:12%">DATE<br>ACQUIRED</th><th style="width:17%">PROPERTY NO.</th><th style="width:37%">DESCRIPTION</th><th style="width:15%">AMOUNT</th><th style="width:19%">CONDITION OF<br>PPE</th></tr></thead>
 <tbody><tr><td class="center">${esc(formatDate(item.acquisition_date))}</td><td class="center">${esc(item.property_number || '')}</td><td>${esc(item.description || '')}</td><td class="right">${amount.toLocaleString('en-PH',{minimumFractionDigits:2})}</td><td class="center">${esc(condition)}</td></tr>${blankRows}</tbody>
 </table>
-<table class="reason"><tr><td style="width:29%;font-weight:bold">Reason for<br>Transfer:</td><td>${esc(transfer.reason || transfer.remarks || '')}</td></tr></table>
+<table class="reason"><tr><td style="width:12%;font-weight:bold">Reason for<br>Transfer:</td><td>${esc(transfer.reason || transfer.remarks || '')}</td></tr></table>
 <table class="approvals">
 <tr><th style="width:12%"></th><th style="width:19%">Requested by:</th><th style="width:19%">Approved by:</th><th style="width:19%">Concurred by:</th><th>Action Taken (to be<br>filled by the Property Officer)</th></tr>
 <tr><td class="row-label">Signature:</td><td></td><td></td><td></td><td class="action" rowspan="4">${esc(details.actionTaken)}</td></tr>
