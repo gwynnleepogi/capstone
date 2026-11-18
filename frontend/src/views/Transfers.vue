@@ -460,10 +460,6 @@
           </div>
           <div class="modal-body">
             <p class="text-muted small">Complete the approval and signatory details before printing the Request for Property Transfer form.</p>
-            <div class="mb-3">
-              <label class="form-label">RPT No.</label>
-              <input class="form-control" v-model.trim="requestPrintDetails.rptNumber" placeholder="Enter RPT number">
-            </div>
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label">Requested by - Printed Name</label>
@@ -1033,9 +1029,21 @@ export default {
       Modal.getOrCreateInstance(document.getElementById('transferPrintModal')).show()
     },
 
+    getAutomaticRPTNumber(transfer) {
+      const orderedTransfers = [...this.transfers].sort((a, b) => {
+        const dateA = new Date(a.created_at || a.transfer_date || 0).getTime()
+        const dateB = new Date(b.created_at || b.transfer_date || 0).getTime()
+        return dateA - dateB
+      })
+      let sequence = orderedTransfers.findIndex(row => row.id === transfer?.id)
+      if (sequence < 0) sequence = orderedTransfers.length
+      return '2026-' + String(15 + sequence).padStart(3, '0')
+    },
+
     openTransferRequestPrint(transfer) {
       this.selectedRequestTransfer = transfer
       this.requestPrintDetails = this.emptyRequestPrintDetails()
+      this.requestPrintDetails.rptNumber = transfer.rpt_number || transfer.rpt_no || this.getAutomaticRPTNumber(transfer)
       this.requestPrintDetails.requestedBy.name = transfer.from_user?.full_name || ''
       this.requestPrintDetails.requestedBy.designation = transfer.from_user?.job_title || ''
       Modal.getOrCreateInstance(document.getElementById('propertyTransferRequestModal')).show()
@@ -1079,14 +1087,15 @@ export default {
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
 body{font-size:10px}
-.sheet{width:100%;min-height:12.25in;border:1px solid #888;padding:8px 10px 12px;position:relative}
-.header{min-height:96px;border:1px solid #999;display:grid;grid-template-columns:68px 1fr;align-items:stretch;text-align:center}
-.logo-cell{min-height:96px;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
+.sheet{width:100%;min-height:12.25in;padding:8px 10px 12px;position:relative}
+.header{min-height:96px;display:grid;grid-template-columns:68px 1fr;align-items:stretch;text-align:center}
+.logo-cell{min-height:96px;display:flex;align-items:center;justify-content:center}
 .logo{width:48px;height:48px;object-fit:contain}
 .header-text{display:flex;flex-direction:column;justify-content:center;font-size:11px;line-height:1.2;font-weight:bold;padding:5px 8px}
 .header-text .school{font-size:13px}
 .header-title{font-size:14px;font-weight:bold;text-align:center;border-top:1px solid #999;margin:5px -8px 0;padding:5px 4px 1px}
-.rpt{font-weight:bold;text-align:right;padding:4px 18% 4px 0;border-bottom:1px solid #777;font-size:11px}
+.rpt{font-weight:bold;text-align:right;padding:4px 18% 4px 0;font-size:11px}
+.rpt-number{display:inline-block;min-width:105px;text-align:center;border-bottom:1px solid #111;padding:0 5px 2px}
 .date{margin:13px 0 5px 8px}
 .info,.items,.reason,.approvals{width:100%;border-collapse:collapse;table-layout:fixed}
 .info td{border:1px solid #888;padding:4px 6px;height:25px;font-size:10px}
@@ -1111,7 +1120,7 @@ body{font-size:10px}
 </style></head><body>
 <div class="sheet">
 <div class="header"><div class="logo-cell"><img class="logo" src="${logoUrl}" alt="NVSU"></div><div class="header-text"><div>Republic of the Philippines</div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div>Bambang, Nueva Vizcaya</div><div class="header-title">REQUEST FOR PROPERTY TRANSFER</div></div></div>
-<div class="rpt">RPT No.: ${esc(details.rptNumber)}</div>
+<div class="rpt">RPT No.: <span class="rpt-number">${esc(details.rptNumber || this.getAutomaticRPTNumber(transfer))}</span></div>
 <div class="date">Date: ${esc(formatDate(transfer.transfer_date))}</div>
 <table class="info">
 <tr><td class="label">From Accountable Employee /<br>Responsibility Center:</td><td>${esc(fromName)} / ${esc(fromCenter)}</td></tr>
