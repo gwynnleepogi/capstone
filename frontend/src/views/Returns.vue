@@ -560,7 +560,7 @@
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="returnedReceiptPaperModalLabel">Print Acknowledgement Receipt for Returned Property</h5>
+            <h5 class="modal-title" id="returnedReceiptPaperModalLabel">Print PAR / ICS - Returned</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
@@ -1073,53 +1073,214 @@ export default {
 
     confirmPrintReturnedPropertyReceipt() {
       Modal.getOrCreateInstance(document.getElementById('returnedReceiptPaperModal')).hide()
+
       const record = this.selectedReturn
       if (!record) return
+
       const item = record.items || {}
-      const returnedBy = record.personnel?.full_name || record.users?.full_name || ''
-      const office = record.offices?.office_name || ''
-      const quantity = Number(record.property_receipts?.quantity || 1)
-      const safe = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+      const issuedReceipt = record.property_receipts || {}
+      const returnedByPerson = record.personnel || record.users || {}
+      const returnedBy = returnedByPerson.full_name || ''
+      const designation = returnedByPerson.job_title || returnedByPerson.designation || ''
+      const quantity = Number(issuedReceipt.quantity || 1)
+      const unitValue = Number(item.cost || item.unit_value || 0)
+      const isICS = unitValue < 50000
+      const receiptTitle = isICS
+        ? 'INVENTORY CUSTODIAN SLIP - RETURNED'
+        : 'PROPERTY ACKNOWLEDGEMENT RECEIPT - RETURNED'
+      const appendix = isICS ? '69' : '71'
+
+      const safe = value => String(value === null || value === undefined || value === '' ? '-' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+
       const date = value => {
-        if (!value) return ''
+        if (!value) return '-'
         const parsed = new Date(value + 'T00:00:00')
-        return Number.isNaN(parsed.getTime()) ? safe(value) : parsed.toLocaleDateString('en-PH')
+        return Number.isNaN(parsed.getTime())
+          ? safe(value)
+          : parsed.toLocaleDateString('en-PH', {
+              month: 'numeric',
+              day: 'numeric',
+              year: 'numeric'
+            })
       }
-      const rows = Array.from({ length: 15 }, (_, i) => i === 0
-        ? `<tr><td>1</td><td>${quantity}</td><td></td><td class="desc">${safe(item.description || 'Original property record deleted')}</td><td></td><td>${safe(returnedBy)}</td><td>${safe(record.remarks || record.return_reason || '')}</td></tr>`
-        : `<tr><td>${i + 1}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')
-      const paperSizes = { a4: '210mm 297mm', short: '8.5in 11in', long: '8.5in 13in' }
-      const selectedPaperSize = paperSizes[this.returnedReceiptPaperSize] || paperSizes.a4
+
+      const amount = value => Number(value || 0).toLocaleString('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })
+
+      const total = unitValue * quantity
+      const returnDate = date(record.return_date)
+      const description = safe(item.description || 'Original property record deleted')
+      const propertyNumber = safe(item.property_number)
+      const acquiredDate = date(item.acquisition_date || issuedReceipt.date_issued)
+      const responsibilityCenter = safe(
+        item.responsibility_center ||
+        record.offices?.office_name ||
+        '-'
+      )
+      const remarks = safe(record.remarks || record.return_reason || '')
       const logo = new URL('../assets/LOGO.png', import.meta.url).href
-      const win = window.open('', '_blank', 'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes')
-      if (!win) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Please allow pop-ups to print the returned property receipt.' }))
+      const paperSizes = {
+        a4: '210mm 297mm',
+        short: '8.5in 11in',
+        long: '8.5in 13in'
+      }
+      const selectedPaperSize = paperSizes[this.returnedReceiptPaperSize] || paperSizes.a4
+
+      const classifications = [
+        'NEW',
+        'RENEWAL',
+        'UPDATING',
+        'TRANSFER',
+        'CLEARANCE-w/ Retain Accountability',
+        'RETURNED Unserviceable',
+        'RETURNED Serviceable',
+        'RETURNED for Repair'
+      ].map(label => {
+        const checked = label === 'RETURNED Unserviceable'
+        return `<span class="classification-option">${checked ? '☑' : '☐'} ${safe(label)}</span>`
+      }).join('')
+
+      const printWindow = window.open('', '_blank', 'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes')
+      if (!printWindow) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please allow pop-ups to print the returned PAR / ICS.'
+        }))
         return
       }
-      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Acknowledgement Receipt for Returned Property</title>
+
+      printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${safe(receiptTitle)}</title>
 <style>
-@page{size:${selectedPaperSize} portrait;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif;color:#111}body{font-size:9px}
-.sheet{width:100%;min-height:0;border:0;padding:4px 6px 5px}
-.header{display:grid;grid-template-columns:24mm 1fr;border:1px solid #555;text-align:center;font-weight:bold}.logo-cell{grid-row:span 2;border-right:1px solid #555;height:25mm;display:flex;align-items:center;justify-content:center}.logo{width:19mm;height:19mm;object-fit:contain}.school{font-size:12px;line-height:1.25;padding:2mm}.form-title{font-size:12px;border-top:1px solid #555;padding:2mm}
-.arrp{text-align:right;font-size:11px;font-weight:bold;margin:1mm 2mm 4mm}.line{display:inline-block;min-width:48mm;border-bottom:1px solid #222;height:4mm}
-.meta{display:grid;grid-template-columns:1.2fr .8fr;border:1px solid #555}.meta div{padding:2mm;border-bottom:1px solid #555;min-height:8mm}.meta div:nth-child(odd){border-right:1px solid #555}.meta .storage-field,.meta .tag-field{display:flex;align-items:baseline;gap:2mm;white-space:nowrap}
-.items-for{text-align:center;border:1px solid #555;border-top:0;padding:2mm;font-weight:bold;font-size:10px}
-table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #555;padding:1mm;text-align:center;vertical-align:middle}th{font-size:8px;line-height:1.1;height:10mm}td{height:7.5mm;font-size:8px}.desc{text-align:left}
-.returned-head,.signature-grid{display:grid;grid-template-columns:22% 35% 28% 15%;border:1px solid #555;border-top:0}.returned-head{font-weight:bold}.returned-head div,.signature-grid div{padding:2mm;border-right:1px solid #555;min-height:8mm}.returned-head div{min-height:12mm}.returned-head div:last-child,.signature-grid div:last-child{border-right:0}.name-row div:nth-child(2),.designation-row div:nth-child(2){text-align:center;text-transform:uppercase}
-.instructions{margin-top:0;border:1px solid #555;padding:2mm 3mm;font-size:8.5px;line-height:1.25;width:100%}.instructions h3{text-align:center;text-decoration:underline;font-size:10px;margin:1mm 0 2mm}.instructions ol{margin:0;padding-left:7mm}.instructions li{padding:1mm 0}.copy{text-align:center;margin-top:2mm;font-size:9px}.form-code{margin-top:8px;text-align:left;font-size:8.5px;font-weight:bold;line-height:1.25}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{break-inside:avoid}}
-</style></head><body><div class="sheet">
-<div class="header"><div class="logo-cell"><img class="logo" src="${logo}" alt="NVSU Logo"></div><div class="school">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</div><div class="form-title">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</div></div>
-<div class="arrp">ARRP No.: <span class="line"></span></div>
-<div class="meta"><div><strong>Unit/Division/College:</strong> ${safe(office)}</div><div><strong>Date:</strong> ${date(record.return_date)}</div><div class="storage-field"><strong>Place of Storage:</strong></div><div class="tag-field"><strong>Tag No.:</strong></div></div>
-<div class="items-for">Items for &nbsp; ____Property Utilization/Re-issuance &nbsp; ____Repair &nbsp; ____Disposal</div>
-<table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Item<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
-<div class="returned-head"><div>Returned by:</div><div><em>(Please indicate name and affix signature)</em></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
-<div class="signature-grid"><div>Signature:</div><div></div><div></div><div></div></div><div class="signature-grid name-row"><div>Printed Name:</div><div><strong>${safe(returnedBy)}</strong></div><div></div><div></div></div><div class="signature-grid designation-row"><div>Designation:</div><div></div><div></div><div></div></div><div class="signature-grid"><div>Date:</div><div>${date(record.return_date)}</div><div></div><div></div></div>
-<div class="instructions"><h3>INSTRUCTIONS</h3><ol type="A"><li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li><li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li><li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li><li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li><li>This form shall be prepared in two(2) copies distributed as follows:<div class="copy">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</div></li></ol></div>
-<div class="form-code">NVSU-FR-SMO-02-00 (121421)</div>
-</div><script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script></body></html>`)
-      win.document.close()
+@page{size:${selectedPaperSize} portrait;margin:10mm}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
+body{font-size:14px}
+.page{width:100%;min-height:calc(100vh - 20mm);display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid}
+.header{display:grid;grid-template-columns:62px 1fr 100px;align-items:center;text-align:center;margin-bottom:9px;min-height:70px}
+.logo{width:58px;height:58px;object-fit:contain}
+.school{font-size:16px;font-weight:bold;line-height:1.2}
+.campus{font-size:14px;line-height:1.25;font-weight:bold}
+.appendix{text-align:right;font-weight:bold;align-self:start;font-size:14px;padding-top:2px}
+.receipt-title{text-align:center;font-size:14px;line-height:1.2;margin:5px 0 10px;font-weight:bold}
+.receipt-title.ics-title{font-size:14px;letter-spacing:0;line-height:1.2;margin:3px auto 8px;max-width:100%;white-space:normal}
+.meta{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #111;padding:6px 7px 7px;font-size:14px;gap:12px}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+.items th,.items td{padding:5px 4px;vertical-align:middle;border-top:1px solid #111;border-bottom:1px solid #111;border-left:0;border-right:0;font-size:14px;line-height:1.2;overflow-wrap:normal}
+.items th{text-align:center;font-weight:bold}
+.items td{font-size:14px}
+.items tbody tr{border-bottom:1px solid #aaa;min-height:0.33in}
+.items .description{white-space:pre-line;overflow-wrap:break-word}
+.items td:nth-child(4),.items td:nth-child(5){white-space:nowrap}
+.center{text-align:center}
+.number{text-align:right;white-space:nowrap}
+.total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:6px;padding-bottom:6px;font-size:14px}
+.nothing{text-align:center;border-bottom:1px solid #111;padding:6px 0;font-size:14px}
+.remarks{border-bottom:none;padding:7px 3px;min-height:34px;font-size:14px}
+.bottom-block{margin-top:auto;flex-shrink:0;break-inside:avoid;page-break-inside:avoid}
+.page-number{text-align:right;border-top:1px solid #111;padding-top:5px;margin-bottom:7px;font-size:14px}
+.classification{padding-top:5px}
+.classification-title{font-size:14px;font-weight:bold;text-decoration:underline;margin-bottom:7px}
+.classification-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 8px;font-size:14px;line-height:1.2}
+.classification-option{white-space:normal;overflow-wrap:normal}
+.signatures{display:grid;grid-template-columns:1fr 1fr;gap:45px;margin-top:12px;min-height:105px;padding:0 12px;break-inside:avoid;page-break-inside:avoid}
+.sign-block{text-align:center;min-height:100px}
+.sign-heading{text-align:left;font-weight:bold;margin-bottom:24px;font-size:14px}
+.sign-name{font-weight:bold;text-transform:uppercase;font-size:14px}
+.sign-designation{font-size:14px;margin-top:2px}
+.sign-date{font-size:14px;margin-top:3px}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <img class="logo" src="${logo}" alt="NVSU Logo">
+    <div>
+      <div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div>
+      <div class="campus">Bambang Campus<br>Bambang, Nueva Vizcaya</div>
+    </div>
+    <div class="appendix">Appendix ${appendix}</div>
+  </div>
+  <h1 class="receipt-title ${isICS ? 'ics-title' : ''}">${safe(receiptTitle)}</h1>
+  <div class="meta">
+    <div><strong>Responsibility Center:</strong> ${responsibilityCenter}</div>
+    <div><strong>RPT NO:</strong> -</div>
+  </div>
+  <table class="items">
+    <colgroup>
+      <col style="width:6%"><col style="width:7%"><col style="width:34%">
+      <col style="width:16%"><col style="width:12%"><col style="width:12%"><col style="width:13%">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Qty</th><th>Unit</th><th>Article and Description</th>
+        <th>Property<br>Number</th><th>Date<br>Acquired</th>
+        <th>Unit<br>Value</th><th>Total<br>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="center">${quantity}</td>
+        <td class="center">${safe(item.unit || 'unit')}</td>
+        <td class="description">${description}</td>
+        <td class="center">${propertyNumber}</td>
+        <td class="center">${acquiredDate}</td>
+        <td class="number">${amount(unitValue)}</td>
+        <td class="number">${amount(total)}</td>
+      </tr>
+      <tr class="total">
+        <td colspan="5"></td><td class="number">Total</td><td class="number">${amount(total)}</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="nothing">NOTHING FOLLOWS</div>
+  <div class="remarks"><strong>Remarks:</strong> ${remarks}</div>
+  <div class="bottom-block">
+    <div class="page-number">Page 1 of 1</div>
+    <div class="classification">
+      <div class="classification-title">ACKNOWLEDGEMENT CLASSIFICATION</div>
+      <div class="classification-list">${classifications}</div>
+    </div>
+    <div class="signatures">
+      <div class="sign-block">
+        <div class="sign-heading">Received by:</div>
+        <div class="sign-name"></div>
+        <div class="sign-designation"></div>
+        <div class="sign-date"></div>
+      </div>
+      <div class="sign-block">
+        <div class="sign-heading">Issued by:</div>
+        <div class="sign-name">${safe(returnedBy)}</div>
+        <div class="sign-designation">${safe(designation)}</div>
+        <div class="sign-date">${safe(returnDate)}</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+window.onload=function(){
+  const logo=document.querySelector('.logo')
+  if(logo&&!logo.complete){
+    logo.onload=function(){window.print()}
+    logo.onerror=function(){window.print()}
+  }else{
+    window.print()
+  }
+}
+<\/script>
+</body>
+</html>`)
+      printWindow.document.close()
     },
 
     editSelectedReturn() {
