@@ -987,9 +987,17 @@ h1{text-align:center;font-size:14px;margin:8px 0 3px}
       const data = this.transferPrintData
       const details = this.printDetails
       const esc = this.escapePrint
-      const total = data.receipts.reduce((sum, receipt) =>
-        sum + Number(receipt.items?.cost || 0) * Number(receipt.quantity || 1), 0
-      )
+      const firstItem = data.receipts[0]?.items || {}
+      const isICS = Number(firstItem.cost || 0) < 50000
+      const receiptTitle = isICS ? 'INVENTORY CUSTODIAN SLIP - TRANSFER' : 'PROPERTY ACKNOWLEDGEMENT RECEIPT - TRANSFER'
+      const appendix = isICS ? '69' : '71'
+      const total = data.receipts.reduce((sum, receipt) => sum + Number(receipt.items?.cost || 0) * Number(receipt.quantity || 1), 0)
+      const amount = value => Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      const date = value => {
+        if (!value) return '-'
+        const parsed = new Date(value + 'T00:00:00')
+        return Number.isNaN(parsed.getTime()) ? esc(value) : parsed.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric', year: 'numeric' })
+      }
       const classifications = this.acknowledgementClassifications.map(label =>
         `<span>${details.classifications.includes(label) ? '☑' : '☐'} ${esc(label)}</span>`
       ).join('')
@@ -997,13 +1005,7 @@ h1{text-align:center;font-size:14px;margin:8px 0 3px}
         const item = receipt.items || {}
         const qty = Number(receipt.quantity || 1)
         const unitValue = Number(item.cost || 0)
-        return `<tr>
-          <td class="center">${qty}</td><td class="center">unit</td><td>${esc(item.description)}</td>
-          <td class="center">${esc(item.property_number)}</td>
-          <td class="center">${esc(item.acquisition_date || receipt.date_issued)}</td>
-          <td class="number">${unitValue.toLocaleString('en-PH',{minimumFractionDigits:2})}</td>
-          <td class="number">${(unitValue*qty).toLocaleString('en-PH',{minimumFractionDigits:2})}</td>
-        </tr>`
+        return `<tr><td class="center">${qty}</td><td class="center">${esc(item.unit || 'unit')}</td><td>${esc(item.description)}</td><td class="center">${esc(item.property_number)}</td><td class="center">${esc(item.acquisition_date || receipt.date_issued)}</td><td class="number">${amount(unitValue)}</td><td class="number">${amount(unitValue * qty)}</td></tr>`
       }).join('')
       const printWindow = window.open('', '_blank', 'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes')
       if (!printWindow) {
@@ -1011,47 +1013,47 @@ h1{text-align:center;font-size:14px;margin:8px 0 3px}
         return
       }
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
-      const responsibilityCenter = data.officeName || data.receipts[0]?.items?.responsibility_center || '-'
-      const formatDate = value => value ? new Date(value + 'T00:00:00').toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'}) : ''
+      const responsibilityCenter = data.officeName || firstItem.responsibility_center || '-'
       printWindow.document.write(`<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Property Acknowledgement Receipt - Transfer</title>
+<html><head><meta charset="UTF-8"><title>${esc(receiptTitle)}</title>
 <style>
 @page{size:8.5in 13in portrait;margin:12mm}*{box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:10px;margin:0}
+.page{width:100%;min-height:calc(13in - 24mm);display:flex;flex-direction:column}
 .header{display:grid;grid-template-columns:58px 1fr 85px;align-items:center;text-align:center;margin-bottom:5px}
 .logo{width:48px;height:48px;object-fit:contain}.school{font-size:15px;font-weight:bold}
-.campus{font-size:10px;line-height:1.3}.appendix{text-align:right;font-weight:bold;align-self:start}
+.campus{font-size:10px;line-height:1.3}.appendix{text-align:right;font-weight:bold;align-self:start;font-size:10px}
 h1{text-align:center;font-size:13px;margin:5px 0 8px}
 .meta{display:flex;justify-content:space-between;border-bottom:1px solid #000;padding:3px 0 5px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
-th,td{border-bottom:1px solid #777;padding:4px 3px;vertical-align:top;overflow-wrap:anywhere}
-th{text-align:center;border-top:1px solid #000;border-bottom:1px solid #000}
-.items th{font-size:9px}.items td{font-size:9px}.center{text-align:center}.number{text-align:right;white-space:nowrap}
-.total td{border-top:1px solid #000;font-weight:bold}.nothing{text-align:center;border-bottom:1px solid #000;padding:5px}
+.items th,.items td{border:0;padding:4px 3px;vertical-align:top;overflow-wrap:anywhere}
+.items th{text-align:center;border-top:1px solid #000;border-bottom:1px solid #000;font-size:9px}
+.items td{font-size:9px;border-bottom:1px solid #777}
+.center{text-align:center}.number{text-align:right;white-space:nowrap}
+.total td{border-top:1px solid #000;font-weight:bold;border-bottom:1px solid #000}
+.nothing{text-align:center;border-bottom:1px solid #000;padding:5px}
 .remarks{border-bottom:1px solid #000;padding:6px 0;min-height:25px}
-.classification{margin-top:245px;border-top:1px solid #000;padding-top:12px}
+.classification{margin-top:auto;border-top:1px solid #000;padding-top:12px}
 .classification-title{font-size:12px;font-weight:bold;text-decoration:underline;margin-bottom:10px}
 .classification-list{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px 10px;font-size:10px}
-.signatures{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin-top:38px}
+.signatures{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin-top:38px;min-height:95px}
 .sign-block{text-align:center;min-height:90px}.sign-heading{text-align:left;font-weight:bold;margin-bottom:42px}
 .sign-name{font-weight:bold;text-transform:uppercase}.sign-designation{font-size:9px;margin-top:2px}
-.sign-date{font-size:9px;margin-top:3px}.page-number{text-align:right;border-top:1px solid #000;padding-top:5px;margin-top:120px;font-size:10px}
+.sign-date{font-size:9px;margin-top:3px}.page-number{text-align:right;border-top:1px solid #000;padding-top:5px;margin-top:22px;font-size:10px}
 @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
-</style></head><body>
-<div class="header"><img class="logo" src="${logoUrl}" alt="NVSU Logo">
-<div><div>Republic of the Philippines</div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div class="campus">Bambang Campus<br>Bambang, Nueva Vizcaya</div></div>
-<div class="appendix">Appendix 71</div></div>
-<h1>PROPERTY ACKNOWLEDGEMENT RECEIPT - TRANSFER</h1>
+</style></head><body><div class="page">
+<div class="header"><img class="logo" src="${logoUrl}" alt="NVSU Logo"><div><div>Republic of the Philippines</div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div class="campus">Bambang Campus<br>Bambang, Nueva Vizcaya</div></div><div class="appendix">Appendix ${appendix}</div></div>
+<h1>${esc(receiptTitle)}</h1>
 <div class="meta"><div><strong>Responsibility Center:</strong> ${esc(responsibilityCenter)}</div><div><strong>RPT NO:</strong> ${esc(details.rptNumber)}</div></div>
-<table class="items"><colgroup><col style="width:5%"><col style="width:7%"><col style="width:39%"><col style="width:14%"><col style="width:11%"><col style="width:12%"><col style="width:12%"></colgroup>
+<table class="items"><colgroup><col style="width:7%"><col style="width:8%"><col style="width:36%"><col style="width:15%"><col style="width:12%"><col style="width:11%"><col style="width:11%"></colgroup>
 <thead><tr><th>Qty</th><th>Unit</th><th>Article and Description</th><th>Property Number</th><th>Date Acquired</th><th>Unit Value</th><th>Total Value</th></tr></thead>
-<tbody>${rows}<tr class="total"><td colspan="5" class="number">Total</td><td></td><td class="number">${total.toLocaleString('en-PH',{minimumFractionDigits:2})}</td></tr></tbody></table>
+<tbody>${rows}<tr class="total"><td colspan="5" class="number">Total</td><td></td><td class="number">${amount(total)}</td></tr></tbody></table>
 <div class="nothing">NOTHING FOLLOWS</div><div class="remarks"><strong>Remarks:</strong> ${esc(data.notes || data.remarks || '')}</div>
 <div class="classification"><div class="classification-title">ACKNOWLEDGEMENT CLASSIFICATION</div><div class="classification-list">${classifications}</div></div>
 <div class="signatures">
-<div class="sign-block"><div class="sign-heading">Received by:</div><div class="sign-name">${esc(details.receivedBy.name)}</div><div class="sign-designation">${esc(details.receivedBy.designation)}</div><div class="sign-date">${esc(formatDate(details.receivedBy.date))}</div></div>
-<div class="sign-block"><div class="sign-heading">Issued by:</div><div class="sign-name">${esc(details.issuedBy.name)}</div><div class="sign-designation">${esc(details.issuedBy.designation)}</div><div class="sign-date">${esc(formatDate(details.issuedBy.date))}</div></div>
-</div><div class="page-number">Page 1 of 1</div>
+<div class="sign-block"><div class="sign-heading">Received by:</div><div class="sign-name">${esc(details.receivedBy.name)}</div><div class="sign-designation">${esc(details.receivedBy.designation)}</div><div class="sign-date">${esc(date(details.receivedBy.date))}</div></div>
+<div class="sign-block"><div class="sign-heading">Issued by:</div><div class="sign-name">${esc(details.issuedBy.name)}</div><div class="sign-designation">${esc(details.issuedBy.designation)}</div><div class="sign-date">${esc(date(details.issuedBy.date))}</div></div>
+</div><div class="page-number">Page 1 of 1</div></div>
 <script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script>
 </body></html>`)
       printWindow.document.close()
