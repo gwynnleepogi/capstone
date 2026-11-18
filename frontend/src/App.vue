@@ -62,28 +62,6 @@
           Properties
         </router-link>
 
-        <div v-if="canAccess(['Administrator', 'Teacher', 'Non-Teaching Staff'])" class="nav-section-label">
-          Requests &amp; Approvals
-        </div>
-
-        <router-link
-          v-if="canAccess(['Administrator', 'Teacher', 'Non-Teaching Staff'])"
-          to="/request"
-          class="nav-link"
-          @click="menuOpen = false"
-        >
-          <i class="bi bi-file-earmark-text"></i>
-          Requests
-
-          <span
-            v-if="canAccess(['Administrator']) && pendingRequestCount > 0"
-            class="request-count-badge"
-            :aria-label="`${pendingRequestCount} pending requests`"
-          >
-            {{ pendingRequestCount > 99 ? '99+' : pendingRequestCount }}
-          </span>
-        </router-link>
-
         <div v-if="canAccess(['Administrator'])" class="nav-section-label">
           Acquisition &amp; Issuance
         </div>
@@ -402,7 +380,7 @@ export default {
         const destination =
           event.detail?.role === 'Teacher' ||
           event.detail?.role === 'Non-Teaching Staff'
-            ? '/request'
+            ? '/my-properties'
             : '/'
 
         this.$router.push(destination)
