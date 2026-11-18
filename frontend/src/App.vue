@@ -186,6 +186,17 @@
 
         <router-link
           v-if="canAccess(['Administrator'])"
+          to="/personnel"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-people"></i>
+          User Accounts
+        </router-link>
+
+
+        <router-link
+          v-if="canAccess(['Administrator'])"
           to="/account-requests"
           class="nav-link"
           @click="menuOpen = false"
