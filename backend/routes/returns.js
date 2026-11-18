@@ -407,10 +407,17 @@ router.delete('/:id', async (req, res) => {
         .eq('id', deletedReturn.item_id)
         .single()
 
+      // The inventory item may have been deleted before this return record.
+      // In that case, keep the return deletable without attempting to restore
+      // or modify stock that no longer exists.
       if (itemError || !item) {
-        return res.status(404).json({ error: 'Inventory item not found' })
+        console.warn(
+          'Deleting orphaned return record; linked inventory item is missing:',
+          deletedReturn.item_id
+        )
       }
 
+      if (item) {
       const returnedQuantity = Number(receipt.quantity)
       const currentQuantity = Number(item.quantity || 0)
       const nextQuantity = currentQuantity - returnedQuantity
@@ -448,6 +455,7 @@ router.delete('/:id', async (req, res) => {
 
       if (updateItemError) {
         return res.status(500).json({ error: updateItemError.message })
+      }
       }
     }
 
