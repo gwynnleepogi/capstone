@@ -299,12 +299,6 @@
                   >
                 </div>
 
-                <div
-                  v-if="selectedReceipt && selectedReceipt.items?.condition !== 'Serviceable'"
-                  class="form-text text-danger"
-                >
-                  This property is Unserviceable and cannot be transferred to another employee.
-                </div>
               </div>
 
               <div class="row g-3 mb-3">
@@ -386,6 +380,52 @@
         </div>
       </div>
     </div>
+    <div class="modal fade" id="transferPrintModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Property Acknowledgement Receipt - Transfer</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small">Complete these details before printing the transfer receipt.</p>
+            <div class="mb-3">
+              <label class="form-label">RPT No.</label>
+              <input class="form-control" v-model.trim="printDetails.rptNumber" placeholder="Enter RPT number">
+            </div>
+            <div class="mb-3">
+              <label class="form-label d-block">Acknowledgement Classification</label>
+              <div class="row g-2">
+                <div class="col-md-6" v-for="classification in acknowledgementClassifications" :key="classification">
+                  <label class="form-check">
+                    <input class="form-check-input" type="checkbox" v-model="printDetails.classifications" :value="classification">
+                    <span class="form-check-label">{{ classification }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <hr>
+            <h6>Received by</h6>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6"><label class="form-label">Printed Name</label><input class="form-control" v-model.trim="printDetails.receivedBy.name"></div>
+              <div class="col-md-6"><label class="form-label">Designation</label><input class="form-control" v-model.trim="printDetails.receivedBy.designation"></div>
+              <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.receivedBy.date"></div>
+            </div>
+            <hr>
+            <h6>Issued by</h6>
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label">Printed Name</label><input class="form-control" v-model.trim="printDetails.issuedBy.name"></div>
+              <div class="col-md-6"><label class="form-label">Designation</label><input class="form-control" v-model.trim="printDetails.issuedBy.designation"></div>
+              <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.issuedBy.date"></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-warning" @click="printTransferReceipt">Print Receipt</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -409,6 +449,13 @@ export default {
       currentPage: 1,
       itemsPerPage: 10,
       saving: false,
+      transferPrintData: null,
+      acknowledgementClassifications: [
+        'NEW', 'RENEWAL', 'UPDATING', 'TRANSFER',
+        'CLEARANCE-w/ Retain Accountability',
+        'RETURNED Unserviceable', 'RETURNED Serviceable', 'RETURNED for Repair'
+      ],
+      printDetails: this.emptyPrintDetails(),
 
       // Receiving employee search
       employeeSearch: '',
@@ -570,6 +617,16 @@ export default {
   },
 
   methods: {
+    emptyPrintDetails() {
+      const today = new Date().toISOString().split('T')[0]
+      return {
+        rptNumber: '',
+        classifications: ['TRANSFER'],
+        receivedBy: { name: '', designation: '', date: today },
+        issuedBy: { name: '', designation: '', date: today }
+      }
+    },
+
     emptyForm() {
       return {
         from_user_id: '',
@@ -686,6 +743,19 @@ export default {
 
       this.saving = true
       let transferredCount = 0
+      const selectedReceipts = this.sourceReceipts.filter(receipt =>
+        this.form.property_receipt_ids.includes(receipt.id)
+      )
+      const transferInfo = {
+        receipts: selectedReceipts,
+        fromEmployee: this.selectedSourceEmployee,
+        toEmployee: this.selectedReceivingEmployee,
+        officeName: this.offices.find(item => item.id === this.form.office_id)?.office_name || '',
+        transferDate: this.form.transfer_date,
+        remarks: this.form.reason === 'Others' ? `Others: ${this.form.otherReason.trim()}` : this.form.reason,
+        notes: this.form.remarks
+      }
+
       try {
         for (const receiptId of this.form.property_receipt_ids) {
           const response = await fetch('/api/transfers', {
@@ -698,7 +768,7 @@ export default {
               office_id: this.form.office_id || null,
               transfer_date: this.form.transfer_date,
               condition_after_transfer: null,
-              reason: this.form.reason === 'Others' ? `Others: ${this.form.otherReason.trim()}` : this.form.reason,
+              reason: transferInfo.remarks,
               remarks: this.form.remarks
             })
           })
@@ -707,15 +777,19 @@ export default {
           transferredCount++
         }
 
+        this.transferPrintData = transferInfo
+        this.printDetails = this.emptyPrintDetails()
         Modal.getOrCreateInstance(document.getElementById('transferModal')).hide()
         this.employeeSearch = ''
         this.showEmployeeOptions = false
         await Promise.all([this.getTransfers(), this.getReceipts()])
-        this.toast(`${transferredCount} propert${transferredCount === 1 ? 'y' : 'ies'} transferred successfully.`)
         this.form = this.emptyForm()
+        this.toast(`${transferredCount} propert${transferredCount === 1 ? 'y' : 'ies'} transferred successfully.`)
+        this.$nextTick(() => {
+          Modal.getOrCreateInstance(document.getElementById('transferPrintModal')).show()
+        })
       } catch (error) {
         if (transferredCount > 0) {
-          Modal.getOrCreateInstance(document.getElementById('transferModal')).hide()
           await Promise.all([this.getTransfers(), this.getReceipts()])
           this.toast(`${transferredCount} propert${transferredCount === 1 ? 'y' : 'ies'} transferred. Remaining transfer stopped: ${error.message}`)
           this.form = this.emptyForm()
@@ -725,6 +799,90 @@ export default {
       } finally {
         this.saving = false
       }
+    },
+
+    escapePrint(value) {
+      return String(value === null || value === undefined || value === '' ? '-' : value)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+    },
+
+    printTransferReceipt() {
+      if (!this.transferPrintData) {
+        this.toast('Transfer details are not available for printing.')
+        return
+      }
+      const data = this.transferPrintData
+      const details = this.printDetails
+      const esc = this.escapePrint
+      const total = data.receipts.reduce((sum, receipt) =>
+        sum + Number(receipt.items?.cost || 0) * Number(receipt.quantity || 1), 0
+      )
+      const classifications = this.acknowledgementClassifications.map(label =>
+        `<span>${details.classifications.includes(label) ? '☑' : '☐'} ${esc(label)}</span>`
+      ).join('')
+      const rows = data.receipts.map(receipt => {
+        const item = receipt.items || {}
+        const qty = Number(receipt.quantity || 1)
+        const unitValue = Number(item.cost || 0)
+        return `<tr>
+          <td class="center">${qty}</td><td class="center">unit</td><td>${esc(item.description)}</td>
+          <td class="center">${esc(item.property_number)}</td>
+          <td class="center">${esc(item.date_acquired || receipt.date_issued)}</td>
+          <td class="number">${unitValue.toLocaleString('en-PH',{minimumFractionDigits:2})}</td>
+          <td class="number">${(unitValue*qty).toLocaleString('en-PH',{minimumFractionDigits:2})}</td>
+        </tr>`
+      }).join('')
+      const printWindow = window.open('', '_blank', 'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes')
+      if (!printWindow) {
+        this.toast('Please allow pop-ups to print the transfer receipt.')
+        return
+      }
+      const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
+      const responsibilityCenter = data.receipts[0]?.items?.responsibility_center || data.officeName || '-'
+      const formatDate = value => value ? new Date(value + 'T00:00:00').toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'}) : ''
+      printWindow.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Property Acknowledgement Receipt - Transfer</title>
+<style>
+@page{size:8.5in 13in portrait;margin:12mm}*{box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:10px;margin:0}
+.header{display:grid;grid-template-columns:58px 1fr 85px;align-items:center;text-align:center;margin-bottom:5px}
+.logo{width:48px;height:48px;object-fit:contain}.school{font-size:15px;font-weight:bold}
+.campus{font-size:10px;line-height:1.3}.appendix{text-align:right;font-weight:bold;align-self:start}
+h1{text-align:center;font-size:13px;margin:5px 0 8px}
+.meta{display:flex;justify-content:space-between;border-bottom:1px solid #000;padding:3px 0 5px}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th,td{border-bottom:1px solid #777;padding:4px 3px;vertical-align:top;overflow-wrap:anywhere}
+th{text-align:center;border-top:1px solid #000;border-bottom:1px solid #000}
+.items th{font-size:9px}.items td{font-size:9px}.center{text-align:center}.number{text-align:right;white-space:nowrap}
+.total td{border-top:1px solid #000;font-weight:bold}.nothing{text-align:center;border-bottom:1px solid #000;padding:5px}
+.remarks{border-bottom:1px solid #000;padding:6px 0;min-height:25px}
+.classification{margin-top:245px;border-top:1px solid #000;padding-top:12px}
+.classification-title{font-size:12px;font-weight:bold;text-decoration:underline;margin-bottom:10px}
+.classification-list{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px 10px;font-size:10px}
+.signatures{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin-top:38px}
+.sign-block{text-align:center;min-height:90px}.sign-heading{text-align:left;font-weight:bold;margin-bottom:42px}
+.sign-name{font-weight:bold;text-transform:uppercase}.sign-designation{font-size:9px;margin-top:2px}
+.sign-date{font-size:9px;margin-top:3px}.page-number{text-align:right;border-top:1px solid #000;padding-top:5px;margin-top:120px;font-size:10px}
+@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style></head><body>
+<div class="header"><img class="logo" src="${logoUrl}" alt="NVSU Logo">
+<div><div>Republic of the Philippines</div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div class="campus">Bambang Campus<br>Bambang, Nueva Vizcaya</div></div>
+<div class="appendix">Appendix 71</div></div>
+<h1>PROPERTY ACKNOWLEDGEMENT RECEIPT - TRANSFER</h1>
+<div class="meta"><div><strong>Responsibility Center:</strong> ${esc(responsibilityCenter)}</div><div><strong>RPT NO:</strong> ${esc(details.rptNumber)}</div></div>
+<table class="items"><colgroup><col style="width:5%"><col style="width:7%"><col style="width:39%"><col style="width:14%"><col style="width:11%"><col style="width:12%"><col style="width:12%"></colgroup>
+<thead><tr><th>Qty</th><th>Unit</th><th>Article and Description</th><th>Property Number</th><th>Date Acquired</th><th>Unit Value</th><th>Total Value</th></tr></thead>
+<tbody>${rows}<tr class="total"><td colspan="5" class="number">Total</td><td></td><td class="number">${total.toLocaleString('en-PH',{minimumFractionDigits:2})}</td></tr></tbody></table>
+<div class="nothing">NOTHING FOLLOWS</div><div class="remarks"><strong>Remarks:</strong> ${esc(data.notes || data.remarks || '')}</div>
+<div class="classification"><div class="classification-title">ACKNOWLEDGEMENT CLASSIFICATION</div><div class="classification-list">${classifications}</div></div>
+<div class="signatures">
+<div class="sign-block"><div class="sign-heading">Received by:</div><div class="sign-name">${esc(details.receivedBy.name)}</div><div class="sign-designation">${esc(details.receivedBy.designation)}</div><div class="sign-date">${esc(formatDate(details.receivedBy.date))}</div></div>
+<div class="sign-block"><div class="sign-heading">Issued by:</div><div class="sign-name">${esc(details.issuedBy.name)}</div><div class="sign-designation">${esc(details.issuedBy.designation)}</div><div class="sign-date">${esc(formatDate(details.issuedBy.date))}</div></div>
+</div><div class="page-number">Page 1 of 1</div>
+<script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}</script>
+</body></html>`)
+      printWindow.document.close()
     },
 
     getResultLabel(transfer) {
