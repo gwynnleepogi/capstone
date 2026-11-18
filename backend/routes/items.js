@@ -350,6 +350,16 @@ router.put('/:id', async (req, res) => {
       })
     }
 
+    // Returned or unserviceable properties are locked from further editing.
+    if (
+      String(oldData.status || '').trim().toLowerCase() === 'returned' ||
+      String(oldData.condition || '').trim().toLowerCase() === 'unserviceable'
+    ) {
+      return res.status(409).json({
+        error: 'This property has been returned and can no longer be edited.'
+      })
+    }
+
     const employeeName = cleanText(accountable_employee)
     const itemCondition = cleanText(condition) || 'Serviceable'
 
