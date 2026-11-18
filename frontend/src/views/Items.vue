@@ -1248,10 +1248,6 @@ export default {
           })
         : '0.00'
 
-      const accountableEmployeeTitle = this.personnel.find(
-        person => person.full_name === item.accountable_employee,
-      )?.job_title || ''
-
       printWindow.document.write(`
         <!doctype html>
         <html>
