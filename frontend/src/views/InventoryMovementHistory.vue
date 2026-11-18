@@ -88,8 +88,8 @@
               <th>Date</th>
               <th>Property No.</th>
               <th>Description</th>
-              <th>Movement</th>
-              <th>Quantity</th>
+              <th style="width: 160px; min-width: 160px; white-space: nowrap;">Movement</th>
+              <th style="width: 120px; min-width: 120px; white-space: nowrap;">Quantity</th>
               <th>Reference</th>
               <th>Recipient / Source</th>
             </tr>
@@ -100,12 +100,12 @@
               <td>{{ formatDate(item.date) }}</td>
               <td>{{ item.propertyNumber || 'N/A' }}</td>
               <td>{{ item.description || 'N/A' }}</td>
-              <td class="movement-cell">
-                <span class="movement-badge" :class="badgeClass(item)">
+              <td class="movement-cell" style="width: 160px; min-width: 160px; white-space: nowrap;">
+                <span class="movement-badge" :class="badgeClass(item)" style="white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;">
                   {{ item.category }}
                 </span>
               </td>
-              <td class="quantity-cell">{{ item.quantity }}</td>
+              <td class="quantity-cell" style="width: 120px; min-width: 120px; white-space: nowrap;">{{ item.quantity }}</td>
               <td>{{ item.reference || 'N/A' }}</td>
               <td>{{ item.person || 'N/A' }}</td>
             </tr>
@@ -1877,7 +1877,7 @@ th,
 td {
   padding: 13px 12px;
   border-bottom: 1px solid #e9e7de;
-  white-space: nowrap;
+  white-space: nowrap !important;
   vertical-align: middle;
 }
 
