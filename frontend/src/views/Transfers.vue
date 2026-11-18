@@ -532,16 +532,16 @@
             <hr>
             <h6>Received by</h6>
             <div class="row g-3 mb-3">
-              <div class="col-md-6"><label class="form-label">Printed Name</label><input class="form-control" v-model.trim="printDetails.receivedBy.name"></div>
-              <div class="col-md-6"><label class="form-label">Designation</label><input class="form-control" v-model.trim="printDetails.receivedBy.designation"></div>
-              <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.receivedBy.date"></div>
+              <div class="col-md-6"><label class="form-label">Printed Name</label><input class="form-control" v-model.trim="printDetails.receivedBy.name" required></div>
+              <div class="col-md-6"><label class="form-label">Designation</label><input class="form-control" v-model.trim="printDetails.receivedBy.designation" required></div>
+              <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.receivedBy.date" required></div>
             </div>
             <hr>
             <h6>Issued by</h6>
             <div class="row g-3">
-              <div class="col-md-6"><label class="form-label">Printed Name</label><input class="form-control" v-model.trim="printDetails.issuedBy.name"></div>
-              <div class="col-md-6"><label class="form-label">Designation</label><input class="form-control" v-model.trim="printDetails.issuedBy.designation"></div>
-              <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.issuedBy.date"></div>
+              <div class="col-md-6"><label class="form-label">Printed Name</label><input class="form-control" v-model.trim="printDetails.issuedBy.name" required></div>
+              <div class="col-md-6"><label class="form-label">Designation</label><input class="form-control" v-model.trim="printDetails.issuedBy.designation" required></div>
+              <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.issuedBy.date" required></div>
             </div>
           </div>
           <div class="modal-footer">
@@ -1138,6 +1138,19 @@ body{font-size:10px}
       }
       const data = this.transferPrintData
       const details = this.printDetails
+      const requiredSignatoryFields = [
+        ['Received by - Printed Name', details.receivedBy.name],
+        ['Received by - Designation', details.receivedBy.designation],
+        ['Received by - Date', details.receivedBy.date],
+        ['Issued by - Printed Name', details.issuedBy.name],
+        ['Issued by - Designation', details.issuedBy.designation],
+        ['Issued by - Date', details.issuedBy.date]
+      ]
+      const missingSignatoryField = requiredSignatoryFields.find(field => !String(field[1] || '').trim())
+      if (missingSignatoryField) {
+        this.toast(missingSignatoryField[0] + ' is required.')
+        return
+      }
       const esc = this.escapePrint
       const firstItem = data.receipts[0]?.items || {}
       const isICS = Number(firstItem.cost || 0) < 50000
