@@ -1242,44 +1242,45 @@ body{font-size:9px}
 @page{size:${selectedPaperSize} portrait;margin:10mm}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
-body{font-size:15px}
+body{font-size:14px}
 .page{width:100%;min-height:calc(100vh - 20mm);display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid}
 .header{display:grid;grid-template-columns:62px 1fr 100px;align-items:center;text-align:center;margin-bottom:9px;min-height:70px}
 .logo{width:58px;height:58px;object-fit:contain}
-.school{font-size:17px;font-weight:bold;line-height:1.2}
-.campus{font-size:15px;line-height:1.25;font-weight:bold}
-.appendix{text-align:right;font-weight:bold;align-self:start;font-size:15px;padding-top:2px}
-.receipt-title{text-align:center;font-size:15px;line-height:1.2;margin:5px 0 10px;font-weight:bold}
-.receipt-title.ics-title{font-size:15px;letter-spacing:0;line-height:1.2;margin:3px auto 8px;max-width:100%;white-space:normal}
-.meta{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #111;padding:6px 7px 7px;font-size:15px;gap:12px}
+.school{font-size:16px;font-weight:bold;line-height:1.2}
+.campus{font-size:14px;line-height:1.25;font-weight:bold}
+.appendix{text-align:right;font-weight:bold;align-self:start;font-size:14px;padding-top:2px}
+.receipt-title{text-align:center;font-size:14px;line-height:1.2;margin:5px 0 10px;font-weight:bold}
+.receipt-title.ics-title{font-size:14px;letter-spacing:0;line-height:1.2;margin:3px auto 8px;max-width:100%;white-space:normal}
+.meta{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #111;padding:6px 7px 7px;font-size:14px;gap:12px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
-.items th,.items td{padding:6px 5px;vertical-align:top;overflow-wrap:anywhere;border:1px solid #111}
-.items th{text-align:center;font-size:15px;line-height:1.2}
-.items td{font-size:15px;line-height:1.25}
+.items th,.items td{padding:5px 4px;vertical-align:middle;border-top:1px solid #111;border-bottom:1px solid #111;border-left:0;border-right:0;font-size:14px;line-height:1.2;overflow-wrap:normal}
+.items th{text-align:center;font-weight:bold}
+.items td{font-size:14px}
 .items tbody tr{border-bottom:1px solid #aaa;min-height:0.33in}
-.items .description{white-space:pre-line}
+.items .description{white-space:pre-line;overflow-wrap:break-word}
+.items td:nth-child(4),.items td:nth-child(5){white-space:nowrap}
 .center{text-align:center}.number{text-align:right;white-space:nowrap}
-.total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:7px;padding-bottom:7px;font-size:15px}
-.nothing{text-align:center;border-bottom:1px solid #111;padding:7px 0;font-size:15px}
-.remarks{border-bottom:none;padding:8px 3px;min-height:36px;font-size:15px}
+.total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:6px;padding-bottom:6px;font-size:14px}
+.nothing{text-align:center;border-bottom:1px solid #111;padding:6px 0;font-size:14px}
+.remarks{border-bottom:none;padding:7px 3px;min-height:34px;font-size:14px}
 .bottom-block{margin-top:auto;flex-shrink:0;break-inside:avoid;page-break-inside:avoid}
-.page-number{text-align:right;border-top:1px solid #111;padding-top:5px;margin-bottom:7px;font-size:15px}
+.page-number{text-align:right;border-top:1px solid #111;padding-top:5px;margin-bottom:7px;font-size:14px}
 .classification{padding-top:5px}
-.classification-title{font-size:15px;font-weight:bold;text-decoration:underline;margin-bottom:7px}
-.classification-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 8px;font-size:15px;line-height:1.25}
-.classification-option{white-space:normal;overflow-wrap:anywhere}
+.classification-title{font-size:14px;font-weight:bold;text-decoration:underline;margin-bottom:7px}
+.classification-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 8px;font-size:14px;line-height:1.2}
+.classification-option{white-space:normal;overflow-wrap:normal}
 .signatures{display:grid;grid-template-columns:1fr 1fr;gap:45px;margin-top:12px;min-height:105px;padding:0 12px;break-inside:avoid;page-break-inside:avoid}
 .sign-block{text-align:center;min-height:100px}
-.sign-heading{text-align:left;font-weight:bold;margin-bottom:24px;font-size:15px}
-.sign-name{font-weight:bold;text-transform:uppercase;font-size:15px}
-.sign-designation{font-size:15px;margin-top:2px}
-.sign-date{font-size:15px;margin-top:3px}
+.sign-heading{text-align:left;font-weight:bold;margin-bottom:24px;font-size:14px}
+.sign-name{font-weight:bold;text-transform:uppercase;font-size:14px}
+.sign-designation{font-size:14px;margin-top:2px}
+.sign-date{font-size:14px;margin-top:3px}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body><div class="page">
 <div class="header"><img class="logo" src="${logoUrl}" alt="NVSU Logo"><div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div class="campus">Bambang Campus<br>Bambang, Nueva Vizcaya</div></div><div class="appendix">Appendix ${appendix}</div></div>
 <h1 class="receipt-title ${isICS ? 'ics-title' : ''}">${esc(receiptTitle)}</h1>
 <div class="meta"><div><strong>Responsibility Center:</strong> ${esc(responsibilityCenter)}</div><div><strong>RPT NO:</strong> ${esc(details.rptNumber)}</div></div>
-<table class="items"><colgroup><col style="width:5%"><col style="width:6%"><col style="width:39%"><col style="width:15%"><col style="width:10%"><col style="width:12%"><col style="width:13%"></colgroup>
+<table class="items"><colgroup><col style="width:6%"><col style="width:7%"><col style="width:34%"><col style="width:16%"><col style="width:12%"><col style="width:12%"><col style="width:13%"></colgroup>
 <thead><tr><th>Qty</th><th>Unit</th><th>Article and Description</th><th>Property<br>Number</th><th>Date<br>Acquired</th><th>Unit<br>Value</th><th>Total<br>Value</th></tr></thead>
 <tbody>${rows}<tr class="total"><td colspan="5"></td><td class="number">Total</td><td class="number">${amount(total)}</td></tr></tbody></table>
 <div class="nothing">NOTHING FOLLOWS</div>
