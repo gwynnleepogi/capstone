@@ -1135,7 +1135,7 @@ body{font-size:10px}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
 body{font-size:10px}
-.page{width:100%;height:12.2in;display:flex;flex-direction:column}
+.page{width:100%;height:11.85in;min-height:11.85in;display:flex;flex-direction:column;overflow:hidden}
 .header{display:grid;grid-template-columns:62px 1fr 85px;align-items:center;text-align:center;margin-bottom:7px;min-height:52px}
 .logo{width:48px;height:48px;object-fit:contain}
 .school{font-size:15px;font-weight:bold;line-height:1.2}
@@ -1154,7 +1154,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 .total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:5px;padding-bottom:5px}
 .nothing{text-align:center;border-bottom:1px solid #111;padding:5px 0}
 .remarks{border-bottom:1px solid #111;padding:5px 2px;min-height:25px}
-.spacer{flex:1 1 auto;height:auto;min-height:0}
+.spacer{flex:1 1 0;height:0;min-height:0}
 .page-number{text-align:right;border-top:1px solid #111;padding-top:3px;margin-bottom:5px;font-size:9px}
 .classification{padding-top:3px}
 .classification-title{font-size:10px;font-weight:bold;text-decoration:underline;margin-bottom:5px}
