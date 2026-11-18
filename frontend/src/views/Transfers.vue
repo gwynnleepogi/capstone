@@ -1141,7 +1141,8 @@ body{font-size:10px}
 .school{font-size:15px;font-weight:bold;line-height:1.2}
 .campus{font-size:10px;line-height:1.25;font-weight:bold}
 .appendix{text-align:right;font-weight:bold;align-self:start;font-size:10px;padding-top:2px}
-h1{text-align:center;font-size:13px;margin:3px 0 8px}
+.receipt-title{text-align:center;font-size:13px;line-height:1.2;margin:3px 0 8px;font-weight:bold}
+.receipt-title.ics-title{font-size:10.5px;letter-spacing:.15px;max-width:90%;margin-left:auto;margin-right:auto}
 .meta{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #111;padding:3px 5px 5px;font-size:10px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
 .items th,.items td{padding:4px 3px;vertical-align:top;overflow-wrap:anywhere}
@@ -1168,7 +1169,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body><div class="page">
 <div class="header"><img class="logo" src="${logoUrl}" alt="NVSU Logo"><div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div class="campus">Bambang Campus<br>Bambang, Nueva Vizcaya</div></div><div class="appendix">Appendix ${appendix}</div></div>
-<h1>${esc(receiptTitle)}</h1>
+<h1 class="receipt-title ${isICS ? 'ics-title' : ''}">${esc(receiptTitle)}</h1>
 <div class="meta"><div><strong>Responsibility Center:</strong> ${esc(responsibilityCenter)}</div><div><strong>RPT NO:</strong> ${esc(details.rptNumber)}</div></div>
 <table class="items"><colgroup><col style="width:5%"><col style="width:6%"><col style="width:39%"><col style="width:15%"><col style="width:10%"><col style="width:12%"><col style="width:13%"></colgroup>
 <thead><tr><th>Qty</th><th>Unit</th><th>Article and Description</th><th>Property<br>Number</th><th>Date<br>Acquired</th><th>Unit<br>Value</th><th>Total<br>Value</th></tr></thead>
