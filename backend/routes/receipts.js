@@ -6,17 +6,14 @@ const createAuditLog = require('../middleware/auditLog')
 
 // ==========================================
 // PENDING ISSUANCE COUNT
-// Counts:
-// 1. Approved requests without receipts
-// 2. Issued properties with accountable employees
-//    that do not yet have receipts
+// Counts approved requests that do not yet have
+// a linked property receipt.
 // ==========================================
 router.get('/pending-issuance-count', async (req, res) => {
   try {
-    // Get approved requests.
     const { data: requests, error: requestError } = await supabase
       .from('item_requests')
-      .select('id, item_id')
+      .select('id')
       .eq('status', 'Approved')
 
     if (requestError) {
@@ -24,65 +21,26 @@ router.get('/pending-issuance-count', async (req, res) => {
       return res.status(500).json({ error: requestError.message })
     }
 
-    // Get existing receipts.
     const { data: receipts, error: receiptError } = await supabase
       .from('property_receipts')
-      .select('item_id, item_request_id')
+      .select('item_request_id')
 
     if (receiptError) {
       console.error('Pending issuance receipt lookup failed:', receiptError)
       return res.status(500).json({ error: receiptError.message })
     }
 
-    const allReceipts = receipts || []
-
     const receiptedRequestIds = new Set(
-      allReceipts
+      (receipts || [])
         .filter(receipt => receipt.item_request_id)
         .map(receipt => String(receipt.item_request_id))
     )
 
-    const receiptedItemIds = new Set(
-      allReceipts
-        .filter(receipt => receipt.item_id)
-        .map(receipt => String(receipt.item_id))
-    )
-
-    // Approved requests without receipts.
-    const pendingRequests = (requests || []).filter(
+    const pendingCount = (requests || []).filter(
       request => !receiptedRequestIds.has(String(request.id))
-    )
+    ).length
 
-    // Get properties that are already issued and assigned.
-    const { data: items, error: itemError } = await supabase
-      .from('items')
-      .select('id')
-      .eq('status', 'Issued')
-      .not('accountable_employee', 'is', null)
-      .neq('accountable_employee', '')
-
-    if (itemError) {
-      console.error('Pending issuance property lookup failed:', itemError)
-      return res.status(500).json({ error: itemError.message })
-    }
-
-    // Avoid counting properties that already have receipts.
-    // Also avoid counting an item twice when its approved
-    // request is already included in the pending request count.
-    const pendingRequestItemIds = new Set(
-      pendingRequests
-        .filter(request => request.item_id)
-        .map(request => String(request.item_id))
-    )
-
-    const pendingProperties = (items || []).filter(item =>
-      !receiptedItemIds.has(String(item.id)) &&
-      !pendingRequestItemIds.has(String(item.id))
-    )
-
-    res.json({
-      count: pendingRequests.length + pendingProperties.length
-    })
+    res.json({ count: pendingCount })
   } catch (error) {
     console.error('Pending issuance count failed:', error)
     res.status(500).json({
