@@ -1088,13 +1088,13 @@ export default {
 html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
 body{font-size:10px}
 .sheet{width:100%;min-height:12.25in;padding:8px 10px 12px;position:relative}
-.header{min-height:96px;display:grid;grid-template-columns:68px 1fr;align-items:stretch;text-align:center}
-.logo-cell{min-height:96px;display:flex;align-items:center;justify-content:center}
+.header{min-height:96px;border:1px solid #999;display:grid;grid-template-columns:68px 1fr;align-items:stretch;text-align:center}
+.logo-cell{min-height:96px;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
 .logo{width:48px;height:48px;object-fit:contain}
 .header-text{display:flex;flex-direction:column;justify-content:center;font-size:11px;line-height:1.2;font-weight:bold;padding:5px 8px}
 .header-text .school{font-size:13px}
 .header-title{font-size:14px;font-weight:bold;text-align:center;border-top:1px solid #999;margin:5px -8px 0;padding:5px 4px 1px}
-.rpt{font-weight:bold;text-align:right;padding:4px 18% 4px 0;font-size:11px}
+.rpt{font-weight:bold;text-align:right;padding:4px 0;font-size:11px}
 .rpt-number{display:inline-block;min-width:105px;text-align:center;border-bottom:1px solid #111;padding:0 5px 2px}
 .date{margin:13px 0 5px 8px}
 .info,.items,.reason,.approvals{width:100%;border-collapse:collapse;table-layout:fixed}
