@@ -204,6 +204,18 @@ router.post('/', async (req, res) => {
     const employeeName = cleanText(accountable_employee)
     const responsibilityCenter = getResponsibilityCenter(responsibility_center)
 
+    if (!employeeName) {
+      return res.status(400).json({
+        error: 'Accountable Employee is required.'
+      })
+    }
+
+    if (!responsibilityCenter) {
+      return res.status(400).json({
+        error: 'Responsibility Center is required.'
+      })
+    }
+
     const itemsToInsert = []
 
     for (let i = 0; i < requestedQty; i++) {
@@ -340,10 +352,20 @@ router.put('/:id', async (req, res) => {
 
     const employeeName = cleanText(accountable_employee)
 
-    // Preserve the existing value if the field is not sent.
-    const responsibilityCenter = responsibility_center === undefined
-      ? oldData.responsibility_center
-      : getResponsibilityCenter(responsibility_center)
+    // Both accountability fields are required for every property record.
+    const responsibilityCenter = getResponsibilityCenter(responsibility_center)
+
+    if (!employeeName) {
+      return res.status(400).json({
+        error: 'Accountable Employee is required.'
+      })
+    }
+
+    if (!responsibilityCenter) {
+      return res.status(400).json({
+        error: 'Responsibility Center is required.'
+      })
+    }
 
     const { data, error } = await supabase
       .from('items')
