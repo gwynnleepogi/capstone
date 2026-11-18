@@ -1115,9 +1115,9 @@ body{font-size:9px}
 .header{min-height:76px;border:1px solid #999;display:grid;grid-template-columns:60px 1fr;align-items:stretch;text-align:center}
 .logo-cell{min-height:76px;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
 .logo{width:43px;height:43px;object-fit:contain}
-.header-text{display:flex;flex-direction:column;justify-content:center;font-size:10px;line-height:1.1;font-weight:bold;padding:4px 6px}
-.header-text .school{font-size:15px}
-.header-title{font-size:13px;font-weight:bold;text-align:center;border-top:1px solid #999;margin:4px -6px 0;padding:4px 3px 0}
+.header-text{display:flex;flex-direction:column;justify-content:center;font-size:15px;line-height:1.1;font-weight:bold;padding:4px 6px}
+.header-text .school{font-size:17px}
+.header-title{font-size:15px;font-weight:bold;text-align:center;border-top:1px solid #999;margin:4px -6px 0;padding:4px 3px 0}
 .rpt{font-weight:bold;text-align:right;padding:3px 0;font-size:10px}
 .rpt-number{display:inline-block;min-width:105px;text-align:center;border-bottom:1px solid #111;padding:0 5px 1px}
 .date{margin:7px 0 4px 6px}
