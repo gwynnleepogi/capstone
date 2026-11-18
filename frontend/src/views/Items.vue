@@ -1140,8 +1140,13 @@ export default {
       })
     },
 
-    personnelOptions() {
-      return this.personnel.filter(person => person && person.full_name)
+    personnelSelectOptions() {
+      return this.personnel
+        .filter(person => person && person.full_name)
+        .map(person => ({
+          value: person.full_name,
+          label: person.full_name
+        }))
     },
 
     supplierOptions() {
