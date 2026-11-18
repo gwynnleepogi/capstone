@@ -532,17 +532,26 @@
             <hr>
             <h6>Received by</h6>
             <div class="row g-3 mb-3">
-              <div class="col-md-6"><label class="form-label">Printed Name</label><input class="form-control" v-model.trim="printDetails.receivedBy.name" required></div>
-              <div class="col-md-6"><label class="form-label">Designation</label><input class="form-control" v-model.trim="printDetails.receivedBy.designation" required></div>
+              <div class="col-md-6">
+                <label class="form-label">Printed Name</label>
+                <input class="form-control" list="transferSignatoryNames" v-model.trim="printDetails.receivedBy.name" @input="fillSignatoryTitle('receivedBy')" required>
+              </div>
+              <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" v-model.trim="printDetails.receivedBy.title" placeholder="Auto-filled from account; editable" required></div>
               <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.receivedBy.date" required></div>
             </div>
             <hr>
             <h6>Issued by</h6>
             <div class="row g-3">
-              <div class="col-md-6"><label class="form-label">Printed Name</label><input class="form-control" v-model.trim="printDetails.issuedBy.name" required></div>
-              <div class="col-md-6"><label class="form-label">Designation</label><input class="form-control" v-model.trim="printDetails.issuedBy.designation" required></div>
+              <div class="col-md-6">
+                <label class="form-label">Printed Name</label>
+                <input class="form-control" list="transferSignatoryNames" v-model.trim="printDetails.issuedBy.name" @input="fillSignatoryTitle('issuedBy')" required>
+              </div>
+              <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" v-model.trim="printDetails.issuedBy.title" placeholder="Auto-filled from account; editable" required></div>
               <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.issuedBy.date" required></div>
             </div>
+            <datalist id="transferSignatoryNames">
+              <option v-for="person in personnel" :key="person.id" :value="person.full_name"></option>
+            </datalist>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -760,8 +769,8 @@ export default {
       return {
         rptNumber: '',
         classifications: ['TRANSFER'],
-        receivedBy: { name: '', designation: '', date: today },
-        issuedBy: { name: '', designation: '', date: today }
+        receivedBy: { name: '', title: '', date: today },
+        issuedBy: { name: '', title: '', date: today }
       }
     },
 
@@ -827,6 +836,18 @@ export default {
         )
       } catch (error) {
         console.log(error)
+      }
+    },
+
+    fillSignatoryTitle(section) {
+      const signatory = this.printDetails[section]
+      const enteredName = String(signatory.name || '').trim().toLowerCase()
+      if (!enteredName) return
+      const person = this.personnel.find(employee =>
+        String(employee.full_name || '').trim().toLowerCase() === enteredName
+      )
+      if (person && person.job_title) {
+        signatory.title = person.job_title
       }
     },
 
@@ -1140,10 +1161,10 @@ body{font-size:10px}
       const details = this.printDetails
       const requiredSignatoryFields = [
         ['Received by - Printed Name', details.receivedBy.name],
-        ['Received by - Designation', details.receivedBy.designation],
+        ['Received by - Title', details.receivedBy.title],
         ['Received by - Date', details.receivedBy.date],
         ['Issued by - Printed Name', details.issuedBy.name],
-        ['Issued by - Designation', details.issuedBy.designation],
+        ['Issued by - Title', details.issuedBy.title],
         ['Issued by - Date', details.issuedBy.date]
       ]
       const missingSignatoryField = requiredSignatoryFields.find(field => !String(field[1] || '').trim())
@@ -1231,8 +1252,8 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 <div class="page-number">Page 1 of 1</div>
 <div class="classification"><div class="classification-title">ACKNOWLEDGEMENT CLASSIFICATION</div><div class="classification-list">${classifications}</div></div>
 <div class="signatures">
-<div class="sign-block"><div class="sign-heading">Received by:</div><div class="sign-name">${esc(details.receivedBy.name)}</div><div class="sign-designation">${esc(details.receivedBy.designation)}</div><div class="sign-date">${esc(date(details.receivedBy.date))}</div></div>
-<div class="sign-block"><div class="sign-heading">Issued by:</div><div class="sign-name">${esc(details.issuedBy.name)}</div><div class="sign-designation">${esc(details.issuedBy.designation)}</div><div class="sign-date">${esc(date(details.issuedBy.date))}</div></div>
+<div class="sign-block"><div class="sign-heading">Received by:</div><div class="sign-name">${esc(details.receivedBy.name)}</div><div class="sign-designation">${esc(details.receivedBy.title)}</div><div class="sign-date">${esc(date(details.receivedBy.date))}</div></div>
+<div class="sign-block"><div class="sign-heading">Issued by:</div><div class="sign-name">${esc(details.issuedBy.name)}</div><div class="sign-designation">${esc(details.issuedBy.title)}</div><div class="sign-date">${esc(date(details.issuedBy.date))}</div></div>
 </div></div>
 <script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script>
 </body></html>`)
