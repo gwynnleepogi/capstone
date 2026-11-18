@@ -306,18 +306,18 @@ router.delete('/:id', async (req, res) => {
       })
     }
 
-    const { data: laterTransfers, error: laterTransferError } = await supabase
+    const { data: newestTransfers, error: laterTransferError } = await supabase
       .from('item_transfers')
       .select('id')
       .eq('property_receipt_id', transfer.property_receipt_id)
-      .gt('created_at', transfer.created_at)
+      .order('created_at', { ascending: false })
       .limit(1)
 
     if (laterTransferError) {
       return res.status(500).json({ error: laterTransferError.message })
     }
 
-    if (laterTransfers?.length) {
+    if (!newestTransfers?.length || newestTransfers[0].id !== transfer.id) {
       return res.status(409).json({
         error: 'This transfer cannot be deleted because a newer transfer exists for the same property. Delete the newest transfer first.'
       })
