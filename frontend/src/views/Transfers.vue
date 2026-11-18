@@ -996,11 +996,15 @@ export default {
       const fromName = transfer.from_user?.full_name || item.accountable_employee || '-'
       const toName = transfer.to_user?.full_name || '-'
       const fromCenter = item.responsibility_center || '-'
-      const toCenter = transfer.offices?.office_name || '-'
+      const toCenter = transfer.offices?.office_name || transfer.to_user?.office_name || '-'
       const quantity = Number(receipt.quantity || 1)
       const amount = Number(item.cost || 0) * quantity
       const condition = transfer.condition_after_transfer || item.condition || '-'
-      const formatDate = value => value ? new Date(value + 'T00:00:00').toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '-'
+      const formatDate = value => {
+        if (!value) return ''
+        const parsed = new Date(value + 'T00:00:00')
+        return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric' })
+      }
       const printWindow = window.open('', '_blank', 'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes')
       if (!printWindow) {
         this.toast('Please allow pop-ups to print the request.')
@@ -1008,40 +1012,47 @@ export default {
       }
 
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
+      const blankRows = Array.from({ length: 9 }, () => '<tr><td></td><td></td><td></td><td></td><td></td></tr>').join('')
       printWindow.document.write(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Request for Property Transfer</title>
 <style>
-@page{size:8.5in 13in portrait;margin:10mm}*{box-sizing:border-box}
-body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:10px;margin:0}
-.header{display:grid;grid-template-columns:70px 1fr;align-items:center;border:1px solid #777;text-align:center}
-.logo{width:48px;height:48px;object-fit:contain;margin:auto}
-.school{font-weight:bold;font-size:14px}.campus{font-size:10px;line-height:1.25}
-h1{text-align:center;font-size:14px;margin:8px 0 3px}
-.rpt{text-align:center;font-weight:bold;margin-bottom:14px}
-.date{text-align:right;margin:0 5px 8px}
-.info{width:100%;border-collapse:collapse;margin-bottom:0}
-.info td{border:1px solid #777;padding:6px 7px;height:26px}
-.info .label{width:28%;font-weight:bold}
-.items{width:100%;border-collapse:collapse;table-layout:fixed}
-.items th,.items td{border:1px solid #777;padding:5px 4px;vertical-align:middle}
-.items th{text-align:center;font-weight:bold}
-.items td{height:30px}
-.center{text-align:center}.number{text-align:right}
-.reason{width:100%;border-collapse:collapse;margin-top:8px}
-.reason td{border:1px solid #777;padding:7px;height:40px}
-.approvals{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:0}
-.approvals th,.approvals td{border:1px solid #777;padding:6px 5px}
-.approvals th{text-align:center;height:34px}
+@page{size:8.5in 13in portrait;margin:9mm}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
+body{font-size:10px}
+.sheet{width:100%;min-height:12.25in;border:1px solid #888;padding:8px 10px 12px;position:relative}
+.header{height:66px;border:1px solid #999;display:grid;grid-template-columns:68px 1fr;align-items:center;text-align:center}
+.logo-cell{height:100%;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
+.logo{width:48px;height:48px;object-fit:contain}
+.header-text{font-size:11px;line-height:1.2;font-weight:bold}
+.header-text .school{font-size:13px}
+.title{font-size:14px;font-weight:bold;text-align:center;margin:8px 0 0}
+.rpt{font-weight:bold;text-align:right;padding:4px 18% 4px 0;border-bottom:1px solid #777;font-size:11px}
+.date{margin:13px 0 5px 8px}
+.info,.items,.reason,.approvals{width:100%;border-collapse:collapse;table-layout:fixed}
+.info td{border:1px solid #888;padding:4px 6px;height:25px;font-size:10px}
+.info .label{width:29%}
+.items th,.items td{border:1px solid #888;padding:4px 3px}
+.items th{text-align:center;font-weight:bold;height:34px;font-size:10px}
+.items td{height:26px}
+.items tbody tr:first-child td{height:31px}
+.center{text-align:center}.right{text-align:right}
+.reason td{border:1px solid #888;padding:5px 7px;height:42px}
+.approvals th,.approvals td{border:1px solid #888;padding:4px 5px}
+.approvals th{text-align:center;height:36px;font-size:10px}
+.approvals td{height:24px}
 .approvals .row-label{font-weight:bold;width:12%}
-.approvals .sign-cell{height:25px}
-.action-cell{height:90px;vertical-align:top}
-.instructions{margin-top:10px;border:1px solid #777;padding:8px 12px;font-size:10px;line-height:1.35}
-.instructions h2{text-align:center;text-decoration:underline;font-size:12px;margin:2px 0 8px}
-.instructions p{margin:0 0 7px}
-.footer{margin-top:12px;font-size:10px}
+.approvals .action{vertical-align:top}
+.instructions{border:1px solid #888;padding:8px 12px 10px;font-size:10px;line-height:1.35}
+.instructions h2{text-align:center;text-decoration:underline;font-size:12px;margin:2px 0 9px}
+.instructions p{margin:0 0 8px}
+.instructions .copies{text-align:center;margin-top:10px}
+.form-code{position:absolute;left:10px;bottom:5px;font-size:10px}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{min-height:12.25in}}
 </style></head><body>
-<div class="header"><img class="logo" src="${logoUrl}" alt="NVSU Logo"><div><div>Republic of the Philippines</div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div class="campus">Bambang Campus<br>Bambang, Nueva Vizcaya</div></div></div>
-<h1>REQUEST FOR PROPERTY TRANSFER</h1>
+<div class="sheet">
+<div class="header"><div class="logo-cell"><img class="logo" src="${logoUrl}" alt="NVSU"></div><div class="header-text">Republic of the Philippines<br><span class="school">NUEVA VIZCAYA STATE UNIVERSITY</span><br>Bambang, Nueva Vizcaya</div></div>
+<div class="title">REQUEST FOR PROPERTY TRANSFER</div>
 <div class="rpt">RPT No.: ${esc(details.rptNumber)}</div>
 <div class="date">Date: ${esc(formatDate(transfer.transfer_date))}</div>
 <table class="info">
@@ -1049,13 +1060,13 @@ h1{text-align:center;font-size:14px;margin:8px 0 3px}
 <tr><td class="label">To Accountable Employee /<br>Responsibility Center:</td><td>${esc(toName)} / ${esc(toCenter)}</td></tr>
 </table>
 <table class="items">
-<thead><tr><th style="width:12%">DATE<br>ACQUIRED</th><th style="width:17%">PROPERTY NO.</th><th style="width:37%">DESCRIPTION</th><th style="width:15%">AMOUNT</th><th style="width:19%">CONDITION OF PPE</th></tr></thead>
-<tbody><tr><td class="center">${esc(formatDate(item.acquisition_date || transfer.transfer_date))}</td><td class="center">${esc(item.property_number)}</td><td>${esc(item.description)}</td><td class="number">${amount.toLocaleString('en-PH',{minimumFractionDigits:2})}</td><td class="center">${esc(condition)}</td></tr></tbody>
+<thead><tr><th style="width:12%">DATE<br>ACQUIRED</th><th style="width:17%">PROPERTY NO.</th><th style="width:37%">DESCRIPTION</th><th style="width:15%">AMOUNT</th><th style="width:19%">CONDITION OF<br>PPE</th></tr></thead>
+<tbody><tr><td class="center">${esc(formatDate(item.acquisition_date))}</td><td class="center">${esc(item.property_number || '')}</td><td>${esc(item.description || '')}</td><td class="right">${amount.toLocaleString('en-PH',{minimumFractionDigits:2})}</td><td class="center">${esc(condition)}</td></tr>${blankRows}</tbody>
 </table>
-<table class="reason"><tr><td style="width:15%;font-weight:bold">Reason for<br>Transfer:</td><td>${esc(transfer.reason || transfer.remarks || '')}</td></tr></table>
+<table class="reason"><tr><td style="width:13%;font-weight:bold">Reason for<br>Transfer:</td><td>${esc(transfer.reason || transfer.remarks || '')}</td></tr></table>
 <table class="approvals">
-<tr><th style="width:12%"></th><th>Requested by:</th><th>Approved by:</th><th>Concurred by:</th><th>Action Taken (to be filled by the Property Officer)</th></tr>
-<tr><td class="row-label">Signature:</td><td class="sign-cell"></td><td></td><td></td><td class="action-cell" rowspan="4">${esc(details.actionTaken)}</td></tr>
+<tr><th style="width:12%"></th><th style="width:19%">Requested by:</th><th style="width:19%">Approved by:</th><th style="width:19%">Concurred by:</th><th>Action Taken (to be<br>filled by the Property Officer)</th></tr>
+<tr><td class="row-label">Signature:</td><td></td><td></td><td></td><td class="action" rowspan="4">${esc(details.actionTaken)}</td></tr>
 <tr><td class="row-label">Printed Name:</td><td>${esc(details.requestedBy.name)}</td><td>${esc(details.approvedBy.name)}</td><td>${esc(details.concurredBy.name)}</td></tr>
 <tr><td class="row-label">Designation:</td><td>${esc(details.requestedBy.designation)}</td><td>${esc(details.approvedBy.designation)}</td><td>${esc(details.concurredBy.designation)}</td></tr>
 <tr><td class="row-label">Date:</td><td>${esc(formatDate(transfer.transfer_date))}</td><td></td><td></td></tr>
@@ -1066,9 +1077,11 @@ h1{text-align:center;font-size:14px;margin:8px 0 3px}
 <p><strong>B.</strong> The property to be transferred shall be inspected/checked first by the assigned receiving employee/user before affixing his/her signature on the "concurred" portion of this form;</p>
 <p><strong>C.</strong> This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</p>
 <p><strong>D.</strong> The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</p>
-<p><strong>E.</strong> This form shall be prepared in two (2) copies distributed as follows:<br>Original – Supply and/or Property Division/Unit's file<br>Copy 2 – Accounting Division/Unit (to be attached to Property Transfer Report)</p>
+<p><strong>E.</strong> This form shall be prepared in two(2) copies distributed as follows:</p>
+<div class="copies">Original – Supply and/or Property Division/Unit's file<br>Copy 2 – Accounting Division/Unit (to be attached to Property Transfer Report)</div>
 </div>
-<div class="footer">NVSU-FR-SMO-02-00 (121421)</div>
+<div class="form-code">NVSU-FR-SMO-02-00 (121421)</div>
+</div>
 <script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script>
 </body></html>`)
       printWindow.document.close()
@@ -1100,13 +1113,13 @@ h1{text-align:center;font-size:14px;margin:8px 0 3px}
         return Number.isNaN(parsed.getTime()) ? esc(value) : parsed.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric', year: 'numeric' })
       }
       const classifications = this.acknowledgementClassifications.map(label =>
-        `<span>${details.classifications.includes(label) ? '☑' : '☐'} ${esc(label)}</span>`
+        `<span>${details.classifications.includes(label) ? '____' : '____'}${esc(label)}</span>`
       ).join('')
       const rows = data.receipts.map(receipt => {
         const item = receipt.items || {}
         const qty = Number(receipt.quantity || 1)
         const unitValue = Number(item.cost || 0)
-        return `<tr><td class="center">${qty}</td><td class="center">${esc(item.unit || 'unit')}</td><td>${esc(item.description)}</td><td class="center">${esc(item.property_number)}</td><td class="center">${esc(item.acquisition_date || receipt.date_issued)}</td><td class="number">${amount(unitValue)}</td><td class="number">${amount(unitValue * qty)}</td></tr>`
+        return `<tr><td class="center">${qty}</td><td class="center">${esc(item.unit || 'unit')}</td><td class="description">${esc(item.description)}</td><td class="center">${esc(item.property_number)}</td><td class="center">${esc(date(item.acquisition_date || receipt.date_issued))}</td><td class="number">${amount(unitValue)}</td><td class="number">${amount(unitValue * qty)}</td></tr>`
       }).join('')
       const printWindow = window.open('', '_blank', 'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes')
       if (!printWindow) {
@@ -1118,43 +1131,57 @@ h1{text-align:center;font-size:14px;margin:8px 0 3px}
       printWindow.document.write(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>${esc(receiptTitle)}</title>
 <style>
-@page{size:8.5in 13in portrait;margin:12mm}*{box-sizing:border-box}
-body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:10px;margin:0}
-.page{width:100%;min-height:calc(13in - 24mm);display:flex;flex-direction:column}
-.header{display:grid;grid-template-columns:58px 1fr 85px;align-items:center;text-align:center;margin-bottom:5px}
-.logo{width:48px;height:48px;object-fit:contain}.school{font-size:15px;font-weight:bold}
-.campus{font-size:10px;line-height:1.3}.appendix{text-align:right;font-weight:bold;align-self:start;font-size:10px}
-h1{text-align:center;font-size:13px;margin:5px 0 8px}
-.meta{display:flex;justify-content:space-between;border-bottom:1px solid #000;padding:3px 0 5px}
+@page{size:8.5in 13in portrait;margin:10mm}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
+body{font-size:10px}
+.page{width:100%;height:12.2in;display:flex;flex-direction:column}
+.header{display:grid;grid-template-columns:62px 1fr 85px;align-items:center;text-align:center;margin-bottom:7px;min-height:52px}
+.logo{width:48px;height:48px;object-fit:contain}
+.school{font-size:15px;font-weight:bold;line-height:1.2}
+.campus{font-size:10px;line-height:1.25;font-weight:bold}
+.appendix{text-align:right;font-weight:bold;align-self:start;font-size:10px;padding-top:2px}
+h1{text-align:center;font-size:13px;margin:3px 0 8px}
+.meta{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #111;padding:3px 5px 5px;font-size:10px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
-.items th,.items td{border:0;padding:4px 3px;vertical-align:top;overflow-wrap:anywhere}
-.items th{text-align:center;border-top:1px solid #000;border-bottom:1px solid #000;font-size:9px}
-.items td{font-size:9px;border-bottom:1px solid #777}
+.items th,.items td{padding:4px 3px;vertical-align:top;overflow-wrap:anywhere}
+.items th{text-align:center;border-bottom:1px solid #111;border-top:1px solid #111;font-size:9px;line-height:1.15}
+.items td{font-size:9px;line-height:1.12}
+.items tbody tr{border-bottom:1px solid #aaa}
+.items .description{white-space:pre-line}
 .center{text-align:center}.number{text-align:right;white-space:nowrap}
-.total td{border-top:1px solid #000;font-weight:bold;border-bottom:1px solid #000}
-.nothing{text-align:center;border-bottom:1px solid #000;padding:5px}
-.remarks{border-bottom:1px solid #000;padding:6px 0;min-height:25px}
-.classification{margin-top:auto;border-top:1px solid #000;padding-top:12px}
+.total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:5px;padding-bottom:5px}
+.nothing{text-align:center;border-bottom:1px solid #111;padding:5px 0}
+.remarks{border-bottom:1px solid #111;padding:5px 2px;min-height:25px}
+.spacer{flex:1;min-height:2.2in}
+.page-number{text-align:right;border-top:1px solid #111;padding-top:5px;margin-bottom:12px;font-size:10px}
+.classification{padding-top:5px}
 .classification-title{font-size:12px;font-weight:bold;text-decoration:underline;margin-bottom:10px}
-.classification-list{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px 10px;font-size:10px}
-.signatures{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin-top:38px;min-height:95px}
-.sign-block{text-align:center;min-height:90px}.sign-heading{text-align:left;font-weight:bold;margin-bottom:42px}
-.sign-name{font-weight:bold;text-transform:uppercase}.sign-designation{font-size:9px;margin-top:2px}
-.sign-date{font-size:9px;margin-top:3px}.page-number{text-align:right;border-top:1px solid #000;padding-top:5px;margin-top:22px;font-size:10px}
-@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+.classification-list{display:grid;grid-template-columns:1fr 1fr 1fr 1.5fr;gap:4px 8px;font-size:10px;line-height:1.15}
+.classification-list span{white-space:nowrap}
+.signatures{display:grid;grid-template-columns:1fr 1fr;gap:75px;margin-top:30px;min-height:115px;padding:0 12px}
+.sign-block{text-align:center;min-height:110px}
+.sign-heading{text-align:left;font-weight:bold;margin-bottom:42px}
+.sign-name{font-weight:bold;text-transform:uppercase;font-size:12px}
+.sign-designation{font-size:10px;margin-top:2px}
+.sign-date{font-size:10px;margin-top:4px}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body><div class="page">
-<div class="header"><img class="logo" src="${logoUrl}" alt="NVSU Logo"><div><div>Republic of the Philippines</div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div class="campus">Bambang Campus<br>Bambang, Nueva Vizcaya</div></div><div class="appendix">Appendix ${appendix}</div></div>
+<div class="header"><img class="logo" src="${logoUrl}" alt="NVSU Logo"><div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div class="campus">Bambang Campus<br>Bambang, Nueva Vizcaya</div></div><div class="appendix">Appendix ${appendix}</div></div>
 <h1>${esc(receiptTitle)}</h1>
 <div class="meta"><div><strong>Responsibility Center:</strong> ${esc(responsibilityCenter)}</div><div><strong>RPT NO:</strong> ${esc(details.rptNumber)}</div></div>
-<table class="items"><colgroup><col style="width:7%"><col style="width:8%"><col style="width:36%"><col style="width:15%"><col style="width:12%"><col style="width:11%"><col style="width:11%"></colgroup>
-<thead><tr><th>Qty</th><th>Unit</th><th>Article and Description</th><th>Property Number</th><th>Date Acquired</th><th>Unit Value</th><th>Total Value</th></tr></thead>
-<tbody>${rows}<tr class="total"><td colspan="5" class="number">Total</td><td></td><td class="number">${amount(total)}</td></tr></tbody></table>
-<div class="nothing">NOTHING FOLLOWS</div><div class="remarks"><strong>Remarks:</strong> ${esc(data.notes || data.remarks || '')}</div>
+<table class="items"><colgroup><col style="width:5%"><col style="width:6%"><col style="width:39%"><col style="width:15%"><col style="width:10%"><col style="width:12%"><col style="width:13%"></colgroup>
+<thead><tr><th>Qty</th><th>Unit</th><th>Article and Description</th><th>Property<br>Number</th><th>Date<br>Acquired</th><th>Unit<br>Value</th><th>Total<br>Value</th></tr></thead>
+<tbody>${rows}<tr class="total"><td colspan="5"></td><td class="number">Total</td><td class="number">${amount(total)}</td></tr></tbody></table>
+<div class="nothing">NOTHING FOLLOWS</div>
+<div class="remarks"><strong>Remarks:</strong> ${esc(data.notes || data.remarks || '')}</div>
+<div class="spacer"></div>
+<div class="page-number">Page 1 of 1</div>
 <div class="classification"><div class="classification-title">ACKNOWLEDGEMENT CLASSIFICATION</div><div class="classification-list">${classifications}</div></div>
 <div class="signatures">
 <div class="sign-block"><div class="sign-heading">Received by:</div><div class="sign-name">${esc(details.receivedBy.name)}</div><div class="sign-designation">${esc(details.receivedBy.designation)}</div><div class="sign-date">${esc(date(details.receivedBy.date))}</div></div>
 <div class="sign-block"><div class="sign-heading">Issued by:</div><div class="sign-name">${esc(details.issuedBy.name)}</div><div class="sign-designation">${esc(details.issuedBy.designation)}</div><div class="sign-date">${esc(date(details.issuedBy.date))}</div></div>
-</div><div class="page-number">Page 1 of 1</div></div>
+</div></div>
 <script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script>
 </body></html>`)
       printWindow.document.close()
