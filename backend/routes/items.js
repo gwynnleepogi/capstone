@@ -468,6 +468,31 @@ router.delete('/:id', async (req, res) => {
       })
     }
 
+    // A property linked to an acquisition/issuance receipt must remain
+    // in the property records so its receipt history stays intact.
+    const { data: linkedReceipts, error: receiptLookupError } = await supabase
+      .from('property_receipts')
+      .select('id, receipt_number')
+      .eq('item_id', req.params.id)
+      .limit(1)
+
+    if (receiptLookupError) {
+      console.error('Could not verify property receipt history:', receiptLookupError)
+      return res.status(500).json({
+        error: 'Could not verify whether this property has an acquisition or issuance receipt.',
+        details: receiptLookupError.message
+      })
+    }
+
+    if (linkedReceipts && linkedReceipts.length > 0) {
+      return res.status(409).json({
+        error: 'This property cannot be deleted because it already has an acquisition or issuance receipt' +
+          (linkedReceipts[0].receipt_number
+            ? ' (' + linkedReceipts[0].receipt_number + ').'
+            : '.')
+      })
+    }
+
     const {
       data: detachedRequests,
       error: requestError
