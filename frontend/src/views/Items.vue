@@ -809,10 +809,13 @@
               <label class="form-label">
                 Accountable Employee <span class="text-danger">*</span>
               </label>
-              <SearchableSelect
-                v-model="editForm.accountable_employee"
-                :options="personnelSelectOptions"
-                placeholder="Search and select an employee from Personnel Directory"
+              <input
+                v-model.trim="editForm.accountable_employee"
+                type="text"
+                class="form-control"
+                list="personnel-options"
+                placeholder="Search or enter accountable employee name"
+                autocomplete="off"
                 required
               />
             </div>
@@ -821,10 +824,13 @@
               <label class="form-label">
                 Responsibility Center <span class="text-danger">*</span>
               </label>
-              <SearchableSelect
-                v-model="editForm.responsibility_center"
-                :options="officeSelectOptions"
-                placeholder="Search and select responsibility center"
+              <input
+                v-model.trim="editForm.responsibility_center"
+                type="text"
+                class="form-control"
+                list="office-options"
+                placeholder="Search or enter responsibility center"
+                autocomplete="off"
                 required
               />
             </div>
@@ -864,6 +870,10 @@
 
     <datalist id="office-options">
       <option v-for="office in officeOptions" :key="office.id" :value="office.office_name"></option>
+    </datalist>
+
+    <datalist id="personnel-options">
+      <option v-for="person in personnel" :key="person.id" :value="person.full_name"></option>
     </datalist>
   </div>
 </template>
@@ -1573,6 +1583,67 @@ export default {
       return data.office_name || trimmedName
     },
 
+    async ensurePersonnelExists(employeeName, officeName) {
+      const fullName = String(employeeName || '').trim()
+      const normalizedName = fullName.toLowerCase()
+
+      if (!fullName) {
+        throw new Error('Accountable Employee is required.')
+      }
+
+      const office = this.offices.find(item =>
+        item &&
+        String(item.office_name || '').trim().toLowerCase() ===
+          String(officeName || '').trim().toLowerCase(),
+      )
+
+      if (!office) {
+        throw new Error('The responsibility center could not be found in the office directory.')
+      }
+
+      const existingPerson = this.personnel.find(person =>
+        person &&
+        String(person.full_name || '').trim().toLowerCase() === normalizedName,
+      )
+
+      const personPayload = {
+        full_name: existingPerson?.full_name || fullName,
+        employee_id: existingPerson?.employee_id || '',
+        job_title: existingPerson?.job_title || '',
+        office_id: office.id,
+      }
+
+      const url = existingPerson
+        ? '/api/personnel-directory/' + encodeURIComponent(existingPerson.id)
+        : '/api/personnel-directory'
+      const method = existingPerson ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(personPayload),
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update the personnel directory.')
+      }
+
+      if (existingPerson) {
+        this.personnel = this.personnel.map(person =>
+          person.id === data.id ? data : person,
+        )
+      } else {
+        this.personnel.push(data)
+      }
+
+      this.personnel.sort((a, b) =>
+        String(a.full_name || '').localeCompare(String(b.full_name || '')),
+      )
+
+      return data
+    },
+
     async addItem() {
       this.saving = true
 
@@ -1580,9 +1651,12 @@ export default {
         const responsibilityCenter = await this.ensureOfficeExists(
           this.newItem.responsibility_center,
         )
+        const accountableEmployee = String(this.newItem.accountable_employee || '').trim()
+        await this.ensurePersonnelExists(accountableEmployee, responsibilityCenter)
 
         const payload = {
           ...this.newItem,
+          accountable_employee: accountableEmployee,
           responsibility_center: responsibilityCenter,
           classification: this.classificationFromCost(this.newItem.cost),
           quantity: 1,
@@ -1642,17 +1716,7 @@ export default {
         classification: item.classification || 'PAR',
         condition: item.condition || 'Serviceable',
         status: item.status || 'Available',
-        accountable_employee: this.personnel.some(person =>
-          person &&
-          person.full_name &&
-          person.full_name.trim().toLowerCase() === String(item.accountable_employee || '').trim().toLowerCase(),
-        )
-          ? this.personnel.find(person =>
-              person &&
-              person.full_name &&
-              person.full_name.trim().toLowerCase() === String(item.accountable_employee || '').trim().toLowerCase(),
-            ).full_name
-          : '',
+        accountable_employee: item.accountable_employee || '',
         responsibility_center: item.responsibility_center || '',
         fund_cluster: item.fund_cluster || '',
         article: item.article || '',
@@ -1896,10 +1960,12 @@ export default {
         const responsibilityCenter = await this.ensureOfficeExists(
           this.editForm.responsibility_center,
         )
+        const accountableEmployee = String(this.editForm.accountable_employee || '').trim()
+        await this.ensurePersonnelExists(accountableEmployee, responsibilityCenter)
 
         const payload = {
           ...this.editForm,
-          accountable_employee: String(this.editForm.accountable_employee || '').trim(),
+          accountable_employee: accountableEmployee,
           responsibility_center: responsibilityCenter,
           quantity: 1,
         }
