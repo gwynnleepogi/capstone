@@ -1169,11 +1169,11 @@ body{font-size:10px}
       printWindow.document.write(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>${esc(receiptTitle)}</title>
 <style>
-@page{size:8.5in 13in portrait;margin:10mm}
+@page{size:8.5in 11in portrait;margin:10mm}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
 body{font-size:10px}
-.page{width:100%;height:11.85in;min-height:11.85in;display:flex;flex-direction:column;overflow:hidden}
+.page{width:100%;height:10.2in;min-height:10.2in;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid;page-break-inside:avoid}
 .header{display:grid;grid-template-columns:62px 1fr 85px;align-items:center;text-align:center;margin-bottom:7px;min-height:52px}
 .logo{width:48px;height:48px;object-fit:contain}
 .school{font-size:15px;font-weight:bold;line-height:1.2}
@@ -1198,7 +1198,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 .classification-title{font-size:10px;font-weight:bold;text-decoration:underline;margin-bottom:5px}
 .classification-list{display:grid;grid-template-columns:1fr 1fr 1fr 1.5fr;gap:3px 5px;font-size:8.5px;line-height:1.05}
 .classification-list span{white-space:nowrap}
-.signatures{display:grid;grid-template-columns:1fr 1fr;gap:45px;margin-top:12px;min-height:72px;padding:0 12px}
+.signatures{display:grid;grid-template-columns:1fr 1fr;gap:45px;margin-top:10px;min-height:72px;padding:0 12px;break-inside:avoid;page-break-inside:avoid}
 .sign-block{text-align:center;min-height:70px}
 .sign-heading{text-align:left;font-weight:bold;margin-bottom:20px;font-size:9px}
 .sign-name{font-weight:bold;text-transform:uppercase;font-size:10px}
