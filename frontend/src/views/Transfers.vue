@@ -1139,7 +1139,7 @@ body{font-size:9px}
 .instructions h2{text-align:center;text-decoration:underline;font-size:10px;margin:1px 0 5px}
 .instructions p{margin:0 0 4px}
 .instructions .copies{text-align:center;margin-top:5px}
-.form-code{margin-top:4px;text-align:left;font-size:8px}
+.form-code{margin-top:6px;text-align:left;font-size:12px;font-weight:bold;line-height:1.2}
 @media print{html,body{margin:0!important;padding:0!important}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{min-height:0;break-inside:avoid;page-break-inside:avoid}}
 </style></head><body>
 <div class="sheet">
