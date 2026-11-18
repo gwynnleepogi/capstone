@@ -828,7 +828,7 @@ export default {
         return `<tr>
           <td class="center">${qty}</td><td class="center">unit</td><td>${esc(item.description)}</td>
           <td class="center">${esc(item.property_number)}</td>
-          <td class="center">${esc(item.date_acquired || receipt.date_issued)}</td>
+          <td class="center">${esc(item.acquisition_date || receipt.date_issued)}</td>
           <td class="number">${unitValue.toLocaleString('en-PH',{minimumFractionDigits:2})}</td>
           <td class="number">${(unitValue*qty).toLocaleString('en-PH',{minimumFractionDigits:2})}</td>
         </tr>`
@@ -839,7 +839,7 @@ export default {
         return
       }
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
-      const responsibilityCenter = data.receipts[0]?.items?.responsibility_center || data.officeName || '-'
+      const responsibilityCenter = data.officeName || data.receipts[0]?.items?.responsibility_center || '-'
       const formatDate = value => value ? new Date(value + 'T00:00:00').toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'}) : ''
       printWindow.document.write(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Property Acknowledgement Receipt - Transfer</title>
