@@ -100,12 +100,12 @@
               <td>{{ formatDate(item.date) }}</td>
               <td>{{ item.propertyNumber || 'N/A' }}</td>
               <td>{{ item.description || 'N/A' }}</td>
-              <td>
+              <td class="movement-cell">
                 <span class="movement-badge" :class="badgeClass(item)">
                   {{ item.category }}
                 </span>
               </td>
-              <td>{{ item.quantity }}</td>
+              <td class="quantity-cell">{{ item.quantity }}</td>
               <td>{{ item.reference || 'N/A' }}</td>
               <td>{{ item.person || 'N/A' }}</td>
             </tr>
@@ -1876,12 +1876,30 @@ td {
   padding: 13px 12px;
   border-bottom: 1px solid #e9e7de;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 th {
   background: #2f5d3a;
   color: #ffffff;
   font-weight: 600;
+}
+
+.table thead th:nth-child(4),
+.table tbody td:nth-child(4),
+.table thead th:nth-child(5),
+.table tbody td:nth-child(5) {
+  text-align: center;
+}
+
+.movement-cell,
+.quantity-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.movement-badge {
+  margin: 0 auto;
 }
 
 .movement-badge {
