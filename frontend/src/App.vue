@@ -186,16 +186,6 @@
 
         <router-link
           v-if="canAccess(['Administrator'])"
-          to="/personnel-directory"
-          class="nav-link"
-          @click="menuOpen = false"
-        >
-          <i class="bi bi-person-lines-fill"></i>
-          Personnel Directory
-        </router-link>
-
-        <router-link
-          v-if="canAccess(['Administrator'])"
           to="/personnel"
           class="nav-link"
           @click="menuOpen = false"
