@@ -489,6 +489,14 @@
                 <label class="form-label">Action Taken (Property Officer)</label>
                 <textarea class="form-control" rows="2" v-model.trim="requestPrintDetails.actionTaken"></textarea>
               </div>
+              <div class="col-md-6">
+                <label class="form-label">Paper Size</label>
+                <select class="form-select" v-model="requestPrintDetails.paperSize">
+                  <option value="long">Long (8.5 × 13 inches)</option>
+                  <option value="letter">Letter (8.5 × 11 inches)</option>
+                  <option value="a4">A4 (210 × 297 mm)</option>
+                </select>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -753,6 +761,7 @@ export default {
     emptyRequestPrintDetails() {
       return {
         rptNumber: '',
+        paperSize: 'long',
         requestedBy: { name: '', designation: '' },
         approvedBy: { name: '', designation: '' },
         concurredBy: { name: '', designation: '' },
@@ -1080,14 +1089,16 @@ export default {
 
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
       const blankRows = Array.from({ length: 9 }, () => '<tr><td></td><td></td><td></td><td></td><td></td></tr>').join('')
+      const paperSizes = { long: '8.5in 13in', letter: '8.5in 11in', a4: '210mm 297mm' }
+      const selectedPaperSize = paperSizes[details.paperSize] || paperSizes.long
       printWindow.document.write(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Request for Property Transfer</title>
 <style>
-@page{size:8.5in 13in portrait;margin:9mm}
+@page{size:${selectedPaperSize} portrait;margin:9mm}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
 body{font-size:10px}
-.sheet{width:100%;min-height:12.25in;padding:8px 10px 12px;position:relative}
+.sheet{width:100%;min-height:0;padding:8px 10px 12px;position:relative}
 .header{min-height:96px;border:1px solid #999;display:grid;grid-template-columns:68px 1fr;align-items:stretch;text-align:center}
 .logo-cell{min-height:96px;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
 .logo{width:48px;height:48px;object-fit:contain}
@@ -1115,8 +1126,8 @@ body{font-size:10px}
 .instructions h2{text-align:center;text-decoration:underline;font-size:12px;margin:2px 0 9px}
 .instructions p{margin:0 0 8px}
 .instructions .copies{text-align:center;margin-top:10px}
-.form-code{position:absolute;left:10px;bottom:5px;font-size:10px}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{min-height:12.25in}}
+.form-code{margin-top:6px;text-align:left;font-size:9px}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{min-height:0;break-inside:avoid;page-break-inside:avoid}}
 </style></head><body>
 <div class="sheet">
 <div class="header"><div class="logo-cell"><img class="logo" src="${logoUrl}" alt="NVSU"></div><div class="header-text"><div>Republic of the Philippines</div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div>Bambang, Nueva Vizcaya</div><div class="header-title">REQUEST FOR PROPERTY TRANSFER</div></div></div>
