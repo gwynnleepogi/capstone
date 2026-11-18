@@ -227,7 +227,7 @@
                 <div class="col-md-6"><label class="form-label">UACS</label><input class="form-control" v-model.trim="receiptPrintForm.uacs"></div>
                 <div class="col-md-6"><label class="form-label">BUR No.</label><input class="form-control" v-model.trim="receiptPrintForm.burNumber"></div>
                 <div class="col-md-6"><label class="form-label">IAR No.</label><input class="form-control" v-model.trim="receiptPrintForm.iarNumber"></div>
-                <div class="col-md-6"><label class="form-label">Appendix</label><input class="form-control" v-model.trim="receiptPrintForm.appendix" required></div>
+                <div class="col-md-6"><label class="form-label">Appendix</label><input class="form-control" value="71" readonly></div>
                 
                 <div class="col-12"><strong>Received By</strong></div>
                 <div class="col-md-6">
@@ -1371,7 +1371,7 @@ export default {
                 <h2>3702 Bambang, Nueva Vizcaya</h2>
               </div>
             </div>
-            <div class="appendix">APPENDIX ${this.escapeHtml(details.appendix || '71')}</div>
+            <div class="appendix">APPENDIX 71</div>
             <div class="receipt-title">
               <span>${receipt.receipt_type === 'ICS' ? 'INVENTORY CUSTODIAN SLIP' : 'PROPERTY ACKNOWLEDGEMENT RECEIPT'}</span>
             </div>
