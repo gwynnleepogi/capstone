@@ -267,77 +267,11 @@
                 <button
                   type="button"
                   class="btn btn-outline-success btn-sm mt-2"
-                  @click="showAddEmployeeForm = !showAddEmployeeForm"
+                  @click="showAddEmployeeForm = true"
                 >
                   <i class="bi bi-person-plus me-1"></i>
-                  {{ showAddEmployeeForm ? 'Close Add Employee' : 'Add Employee Account' }}
+                  Add Employee Account
                 </button>
-
-                <div v-if="showAddEmployeeForm" class="card mt-3 border-success">
-                  <div class="card-header bg-light">
-                    <strong>Add Employee Account</strong>
-                  </div>
-                  <div class="card-body">
-                    <div class="row g-3">
-                      <div class="col-12 col-md-6">
-                        <label class="form-label">Employee ID <span class="text-danger">*</span></label>
-                        <input v-model.trim="newEmployee.employee_id" type="text" class="form-control" required />
-                      </div>
-                      <div class="col-12 col-md-6">
-                        <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                        <input v-model.trim="newEmployee.full_name" type="text" class="form-control" required />
-                      </div>
-                      <div class="col-12 col-md-6">
-                        <label class="form-label">Email <span class="text-danger">*</span></label>
-                        <input v-model.trim="newEmployee.email" type="email" class="form-control" required />
-                      </div>
-                      <div class="col-12 col-md-6">
-                        <label class="form-label">Temporary Password <span class="text-danger">*</span></label>
-                        <input v-model="newEmployee.password" type="password" minlength="6" class="form-control" required />
-                        <small class="text-muted">Must be at least 6 characters. The employee will be asked to change it after signing in.</small>
-                      </div>
-                      <div class="col-12 col-md-6">
-                        <label class="form-label">User Type <span class="text-danger">*</span></label>
-                        <select v-model="newEmployee.role" class="form-select" required @change="loadEmployeeJobTitles">
-                          <option value="">Select a user type</option>
-                          <option value="Teacher">Teaching</option>
-                          <option value="Non-Teaching Staff">Non-Teaching</option>
-                        </select>
-                      </div>
-                      <div class="col-12 col-md-6">
-                        <label class="form-label">Job Title <span class="text-danger">*</span></label>
-                        <input
-                          v-model.trim="newEmployee.job_title"
-                          type="text"
-                          class="form-control"
-                          list="employee-job-title-options"
-                          placeholder="Search or select a job title"
-                          required
-                        />
-                        <datalist id="employee-job-title-options">
-                          <option v-for="title in employeeJobTitleOptions" :key="title" :value="title"></option>
-                        </datalist>
-                      </div>
-                      <div class="col-12">
-                        <label class="form-label">Office <span class="text-danger">*</span></label>
-                        <select v-model="newEmployee.office_id" class="form-select" required>
-                          <option value="">Select an office</option>
-                          <option v-for="office in officeOptions" :key="office.id" :value="office.id">
-                            {{ office.office_name }}
-                          </option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="d-flex justify-content-end gap-2 mt-3">
-                      <button type="button" class="btn btn-secondary btn-sm" @click="resetNewEmployee">
-                        Cancel
-                      </button>
-                      <button type="button" class="btn btn-success btn-sm" :disabled="creatingEmployee" @click="createEmployeeAccount">
-                        {{ creatingEmployee ? 'Creating...' : 'Create Employee Account' }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <div class="col-12 col-md-6">
@@ -418,6 +352,91 @@
             </button>
             <button type="submit" class="btn btn-success" :disabled="saving">
               {{ saving ? 'Saving...' : 'Save Property' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+ 
+    <!-- ADD EMPLOYEE ACCOUNT MODAL -->
+    <div
+      v-if="showAddEmployeeForm"
+      class="employee-modal-overlay"
+      role="presentation"
+      @click.self="showAddEmployeeForm = false"
+      @keydown.esc="showAddEmployeeForm = false"
+    >
+      <section
+        class="employee-modal card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-employee-title"
+      >
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <div>
+            <h2 id="add-employee-title" class="h5 mb-1">Add Employee Account</h2>
+            <p class="text-muted small mb-0">Create an employee login account and profile.</p>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" @click="showAddEmployeeForm = false"></button>
+        </div>
+
+        <form class="employee-modal-form" @submit.prevent="createEmployeeAccount">
+          <div class="card-body employee-modal-body">
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label">Employee ID <span class="text-danger">*</span></label>
+                <input v-model.trim="newEmployee.employee_id" type="text" class="form-control" autocomplete="off" required />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                <input v-model.trim="newEmployee.full_name" type="text" class="form-control" autocomplete="name" required />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">Email <span class="text-danger">*</span></label>
+                <input v-model.trim="newEmployee.email" type="email" class="form-control" autocomplete="email" required />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">Temporary Password <span class="text-danger">*</span></label>
+                <input v-model="newEmployee.password" type="password" minlength="6" class="form-control" autocomplete="new-password" required />
+                <small class="text-muted">Must be at least 6 characters.</small>
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">User Type <span class="text-danger">*</span></label>
+                <select v-model="newEmployee.role" class="form-select" required @change="loadEmployeeJobTitles">
+                  <option value="">Select a user type</option>
+                  <option value="Teacher">Teaching</option>
+                  <option value="Non-Teaching Staff">Non-Teaching</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">Job Title <span class="text-danger">*</span></label>
+                <input
+                  v-model.trim="newEmployee.job_title"
+                  type="text"
+                  class="form-control"
+                  list="employee-job-title-options"
+                  placeholder="Search or select a job title"
+                  required
+                />
+                <datalist id="employee-job-title-options">
+                  <option v-for="title in employeeJobTitleOptions" :key="title" :value="title"></option>
+                </datalist>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Office <span class="text-danger">*</span></label>
+                <select v-model="newEmployee.office_id" class="form-select" required>
+                  <option value="">Select an office</option>
+                  <option v-for="office in officeOptions" :key="office.id" :value="office.id">
+                    {{ office.office_name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer bg-white d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" @click="showAddEmployeeForm = false" :disabled="creatingEmployee">Cancel</button>
+            <button type="submit" class="btn btn-success" :disabled="creatingEmployee">
+              {{ creatingEmployee ? 'Creating Account...' : 'Create Employee Account' }}
             </button>
           </div>
         </form>
@@ -2441,6 +2460,56 @@ h1 {
 
 .add-dialog-body {
   overflow-y: auto;
+}
+
+.employee-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.employee-modal {
+  width: min(760px, 100%);
+  max-height: min(90vh, 900px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.25);
+}
+
+.employee-modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.employee-modal-body {
+  overflow-y: auto;
+}
+
+@media (max-width: 576px) {
+  .employee-modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .employee-modal {
+    max-height: 95vh;
+  }
+
+  .employee-modal .card-footer {
+    flex-wrap: wrap;
+  }
+
+  .employee-modal .card-footer .btn {
+    flex: 1 1 130px;
+  }
 }
 
 .detail-overlay {
