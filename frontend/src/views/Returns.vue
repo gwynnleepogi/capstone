@@ -564,12 +564,37 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <label class="form-label">Paper Size</label>
-            <select class="form-select" v-model="returnedReceiptPaperSize">
-              <option value="a4">A4 (210 × 297 mm)</option>
-              <option value="short">Short / Letter (8.5 × 11 inches)</option>
-              <option value="long">Long (8.5 × 13 inches)</option>
-            </select>
+            <div class="mb-3">
+              <label class="form-label">Paper Size</label>
+              <select class="form-select" v-model="returnedReceiptPaperSize">
+                <option value="a4">A4 (210 × 297 mm)</option>
+                <option value="short">Short / Letter (8.5 × 11 inches)</option>
+                <option value="long">Long (8.5 × 13 inches)</option>
+              </select>
+            </div>
+            <hr>
+            <h6>Received by</h6>
+            <div class="row g-2 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Printed Name</label>
+                <input class="form-control" v-model.trim="returnedReceiptSignatories.receivedByName" placeholder="Enter receiving property officer">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Designation</label>
+                <input class="form-control" v-model.trim="returnedReceiptSignatories.receivedByTitle" placeholder="Enter designation">
+              </div>
+            </div>
+            <h6>Issued by</h6>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="form-label">Printed Name</label>
+                <input class="form-control" v-model.trim="returnedReceiptSignatories.issuedByName">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Designation</label>
+                <input class="form-control" v-model.trim="returnedReceiptSignatories.issuedByTitle">
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -618,6 +643,12 @@ export default {
       saving: false,
       deletingReturnId: null,
       returnedReceiptPaperSize: 'a4',
+      returnedReceiptSignatories: {
+        receivedByName: '',
+        receivedByTitle: '',
+        issuedByName: '',
+        issuedByTitle: ''
+      },
 
       form: {
         id: null,
@@ -1068,6 +1099,14 @@ export default {
     },
 
     printReturnedPropertyReceipt() {
+      const record = this.selectedReturn || {}
+      const returnedByPerson = record.personnel || record.users || {}
+      this.returnedReceiptSignatories = {
+        receivedByName: '',
+        receivedByTitle: '',
+        issuedByName: returnedByPerson.full_name || '',
+        issuedByTitle: returnedByPerson.job_title || returnedByPerson.designation || ''
+      }
       Modal.getOrCreateInstance(document.getElementById('returnedReceiptPaperModal')).show()
     },
 
@@ -1079,9 +1118,10 @@ export default {
 
       const item = record.items || {}
       const issuedReceipt = record.property_receipts || {}
-      const returnedByPerson = record.personnel || record.users || {}
-      const returnedBy = returnedByPerson.full_name || ''
-      const designation = returnedByPerson.job_title || returnedByPerson.designation || ''
+      const returnedBy = this.returnedReceiptSignatories.issuedByName || ''
+      const designation = this.returnedReceiptSignatories.issuedByTitle || ''
+      const receivedBy = this.returnedReceiptSignatories.receivedByName || ''
+      const receivedByTitle = this.returnedReceiptSignatories.receivedByTitle || ''
       const quantity = Number(issuedReceipt.quantity || 1)
       const unitValue = Number(item.cost || item.unit_value || 0)
       const isICS = unitValue < 50000
@@ -1254,9 +1294,9 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
     <div class="signatures">
       <div class="sign-block">
         <div class="sign-heading">Received by:</div>
-        <div class="sign-name"></div>
-        <div class="sign-designation"></div>
-        <div class="sign-date"></div>
+        <div class="sign-name">${safe(receivedBy)}</div>
+        <div class="sign-designation">${safe(receivedByTitle)}</div>
+        <div class="sign-date">${safe(returnDate)}</div>
       </div>
       <div class="sign-block">
         <div class="sign-heading">Issued by:</div>
