@@ -1154,7 +1154,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 .total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:5px;padding-bottom:5px}
 .nothing{text-align:center;border-bottom:1px solid #111;padding:5px 0}
 .remarks{border-bottom:1px solid #111;padding:5px 2px;min-height:25px}
-.spacer{flex:0 0 0;height:0;min-height:0}
+.spacer{flex:1 1 auto;height:auto;min-height:0}
 .page-number{text-align:right;border-top:1px solid #111;padding-top:3px;margin-bottom:5px;font-size:9px}
 .classification{padding-top:3px}
 .classification-title{font-size:10px;font-weight:bold;text-decoration:underline;margin-bottom:5px}
