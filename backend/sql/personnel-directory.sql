@@ -18,10 +18,5 @@ create index if not exists personnel_directory_full_name_idx
 
 alter table public.personnel_directory enable row level security;
 
-drop policy if exists "Authenticated users can read personnel directory" on public.personnel_directory;
-create policy "Authenticated users can read personnel directory"
-  on public.personnel_directory for select to authenticated using (true);
-
-drop policy if exists "Authenticated users can manage personnel directory" on public.personnel_directory;
-create policy "Authenticated users can manage personnel directory"
-  on public.personnel_directory for all to authenticated using (true) with check (true);
+-- Keep direct table access blocked. The administrator-only backend API uses
+-- the Supabase service-role key, which bypasses RLS.
