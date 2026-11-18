@@ -369,14 +369,12 @@
                   Condition After Return <span class="text-danger">*</span>
                 </label>
 
-                <select
-                  class="form-select"
-                  v-model="form.condition_after_return"
-                  required
-                >
-                  <option value="Serviceable">Serviceable</option>
-                  <option value="Unserviceable">Unserviceable</option>
-                </select>
+                <div class="form-control-plaintext">
+                  <span class="badge bg-danger">Unserviceable</span>
+                  <div class="form-text">
+                    Returned properties are automatically recorded as Unserviceable.
+                  </div>
+                </div>
               </div>
 
               <div class="mb-3">
@@ -601,7 +599,7 @@ export default {
         returned_by: '',
         office_id: '',
         return_date: '',
-        condition_after_return: 'Serviceable',
+        condition_after_return: 'Unserviceable',
         return_reason: '',
         otherReason: '',
         remarks: ''
@@ -994,7 +992,7 @@ export default {
         returned_by: '',
         office_id: '',
         return_date: new Date().toISOString().split('T')[0],
-        condition_after_return: 'Serviceable',
+        condition_after_return: 'Unserviceable',
         return_reason: '',
         otherReason: '',
         remarks: ''
@@ -1179,7 +1177,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px so
             returned_by: this.form.returned_by || null,
             office_id: this.form.office_id || null,
             return_date: this.form.return_date || null,
-            condition_after_return: this.form.condition_after_return,
+            condition_after_return: 'Unserviceable',
             return_reason: combinedReason,
             remarks: this.form.remarks
           })
