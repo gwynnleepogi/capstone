@@ -715,6 +715,43 @@ router.delete('/:id', async (req, res) => {
       })
     }
 
+    // Keep receipt history intact. A receipt linked to a return,
+    // a return request, or a transfer must not be deleted.
+    const linkedChecks = [
+      { table: 'item_returns', label: 'a recorded property return' },
+      { table: 'return_requests', label: 'a property return request' },
+      { table: 'item_transfers', label: 'a property transfer' }
+    ]
+
+    const blockingRecords = []
+
+    for (const check of linkedChecks) {
+      const { data: linkedRows, error: linkedError } = await supabase
+        .from(check.table)
+        .select('id')
+        .eq('property_receipt_id', receipt.id)
+        .limit(1)
+
+      if (linkedError) {
+        console.error(`Receipt deletion reference check failed for ${check.table}:`, linkedError)
+        return res.status(500).json({
+          error: `Unable to verify whether this receipt has ${check.label}. Receipt was not deleted.`,
+          details: linkedError.message
+        })
+      }
+
+      if (linkedRows && linkedRows.length > 0) {
+        blockingRecords.push(check.label)
+      }
+    }
+
+    if (blockingRecords.length > 0) {
+      return res.status(409).json({
+        error: `This receipt cannot be deleted because it has ${blockingRecords.join(', ')}. Keep the receipt to preserve its history.`,
+        blocked_by: blockingRecords
+      })
+    }
+
     let item = null
 
     if (receipt.item_id && receipt.item_request_id) {
@@ -776,8 +813,11 @@ router.delete('/:id', async (req, res) => {
           .eq('id', item.id)
       }
 
+      console.error('Receipt deletion failed:', deleteError)
       return res.status(500).json({
-        error: 'The receipt could not be deleted. Inventory changes were rolled back where possible.'
+        error: 'The receipt could not be deleted. Inventory changes were rolled back where possible.',
+        details: deleteError.message,
+        code: deleteError.code
       })
     }
 
