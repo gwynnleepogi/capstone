@@ -1561,6 +1561,76 @@ export default {
       return data.office_name || trimmedName
     },
 
+    async ensurePersonnelExists(employeeName, officeName) {
+      const trimmedName = String(employeeName || '').trim()
+      const trimmedOffice = String(officeName || '').trim()
+
+      if (!trimmedName || !trimmedOffice) {
+        throw new Error('Accountable Employee and Responsibility Center are required.')
+      }
+
+      const office = this.offices.find(item =>
+        item &&
+        item.office_name &&
+        item.office_name.toLowerCase() === trimmedOffice.toLowerCase(),
+      )
+
+      if (!office) {
+        throw new Error('The responsibility center could not be found in the office directory.')
+      }
+
+      const existingPerson = this.personnel.find(person =>
+        person &&
+        person.full_name &&
+        person.full_name.trim().toLowerCase() === trimmedName.toLowerCase(),
+      )
+
+      const url = existingPerson
+        ? '/api/personnel-directory/' + existingPerson.id
+        : '/api/personnel-directory'
+      const method = existingPerson ? 'PUT' : 'POST'
+      const personPayload = existingPerson
+        ? {
+            employee_id: existingPerson.employee_id || '',
+            full_name: trimmedName,
+            job_title: existingPerson.job_title || '',
+            office_id: office.id,
+          }
+        : {
+            full_name: trimmedName,
+            office_id: office.id,
+          }
+
+      if (existingPerson && String(existingPerson.office_id || '') === String(office.id)) {
+        return existingPerson
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(personPayload),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update the personnel directory')
+      }
+
+      if (existingPerson) {
+        const index = this.personnel.findIndex(person => person.id === existingPerson.id)
+        if (index !== -1) {
+          this.personnel.splice(index, 1, data)
+        }
+      } else {
+        this.personnel.push(data)
+      }
+
+      return data
+    },
+
     async addItem() {
       this.saving = true
 
@@ -1871,8 +1941,19 @@ export default {
       this.updating = true
 
       try {
+        const responsibilityCenter = await this.ensureOfficeExists(
+          this.editForm.responsibility_center,
+        )
+
+        await this.ensurePersonnelExists(
+          this.editForm.accountable_employee,
+          responsibilityCenter,
+        )
+
         const payload = {
           ...this.editForm,
+          accountable_employee: String(this.editForm.accountable_employee || '').trim(),
+          responsibility_center: responsibilityCenter,
           quantity: 1,
         }
 
