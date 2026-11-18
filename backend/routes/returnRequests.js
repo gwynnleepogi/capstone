@@ -321,11 +321,9 @@ router.patch('/:id/accept', staffOnly, async (req, res) => {
       })
     }
 
-    const finalCondition = condition_after_return || request.condition_declared
-
-    if (!CONDITIONS.includes(finalCondition)) {
-      return res.status(400).json({ error: 'Condition must be Serviceable or Unserviceable.' })
-    }
+    // Every accepted return is automatically classified as Unserviceable.
+    // The requester's declared condition is kept for reference only.
+    const finalCondition = 'Unserviceable'
 
     // Claim the request first so two people cannot accept it at the same time.
     const reviewFields = {
