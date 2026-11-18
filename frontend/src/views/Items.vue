@@ -257,12 +257,14 @@
                 <label class="form-label">
                   Accountable Employee <span class="text-danger">*</span>
                 </label>
-                <SearchableSelect
-                  v-model="newItem.accountable_employee"
-                  :options="personnelSelectOptions"
-                  placeholder="Search and select accountable employee"
+                <input
+                  v-model.trim="newItem.accountable_employee"
+                  type="text"
+                  class="form-control"
+                  placeholder="Enter accountable employee name"
+                  autocomplete="off"
                   required
-                  @update:model-value="autoFillOffice(newItem)"
+                  @input="autoFillOffice(newItem)"
                 />
               </div>
 
@@ -807,12 +809,14 @@
               <label class="form-label">
                 Accountable Employee <span class="text-danger">*</span>
               </label>
-              <SearchableSelect
-                v-model="editForm.accountable_employee"
-                :options="personnelSelectOptions"
-                placeholder="Search and select accountable employee"
+              <input
+                v-model.trim="editForm.accountable_employee"
+                type="text"
+                class="form-control"
+                placeholder="Enter accountable employee name"
+                autocomplete="off"
                 required
-                @update:model-value="autoFillOffice(editForm)"
+                @input="autoFillOffice(editForm)"
               />
             </div>
 
@@ -1063,16 +1067,6 @@ export default {
       ]
     },
 
-    personnelSelectOptions() {
-      return [...this.personnelOptions]
-        .sort((first, second) =>
-          first.full_name.localeCompare(second.full_name, undefined, {
-            sensitivity: 'base',
-          }),
-        )
-        .map(person => ({ value: person.full_name, label: person.full_name }))
-    },
-
     officeSelectOptions() {
       return this.officeOptions.map(office => ({
         value: office.office_name,
@@ -1138,15 +1132,6 @@ export default {
 
         return this.sortDirection === 'asc' ? comparison : -comparison
       })
-    },
-
-    personnelSelectOptions() {
-      return this.personnel
-        .filter(person => person && person.full_name)
-        .map(person => ({
-          value: person.full_name,
-          label: person.full_name
-        }))
     },
 
     supplierOptions() {
