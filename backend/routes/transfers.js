@@ -84,7 +84,7 @@ router.get('/', async (req, res) => {
     if (error) return res.status(500).json({ error: error.message })
  
     const rows = data || []
-    const items = await lookup('items', rows.map(r => r.item_id), 'id, description, property_number, condition, status')
+    const items = await lookup('items', rows.map(r => r.item_id), 'id, description, property_number, cost, acquisition_date, condition, status, accountable_employee, responsibility_center')
     const receipts = await lookup('property_receipts', rows.map(r => r.property_receipt_id), 'id, receipt_number, quantity')
     const users = await lookup(
       'users',
