@@ -264,6 +264,80 @@
                   required
                   @update:modelValue="selectAccountableEmployee(newItem, $event)"
                 />
+                <button
+                  type="button"
+                  class="btn btn-outline-success btn-sm mt-2"
+                  @click="showAddEmployeeForm = !showAddEmployeeForm"
+                >
+                  <i class="bi bi-person-plus me-1"></i>
+                  {{ showAddEmployeeForm ? 'Close Add Employee' : 'Add Employee Account' }}
+                </button>
+
+                <div v-if="showAddEmployeeForm" class="card mt-3 border-success">
+                  <div class="card-header bg-light">
+                    <strong>Add Employee Account</strong>
+                  </div>
+                  <div class="card-body">
+                    <div class="row g-3">
+                      <div class="col-12 col-md-6">
+                        <label class="form-label">Employee ID <span class="text-danger">*</span></label>
+                        <input v-model.trim="newEmployee.employee_id" type="text" class="form-control" required />
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                        <input v-model.trim="newEmployee.full_name" type="text" class="form-control" required />
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label">Email <span class="text-danger">*</span></label>
+                        <input v-model.trim="newEmployee.email" type="email" class="form-control" required />
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label">Temporary Password <span class="text-danger">*</span></label>
+                        <input v-model="newEmployee.password" type="password" minlength="6" class="form-control" required />
+                        <small class="text-muted">Must be at least 6 characters. The employee will be asked to change it after signing in.</small>
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label">User Type <span class="text-danger">*</span></label>
+                        <select v-model="newEmployee.role" class="form-select" required @change="loadEmployeeJobTitles">
+                          <option value="">Select a user type</option>
+                          <option value="Teacher">Teaching</option>
+                          <option value="Non-Teaching Staff">Non-Teaching</option>
+                        </select>
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label">Job Title <span class="text-danger">*</span></label>
+                        <input
+                          v-model.trim="newEmployee.job_title"
+                          type="text"
+                          class="form-control"
+                          list="employee-job-title-options"
+                          placeholder="Search or select a job title"
+                          required
+                        />
+                        <datalist id="employee-job-title-options">
+                          <option v-for="title in employeeJobTitleOptions" :key="title" :value="title"></option>
+                        </datalist>
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Office <span class="text-danger">*</span></label>
+                        <select v-model="newEmployee.office_id" class="form-select" required>
+                          <option value="">Select an office</option>
+                          <option v-for="office in officeOptions" :key="office.id" :value="office.id">
+                            {{ office.office_name }}
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                      <button type="button" class="btn btn-secondary btn-sm" @click="resetNewEmployee">
+                        Cancel
+                      </button>
+                      <button type="button" class="btn btn-success btn-sm" :disabled="creatingEmployee" @click="createEmployeeAccount">
+                        {{ creatingEmployee ? 'Creating...' : 'Create Employee Account' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div class="col-12 col-md-6">
@@ -973,6 +1047,17 @@ export default {
       sortDirection: 'asc',
 
       showAddForm: false,
+      showAddEmployeeForm: false,
+      creatingEmployee: false,
+      newEmployee: {
+        employee_id: '',
+        full_name: '',
+        email: '',
+        password: '',
+        role: '',
+        job_title: '',
+        office_id: '',
+      },
 
       fundClusterOptions: [
         'AF-1', 'AF-2', 'AF-3', 'AF-DBM PS/BID',
@@ -1157,6 +1242,15 @@ export default {
       return this.suppliers
         .map(supplier => supplier && supplier.supplier_name)
         .filter(Boolean)
+    },
+
+    employeeJobTitleOptions() {
+      return [...new Set(
+        this.personnel
+          .filter(person => !this.newEmployee.role || person.role === this.newEmployee.role)
+          .map(person => String(person.job_title || '').trim())
+          .filter(Boolean),
+      )].sort((first, second) => first.localeCompare(second, undefined, { sensitivity: 'base' }))
     },
 
     officeOptions() {
@@ -1460,6 +1554,109 @@ export default {
         window.dispatchEvent(new CustomEvent('show-toast', {
           detail: 'Failed to load office or supplier options',
         }))
+      }
+    },
+
+    async loadEmployeeJobTitles() {
+      this.newEmployee.job_title = ''
+    },
+
+    resetNewEmployee() {
+      this.newEmployee = {
+        employee_id: '',
+        full_name: '',
+        email: '',
+        password: '',
+        role: '',
+        job_title: '',
+        office_id: '',
+      }
+      this.showAddEmployeeForm = false
+    },
+
+    async createEmployeeAccount() {
+      if (this.creatingEmployee) return
+
+      const employee = this.newEmployee
+      if (
+        !employee.employee_id ||
+        !employee.full_name ||
+        !employee.email ||
+        !employee.password ||
+        !employee.role ||
+        !employee.job_title ||
+        !employee.office_id
+      ) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please complete all employee account fields.',
+        }))
+        return
+      }
+
+      if (employee.password.length < 6) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Temporary password must be at least 6 characters.',
+        }))
+        return
+      }
+
+      const selectedOffice = this.offices.find(
+        office => String(office.id) === String(employee.office_id),
+      )
+
+      if (!selectedOffice) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please select a valid office.',
+        }))
+        return
+      }
+
+      this.creatingEmployee = true
+
+      try {
+        const response = await fetch('/api/personnel', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            employee_id: employee.employee_id,
+            full_name: employee.full_name,
+            email: employee.email,
+            password: employee.password,
+            role: employee.role,
+            job_title: employee.job_title,
+            office_id: selectedOffice.id,
+            department: selectedOffice.office_name,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok || !data.data) {
+          throw new Error(data.error || 'Unable to create employee account.')
+        }
+
+        const createdEmployee = {
+          ...data.data,
+          offices: { office_name: selectedOffice.office_name },
+        }
+
+        this.personnel.push(createdEmployee)
+        this.newItem.accountable_employee = createdEmployee.full_name
+        this.selectAccountableEmployee(this.newItem, createdEmployee.full_name)
+        this.resetNewEmployee()
+
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Employee account created and selected as the accountable employee.',
+        }))
+      } catch (error) {
+        console.error('Employee account creation failed:', error)
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: error.message || 'Unable to create employee account.',
+        }))
+      } finally {
+        this.creatingEmployee = false
       }
     },
 
@@ -2047,6 +2244,7 @@ export default {
     },
 
     resetForm() {
+      this.resetNewEmployee()
       this.newItem = {
         property_number: '',
         description: '',
