@@ -261,7 +261,8 @@
                   v-model.trim="newItem.accountable_employee"
                   type="text"
                   class="form-control"
-                  placeholder="Enter accountable employee name"
+                  list="accountable-employee-options"
+                  placeholder="Search or enter accountable employee name"
                   autocomplete="off"
                   required
                   @input="autoFillOffice(newItem)"
@@ -813,7 +814,7 @@
                 v-model.trim="editForm.accountable_employee"
                 type="text"
                 class="form-control"
-                list="personnel-options"
+                list="accountable-employee-options"
                 placeholder="Search or enter accountable employee name"
                 autocomplete="off"
                 required
@@ -872,8 +873,8 @@
       <option v-for="office in officeOptions" :key="office.id" :value="office.office_name"></option>
     </datalist>
 
-    <datalist id="personnel-options">
-      <option v-for="person in personnel" :key="person.id" :value="person.full_name"></option>
+    <datalist id="accountable-employee-options">
+      <option v-for="name in accountableEmployeeOptions" :key="name" :value="name"></option>
     </datalist>
   </div>
 </template>
@@ -964,7 +965,6 @@ export default {
     return {
       items: [],
       itemsLoaded: false,
-      personnel: [],
       offices: [],
       suppliers: [],
 
@@ -1081,15 +1081,6 @@ export default {
       }))
     },
 
-    personnelSelectOptions() {
-      return this.personnel
-        .filter(person => person && person.full_name)
-        .map(person => ({
-          value: person.full_name,
-          label: person.full_name,
-        }))
-    },
-
     filteredItems() {
       const searchValue = this.search.toLowerCase().trim()
 
@@ -1150,6 +1141,14 @@ export default {
       })
     },
 
+    accountableEmployeeOptions() {
+      return [...new Set(
+        this.items
+          .map(item => String(item.accountable_employee || '').trim())
+          .filter(Boolean),
+      )].sort((a, b) => a.localeCompare(b))
+    },
+
     supplierOptions() {
       return this.suppliers
         .map(supplier => supplier && supplier.supplier_name)
@@ -1167,7 +1166,7 @@ export default {
 
   mounted() {
     this.getItems()
-    this.getPersonnelAndOffices()
+    this.getOfficesAndSuppliers()
   },
 
   watch: {
@@ -1443,28 +1442,23 @@ export default {
       return response.json()
     },
 
-    async getPersonnelAndOffices() {
+    async getOfficesAndSuppliers() {
       const results = await Promise.allSettled([
-        this.fetchJson('/api/personnel-directory'),
         this.fetchJson('/api/offices'),
         this.fetchJson('/api/suppliers'),
       ])
 
       if (results[0].status === 'fulfilled') {
-        this.personnel = Array.isArray(results[0].value) ? results[0].value : []
+        this.offices = Array.isArray(results[0].value) ? results[0].value : []
       }
 
       if (results[1].status === 'fulfilled') {
-        this.offices = Array.isArray(results[1].value) ? results[1].value : []
+        this.suppliers = Array.isArray(results[1].value) ? results[1].value : []
       }
 
-      if (results[2].status === 'fulfilled') {
-        this.suppliers = Array.isArray(results[2].value) ? results[2].value : []
-      }
-
-      if (results.slice(0, 2).some(result => result.status === 'rejected')) {
+      if (results.some(result => result.status === 'rejected')) {
         window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: 'Failed to load personnel and office options',
+          detail: 'Failed to load office or supplier options',
         }))
       }
     },
@@ -1477,18 +1471,13 @@ export default {
 
       form.status = 'Issued'
 
-      const person = this.personnel.find(
-        p => p.full_name === form.accountable_employee,
+      const existingProperty = this.items.find(item =>
+        String(item.accountable_employee || '').trim().toLowerCase() ===
+          String(form.accountable_employee || '').trim().toLowerCase(),
       )
 
-      if (!person || !person.office_id) {
-        return
-      }
-
-      const office = this.offices.find(o => o.id === person.office_id)
-
-      if (office) {
-        form.responsibility_center = office.office_name
+      if (existingProperty && existingProperty.responsibility_center) {
+        form.responsibility_center = existingProperty.responsibility_center
       }
     },
 
@@ -1583,67 +1572,6 @@ export default {
       return data.office_name || trimmedName
     },
 
-    async ensurePersonnelExists(employeeName, officeName) {
-      const fullName = String(employeeName || '').trim()
-      const normalizedName = fullName.toLowerCase()
-
-      if (!fullName) {
-        throw new Error('Accountable Employee is required.')
-      }
-
-      const office = this.offices.find(item =>
-        item &&
-        String(item.office_name || '').trim().toLowerCase() ===
-          String(officeName || '').trim().toLowerCase(),
-      )
-
-      if (!office) {
-        throw new Error('The responsibility center could not be found in the office directory.')
-      }
-
-      const existingPerson = this.personnel.find(person =>
-        person &&
-        String(person.full_name || '').trim().toLowerCase() === normalizedName,
-      )
-
-      const personPayload = {
-        full_name: existingPerson?.full_name || fullName,
-        employee_id: existingPerson?.employee_id || '',
-        job_title: existingPerson?.job_title || '',
-        office_id: office.id,
-      }
-
-      const url = existingPerson
-        ? '/api/personnel-directory/' + encodeURIComponent(existingPerson.id)
-        : '/api/personnel-directory'
-      const method = existingPerson ? 'PUT' : 'POST'
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(personPayload),
-      })
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update the personnel directory.')
-      }
-
-      if (existingPerson) {
-        this.personnel = this.personnel.map(person =>
-          person.id === data.id ? data : person,
-        )
-      } else {
-        this.personnel.push(data)
-      }
-
-      this.personnel.sort((a, b) =>
-        String(a.full_name || '').localeCompare(String(b.full_name || '')),
-      )
-
-      return data
-    },
-
     async addItem() {
       this.saving = true
 
@@ -1652,7 +1580,6 @@ export default {
           this.newItem.responsibility_center,
         )
         const accountableEmployee = String(this.newItem.accountable_employee || '').trim()
-        await this.ensurePersonnelExists(accountableEmployee, responsibilityCenter)
 
         const payload = {
           ...this.newItem,
@@ -1961,7 +1888,6 @@ export default {
           this.editForm.responsibility_center,
         )
         const accountableEmployee = String(this.editForm.accountable_employee || '').trim()
-        await this.ensurePersonnelExists(accountableEmployee, responsibilityCenter)
 
         const payload = {
           ...this.editForm,
