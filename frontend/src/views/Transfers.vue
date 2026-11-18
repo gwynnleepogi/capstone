@@ -432,6 +432,13 @@
           <div class="modal-footer justify-content-between">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             <div class="d-flex gap-2 flex-wrap">
+              <button
+                type="button"
+                class="btn btn-outline-danger"
+                @click="deleteTransferFromDetails"
+              >
+                <i class="bi bi-trash me-1"></i>Delete Transfer
+              </button>
               <button type="button" class="btn btn-outline-primary" @click="printRPTFromDetails">
                 <i class="bi bi-printer me-1"></i>Print RPT
               </button>
@@ -935,6 +942,37 @@ export default {
     openTransferDetails(transfer) {
       this.selectedTransferDetails = transfer
       Modal.getOrCreateInstance(document.getElementById('transferDetailsModal')).show()
+    },
+
+    async deleteTransferFromDetails() {
+      const transfer = this.selectedTransferDetails
+      if (!transfer?.id) {
+        this.toast('Transfer details are not available.')
+        return
+      }
+
+      const confirmed = confirm(
+        'Are you sure you want to delete this transfer? The property will be restored to the previous accountable employee.'
+      )
+      if (!confirmed) return
+
+      try {
+        const response = await fetch(`/api/transfers/${transfer.id}`, {
+          method: 'DELETE'
+        })
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to delete transfer.')
+        }
+
+        Modal.getOrCreateInstance(document.getElementById('transferDetailsModal')).hide()
+        this.selectedTransferDetails = null
+        await Promise.all([this.getTransfers(), this.getReceipts()])
+        this.toast(data.message || 'Transfer deleted successfully.')
+      } catch (error) {
+        this.toast(error.message)
+      }
     },
 
     printRPTFromDetails() {
