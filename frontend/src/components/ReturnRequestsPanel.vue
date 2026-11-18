@@ -157,14 +157,10 @@
             </div>
 
             <template v-if="dialog.mode === 'accept'">
-              <div class="mb-3">
-                <label class="form-label">Condition after inspection</label>
-                <select v-model="dialog.condition" class="form-select">
-                  <option value="Serviceable">Serviceable</option>
-                  <option value="Unserviceable">Unserviceable</option>
-                </select>
-                <div class="form-text">
-                  The user said it is {{ dialog.request.condition_declared }}. Change it if your inspection differs.
+              <div class="alert alert-warning mb-3">
+                <strong>Condition after return: Unserviceable</strong>
+                <div class="small mt-1">
+                  Once this return is accepted, the property's condition will automatically be changed to Unserviceable.
                 </div>
               </div>
 
@@ -174,7 +170,7 @@
               </div>
 
               <p class="small text-muted mt-3 mb-0">
-                Accepting records the return and puts the quantity back into stock.
+                Accepting records the return and restores the quantity to inventory.
               </p>
             </template>
 
@@ -293,7 +289,6 @@ export default {
       this.dialog = {
         mode: 'accept',
         request,
-        condition: request.condition_declared || 'Serviceable',
         remarks: ''
       }
     },
@@ -305,7 +300,7 @@ export default {
     async submitDialog() {
       if (!this.dialog || this.saving) return
 
-      const { request, condition, remarks } = this.dialog
+      const { request, remarks } = this.dialog
 
       this.saving = true
 
@@ -314,7 +309,7 @@ export default {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            condition_after_return: condition,
+            condition_after_return: 'Unserviceable',
             review_remarks: remarks || null
           })
         })
