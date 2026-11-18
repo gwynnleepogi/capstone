@@ -463,27 +463,27 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label">Requested by - Printed Name</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.name">
+                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.name" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Requested by - Designation</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.designation">
+                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.designation" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Approved by - Printed Name</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.name">
+                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.name" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Approved by - Designation</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.designation">
+                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.designation" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Concurred by - Printed Name</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.name">
+                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.name" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Concurred by - Designation</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.designation">
+                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.designation" required>
               </div>
               <div class="col-12">
                 <label class="form-label">Action Taken (Property Officer)</label>
@@ -1066,6 +1066,19 @@ export default {
       }
 
       const details = this.requestPrintDetails
+      const requiredSignatoryFields = [
+        ['Requested by - Printed Name', details.requestedBy.name],
+        ['Requested by - Designation', details.requestedBy.designation],
+        ['Approved by - Printed Name', details.approvedBy.name],
+        ['Approved by - Designation', details.approvedBy.designation],
+        ['Concurred by - Printed Name', details.concurredBy.name],
+        ['Concurred by - Designation', details.concurredBy.designation]
+      ]
+      const missingSignatoryField = requiredSignatoryFields.find(field => !String(field[1] || '').trim())
+      if (missingSignatoryField) {
+        this.toast(missingSignatoryField[0] + ' is required.')
+        return
+      }
       const esc = this.escapePrint
       const item = transfer.items || {}
       const receipt = transfer.property_receipts || {}
@@ -1103,7 +1116,7 @@ body{font-size:9px}
 .logo-cell{min-height:76px;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
 .logo{width:43px;height:43px;object-fit:contain}
 .header-text{display:flex;flex-direction:column;justify-content:center;font-size:10px;line-height:1.1;font-weight:bold;padding:4px 6px}
-.header-text .school{font-size:12px}
+.header-text .school{font-size:15px}
 .header-title{font-size:13px;font-weight:bold;text-align:center;border-top:1px solid #999;margin:4px -6px 0;padding:4px 3px 0}
 .rpt{font-weight:bold;text-align:right;padding:3px 0;font-size:10px}
 .rpt-number{display:inline-block;min-width:105px;text-align:center;border-bottom:1px solid #111;padding:0 5px 1px}
@@ -1144,7 +1157,7 @@ body{font-size:9px}
 <table class="reason"><tr><td style="width:12%;font-weight:bold">Reason for<br>Transfer:</td><td>${esc(transfer.reason || transfer.remarks || '')}</td></tr></table>
 <table class="approvals">
 <tr><th style="width:12%"></th><th style="width:19%">Requested by:</th><th style="width:19%">Approved by:</th><th style="width:19%">Concurred by:</th><th>Action Taken (to be<br>filled by the Property Officer)</th></tr>
-<tr><td class="row-label">Signature:</td><td></td><td></td><td></td><td class="action" rowspan="4">${esc(details.actionTaken)}</td></tr>
+<tr><td class="row-label">Signature:</td><td></td><td></td><td></td><td class="action" rowspan="4"></td></tr>
 <tr><td class="row-label">Printed Name:</td><td>${esc(details.requestedBy.name)}</td><td>${esc(details.approvedBy.name)}</td><td>${esc(details.concurredBy.name)}</td></tr>
 <tr><td class="row-label">Designation:</td><td>${esc(details.requestedBy.designation)}</td><td>${esc(details.approvedBy.designation)}</td><td>${esc(details.concurredBy.designation)}</td></tr>
 <tr><td class="row-label">Date:</td><td>${esc(formatDate(transfer.transfer_date))}</td><td></td><td></td></tr>
