@@ -285,5 +285,179 @@ router.post('/', async (req, res) => {
   }
 })
  
+
+// Delete a transfer and restore the previous accountable employee.
+// Only the most recent transfer can be deleted so transfer history stays consistent.
+router.delete('/:id', async (req, res) => {
+  try {
+    const { data: transfer, error: transferError } = await supabase
+      .from('item_transfers')
+      .select('*')
+      .eq('id', req.params.id)
+      .single()
+
+    if (transferError || !transfer) {
+      return res.status(404).json({ error: 'Transfer record not found.' })
+    }
+
+    if (!transfer.property_receipt_id || !transfer.from_user_id) {
+      return res.status(409).json({
+        error: 'This transfer cannot be deleted because the previous accountable employee cannot be identified.'
+      })
+    }
+
+    const { data: laterTransfers, error: laterTransferError } = await supabase
+      .from('item_transfers')
+      .select('id')
+      .eq('property_receipt_id', transfer.property_receipt_id)
+      .gt('created_at', transfer.created_at)
+      .limit(1)
+
+    if (laterTransferError) {
+      return res.status(500).json({ error: laterTransferError.message })
+    }
+
+    if (laterTransfers?.length) {
+      return res.status(409).json({
+        error: 'This transfer cannot be deleted because a newer transfer exists for the same property. Delete the newest transfer first.'
+      })
+    }
+
+    const { data: returnedRows, error: returnError } = await supabase
+      .from('item_returns')
+      .select('id')
+      .eq('property_receipt_id', transfer.property_receipt_id)
+      .limit(1)
+
+    if (returnError) return res.status(500).json({ error: returnError.message })
+
+    const { data: returnRequests, error: requestError } = await supabase
+      .from('return_requests')
+      .select('id')
+      .eq('property_receipt_id', transfer.property_receipt_id)
+      .limit(1)
+
+    if (requestError) return res.status(500).json({ error: requestError.message })
+
+    if (returnedRows?.length || returnRequests?.length) {
+      return res.status(409).json({
+        error: 'This transfer cannot be deleted because the property has return records or a return request.'
+      })
+    }
+
+    const { data: receipt, error: receiptError } = await supabase
+      .from('property_receipts')
+      .select('id, item_id, issued_to')
+      .eq('id', transfer.property_receipt_id)
+      .single()
+
+    if (receiptError || !receipt) {
+      return res.status(409).json({
+        error: 'The linked property receipt was not found. Transfer was not deleted.'
+      })
+    }
+
+    const { data: item, error: itemError } = await supabase
+      .from('items')
+      .select('id, accountable_employee, status')
+      .eq('id', transfer.item_id)
+      .single()
+
+    if (itemError || !item) {
+      return res.status(409).json({
+        error: 'The linked property was not found. Transfer was not deleted.'
+      })
+    }
+
+    const { data: previousEmployee, error: employeeError } = await supabase
+      .from('users')
+      .select('id, full_name')
+      .eq('id', transfer.from_user_id)
+      .single()
+
+    if (employeeError || !previousEmployee) {
+      return res.status(409).json({
+        error: 'The previous accountable employee could not be found. Transfer was not deleted.'
+      })
+    }
+
+    const { error: receiptUpdateError } = await supabase
+      .from('property_receipts')
+      .update({ issued_to: transfer.from_user_id })
+      .eq('id', receipt.id)
+
+    if (receiptUpdateError) {
+      return res.status(500).json({ error: receiptUpdateError.message })
+    }
+
+    const { error: itemUpdateError } = await supabase
+      .from('items')
+      .update({ accountable_employee: previousEmployee.full_name, status: 'Issued' })
+      .eq('id', item.id)
+
+    if (itemUpdateError) {
+      await supabase
+        .from('property_receipts')
+        .update({ issued_to: receipt.issued_to })
+        .eq('id', receipt.id)
+
+      return res.status(500).json({
+        error: 'Could not restore the previous accountable employee. Transfer was not deleted.',
+        details: itemUpdateError.message
+      })
+    }
+
+    const { error: deleteError } = await supabase
+      .from('item_transfers')
+      .delete()
+      .eq('id', transfer.id)
+
+    if (deleteError) {
+      await supabase
+        .from('items')
+        .update({ accountable_employee: item.accountable_employee, status: item.status })
+        .eq('id', item.id)
+
+      await supabase
+        .from('property_receipts')
+        .update({ issued_to: receipt.issued_to })
+        .eq('id', receipt.id)
+
+      return res.status(500).json({
+        error: 'Transfer could not be deleted. The previous property details were restored.',
+        details: deleteError.message
+      })
+    }
+
+    try {
+      await createAuditLog(
+        'Transfer Deleted',
+        item.id,
+        JSON.stringify({
+          accountable_employee: previousEmployee.full_name,
+          transfer_id: transfer.id
+        }),
+        JSON.stringify({
+          accountable_employee: item.accountable_employee,
+          transfer_id: transfer.id,
+          from_user_id: transfer.from_user_id,
+          to_user_id: transfer.to_user_id
+        }),
+        `Deleted transfer record and restored property to ${previousEmployee.full_name}`,
+        req.profile?.id
+      )
+    } catch (auditError) {
+      console.log('Transfer deletion audit log error:', auditError)
+    }
+
+    return res.json({
+      message: 'Transfer deleted. The property was restored to the previous accountable employee.'
+    })
+  } catch (error) {
+    console.error('Transfer deletion failed:', error)
+    return res.status(500).json({ error: error.message || 'Failed to delete transfer.' })
+  }
+})
+
 module.exports = router
  
