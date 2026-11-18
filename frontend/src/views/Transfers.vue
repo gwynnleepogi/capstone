@@ -194,30 +194,47 @@
           <form @submit.prevent="saveTransfer">
             <div class="modal-body">
               <div class="mb-3">
-                <label class="form-label">Issued Property</label>
-                <select class="form-select" v-model="form.property_receipt_id" required>
-                  <option value="">Select issued property</option>
-                  <option
-                    v-for="receipt in receipts"
-                    :key="receipt.id"
-                    :value="receipt.id"
-                  >
-                    {{ receipt.receipt_number }} - {{ receipt.items?.description || 'Item' }}
-                    ({{ receipt.users?.full_name || 'Unknown holder' }})
-                  </option>
+                <label class="form-label">From Accountable Employee</label>
+                <select class="form-select" v-model="form.from_user_id" required>
+                  <option value="">Select current accountable employee</option>
+                  <option v-for="person in sourceEmployees" :key="person.id" :value="person.id">{{ person.full_name }}</option>
                 </select>
-
-                <div v-if="receipts.length === 0" class="form-text text-warning">
-                  No issued property is available to transfer.
-                </div>
+                <div v-if="sourceEmployees.length === 0" class="form-text text-warning">No issued properties are currently available for transfer.</div>
               </div>
 
-              <div v-if="selectedReceipt" class="alert alert-light border">
-                <strong>{{ selectedReceipt.items?.description || 'Item' }}</strong>
-                <div>Property No.: {{ selectedReceipt.items?.property_number || '-' }}</div>
-                <div>Currently held by: {{ selectedReceipt.users?.full_name || '-' }}</div>
-                <div>Quantity issued: {{ selectedReceipt.quantity }}</div>
-                <div>Current condition: {{ selectedReceipt.items?.condition || '-' }}</div>
+              <div v-if="form.from_user_id" class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <label class="form-label mb-0">Select Properties to Transfer</label>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" @click="toggleAllProperties" :disabled="selectableReceipts.length === 0">
+                    {{ allPropertiesSelected ? 'Clear Selection' : 'Select All' }}
+                  </button>
+                </div>
+                <div class="table-responsive border rounded">
+                  <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light">
+                      <tr><th style="width:42px">Select</th><th>Property No.</th><th>Description</th><th>Amount</th><th>Condition</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="receipt in sourceReceipts" :key="receipt.id">
+                        <td><input class="form-check-input" type="checkbox" v-model="form.property_receipt_ids" :value="receipt.id" :disabled="receipt.items?.condition !== 'Serviceable'"></td>
+                        <td>{{ receipt.items?.property_number || '-' }}<div class="small text-muted">{{ receipt.receipt_number }}</div></td>
+                        <td>{{ receipt.items?.description || '-' }}</td>
+                        <td>₱{{ Number(receipt.items?.cost || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}</td>
+                        <td>
+                          <span class="badge" :class="receipt.items?.condition === 'Serviceable' ? 'bg-success' : 'bg-danger'">{{ receipt.items?.condition || '-' }}</span>
+                          <div v-if="receipt.items?.condition !== 'Serviceable'" class="small text-danger">Cannot transfer</div>
+                        </td>
+                      </tr>
+                      <tr v-if="sourceReceipts.length === 0"><td colspan="5" class="text-center text-muted py-3">No issued properties found for this employee.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="form-text">{{ form.property_receipt_ids.length }} property/properties selected. Only serviceable properties can be transferred.</div>
+              </div>
+
+              <div v-if="selectedSourceEmployee" class="alert alert-light border">
+                <strong>From:</strong> {{ selectedSourceEmployee.full_name }}
+                <div><strong>Current Responsibility Center:</strong> {{ selectedSourceResponsibilityCenter || 'Not specified' }}</div>
               </div>
 
               <div class="mb-3">
@@ -402,14 +419,37 @@ export default {
   },
 
   computed: {
-    selectedReceipt() {
-      return this.receipts.find(
-        r => r.id === this.form.property_receipt_id
-      ) || null
+    sourceEmployees() {
+      const unique = new Map()
+      this.receipts.forEach(receipt => {
+        if (receipt.issued_to && receipt.users?.full_name) unique.set(receipt.issued_to, { id: receipt.issued_to, full_name: receipt.users.full_name })
+      })
+      return [...unique.values()].sort((a, b) => a.full_name.localeCompare(b.full_name, undefined, { sensitivity: 'base' }))
+    },
+
+    sourceReceipts() {
+      return this.receipts.filter(receipt => receipt.issued_to === this.form.from_user_id)
+    },
+
+    selectableReceipts() {
+      return this.sourceReceipts.filter(receipt => receipt.items?.condition === 'Serviceable')
+    },
+
+    allPropertiesSelected() {
+      return this.selectableReceipts.length > 0 && this.selectableReceipts.every(receipt => this.form.property_receipt_ids.includes(receipt.id))
+    },
+
+    selectedSourceEmployee() {
+      return this.sourceEmployees.find(person => person.id === this.form.from_user_id) || null
+    },
+
+    selectedSourceResponsibilityCenter() {
+      const selected = this.sourceReceipts.find(receipt => this.form.property_receipt_ids.includes(receipt.id)) || this.sourceReceipts[0]
+      return selected?.items?.responsibility_center || ''
     },
 
     receivingEmployees() {
-      const holderId = this.selectedReceipt?.issued_to
+      const holderId = this.form.from_user_id
 
       return this.personnel
         .filter(person => person.id !== holderId)
@@ -508,7 +548,8 @@ export default {
       }
     },
 
-    'form.property_receipt_id'() {
+    'form.from_user_id'() {
+      this.form.property_receipt_ids = []
       this.form.to_user_id = ''
       this.employeeSearch = ''
       this.showEmployeeOptions = false
@@ -531,7 +572,8 @@ export default {
   methods: {
     emptyForm() {
       return {
-        property_receipt_id: '',
+        from_user_id: '',
+        property_receipt_ids: [],
         transfer_type: 'To Employee',
         to_user_id: '',
         office_id: '',
@@ -614,6 +656,12 @@ export default {
       ).show()
     },
 
+    toggleAllProperties() {
+      this.form.property_receipt_ids = this.allPropertiesSelected
+        ? []
+        : this.selectableReceipts.map(receipt => receipt.id)
+    },
+
     selectReceivingEmployee(person) {
       this.form.to_user_id = person.id
       this.employeeSearch = person.full_name
@@ -627,49 +675,53 @@ export default {
     },
 
     async saveTransfer() {
+      if (!this.form.property_receipt_ids.length) {
+        this.toast('Please select at least one property to transfer.')
+        return
+      }
+      if (!this.form.to_user_id) {
+        this.toast('Please select the receiving employee.')
+        return
+      }
+
       this.saving = true
-
+      let transferredCount = 0
       try {
-        const response = await fetch('/api/transfers', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            property_receipt_id: this.form.property_receipt_id,
-            transfer_type: 'To Employee',
-            to_user_id: this.form.to_user_id,
-            office_id: this.form.office_id || null,
-            transfer_date: this.form.transfer_date,
-            condition_after_transfer: null,
-            reason: this.form.reason === 'Others'
-              ? `Others: ${this.form.otherReason.trim()}`
-              : this.form.reason,
-            remarks: this.form.remarks
+        for (const receiptId of this.form.property_receipt_ids) {
+          const response = await fetch('/api/transfers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              property_receipt_id: receiptId,
+              transfer_type: 'To Employee',
+              to_user_id: this.form.to_user_id,
+              office_id: this.form.office_id || null,
+              transfer_date: this.form.transfer_date,
+              condition_after_transfer: null,
+              reason: this.form.reason === 'Others' ? `Others: ${this.form.otherReason.trim()}` : this.form.reason,
+              remarks: this.form.remarks
+            })
           })
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to save transfer')
+          const data = await response.json()
+          if (!response.ok) throw new Error(data.error || 'Failed to transfer a selected property')
+          transferredCount++
         }
 
-        Modal.getOrCreateInstance(
-          document.getElementById('transferModal')
-        ).hide()
-
+        Modal.getOrCreateInstance(document.getElementById('transferModal')).hide()
         this.employeeSearch = ''
         this.showEmployeeOptions = false
-
-        await Promise.all([
-          this.getTransfers(),
-          this.getReceipts()
-        ])
-
-        this.toast('Transfer recorded successfully')
+        await Promise.all([this.getTransfers(), this.getReceipts()])
+        this.toast(`${transferredCount} propert${transferredCount === 1 ? 'y' : 'ies'} transferred successfully.`)
+        this.form = this.emptyForm()
       } catch (error) {
-        this.toast(error.message)
+        if (transferredCount > 0) {
+          Modal.getOrCreateInstance(document.getElementById('transferModal')).hide()
+          await Promise.all([this.getTransfers(), this.getReceipts()])
+          this.toast(`${transferredCount} propert${transferredCount === 1 ? 'y' : 'ies'} transferred. Remaining transfer stopped: ${error.message}`)
+          this.form = this.emptyForm()
+        } else {
+          this.toast(error.message)
+        }
       } finally {
         this.saving = false
       }
