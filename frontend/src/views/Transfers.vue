@@ -873,6 +873,31 @@ export default {
       }
     },
 
+    openExistingTransferReceipt(transfer) {
+      if (!transfer || !transfer.items) {
+        this.toast('The property details for this transfer are not available.')
+        return
+      }
+
+      this.transferPrintData = {
+        receipts: [{
+          items: transfer.items,
+          quantity: transfer.property_receipts?.quantity || 1,
+          date_issued: transfer.property_receipts?.date_issued || transfer.transfer_date
+        }],
+        fromEmployee: transfer.from_user || null,
+        toEmployee: transfer.to_user || null,
+        officeName: transfer.offices?.office_name || transfer.items.responsibility_center || '',
+        transferDate: transfer.transfer_date,
+        remarks: transfer.reason || '',
+        notes: transfer.remarks || ''
+      }
+
+      this.printDetails = this.emptyPrintDetails()
+      this.printDetails.rptNumber = transfer.rpt_number || transfer.rpt_no || ''
+      Modal.getOrCreateInstance(document.getElementById('transferPrintModal')).show()
+    },
+
     openTransferRequestPrint(transfer) {
       this.selectedRequestTransfer = transfer
       this.requestPrintDetails = this.emptyRequestPrintDetails()
