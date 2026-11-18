@@ -257,15 +257,12 @@
                 <label class="form-label">
                   Accountable Employee <span class="text-danger">*</span>
                 </label>
-                <input
-                  v-model.trim="newItem.accountable_employee"
-                  type="text"
-                  class="form-control"
-                  list="accountable-employee-options"
-                  placeholder="Search or enter accountable employee name"
-                  autocomplete="off"
+                <SearchableSelect
+                  v-model="newItem.accountable_employee"
+                  :options="accountableEmployeeOptions"
+                  placeholder="Search or select an employee account"
                   required
-                  @input="autoFillOffice(newItem)"
+                  @update:modelValue="selectAccountableEmployee(newItem, $event)"
                 />
               </div>
 
@@ -274,11 +271,11 @@
                   Responsibility Center <span class="text-danger">*</span>
                 </label>
                 <input
-                  v-model.trim="newItem.responsibility_center"
+                  v-model="newItem.responsibility_center"
                   type="text"
                   class="form-control"
-                  list="office-options"
-                  placeholder="Search or type responsibility center"
+                  placeholder="Automatically filled from the employee account"
+                  readonly
                   required
                 />
               </div>
@@ -810,14 +807,12 @@
               <label class="form-label">
                 Accountable Employee <span class="text-danger">*</span>
               </label>
-              <input
-                v-model.trim="editForm.accountable_employee"
-                type="text"
-                class="form-control"
-                list="accountable-employee-options"
-                placeholder="Search or enter accountable employee name"
-                autocomplete="off"
+              <SearchableSelect
+                v-model="editForm.accountable_employee"
+                :options="accountableEmployeeOptions"
+                placeholder="Search or select an employee account"
                 required
+                @update:modelValue="selectAccountableEmployee(editForm, $event)"
               />
             </div>
 
@@ -826,12 +821,11 @@
                 Responsibility Center <span class="text-danger">*</span>
               </label>
               <input
-                v-model.trim="editForm.responsibility_center"
+                v-model="editForm.responsibility_center"
                 type="text"
                 class="form-control"
-                list="office-options"
-                placeholder="Search or enter responsibility center"
-                autocomplete="off"
+                placeholder="Automatically filled from the employee account"
+                readonly
                 required
               />
             </div>
@@ -869,13 +863,6 @@
       <option v-for="name in supplierOptions" :key="name" :value="name"></option>
     </datalist>
 
-    <datalist id="office-options">
-      <option v-for="office in officeOptions" :key="office.id" :value="office.office_name"></option>
-    </datalist>
-
-    <datalist id="accountable-employee-options">
-      <option v-for="name in accountableEmployeeOptions" :key="name" :value="name"></option>
-    </datalist>
   </div>
 </template>
 
@@ -966,6 +953,7 @@ export default {
       items: [],
       itemsLoaded: false,
       offices: [],
+      personnel: [],
       suppliers: [],
 
       unitOptions: [
@@ -1142,11 +1130,27 @@ export default {
     },
 
     accountableEmployeeOptions() {
-      return [...new Set(
-        this.items
-          .map(item => String(item.accountable_employee || '').trim())
-          .filter(Boolean),
-      )].sort((a, b) => a.localeCompare(b))
+      return this.personnel
+        .filter(person =>
+          person &&
+          person.full_name &&
+          ['teacher', 'non-teaching staff'].includes(
+            String(person.role || '').trim().toLowerCase(),
+          ),
+        )
+        .sort((first, second) =>
+          first.full_name.localeCompare(second.full_name, undefined, {
+            sensitivity: 'base',
+          }),
+        )
+        .map(person => ({
+          value: person.full_name,
+          label: [
+            person.full_name,
+            person.employee_id ? 'ID: ' + person.employee_id : '',
+            person.role || '',
+          ].filter(Boolean).join(' — '),
+        }))
     },
 
     supplierOptions() {
@@ -1442,6 +1446,7 @@ export default {
       const results = await Promise.allSettled([
         this.fetchJson('/api/offices'),
         this.fetchJson('/api/suppliers'),
+        this.fetchJson('/api/personnel'),
       ])
 
       if (results[0].status === 'fulfilled') {
@@ -1452,6 +1457,10 @@ export default {
         this.suppliers = Array.isArray(results[1].value) ? results[1].value : []
       }
 
+      if (results[2].status === 'fulfilled') {
+        this.personnel = Array.isArray(results[2].value) ? results[2].value : []
+      }
+
       if (results.some(result => result.status === 'rejected')) {
         window.dispatchEvent(new CustomEvent('show-toast', {
           detail: 'Failed to load office or supplier options',
@@ -1459,22 +1468,33 @@ export default {
       }
     },
 
-    autoFillOffice(form) {
-      if (!form.accountable_employee) {
+    selectAccountableEmployee(form, employeeName) {
+      const selectedName = String(employeeName || '').trim()
+
+      if (!selectedName) {
+        form.accountable_employee = ''
+        form.responsibility_center = ''
         form.status = 'Available'
         return
       }
 
-      form.status = 'Issued'
-
-      const existingProperty = this.items.find(item =>
-        String(item.accountable_employee || '').trim().toLowerCase() ===
-          String(form.accountable_employee || '').trim().toLowerCase(),
+      const employee = this.personnel.find(person =>
+        String(person.full_name || '').trim().toLowerCase() ===
+        selectedName.toLowerCase(),
       )
 
-      if (existingProperty && existingProperty.responsibility_center) {
-        form.responsibility_center = existingProperty.responsibility_center
+      if (!employee) {
+        form.accountable_employee = ''
+        form.responsibility_center = ''
+        return
       }
+
+      form.accountable_employee = employee.full_name
+      form.responsibility_center =
+        employee.offices?.office_name ||
+        employee.department ||
+        ''
+      form.status = 'Issued'
     },
 
     async getItems() {
@@ -1572,14 +1592,27 @@ export default {
       this.saving = true
 
       try {
-        const responsibilityCenter = await this.ensureOfficeExists(
-          this.newItem.responsibility_center,
+        const selectedEmployee = this.personnel.find(person =>
+          String(person.full_name || '').trim().toLowerCase() ===
+          String(this.newItem.accountable_employee || '').trim().toLowerCase(),
         )
-        const accountableEmployee = String(this.newItem.accountable_employee || '').trim()
+
+        if (!selectedEmployee) {
+          throw new Error('Select an accountable employee from the existing user accounts.')
+        }
+
+        const responsibilityCenter =
+          selectedEmployee.offices?.office_name ||
+          selectedEmployee.department ||
+          ''
+
+        if (!responsibilityCenter) {
+          throw new Error('The selected user account has no assigned office.')
+        }
 
         const payload = {
           ...this.newItem,
-          accountable_employee: accountableEmployee,
+          accountable_employee: selectedEmployee.full_name,
           responsibility_center: responsibilityCenter,
           classification: this.classificationFromCost(this.newItem.cost),
           quantity: 1,
@@ -1880,14 +1913,27 @@ export default {
       this.updating = true
 
       try {
-        const responsibilityCenter = await this.ensureOfficeExists(
-          this.editForm.responsibility_center,
+        const selectedEmployee = this.personnel.find(person =>
+          String(person.full_name || '').trim().toLowerCase() ===
+          String(this.editForm.accountable_employee || '').trim().toLowerCase(),
         )
-        const accountableEmployee = String(this.editForm.accountable_employee || '').trim()
+
+        if (!selectedEmployee) {
+          throw new Error('Select an accountable employee from the existing user accounts.')
+        }
+
+        const responsibilityCenter =
+          selectedEmployee.offices?.office_name ||
+          selectedEmployee.department ||
+          ''
+
+        if (!responsibilityCenter) {
+          throw new Error('The selected user account has no assigned office.')
+        }
 
         const payload = {
           ...this.editForm,
-          accountable_employee: accountableEmployee,
+          accountable_employee: selectedEmployee.full_name,
           responsibility_center: responsibilityCenter,
           quantity: 1,
         }
