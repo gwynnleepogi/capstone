@@ -60,7 +60,7 @@ router.get('/eligible-receipts', async (req, res) => {
     const items = await lookup(
       'items',
       open.map(r => r.item_id),
-      'id, description, property_number, condition, status, accountable_employee'
+      'id, description, property_number, cost, condition, status, accountable_employee, responsibility_center'
     )
     const users = await lookup('users', open.map(r => r.issued_to), 'id, full_name')
  
