@@ -1080,12 +1080,12 @@ export default {
 html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
 body{font-size:10px}
 .sheet{width:100%;min-height:12.25in;border:1px solid #888;padding:8px 10px 12px;position:relative}
-.header{height:66px;border:1px solid #999;display:grid;grid-template-columns:68px 1fr;align-items:center;text-align:center}
-.logo-cell{height:100%;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
+.header{min-height:96px;border:1px solid #999;display:grid;grid-template-columns:68px 1fr;align-items:stretch;text-align:center}
+.logo-cell{min-height:96px;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
 .logo{width:48px;height:48px;object-fit:contain}
-.header-text{font-size:11px;line-height:1.2;font-weight:bold}
+.header-text{display:flex;flex-direction:column;justify-content:center;font-size:11px;line-height:1.2;font-weight:bold;padding:5px 8px}
 .header-text .school{font-size:13px}
-.title{font-size:14px;font-weight:bold;text-align:center;margin:8px 0 0}
+.header-title{font-size:14px;font-weight:bold;text-align:center;border-top:1px solid #999;margin:5px -8px 0;padding:5px 4px 1px}
 .rpt{font-weight:bold;text-align:right;padding:4px 18% 4px 0;border-bottom:1px solid #777;font-size:11px}
 .date{margin:13px 0 5px 8px}
 .info,.items,.reason,.approvals{width:100%;border-collapse:collapse;table-layout:fixed}
@@ -1110,8 +1110,7 @@ body{font-size:10px}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{min-height:12.25in}}
 </style></head><body>
 <div class="sheet">
-<div class="header"><div class="logo-cell"><img class="logo" src="${logoUrl}" alt="NVSU"></div><div class="header-text">Republic of the Philippines<br><span class="school">NUEVA VIZCAYA STATE UNIVERSITY</span><br>Bambang, Nueva Vizcaya</div></div>
-<div class="title">REQUEST FOR PROPERTY TRANSFER</div>
+<div class="header"><div class="logo-cell"><img class="logo" src="${logoUrl}" alt="NVSU"></div><div class="header-text"><div>Republic of the Philippines</div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div>Bambang, Nueva Vizcaya</div><div class="header-title">REQUEST FOR PROPERTY TRANSFER</div></div></div>
 <div class="rpt">RPT No.: ${esc(details.rptNumber)}</div>
 <div class="date">Date: ${esc(formatDate(transfer.transfer_date))}</div>
 <table class="info">
@@ -1122,7 +1121,7 @@ body{font-size:10px}
 <thead><tr><th style="width:12%">DATE<br>ACQUIRED</th><th style="width:17%">PROPERTY NO.</th><th style="width:37%">DESCRIPTION</th><th style="width:15%">AMOUNT</th><th style="width:19%">CONDITION OF<br>PPE</th></tr></thead>
 <tbody><tr><td class="center">${esc(formatDate(item.acquisition_date))}</td><td class="center">${esc(item.property_number || '')}</td><td>${esc(item.description || '')}</td><td class="right">${amount.toLocaleString('en-PH',{minimumFractionDigits:2})}</td><td class="center">${esc(condition)}</td></tr>${blankRows}</tbody>
 </table>
-<table class="reason"><tr><td style="width:13%;font-weight:bold">Reason for<br>Transfer:</td><td>${esc(transfer.reason || transfer.remarks || '')}</td></tr></table>
+<table class="reason"><tr><td style="width:29%;font-weight:bold">Reason for<br>Transfer:</td><td>${esc(transfer.reason || transfer.remarks || '')}</td></tr></table>
 <table class="approvals">
 <tr><th style="width:12%"></th><th style="width:19%">Requested by:</th><th style="width:19%">Approved by:</th><th style="width:19%">Concurred by:</th><th>Action Taken (to be<br>filled by the Property Officer)</th></tr>
 <tr><td class="row-label">Signature:</td><td></td><td></td><td></td><td class="action" rowspan="4">${esc(details.actionTaken)}</td></tr>
