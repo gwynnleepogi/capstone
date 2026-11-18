@@ -13,7 +13,7 @@ router.get('/pending-issuance-count', async (req, res) => {
   try {
     const { data: requests, error: requestError } = await supabase
       .from('item_requests')
-      .select('id')
+      .select('id, item_id')
       .eq('status', 'Approved')
 
     if (requestError) {
@@ -23,7 +23,7 @@ router.get('/pending-issuance-count', async (req, res) => {
 
     const { data: receipts, error: receiptError } = await supabase
       .from('property_receipts')
-      .select('item_request_id')
+      .select('item_request_id, item_id')
 
     if (receiptError) {
       console.error('Pending issuance receipt lookup failed:', receiptError)
@@ -35,10 +35,21 @@ router.get('/pending-issuance-count', async (req, res) => {
         .filter(receipt => receipt.item_request_id)
         .map(receipt => String(receipt.item_request_id))
     )
+    const receiptedItemIds = new Set(
+      (receipts || [])
+        .filter(receipt => receipt.item_id)
+        .map(receipt => String(receipt.item_id))
+    )
 
-    const pendingCount = (requests || []).filter(
-      request => !receiptedRequestIds.has(String(request.id))
-    ).length
+    // A receipt can be created from the assigned-property flow, which stores
+    // item_id but does not store item_request_id. Match that receipt to an
+    // approved request for the same assigned item so the badge is cleared.
+    const pendingCount = (requests || []).filter(request => {
+      const hasRequestReceipt = receiptedRequestIds.has(String(request.id))
+      const hasPropertyReceipt = request.item_id &&
+        receiptedItemIds.has(String(request.item_id))
+      return !hasRequestReceipt && !hasPropertyReceipt
+    }).length
 
     res.json({ count: pendingCount })
   } catch (error) {
