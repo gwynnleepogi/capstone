@@ -1116,32 +1116,32 @@ body{font-size:9px}
 .header{min-height:76px;border:1px solid #999;display:grid;grid-template-columns:60px 1fr;align-items:stretch;text-align:center}
 .logo-cell{min-height:76px;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
 .logo{width:43px;height:43px;object-fit:contain}
-.header-text{display:flex;flex-direction:column;justify-content:center;font-size:15px;line-height:1.1;font-weight:bold;padding:4px 6px}
-.header-text .school{font-size:17px}
-.header-title{font-size:15px;font-weight:bold;text-align:center;border-top:1px solid #999;margin:4px -6px 0;padding:4px 3px 0}
-.rpt{font-weight:bold;text-align:right;padding:5px 0;font-size:15px}
+.header-text{display:flex;flex-direction:column;justify-content:center;font-size:14px;line-height:1.1;font-weight:bold;padding:4px 6px}
+.header-text .school{font-size:16px}
+.header-title{font-size:14px;font-weight:bold;text-align:center;border-top:1px solid #999;margin:4px -6px 0;padding:4px 3px 0}
+.rpt{font-weight:bold;text-align:right;padding:5px 0;font-size:14px}
 .rpt-number{display:inline-block;min-width:105px;text-align:center;border-bottom:1px solid #111;padding:0 5px 1px}
-.date{margin:10px 0 7px 6px;font-size:15px}
+.date{margin:10px 0 7px 6px;font-size:14px}
 .info,.items,.reason,.approvals{width:100%;border-collapse:collapse;table-layout:fixed}
-.info td{border:1px solid #888;padding:6px 7px;min-height:34px;font-size:15px;line-height:1.25}
-.info .label{width:29%}
+.info td{border:1px solid #888;padding:6px 7px;min-height:34px;font-size:14px;line-height:1.25}
+.info .label{width:34%;white-space:normal;overflow-wrap:break-word}
 .items th,.items td{border:1px solid #888;padding:5px}
-.items th{text-align:center;font-weight:bold;min-height:36px;font-size:15px;line-height:1.2}
-.items td{min-height:30px;font-size:15px;line-height:1.25}
+.items th{text-align:center;font-weight:bold;min-height:36px;font-size:14px;line-height:1.2}
+.items td{min-height:30px;font-size:14px;line-height:1.25}
 .items tbody tr:first-child td{min-height:34px}
 .items tbody tr:not(:first-child) td{height:0.33in;min-height:0.33in}
 .center{text-align:center}.right{text-align:right}
-.reason td{border:1px solid #888;padding:7px;height:auto;font-size:15px;line-height:1.25}
-.approvals th,.approvals td{border:1px solid #888;padding:6px 7px;font-size:15px;line-height:1.25}
-.approvals th{text-align:center;min-height:38px;font-size:15px}
+.reason td{border:1px solid #888;padding:7px;height:auto;font-size:14px;line-height:1.25}
+.approvals th,.approvals td{border:1px solid #888;padding:6px 7px;font-size:14px;line-height:1.25}
+.approvals th{text-align:center;min-height:38px;font-size:14px}
 .approvals td{min-height:30px}
 .approvals .row-label{font-weight:bold;width:12%}
 .approvals .action{vertical-align:top}
-.instructions{border:1px solid #888;padding:9px 11px 10px;font-size:15px;line-height:1.3}
-.instructions h2{text-align:center;text-decoration:underline;font-size:15px;margin:3px 0 9px}
-.instructions p{font-size:15px;line-height:1.3;margin:0 0 8px}
-.instructions .copies{text-align:center;font-size:15px;line-height:1.3;margin-top:9px}
-.form-code{margin-top:8px;text-align:left;font-size:15px;font-weight:bold;line-height:1.2}
+.instructions{border:1px solid #888;padding:9px 11px 10px;font-size:14px;line-height:1.3}
+.instructions h2{text-align:center;text-decoration:underline;font-size:14px;margin:3px 0 9px}
+.instructions p{font-size:14px;line-height:1.3;margin:0 0 8px}
+.instructions .copies{text-align:center;font-size:14px;line-height:1.3;margin-top:9px}
+.form-code{margin-top:8px;text-align:left;font-size:14px;font-weight:bold;line-height:1.2}
 @media print{html,body{margin:0!important;padding:0!important}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{min-height:0;break-inside:avoid;page-break-inside:avoid}}
 </style></head><body>
 <div class="sheet">
