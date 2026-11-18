@@ -114,7 +114,7 @@
           @click="menuOpen = false"
         >
           <i class="bi bi-arrow-return-left"></i>
-          Returns &amp; Incidents
+          Returns
 
           <span
             v-if="pendingReturnCount > 0"
