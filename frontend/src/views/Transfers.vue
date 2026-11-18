@@ -1128,6 +1128,7 @@ body{font-size:9px}
 .items th{text-align:center;font-weight:bold;min-height:36px;font-size:15px;line-height:1.2}
 .items td{min-height:30px;font-size:15px;line-height:1.25}
 .items tbody tr:first-child td{min-height:34px}
+.items tbody tr:not(:first-child) td{height:0.33in;min-height:0.33in}
 .center{text-align:center}.right{text-align:right}
 .reason td{border:1px solid #888;padding:7px;height:auto;font-size:15px;line-height:1.25}
 .approvals th,.approvals td{border:1px solid #888;padding:6px 7px;font-size:15px;line-height:1.25}
