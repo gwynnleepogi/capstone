@@ -518,9 +518,9 @@
           </div>
           <div class="modal-body">
             <p class="text-muted small">Complete these details before printing the transfer receipt.</p>
-            <div class="mb-3">
-              <label class="form-label">RPT No.</label>
-              <input class="form-control" v-model.trim="printDetails.rptNumber" placeholder="Enter RPT number">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6"><label class="form-label">RPT No.</label><input class="form-control" v-model.trim="printDetails.rptNumber" placeholder="Enter RPT number"></div>
+              <div class="col-md-6"><label class="form-label">Paper Size</label><select class="form-select" v-model="printDetails.paperSize"><option value="long">Long (8.5 × 13 inches)</option><option value="short">Short (8.5 × 11 inches)</option><option value="a4">A4 (210 × 297 mm)</option></select></div>
             </div>
             <div class="mb-3">
               <label class="form-label d-block">Acknowledgement Classification</label>
@@ -773,6 +773,7 @@ export default {
       const today = new Date().toISOString().split('T')[0]
       return {
         rptNumber: '',
+        paperSize: 'long',
         classifications: ['TRANSFER'],
         receivedBy: { name: '', title: '', date: today },
         issuedBy: { name: '', title: '', date: today }
@@ -1218,7 +1219,7 @@ body{font-size:9px}
         return Number.isNaN(parsed.getTime()) ? esc(value) : parsed.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric', year: 'numeric' })
       }
       const classifications = this.acknowledgementClassifications.map(label =>
-        `<span>${details.classifications.includes(label) ? '____' : '____'}${esc(label)}</span>`
+        `<span class="classification-option">${details.classifications.includes(label) ? '☑' : '☐'} ${esc(label)}</span>`
       ).join('')
       const rows = data.receipts.map(receipt => {
         const item = receipt.items || {}
@@ -1233,14 +1234,16 @@ body{font-size:9px}
       }
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
       const responsibilityCenter = data.officeName || firstItem.responsibility_center || '-'
+      const paperSizes = { long: '8.5in 13in', short: '8.5in 11in', a4: '210mm 297mm' }
+      const selectedPaperSize = paperSizes[details.paperSize] || paperSizes.long
       printWindow.document.write(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>${esc(receiptTitle)}</title>
 <style>
-@page{size:8.5in 11in portrait;margin:10mm}
+@page{size:${selectedPaperSize} portrait;margin:10mm}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
 body{font-size:15px}
-.page{width:100%;height:10.2in;min-height:10.2in;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid;page-break-inside:avoid}
+.page{width:100%;min-height:calc(100vh - 20mm);display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid}
 .header{display:grid;grid-template-columns:62px 1fr 100px;align-items:center;text-align:center;margin-bottom:9px;min-height:70px}
 .logo{width:58px;height:58px;object-fit:contain}
 .school{font-size:17px;font-weight:bold;line-height:1.2}
@@ -1250,21 +1253,21 @@ body{font-size:15px}
 .receipt-title.ics-title{font-size:15px;letter-spacing:0;line-height:1.2;margin:3px auto 8px;max-width:100%;white-space:normal}
 .meta{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #111;padding:6px 7px 7px;font-size:15px;gap:12px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
-.items th,.items td{padding:6px 5px;vertical-align:top;overflow-wrap:anywhere}
-.items th{text-align:center;border-bottom:1px solid #111;border-top:1px solid #111;font-size:15px;line-height:1.2}
+.items th,.items td{padding:6px 5px;vertical-align:top;overflow-wrap:anywhere;border:1px solid #111}
+.items th{text-align:center;font-size:15px;line-height:1.2}
 .items td{font-size:15px;line-height:1.25}
 .items tbody tr{border-bottom:1px solid #aaa;min-height:0.33in}
 .items .description{white-space:pre-line}
 .center{text-align:center}.number{text-align:right;white-space:nowrap}
 .total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:7px;padding-bottom:7px;font-size:15px}
 .nothing{text-align:center;border-bottom:1px solid #111;padding:7px 0;font-size:15px}
-.remarks{border-bottom:1px solid #111;padding:8px 3px;min-height:36px;font-size:15px}
-.spacer{flex:1 1 0;height:0;min-height:0}
+.remarks{border-bottom:none;padding:8px 3px;min-height:36px;font-size:15px}
+.bottom-block{margin-top:auto;flex-shrink:0;break-inside:avoid;page-break-inside:avoid}
 .page-number{text-align:right;border-top:1px solid #111;padding-top:5px;margin-bottom:7px;font-size:15px}
 .classification{padding-top:5px}
 .classification-title{font-size:15px;font-weight:bold;text-decoration:underline;margin-bottom:7px}
-.classification-list{display:grid;grid-template-columns:1fr 1fr 1fr 1.5fr;gap:5px 7px;font-size:15px;line-height:1.2}
-.classification-list span{white-space:nowrap}
+.classification-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 8px;font-size:15px;line-height:1.25}
+.classification-option{white-space:normal;overflow-wrap:anywhere}
 .signatures{display:grid;grid-template-columns:1fr 1fr;gap:45px;margin-top:12px;min-height:105px;padding:0 12px;break-inside:avoid;page-break-inside:avoid}
 .sign-block{text-align:center;min-height:100px}
 .sign-heading{text-align:left;font-weight:bold;margin-bottom:24px;font-size:15px}
@@ -1281,13 +1284,13 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 <tbody>${rows}<tr class="total"><td colspan="5"></td><td class="number">Total</td><td class="number">${amount(total)}</td></tr></tbody></table>
 <div class="nothing">NOTHING FOLLOWS</div>
 <div class="remarks"><strong>Remarks:</strong> ${esc(data.notes || data.remarks || '')}</div>
-<div class="spacer"></div>
+<div class="bottom-block">
 <div class="page-number">Page 1 of 1</div>
 <div class="classification"><div class="classification-title">ACKNOWLEDGEMENT CLASSIFICATION</div><div class="classification-list">${classifications}</div></div>
 <div class="signatures">
 <div class="sign-block"><div class="sign-heading">Received by:</div><div class="sign-name">${esc(details.receivedBy.name)}</div><div class="sign-designation">${esc(details.receivedBy.title)}</div><div class="sign-date">${esc(date(details.receivedBy.date))}</div></div>
 <div class="sign-block"><div class="sign-heading">Issued by:</div><div class="sign-name">${esc(details.issuedBy.name)}</div><div class="sign-designation">${esc(details.issuedBy.title)}</div><div class="sign-date">${esc(date(details.issuedBy.date))}</div></div>
-</div></div>
+</div></div></div>
 <script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script>
 </body></html>`)
       printWindow.document.close()
