@@ -175,7 +175,7 @@
               </div>
 
               <!-- SELECTED ITEM DETAILS -->
-              <div v-if="selectedAssignedItem && !editing" class="alert alert-light border">
+              <div v-if="selectedReceiptItem && !editing" class="alert alert-light border">
                 <h6 class="fw-bold text-success">Selected Item Details</h6>
                 <p class="mb-1"><strong>Item:</strong> {{ selectedReceiptItem.description || '-' }}</p>
                 <p class="mb-1"><strong>Property Number:</strong> {{ selectedReceiptItem.property_number || '-' }}</p>
@@ -183,7 +183,7 @@
                 <p class="mb-1"><strong>Serial Number:</strong> {{ selectedReceiptItem.serial_number || '-' }}</p>
                 <p class="mb-1">
                   <strong>Accountable Employee:</strong>
-                  {{ selectedAssignedItem?.accountable_employee || '-' }}
+                  {{ selectedReceiptItem?.accountable_employee || '-' }}
                 </p>
                 <p class="mb-0"><strong>Cost:</strong> ₱{{ formatAmount(selectedReceiptItem.cost) }}</p>
               </div>
