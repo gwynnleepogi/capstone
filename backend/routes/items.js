@@ -468,6 +468,28 @@ router.delete('/:id', async (req, res) => {
       })
     }
 
+    // A property with a recorded return must remain in the inventory.
+    // This check protects return history even if receipt relationships change.
+    const { data: linkedReturns, error: returnLookupError } = await supabase
+      .from('item_returns')
+      .select('id')
+      .eq('item_id', req.params.id)
+      .limit(1)
+
+    if (returnLookupError) {
+      console.error('Could not verify property return history:', returnLookupError)
+      return res.status(500).json({
+        error: 'Could not verify whether this property has a recorded return.',
+        details: returnLookupError.message
+      })
+    }
+
+    if (linkedReturns && linkedReturns.length > 0) {
+      return res.status(409).json({
+        error: 'This property cannot be deleted because it has a recorded return. Keep the property to preserve its return history.'
+      })
+    }
+
     // A property linked to an acquisition/issuance receipt must remain
     // in the property records so its receipt history stays intact.
     const { data: linkedReceipts, error: receiptLookupError } = await supabase
