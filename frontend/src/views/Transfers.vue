@@ -1142,7 +1142,7 @@ body{font-size:10px}
 .campus{font-size:10px;line-height:1.25;font-weight:bold}
 .appendix{text-align:right;font-weight:bold;align-self:start;font-size:10px;padding-top:2px}
 .receipt-title{text-align:center;font-size:13px;line-height:1.2;margin:3px 0 8px;font-weight:bold}
-.receipt-title.ics-title{font-size:10.5px;letter-spacing:.15px;max-width:90%;margin-left:auto;margin-right:auto}
+.receipt-title.ics-title{font-size:9px;letter-spacing:0;line-height:1;margin:1px auto 5px;max-width:90%;white-space:nowrap}
 .meta{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #111;padding:3px 5px 5px;font-size:10px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
 .items th,.items td{padding:4px 3px;vertical-align:top;overflow-wrap:anywhere}
