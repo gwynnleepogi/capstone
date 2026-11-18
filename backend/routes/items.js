@@ -351,6 +351,7 @@ router.put('/:id', async (req, res) => {
     }
 
     const employeeName = cleanText(accountable_employee)
+    const itemCondition = cleanText(condition) || 'Serviceable'
 
     // Both accountability fields are required for every property record.
     const responsibilityCenter = getResponsibilityCenter(responsibility_center)
@@ -378,11 +379,15 @@ router.put('/:id', async (req, res) => {
         quantity: itemQuantity,
         acquisition_date: acquisition_date || null,
         classification: classification || 'PAR',
-        condition: condition || 'Serviceable',
+        condition: itemCondition,
 
-        // If an employee is assigned, status is always Issued.
-        // If no employee is assigned, status is Available.
-        status: employeeName ? 'Issued' : 'Available',
+        // Match the return workflow: an unserviceable property is marked Returned.
+        // Otherwise, derive its status from the accountable employee assignment.
+        status: itemCondition === 'Unserviceable'
+          ? 'Returned'
+          : employeeName
+            ? 'Issued'
+            : 'Available',
 
         accountable_employee: employeeName || null,
         responsibility_center: responsibilityCenter,
