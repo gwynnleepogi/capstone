@@ -6,6 +6,7 @@ import Items from '@/views/Items.vue'
 import Offices from '@/views/Offices.vue'
 import Suppliers from '@/views/Suppliers.vue'
 import Personnel from '@/views/Personnel.vue'
+import PersonnelDirectory from '@/views/PersonnelDirectory.vue'
 import ItemRequests from '@/views/ItemRequests.vue'
 import PropertyReceipts from '@/views/PropertyReceipts.vue'
 import Returns from '@/views/Returns.vue'
@@ -66,6 +67,12 @@ const router = createRouter({
       path: '/suppliers',
       name: 'Suppliers',
       component: Suppliers,
+      meta: { roles: ['Administrator'] }
+    },
+    {
+      path: '/personnel-directory',
+      name: 'PersonnelDirectory',
+      component: PersonnelDirectory,
       meta: { roles: ['Administrator'] }
     },
     {
