@@ -1866,9 +1866,11 @@ export default {
 
 table {
   width: 100%;
+  min-width: 1100px;
   border-collapse: collapse;
   font-size: 13px;
   text-align: left;
+  table-layout: auto;
 }
 
 th,
@@ -1886,10 +1888,19 @@ th {
 }
 
 .table thead th:nth-child(4),
-.table tbody td:nth-child(4),
+.table tbody td:nth-child(4) {
+  width: 140px;
+  min-width: 140px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .table thead th:nth-child(5),
 .table tbody td:nth-child(5) {
+  width: 110px;
+  min-width: 110px;
   text-align: center;
+  white-space: nowrap;
 }
 
 .movement-cell,
