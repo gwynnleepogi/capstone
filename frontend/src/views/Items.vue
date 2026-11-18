@@ -721,6 +721,7 @@
             Print Property Tag
           </button>
           <button
+            v-if="!isReturnedProperty(detailItem)"
             type="button"
             class="btn btn-outline-warning"
             @click="editItemFromDetails"
@@ -728,6 +729,9 @@
             <i class="bi bi-pencil me-1"></i>
             Edit Property
           </button>
+          <span v-else class="text-muted small align-self-center">
+            This property has been returned and can no longer be edited.
+          </span>
           <button
             type="button"
             class="btn btn-outline-danger"
@@ -2106,8 +2110,20 @@ export default {
       }
     },
 
+    isReturnedProperty(item) {
+      return String(item?.status || '').trim().toLowerCase() === 'returned' ||
+        String(item?.condition || '').trim().toLowerCase() === 'unserviceable'
+    },
+
     editItemFromDetails() {
       if (!this.detailItem) {
+        return
+      }
+
+      if (this.isReturnedProperty(this.detailItem)) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'This property has been returned and can no longer be edited.'
+        }))
         return
       }
 
