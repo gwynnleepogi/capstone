@@ -531,8 +531,11 @@
               Close
             </button>
 
-            <button type="button" class="btn btn-outline-success" @click="printReturnedPropertyReceipt">
-              <i class="bi bi-printer me-1"></i>Print Property Acknowledgement Receipt - Returned
+            <button type="button" class="btn btn-outline-success" @click="printAcknowledgementForReturnedProperty">
+              <i class="bi bi-printer me-1"></i>Print Acknowledgement for Returned Property
+            </button>
+            <button type="button" class="btn btn-outline-primary" @click="printReturnedPropertyReceipt">
+              <i class="bi bi-printer me-1"></i>Print PAR / ICS - Returned
             </button>
             <button
               type="button"
@@ -1321,6 +1324,56 @@ window.onload=function(){
 </body>
 </html>`)
       printWindow.document.close()
+    },
+
+    printAcknowledgementForReturnedProperty() {
+      const record = this.selectedReturn
+      if (!record) return
+      const item = record.items || {}
+      const returnedBy = record.personnel?.full_name || record.users?.full_name || ''
+      const office = record.offices?.office_name || ''
+      const quantity = Number(record.property_receipts?.quantity || 1)
+      const safe = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+      const date = value => {
+        if (!value) return ''
+        const parsed = new Date(value + 'T00:00:00')
+        return Number.isNaN(parsed.getTime()) ? safe(value) : parsed.toLocaleDateString('en-PH')
+      }
+      const rows = Array.from({ length: 15 }, (_, i) => i === 0
+        ? `<tr><td>1</td><td>${quantity}</td><td></td><td class="desc">${safe(item.description || 'Original property record deleted')}</td><td></td><td>${safe(returnedBy)}</td><td>${safe(record.remarks || record.return_reason || '')}</td></tr>`
+        : `<tr><td>${i + 1}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')
+      const paperSizes = { a4: '210mm 297mm', short: '8.5in 11in', long: '8.5in 13in' }
+      const selectedPaperSize = paperSizes[this.returnedReceiptPaperSize] || paperSizes.a4
+      const logo = new URL('../assets/LOGO.png', import.meta.url).href
+      const win = window.open('', '_blank', 'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes')
+      if (!win) {
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Please allow pop-ups to print the returned property receipt.' }))
+        return
+      }
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Acknowledgement Receipt for Returned Property</title>
+<style>
+@page{size:${selectedPaperSize} portrait;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif;color:#111}body{font-size:9px}
+.sheet{width:100%;min-height:0;border:0;padding:4px 6px 5px}
+.header{display:grid;grid-template-columns:24mm 1fr;border:1px solid #555;text-align:center;font-weight:bold}.logo-cell{grid-row:span 2;border-right:1px solid #555;height:25mm;display:flex;align-items:center;justify-content:center}.logo{width:19mm;height:19mm;object-fit:contain}.school{font-size:12px;line-height:1.25;padding:2mm}.form-title{font-size:12px;border-top:1px solid #555;padding:2mm}
+.arrp{text-align:right;font-size:11px;font-weight:bold;margin:1mm 2mm 4mm}.line{display:inline-block;min-width:48mm;border-bottom:1px solid #222;height:4mm}
+.meta{display:grid;grid-template-columns:1.2fr .8fr;border:1px solid #555}.meta div{padding:2mm;border-bottom:1px solid #555;min-height:8mm}.meta div:nth-child(odd){border-right:1px solid #555}.meta .storage-field,.meta .tag-field{display:flex;align-items:baseline;gap:2mm;white-space:nowrap}
+.items-for{text-align:center;border:1px solid #555;border-top:0;padding:2mm;font-weight:bold;font-size:10px}
+table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #555;padding:1mm;text-align:center;vertical-align:middle}th{font-size:8px;line-height:1.1;height:10mm}td{height:7.5mm;font-size:8px}.desc{text-align:left}
+.returned-head,.signature-grid{display:grid;grid-template-columns:22% 35% 28% 15%;border:1px solid #555;border-top:0}.returned-head{font-weight:bold}.returned-head div,.signature-grid div{padding:2mm;border-right:1px solid #555;min-height:8mm}.returned-head div{min-height:12mm}.returned-head div:last-child,.signature-grid div:last-child{border-right:0}.name-row div:nth-child(2),.designation-row div:nth-child(2){text-align:center;text-transform:uppercase}
+.instructions{margin-top:0;border:1px solid #555;padding:2mm 3mm;font-size:8.5px;line-height:1.25;width:100%}.instructions h3{text-align:center;text-decoration:underline;font-size:10px;margin:1mm 0 2mm}.instructions ol{margin:0;padding-left:7mm}.instructions li{padding:1mm 0}.copy{text-align:center;margin-top:2mm;font-size:9px}.form-code{margin-top:8px;text-align:left;font-size:8.5px;font-weight:bold;line-height:1.25}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{break-inside:avoid}}
+</style></head><body><div class="sheet">
+<div class="header"><div class="logo-cell"><img class="logo" src="${logo}" alt="NVSU Logo"></div><div class="school">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</div><div class="form-title">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</div></div>
+<div class="arrp">ARRP No.: <span class="line"></span></div>
+<div class="meta"><div><strong>Unit/Division/College:</strong> ${safe(office)}</div><div><strong>Date:</strong> ${date(record.return_date)}</div><div class="storage-field"><strong>Place of Storage:</strong></div><div class="tag-field"><strong>Tag No.:</strong></div></div>
+<div class="items-for">Items for &nbsp; ____Property Utilization/Re-issuance &nbsp; ____Repair &nbsp; ____Disposal</div>
+<table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Item<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="returned-head"><div>Returned by:</div><div><em>(Please indicate name and affix signature)</em></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
+<div class="signature-grid"><div>Signature:</div><div></div><div></div><div></div></div><div class="signature-grid name-row"><div>Printed Name:</div><div><strong>${safe(returnedBy)}</strong></div><div></div><div></div></div><div class="signature-grid designation-row"><div>Designation:</div><div></div><div></div><div></div></div><div class="signature-grid"><div>Date:</div><div>${date(record.return_date)}</div><div></div><div></div></div>
+<div class="instructions"><h3>INSTRUCTIONS</h3><ol type="A"><li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li><li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li><li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li><li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li><li>This form shall be prepared in two(2) copies distributed as follows:<div class="copy">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</div></li></ol></div>
+<div class="form-code">NVSU-FR-SMO-02-00 (121421)</div>
+</div><script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script></body></html>`)
+      win.document.close()
     },
 
     editSelectedReturn() {
