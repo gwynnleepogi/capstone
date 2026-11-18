@@ -162,6 +162,7 @@ export default {
     },
     async savePersonnel() {
       this.saving = true
+      const wasEditing = Boolean(this.editingId)
       try {
         const url = this.editingId
           ? '/api/personnel-directory/' + encodeURIComponent(this.editingId)
@@ -170,7 +171,7 @@ export default {
           method: this.editingId ? 'PUT' : 'POST',
           body: JSON.stringify(this.form)
         })
-        if (this.editingId) {
+        if (wasEditing) {
           this.personnel = this.personnel.map(person => person.id === data.id ? data : person)
         } else {
           this.personnel.push(data)
@@ -178,7 +179,7 @@ export default {
         this.personnel.sort((a, b) => a.full_name.localeCompare(b.full_name))
         this.cancelForm()
         window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: this.editingId ? 'Personnel updated successfully.' : 'Personnel added successfully.'
+          detail: wasEditing ? 'Personnel updated successfully.' : 'Personnel added successfully.'
         }))
       } catch (error) {
         window.dispatchEvent(new CustomEvent('show-toast', { detail: error.message }))
