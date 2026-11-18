@@ -140,68 +140,6 @@
                 </div>
               </div>
               <div class="mb-3" v-if="!editing">
-                <label class="form-label">Receipt For</label>
-                <select class="form-select" v-model="form.receipt_source" @change="resetReceiptSourceSelection" required>
-                  <option value="request">Approved Item Request</option>
-                  <option value="property">Property with Accountable Employee</option>
-                </select>
-              </div>
-              
-              <!-- ITEM REQUEST (SEARCHABLE DROPDOWN) -->
-              <div class="mb-3" v-if="!editing && form.receipt_source === 'request'">
-                <label class="form-label">Approved Item Request</label>
-                <div class="personnel-search">
-                  <input
-                    v-model="itemRequestSearch"
-                    class="form-control"
-                    type="text"
-                    placeholder="Search request number or item..."
-                    autocomplete="off"
-                    required
-                    @focus="showItemRequestOptions = true"
-                    @blur="hideItemRequestOptions"
-                    @input="onItemRequestSearchInput"
-                  >
-                  <div
-                    v-if="showItemRequestOptions"
-                    class="personnel-options"
-                    role="listbox"
-                    style="max-height: 250px;"
-                  >
-                    <button
-                      v-if="form.item_request_id"
-                      type="button"
-                      role="option"
-                      class="text-danger"
-                      @mousedown.prevent="clearItemRequest"
-                    >
-                      <i class="bi bi-x-circle me-1"></i>
-                      Clear selection
-                    </button>
-                    <button
-                      v-for="request in filteredItemRequests"
-                      :key="request.id"
-                      type="button"
-                      role="option"
-                      :class="{ 'bg-light': form.item_request_id === request.id }"
-                      @mousedown.prevent="selectItemRequest(request)"
-                    >
-                      <strong>{{ request.request_number }}</strong> - {{ request.item_description }}
-                    </button>
-                    <div v-if="!filteredItemRequests.length" class="personnel-empty">
-                      No matching requests.
-                    </div>
-                  </div>
-                </div>
-                <small class="text-muted">
-                  Only approved requests with an assigned inventory item can be issued. Delivered requests already have a receipt.
-                  <button type="button" class="btn btn-link btn-sm p-0 ms-1" @click="getItemRequests">
-                    Refresh list
-                  </button>
-                </small>
-              </div>
-
-              <div class="mb-3" v-if="!editing && form.receipt_source === 'property'">
                 <label class="form-label">Assigned Property</label>
                 <select class="form-select" v-model="form.item_id" @change="updateReceiptTypeForSelectedProperty" required>
                   <option value="">
@@ -220,15 +158,15 @@
               </div>
 
               <!-- SELECTED ITEM DETAILS -->
-              <div v-if="(selectedRequest || selectedAssignedItem) && !editing" class="alert alert-light border">
+              <div v-if="selectedAssignedItem && !editing" class="alert alert-light border">
                 <h6 class="fw-bold text-success">Selected Item Details</h6>
-                <p class="mb-1"><strong>Item:</strong> {{ selectedReceiptItem.description || selectedRequest?.item_description || '-' }}</p>
+                <p class="mb-1"><strong>Item:</strong> {{ selectedReceiptItem.description || '-' }}</p>
                 <p class="mb-1"><strong>Property Number:</strong> {{ selectedReceiptItem.property_number || '-' }}</p>
                 <p class="mb-1"><strong>Model Number:</strong> {{ selectedReceiptItem.model_number || '-' }}</p>
                 <p class="mb-1"><strong>Serial Number:</strong> {{ selectedReceiptItem.serial_number || '-' }}</p>
                 <p class="mb-1">
-                  <strong>{{ selectedRequest ? 'Requested By:' : 'Accountable Employee:' }}</strong>
-                  {{ selectedRequest?.users?.full_name || selectedRequest?.requested_by_name || selectedAssignedItem?.accountable_employee || '-' }}
+                  <strong>Accountable Employee:</strong>
+                  {{ selectedAssignedItem?.accountable_employee || '-' }}
                 </p>
                 <p class="mb-0"><strong>Cost:</strong> ₱{{ formatAmount(selectedReceiptItem.cost) }}</p>
               </div>
@@ -611,7 +549,7 @@ export default {
         id: null,
         item_request_id: '',
         item_id: '',
-        receipt_source: 'request',
+        receipt_source: 'property',
         receipt_type: 'PAR',
         receipt_number: '',
         date_issued: '',
@@ -730,10 +668,7 @@ export default {
     },
 
     selectedReceiptItem() {
-      if (this.form.receipt_source === 'property') {
-        return this.selectedAssignedItem || {}
-      }
-      return this.getRequestItem(this.selectedRequest)
+      return this.selectedAssignedItem || {}
     },
 
     editingItem() {
@@ -1007,7 +942,7 @@ export default {
         id: null,
         item_request_id: '',
         item_id: '',
-        receipt_source: 'request',
+        receipt_source: 'property',
         receipt_type: 'PAR',
         receipt_number: '',
         date_issued: new Date().toISOString().split('T')[0],
@@ -1027,7 +962,7 @@ export default {
         id: receipt.id,
         item_request_id: '',
         item_id: '',
-        receipt_source: 'request',
+        receipt_source: 'property',
         receipt_type: this.getReceiptTypeForItem(this.getReceiptItem(receipt)),
         receipt_number: receipt.receipt_number || '',
         date_issued: receipt.date_issued || '',
@@ -1063,10 +998,8 @@ export default {
         if (this.editing) {
           url = `/api/receipts/${this.form.id}`
           method = 'PUT'
-        } else if (this.form.receipt_source === 'property') {
-          body.item_id = this.form.item_id
         } else {
-          body.item_request_id = this.form.item_request_id
+          body.item_id = this.form.item_id
         }
 
         const response = await fetch(url, {
@@ -1084,7 +1017,6 @@ export default {
 
         await this.getReceipts()
         await this.getItems()
-        await this.getItemRequests()
 
         this.showToast(this.editing ? 'Receipt updated successfully' : 'Receipt created successfully')
       } catch (error) {
