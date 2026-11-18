@@ -534,7 +534,7 @@
             </button>
 
             <button type="button" class="btn btn-outline-success" @click="printReturnedPropertyReceipt">
-              <i class="bi bi-printer me-1"></i>Print ARRP
+              <i class="bi bi-printer me-1"></i>Print Property Acknowledgement Receipt - Returned
             </button>
             <button
               type="button"
