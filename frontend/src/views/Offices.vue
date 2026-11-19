@@ -172,27 +172,6 @@
             </select>
           </div>
 
-          <div class="col-12 col-md-4">
-            <label class="form-label mb-1">
-              Filter by Office Code
-            </label>
-
-            <select
-              v-model="officeCodeFilter"
-              class="form-select"
-            >
-              <option value="">All Office Codes</option>
-
-              <option
-                v-for="code in officeCodes"
-                :key="code"
-                :value="code"
-              >
-                {{ code }}
-              </option>
-            </select>
-          </div>
-
           <div class="col-12 col-md-4 d-flex align-items-end">
             <button
               class="btn btn-outline-secondary w-100"
@@ -402,7 +381,6 @@ export default {
 
       search: '',
       officeNameFilter: '',
-      officeCodeFilter: '',
 
       currentPage: 1,
       itemsPerPage: 10,
@@ -431,14 +409,6 @@ export default {
       return [...new Set(names)].sort()
     },
 
-    officeCodes() {
-      const codes = this.offices
-        .map(office => office.office_code)
-        .filter(code => code)
-
-      return [...new Set(codes)].sort()
-    },
-
     filteredOffices() {
       const searchText = this.search.toLowerCase().trim()
 
@@ -460,15 +430,7 @@ export default {
           !this.officeNameFilter ||
           office.office_name === this.officeNameFilter
 
-        const matchesCode =
-          !this.officeCodeFilter ||
-          office.office_code === this.officeCodeFilter
-
-        return (
-          matchesSearch &&
-          matchesName &&
-          matchesCode
-        )
+        return matchesSearch && matchesName
       })
 
       return filtered.sort((firstOffice, secondOffice) => {
@@ -542,10 +504,6 @@ export default {
     },
 
     officeNameFilter() {
-      this.currentPage = 1
-    },
-
-    officeCodeFilter() {
       this.currentPage = 1
     },
 
@@ -659,7 +617,6 @@ export default {
     clearFilters() {
       this.search = ''
       this.officeNameFilter = ''
-      this.officeCodeFilter = ''
       this.currentPage = 1
     },
 
