@@ -315,7 +315,7 @@
 
           <div class="modal-header">
             <h5 class="modal-title">
-              Assigned Items -
+              Assigned Properties -
               {{ selectedPersonnel.full_name }}
             </h5>
 
@@ -335,7 +335,7 @@
               <div class="spinner-border text-primary"></div>
 
               <p class="mt-2">
-                Loading assigned items...
+                Loading assigned properties...
               </p>
             </div>
 
@@ -346,7 +346,7 @@
               <i class="bi bi-box-seam fs-1 text-muted"></i>
 
               <p class="mt-2 text-muted">
-                No assigned items found for this personnel.
+                No assigned properties found for this personnel.
               </p>
             </div>
 
@@ -590,7 +590,7 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             <button type="button" class="btn btn-outline-primary" @click="viewSelectedPersonnelItems">
-              <i class="bi bi-box-seam me-1"></i>View Items
+              <i class="bi bi-box-seam me-1"></i>View Properties
             </button>
             <button type="button" class="btn btn-outline-warning" @click="editSelectedPersonnel">
               <i class="bi bi-pencil me-1"></i>Edit
@@ -1261,7 +1261,7 @@ export default {
 
         if (!response.ok) {
           throw new Error(
-            data.error || 'Failed to load assigned items'
+            data.error || 'Failed to load assigned properties'
           )
         }
 
