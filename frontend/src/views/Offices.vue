@@ -131,40 +131,6 @@
         </div>
       </div>
 
-      <div class="card-body border-bottom">
-        <div class="row g-3">
-          <div class="col-12 col-md-4">
-            <label class="form-label mb-1">
-              Filter by Office Name
-            </label>
-
-            <select
-              v-model="officeNameFilter"
-              class="form-select"
-            >
-              <option value="">All Office Names</option>
-
-              <option
-                v-for="name in officeNames"
-                :key="name"
-                :value="name"
-              >
-                {{ name }}
-              </option>
-            </select>
-          </div>
-
-          <div class="col-12 col-md-4 d-flex align-items-end">
-            <button
-              class="btn btn-outline-secondary w-100"
-              @click="clearFilters"
-            >
-              <i class="bi bi-arrow-counterclockwise me-1"></i>
-              Clear Filters
-            </button>
-          </div>
-        </div>
-      </div>
 
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -349,8 +315,7 @@ export default {
       selectedOffice: null,
 
       search: '',
-      officeNameFilter: '',
-
+  
       currentPage: 1,
       itemsPerPage: 10,
 
@@ -368,14 +333,6 @@ export default {
   },
 
   computed: {
-    officeNames() {
-      const names = this.offices
-        .map(office => office.office_name)
-        .filter(name => name)
-
-      return [...new Set(names)].sort()
-    },
-
     filteredOffices() {
       const searchText = this.search.toLowerCase().trim()
 
@@ -388,11 +345,7 @@ export default {
           !searchText ||
           officeName.includes(searchText)
 
-        const matchesName =
-          !this.officeNameFilter ||
-          office.office_name === this.officeNameFilter
-
-        return matchesSearch && matchesName
+        return matchesSearch
       })
 
       return filtered.sort((firstOffice, secondOffice) => {
@@ -462,10 +415,6 @@ export default {
 
   watch: {
     search() {
-      this.currentPage = 1
-    },
-
-    officeNameFilter() {
       this.currentPage = 1
     },
 
@@ -576,11 +525,6 @@ export default {
       }
     },
 
-    clearFilters() {
-      this.search = ''
-      this.officeNameFilter = ''
-      this.currentPage = 1
-    },
 
     openAddForm() {
       this.showAddForm = true
