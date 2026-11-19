@@ -538,7 +538,14 @@
             <div class="row g-3 mb-3">
               <div class="col-md-6">
                 <label class="form-label">Printed Name</label>
-                <input class="form-control" list="transferSignatoryNames" v-model.trim="printDetails.receivedBy.name" @input="fillSignatoryTitle('receivedBy')" required>
+                <div class="personnel-search">
+                  <input v-model="personnelSearch.receivedBy" class="form-control" type="text" placeholder="Search or enter name" autocomplete="off" required role="combobox" aria-autocomplete="list" :aria-expanded="showPersonnelOptions.receivedBy" @focus="openPersonnelOptions('receivedBy', printDetails.receivedBy.name)" @input="onSignatorySearch('receivedBy')" @keydown.esc="closePersonnelOptions('receivedBy')" @blur="hidePersonnelOptions('receivedBy')">
+                  <div v-if="showPersonnelOptions.receivedBy" class="personnel-options" role="listbox">
+                    <button v-if="printDetails.receivedBy.name && !personnel.some(person => person.full_name === printDetails.receivedBy.name)" type="button" role="option" @mousedown.prevent="selectSignatory('receivedBy', printDetails.receivedBy.name)">{{ printDetails.receivedBy.name }}</button>
+                    <button v-for="person in filteredSignatoryPersonnel('receivedBy')" :key="person.id" type="button" role="option" @mousedown.prevent="selectSignatory('receivedBy', person.full_name)">{{ person.full_name }}</button>
+                    <div v-if="!filteredSignatoryPersonnel('receivedBy').length && !printDetails.receivedBy.name" class="personnel-empty">No matching names.</div>
+                  </div>
+                </div>
               </div>
               <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" v-model.trim="printDetails.receivedBy.title" placeholder="Auto-filled from account; editable" required></div>
               <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.receivedBy.date" required></div>
@@ -548,14 +555,18 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label">Printed Name</label>
-                <input class="form-control" list="transferSignatoryNames" v-model.trim="printDetails.issuedBy.name" @input="fillSignatoryTitle('issuedBy')" required>
+                <div class="personnel-search">
+                  <input v-model="personnelSearch.issuedBy" class="form-control" type="text" placeholder="Search or enter name" autocomplete="off" required role="combobox" aria-autocomplete="list" :aria-expanded="showPersonnelOptions.issuedBy" @focus="openPersonnelOptions('issuedBy', printDetails.issuedBy.name)" @input="onSignatorySearch('issuedBy')" @keydown.esc="closePersonnelOptions('issuedBy')" @blur="hidePersonnelOptions('issuedBy')">
+                  <div v-if="showPersonnelOptions.issuedBy" class="personnel-options" role="listbox">
+                    <button v-if="printDetails.issuedBy.name && !personnel.some(person => person.full_name === printDetails.issuedBy.name)" type="button" role="option" @mousedown.prevent="selectSignatory('issuedBy', printDetails.issuedBy.name)">{{ printDetails.issuedBy.name }}</button>
+                    <button v-for="person in filteredSignatoryPersonnel('issuedBy')" :key="person.id" type="button" role="option" @mousedown.prevent="selectSignatory('issuedBy', person.full_name)">{{ person.full_name }}</button>
+                    <div v-if="!filteredSignatoryPersonnel('issuedBy').length && !printDetails.issuedBy.name" class="personnel-empty">No matching names.</div>
+                  </div>
+                </div>
               </div>
               <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" v-model.trim="printDetails.issuedBy.title" placeholder="Auto-filled from account; editable" required></div>
               <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.issuedBy.date" required></div>
             </div>
-            <datalist id="transferSignatoryNames">
-              <option v-for="person in personnel" :key="person.id" :value="person.full_name"></option>
-            </datalist>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -597,6 +608,8 @@ export default {
         'RETURNED Unserviceable', 'RETURNED Serviceable', 'RETURNED for Repair'
       ],
       printDetails: this.emptyPrintDetails(),
+      personnelSearch: { receivedBy: '', issuedBy: '' },
+      showPersonnelOptions: { receivedBy: false, issuedBy: false },
 
       // Receiving employee search
       employeeSearch: '',
@@ -845,16 +858,48 @@ export default {
       }
     },
 
-    fillSignatoryTitle(section) {
-      const signatory = this.printDetails[section]
-      const enteredName = String(signatory.name || '').trim().toLowerCase()
-      if (!enteredName) return
+    getSignatoryTitle(name) {
+      if (!name) return ''
       const person = this.personnel.find(employee =>
-        String(employee.full_name || '').trim().toLowerCase() === enteredName
+        String(employee.full_name || '').trim().toLowerCase() === String(name).trim().toLowerCase()
       )
-      if (person && person.job_title) {
-        signatory.title = person.job_title
-      }
+      return person?.job_title || ''
+    },
+
+    filteredSignatoryPersonnel(section) {
+      const search = String(this.personnelSearch[section] || '').trim().toLowerCase()
+      if (!search) return this.personnel
+      return this.personnel.filter(person =>
+        String(person.full_name || '').toLowerCase().includes(search)
+      )
+    },
+
+    openPersonnelOptions(section, selectedName) {
+      if (!this.personnelSearch[section]) this.personnelSearch[section] = selectedName || ''
+      this.showPersonnelOptions[section] = true
+    },
+
+    onSignatorySearch(section) {
+      const signatory = this.printDetails[section]
+      signatory.name = this.personnelSearch[section].trim()
+      signatory.title = this.getSignatoryTitle(signatory.name)
+      this.showPersonnelOptions[section] = true
+    },
+
+    selectSignatory(section, fullName) {
+      const signatory = this.printDetails[section]
+      signatory.name = fullName
+      signatory.title = this.getSignatoryTitle(fullName)
+      this.personnelSearch[section] = fullName
+      this.showPersonnelOptions[section] = false
+    },
+
+    closePersonnelOptions(section) {
+      this.showPersonnelOptions[section] = false
+    },
+
+    hidePersonnelOptions(section) {
+      setTimeout(() => this.closePersonnelOptions(section), 150)
     },
 
     async getOffices() {
@@ -1320,6 +1365,44 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 </script>
 
 <style scoped>
+.personnel-search {
+  position: relative;
+}
+
+.personnel-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  z-index: 1060;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  background: #fff;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, .12);
+}
+
+.personnel-options button {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  background: #fff;
+  color: #212529;
+  text-align: left;
+}
+
+.personnel-options button:hover,
+.personnel-options button:focus {
+  background: #f1f5f2;
+}
+
+.personnel-empty {
+  padding: 0.5rem 0.75rem;
+  color: #6c757d;
+}
+
 .page-link {
   color: #856404;
 }
