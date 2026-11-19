@@ -487,12 +487,13 @@
               </div>
               <div class="col-12">
                 <label class="form-label">Action Taken (Property Officer)</label>
-                <textarea class="form-control" rows="2" v-model.trim="requestPrintDetails.actionTaken"></textarea>
+                <textarea class="form-control" rows="2" v-model.trim="requestPrintDetails.actionTaken" required></textarea>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Paper Size</label>
                 <select class="form-select" v-model="requestPrintDetails.paperSize">
                   <option value="long">Long (8.5 × 13 inches)</option>
+                  <option value="legal">Legal (8.5 × 14 inches)</option>
                   <option value="letter">Letter (8.5 × 11 inches)</option>
                   <option value="a4">A4 (210 × 297 mm)</option>
                 </select>
@@ -1115,18 +1116,19 @@ export default {
       const rptNumber = String(details.rptNumber || this.getAutomaticRPTNumber(transfer)).trim()
       transfer.rpt_number = rptNumber
       details.rptNumber = rptNumber
-      const requiredSignatoryFields = [
+      const requiredRequestFields = [
         ['Requested by - Printed Name', details.requestedBy.name],
         ['Requested by - Designation', details.requestedBy.designation],
         ['Approved by - Printed Name', details.approvedBy.name],
         ['Approved by - Designation', details.approvedBy.designation],
         ['Concurred by - Printed Name', details.concurredBy.name],
-        ['Concurred by - Designation', details.concurredBy.designation]
+        ['Concurred by - Designation', details.concurredBy.designation],
+        ['Action Taken (Property Officer)', details.actionTaken]
       ]
-      const missingSignatoryField = requiredSignatoryFields.find(field => !String(field[1] || '').trim())
-      if (missingSignatoryField) {
-        const fieldInputs = this.$el.querySelectorAll('#transferReceiptPrintModal input[required]')
-        const firstInvalidInput = Array.from(fieldInputs).find(input => !String(input.value || '').trim())
+      const missingRequestField = requiredRequestFields.find(field => !String(field[1] || '').trim())
+      if (missingRequestField) {
+        const requiredInputs = this.$el.querySelectorAll('#propertyTransferRequestModal input[required], #propertyTransferRequestModal textarea[required]')
+        const firstInvalidInput = Array.from(requiredInputs).find(input => !String(input.value || '').trim())
         if (firstInvalidInput) {
           firstInvalidInput.focus()
           firstInvalidInput.reportValidity()
@@ -1156,7 +1158,7 @@ export default {
 
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
       const blankRows = Array.from({ length: 9 }, () => '<tr><td></td><td></td><td></td><td></td><td></td></tr>').join('')
-      const paperSizes = { long: '8.5in 13in', letter: '8.5in 11in', a4: '210mm 297mm' }
+      const paperSizes = { long: '8.5in 13in', legal: '8.5in 14in', letter: '8.5in 11in', a4: '210mm 297mm' }
       const selectedPaperSize = paperSizes[details.paperSize] || paperSizes.long
       printWindow.document.write(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Request for Property Transfer</title>
