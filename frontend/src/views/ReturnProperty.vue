@@ -98,6 +98,7 @@
               <th>Item</th>
               <th>Condition</th>
               <th>Reason</th>
+              <th>Items For</th>
               <th>Status</th>
               <th>Property Office Note</th>
               <th class="text-end">Action</th>
@@ -121,6 +122,7 @@
                 ? request.condition_after_return
                 : request.condition_declared }}</td>
               <td>{{ request.return_reason || '-' }}</td>
+              <td>{{ request.return_purpose || '-' }}</td>
               <td>
                 <span class="badge" :class="statusClass(request.status)">{{ request.status }}</span>
               </td>
@@ -174,6 +176,12 @@
             </div>
 
             <div class="mb-3">
+              <label class="form-label">Items for <span class="text-danger">*</span></label>
+              <div class="border rounded p-3 mb-3">
+                <div class="form-check mb-2"><input id="purpose-reissue" v-model="form.return_purpose" class="form-check-input" type="radio" value="Property Utilization/Re-issuance" required /><label class="form-check-label" for="purpose-reissue">Property Utilization / Re-issuance</label></div>
+                <div class="form-check mb-2"><input id="purpose-repair" v-model="form.return_purpose" class="form-check-input" type="radio" value="Repair" required /><label class="form-check-label" for="purpose-repair">Repair</label></div>
+                <div class="form-check"><input id="purpose-disposal" v-model="form.return_purpose" class="form-check-input" type="radio" value="Disposal" required /><label class="form-check-label" for="purpose-disposal">Disposal</label></div>
+              </div>
               <label class="form-label">Return Date <span class="text-danger">*</span></label>
               <input v-model="form.return_date" type="date" class="form-control" required />
             </div>
@@ -251,6 +259,7 @@ export default {
       selected: null,
       form: {
         return_date: today(),
+        return_purpose: '',
         condition_declared: 'Serviceable',
         return_reason: '',
         otherReason: '',
@@ -352,6 +361,11 @@ export default {
       let submittedCount = 0
 
       try {
+        if (!this.form.return_purpose) {
+          this.toast('Please select what the returned property is for.');
+          return;
+        }
+
         const returnReason = this.form.return_reason === 'Others'
           ? `Others: ${this.form.otherReason.trim()}`
           : this.form.return_reason
@@ -413,7 +427,7 @@ export default {
       <div class="head"><div class="logo"><img src="${logo}"></div><div class="school">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</div><div class="title">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</div></div>
       <div class="arrp">ARRP No.: <span class="line"></span></div>
       <div class="meta"><div><b>Unit/Division/College:</b> ${safe(office)}</div><div><b>Date:</b> ${date(request.return_date)}</div><div><b>Place of Storage:</b> <span class="line"></span></div><div><b>Tag No.:</b> <span class="line"></span></div></div>
-      <div class="items">Items for &nbsp; ____Property Utilization/Re-issuance &nbsp; ____Repair &nbsp; ____Disposal</div>
+      <div class="items">Items for &nbsp; ${request.return_purpose === 'Property Utilization/Re-issuance' ? '☑' : '☐'} Property Utilization/Re-issuance &nbsp; ${request.return_purpose === 'Repair' ? '☑' : '☐'} Repair &nbsp; ${request.return_purpose === 'Disposal' ? '☑' : '☐'} Disposal</div>
       <table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Item<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
       <div class="row headrow"><div>Returned by:</div><div><i>(Please indicate name and affix signature)</i></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
       <div class="row"><div>Signature:</div><div></div><div></div><div></div></div><div class="row"><div>Printed Name:</div><div>${safe(requester)}</div><div></div><div></div></div><div class="row"><div>Designation:</div><div></div><div></div><div></div></div><div class="row"><div>Date:</div><div>${date(request.return_date)}</div><div></div><div></div></div>
