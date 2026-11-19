@@ -1188,14 +1188,25 @@ body{font-size:9px}
 .reason td{border:1px solid #888;padding:7px;height:auto;font-size:14px;line-height:1.25}
 .approvals th,.approvals td{border:1px solid #888;padding:6px 7px;font-size:14px;line-height:1.25}
 .approvals th{text-align:center;min-height:38px;font-size:14px}
-.approvals td{min-height:30px}.approvals .signatory{text-align:center;vertical-align:middle}
+.approvals td{min-height:30px}.approvals .signatory,.approvals .signatory-date{text-align:center;vertical-align:middle}
 .approvals .row-label{font-weight:bold;width:12%}
 .approvals .action{vertical-align:top}
 .instructions{border:1px solid #888;padding:9px 11px 10px;font-size:14px;line-height:1.3}
 .instructions h2{text-align:center;text-decoration:underline;font-size:14px;margin:3px 0 9px}
 .instructions p{font-size:14px;line-height:1.3;margin:0 0 8px}
 .instructions .copies{text-align:center;font-size:14px;line-height:1.3;margin-top:9px}
-.form-code{margin-top:8px;text-align:left;font-size:14px;font-weight:bold;line-height:1.2}
+.form-code{margin-top:8px;text-align:left;font-size:11px;font-weight:bold;line-height:1.2}
+.sheet.paper-long{font-size:11px}
+.sheet.paper-letter,.sheet.paper-a4{font-size:10px}
+.sheet.paper-letter .header-text,.sheet.paper-a4 .header-text{font-size:11px}
+.sheet.paper-letter .header-text .school,.sheet.paper-a4 .header-text .school{font-size:12px}
+.sheet.paper-letter .header-title,.sheet.paper-a4 .header-title{font-size:11px}
+.sheet.paper-letter .rpt,.sheet.paper-a4 .rpt,.sheet.paper-letter .date,.sheet.paper-a4 .date{font-size:11px}
+.sheet.paper-letter .info td,.sheet.paper-a4 .info td,.sheet.paper-letter .items th,.sheet.paper-a4 .items th,.sheet.paper-letter .items td,.sheet.paper-a4 .items td,.sheet.paper-letter .reason td,.sheet.paper-a4 .reason td,.sheet.paper-letter .approvals th,.sheet.paper-a4 .approvals th,.sheet.paper-letter .approvals td,.sheet.paper-a4 .approvals td{font-size:10px;padding:3px 4px}
+.sheet.paper-letter .instructions,.sheet.paper-a4 .instructions,.sheet.paper-letter .instructions p,.sheet.paper-a4 .instructions p,.sheet.paper-letter .instructions h2,.sheet.paper-a4 .instructions h2,.sheet.paper-letter .instructions .copies,.sheet.paper-a4 .instructions .copies{font-size:10px;line-height:1.2}
+.sheet.paper-letter .instructions,.sheet.paper-a4 .instructions{padding:6px 8px}
+.sheet.paper-letter .instructions p,.sheet.paper-a4 .instructions p{margin-bottom:5px}
+.sheet.paper-letter .items tbody tr:not(:first-child) td,.sheet.paper-a4 .items tbody tr:not(:first-child) td{height:0.25in;min-height:0.25in}
 @media print{html,body{margin:0!important;padding:0!important}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{min-height:0;break-inside:avoid;page-break-inside:avoid}}
 </style></head><body>
 <div class="sheet">
@@ -1216,7 +1227,7 @@ body{font-size:9px}
 <tr><td class="row-label">Signature:</td><td></td><td></td><td></td><td class="action" rowspan="4"></td></tr>
 <tr><td class="row-label">Printed Name:</td><td class="signatory">${esc(details.requestedBy.name)}</td><td class="signatory">${esc(details.approvedBy.name)}</td><td class="signatory">${esc(details.concurredBy.name)}</td></tr>
 <tr><td class="row-label">Designation:</td><td class="signatory">${esc(details.requestedBy.designation)}</td><td class="signatory">${esc(details.approvedBy.designation)}</td><td class="signatory">${esc(details.concurredBy.designation)}</td></tr>
-<tr><td class="row-label">Date:</td><td>${esc(formatDate(transfer.transfer_date))}</td><td></td><td></td></tr>
+<tr><td class="row-label">Date:</td><td class="signatory-date">${esc(formatDate(transfer.transfer_date))}</td><td class="signatory-date"></td><td class="signatory-date"></td></tr>
 </table>
 <div class="instructions">
 <h2>INSTRUCTIONS</h2>
