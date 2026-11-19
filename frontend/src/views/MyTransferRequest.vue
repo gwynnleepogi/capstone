@@ -34,7 +34,7 @@
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Transfer To - Employee Name <span class="text-danger">*</span></label>
-              <input v-model.trim="form.toName" class="form-control" list="transferEmployeeOptions" placeholder="Search or enter employee name" autocomplete="off" required>
+              <input v-model.trim="form.toName" @input="handleTransferEmployeeInput" class="form-control" list="transferEmployeeOptions" placeholder="Search or enter employee name" autocomplete="off" required>
               <datalist id="transferEmployeeOptions">
                 <option v-for="person in personnel" :key="person.id" :value="person.full_name">
                   {{ person.job_title || person.role }} - {{ person.office_name }}
@@ -91,6 +91,7 @@ export default {
         receiptIds: [],
         toName: '',
         toOffice: '',
+        officeAutoFilled: false,
         reason: '',
         date: new Date().toISOString().slice(0, 10),
         paperSize: 'long'
@@ -108,6 +109,21 @@ export default {
     }
   },
   methods: {
+    handleTransferEmployeeInput() {
+      const enteredName = this.form.toName.trim().toLowerCase()
+      const matchedEmployee = this.personnel.find(person =>
+        String(person.full_name || '').trim().toLowerCase() === enteredName
+      )
+
+      if (matchedEmployee) {
+        this.form.toOffice = matchedEmployee.office_name || ''
+        this.form.officeAutoFilled = Boolean(matchedEmployee.office_name)
+      } else if (this.form.officeAutoFilled) {
+        this.form.toOffice = ''
+        this.form.officeAutoFilled = false
+      }
+    },
+
     async loadPersonnel() {
       try {
         const response = await fetch('/api/personnel/directory')
