@@ -581,7 +581,7 @@ router.patch('/:id/cancel', async (req, res) => {
   try {
     const { data: request, error: requestError } = await supabase
       .from('return_requests')
-      .select('*, items (description, property_number)')
+      .select('*')
       .eq('id', req.params.id)
       .maybeSingle()
 
@@ -609,22 +609,29 @@ router.patch('/:id/cancel', async (req, res) => {
       return res.status(409).json({ error: 'This request was already reviewed.' })
     }
 
+    const itemMap = await lookup(
+      'items',
+      [request.item_id],
+      'id, description, property_number'
+    )
+    const item = itemMap[request.item_id] || null
+
     await createAuditLog(
       'Cancelled',
       request.item_id,
       JSON.stringify({
-        description: request.items?.description,
-        property_number: request.items?.property_number,
+        description: item?.description,
+        property_number: item?.property_number,
         status: request.status,
         condition_declared: request.condition_declared,
         return_reason: request.return_reason
       }),
       JSON.stringify({
-        description: request.items?.description,
-        property_number: request.items?.property_number,
+        description: item?.description,
+        property_number: item?.property_number,
         status: 'Cancelled'
       }),
-      `Cancelled return request for ${request.items?.description || 'property'}`,
+      `Cancelled return request for ${item?.description || 'property'}`,
       req.profile.id
     )
 
