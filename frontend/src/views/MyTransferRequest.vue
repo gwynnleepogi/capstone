@@ -11,11 +11,15 @@
         <div v-else-if="!properties.length" class="text-muted">You have no issued property available for a transfer request.</div>
         <form v-else @submit.prevent="printRequest">
           <div class="mb-4">
-            <label class="form-label">From Accountable Employee / Responsibility Center</label>
+            <label class="form-label">From Accountable Employee</label>
             <div class="form-control bg-light">
               <strong>{{ currentUser.full_name || 'Your account' }}</strong>
-              <span class="text-muted"> / {{ currentUser.office_name || currentUser.department || 'Office not specified' }}</span>
+
             </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">From Responsibility Center</label>
+            <input v-model.trim="form.fromResponsibilityCenter" class="form-control" placeholder="Automatically filled from the selected property; editable">
           </div>
           <div class="mb-4">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -35,7 +39,7 @@
                 </thead>
                 <tbody>
                   <tr v-for="property in filteredProperties" :key="property.id">
-                    <td class="select-column"><input class="form-check-input" type="checkbox" v-model="form.receiptIds" :value="String(property.id)"></td>
+                    <td class="select-column"><input class="form-check-input" type="checkbox" v-model="form.receiptIds" :value="String(property.id)" @change="fillFromResponsibilityCenter"></td>
                     <td>{{ property.items?.property_number || '-' }}<div class="small text-muted">{{ property.receipt_number || '' }}</div></td>
                     <td>{{ property.items?.description || '-' }}</td>
                     <td>₱{{ Number(property.items?.cost || property.items?.unit_value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}</td>
@@ -118,6 +122,7 @@ export default {
       currentUser: JSON.parse(localStorage.getItem('user') || 'null') || {},
       form: {
         receiptIds: [],
+        fromResponsibilityCenter: '',
         toName: '',
         toOffice: '',
         officeAutoFilled: false,
@@ -198,6 +203,14 @@ export default {
       this.form.officeAutoFilled = Boolean(person.office_name)
       this.showEmployeeOptions = false
     },
+    fillFromResponsibilityCenter() {
+      const selected = this.properties.find(property => this.form.receiptIds.includes(String(property.id)))
+      if (selected?.items?.responsibility_center) {
+        this.form.fromResponsibilityCenter = selected.items.responsibility_center
+      } else if (!this.form.receiptIds.length) {
+        this.form.fromResponsibilityCenter = '
+      }
+    },
     toggleAllProperties() {
       if (this.allPropertiesSelected) {
         this.form.receiptIds = []
@@ -262,7 +275,7 @@ export default {
       @page{size:${paper[this.form.paperSize] || paper.long} portrait;margin:8mm}*{box-sizing:border-box}body{font:12px Arial;color:#111;margin:0}.sheet{width:100%;padding:4mm}.header{display:grid;grid-template-columns:22mm 1fr;text-align:center;border:1px solid #555}.logo{grid-row:span 2;border-right:1px solid #555;display:flex;align-items:center;justify-content:center}.logo img{width:18mm;height:18mm;object-fit:contain}.school{padding:3mm;font-weight:bold;line-height:1.4}.heading{border-top:1px solid #555;padding:3mm;font-weight:bold;font-size:14px}.rpt{text-align:right;font-weight:bold;margin:5mm 0}.date{margin:5mm 0}table{width:100%;border-collapse:collapse;table-layout:fixed;margin:3mm 0}th,td{border:1px solid #555;padding:3mm;vertical-align:middle}th{text-align:center}.label{width:27%;font-weight:bold}.reason{min-height:22mm}.signatures{margin-top:12mm}.signatures td{height:18mm}.center{text-align:center}.code{margin-top:5mm;font-size:10px;font-weight:bold}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="sheet">
       <div class="header"><div class="logo"><img src="${logo}"></div><div class="school">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bambang, Nueva Vizcaya</div><div class="heading">REQUEST FOR PROPERTY TRANSFER</div></div>
       <div class="rpt">RPT No.: ____________________</div><div class="date">Date: ${esc(date)}</div>
-      <table><tr><td class="label">From Accountable Employee / Responsibility Center:</td><td>${esc(user.full_name || '')} / ${esc(user.office_name || user.department || '')}</td></tr><tr><td class="label">To Accountable Employee / Responsibility Center:</td><td>${esc(this.form.toName)} / ${esc(this.form.toOffice)}</td></tr></table>
+      <table><tr><td class="label">From Accountable Employee / Responsibility Center:</td><td>${esc(user.full_name || '')} / ${esc(this.form.fromResponsibilityCenter || '')}</td></tr><tr><td class="label">To Accountable Employee / Responsibility Center:</td><td>${esc(this.form.toName)} / ${esc(this.form.toOffice)}</td></tr></table>
       <table><thead><tr><th>DATE ACQUIRED</th><th>PROPERTY NO.</th><th>DESCRIPTION</th><th>AMOUNT</th><th>CONDITION OF PPE</th></tr></thead><tbody>${propertyRows}${blankRows}</tbody></table>
       <table><tr><td class="label">Reason for Transfer:</td><td class="reason">${esc(this.form.reason === 'Others' ? this.form.otherReason : this.form.reason)}${this.form.remarks ? '<br><strong>Remarks:</strong> ' + esc(this.form.remarks) : ''}</td></tr></table>
       <table class="signatures"><tr><th></th><th>Requested by:</th><th>Approved by:</th><th>Concurred by:</th></tr><tr><td class="label">Signature:</td><td></td><td></td><td></td></tr><tr><td class="label">Printed Name:</td><td class="center">${esc(user.full_name || '')}</td><td></td><td></td></tr><tr><td class="label">Designation:</td><td></td><td></td><td></td></tr><tr><td class="label">Date:</td><td class="center">${esc(date)}</td><td></td><td></td></tr></table>
