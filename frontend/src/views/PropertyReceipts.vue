@@ -220,7 +220,7 @@
                   </select>
                 </div>
                 <div class="col-md-6"><label class="form-label">Purpose</label><input class="form-control" v-model.trim="receiptPrintForm.purpose"></div>
-                <div class="col-md-6"><label class="form-label">Unit / Office</label><input class="form-control" v-model.trim="receiptPrintForm.unitOffice"></div>
+                <div class="col-md-6"><label class="form-label">Responsibility Center / Unit / Office</label><input class="form-control" v-model.trim="receiptPrintForm.unitOffice" placeholder="Defaults to the property record"></div>
                 <div class="col-md-6"><label class="form-label">PO No.</label><input class="form-control" v-model.trim="receiptPrintForm.poNumber"></div>
                 <div class="col-md-6"><label class="form-label">UACS</label><input class="form-control" v-model.trim="receiptPrintForm.uacs"></div>
                 <div class="col-md-6"><label class="form-label">BUR No.</label><input class="form-control" v-model.trim="receiptPrintForm.burNumber"></div>
@@ -317,6 +317,7 @@
                 </div>
                 <div class="col-md-6"><label class="form-label">Division</label><input class="form-control" v-model.trim="risForm.division"></div>
                 <div class="col-md-6"><label class="form-label">Office</label><input class="form-control" v-model.trim="risForm.officeName"></div>
+                <div class="col-md-6"><label class="form-label">Responsibility Center</label><input class="form-control" v-model.trim="risForm.responsibilityCenter" placeholder="Defaults to the property record"></div>
                 <div class="col-12"><label class="form-label">Purpose</label><textarea class="form-control" v-model.trim="risForm.purpose" rows="2"></textarea></div>
                 
                 <div class="col-md-6">
@@ -529,6 +530,7 @@ export default {
 
       risForm: {
         fundCluster: '',
+        responsibilityCenter: '',
         requestedBy: '',
         requestedDesignation: '',
         approvedBy: '',
@@ -1109,6 +1111,7 @@ export default {
         fundCluster: request.fund_cluster || receipt.fund_cluster || '',
         division: request.division || receipt.division || '',
         officeName: request.offices?.office_name || receipt.offices?.office_name || request.office_name || receipt.office_name || '',
+        responsibilityCenter: this.getReceiptItem(receipt).responsibility_center || request.responsibility_center || receipt.responsibility_center || '',
         purpose: request.purpose || receipt.purpose || request.remarks || '',
         requestedBy: request.requested_by_name || request.users?.full_name || '',
         requestedDesignation: this.getPersonnelTitle(request.requested_by_name || request.users?.full_name || '') || request.requested_by_designation || '',
@@ -1380,7 +1383,7 @@ export default {
       const receiptNumber = escape(receipt.receipt_number)
       const officeName = escape(details.officeName || office.office_name || request.office_name || receipt.office_name)
       const division = escape(details.division || request.division || receipt.division)
-      const responsibilityCenter = escape(request.responsibility_center || receipt.responsibility_center || item.responsibility_center)
+      const responsibilityCenter = escape(details.responsibilityCenter || request.responsibility_center || receipt.responsibility_center || item.responsibility_center || '-')
       const fundCluster = escape(details.fundCluster || request.fund_cluster || receipt.fund_cluster)
       const description = escape(item.description || request.item_description)
       const stockNumber = escape(item.stock_number || item.property_number || item.stock_no)
