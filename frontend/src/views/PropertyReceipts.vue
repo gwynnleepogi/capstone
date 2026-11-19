@@ -1218,11 +1218,11 @@ export default {
             body { color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 10px; }
             .page { position: relative; width: ${pageSize.width}in; height: ${pageSize.height}in; min-height: 0; padding: 8mm 13mm; margin: 0; display: block; overflow: hidden; }
             .main-table, .lower-details { flex: 0 0 auto; }
-            .print-footer { position: absolute; left: 13mm; right: 13mm; bottom: 8mm; width: auto; margin: 0; padding: 0; page-break-inside: avoid; break-inside: avoid; }
+            .print-footer { position: fixed; left: 13mm; right: 13mm; bottom: 8mm; width: auto; margin: 0; padding: 0; page-break-inside: avoid; break-inside: avoid; }
             .signature { page-break-inside: avoid; break-inside: avoid; }
             @media print {
               html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
-              .page { position: relative; width: ${pageSize.width}in; height: ${pageSize.height}in; min-height: 0; page-break-after: avoid; break-after: avoid; }
+              .page { position: relative; width: ${pageSize.width}in; height: ${pageSize.height}in; min-height: 0; page-break-after: avoid; break-after: avoid; }\n              .print-footer { position: fixed !important; left: 13mm !important; right: 13mm !important; bottom: 8mm !important; }
               body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
             }
             .header { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; min-height: 72px; }
