@@ -24,14 +24,18 @@
                 {{ allPropertiesSelected ? 'Clear Selection' : 'Select All' }}
               </button>
             </div>
+            <div class="mb-2">
+              <input v-model.trim="propertySearch" type="search" class="form-control" placeholder="Search by property number, description, receipt number, or condition...">
+            </div>
             <div class="table-responsive border rounded">
-              <table class="table table-sm table-hover align-middle mb-0">
+              <table class="table table-sm table-hover align-middle mb-0 property-selection-table">
+
                 <thead class="table-light">
-                  <tr><th style="width:48px">Select</th><th>Property No.</th><th>Description</th><th>Amount</th><th>Condition</th></tr>
+                  <tr><th class="select-column">Select</th><th>Property No.</th><th>Description</th><th class="amount-column">Amount</th><th>Condition</th></tr>
                 </thead>
                 <tbody>
-                  <tr v-for="property in properties" :key="property.id">
-                    <td><input class="form-check-input" type="checkbox" v-model="form.receiptIds" :value="String(property.id)"></td>
+                  <tr v-for="property in filteredProperties" :key="property.id">
+                    <td class="select-column"><input class="form-check-input" type="checkbox" v-model="form.receiptIds" :value="String(property.id)"></td>
                     <td>{{ property.items?.property_number || '-' }}<div class="small text-muted">{{ property.receipt_number || '' }}</div></td>
                     <td>{{ property.items?.description || '-' }}</td>
                     <td>₱{{ Number(property.items?.cost || property.items?.unit_value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}</td>
@@ -39,6 +43,7 @@
                   </tr>
                 </tbody>
               </table>
+              <div v-if="filteredProperties.length === 0" class="text-center text-muted small py-3">No properties match your search.</div>
             </div>
             <div class="form-text">{{ form.receiptIds.length }} property/properties selected.</div>
           </div>
@@ -107,6 +112,7 @@ export default {
     return {
       loading: true,
       properties: [],
+      propertySearch: '',
       personnel: [],
       showEmployeeOptions: false,
       currentUser: JSON.parse(localStorage.getItem('user') || 'null') || {},
@@ -128,6 +134,22 @@ export default {
     this.loadPersonnel()
   },
   computed: {
+    filteredProperties() {
+      const search = this.propertySearch.trim().toLowerCase()
+      if (!search) return this.properties
+      return this.properties.filter(property => {
+        const item = property.items || {}
+        const values = [
+          item.property_number,
+          item.description,
+          property.receipt_number,
+          item.condition,
+          item.cost,
+          item.unit_value
+        ]
+        return values.some(value => String(value == null ? '' : value).toLowerCase().includes(search))
+      })
+    },
     selectedEmployee() {
       return this.personnel.find(person =>
         String(person.full_name || '').trim().toLowerCase() === this.form.toName.trim().toLowerCase()
@@ -249,4 +271,33 @@ export default {
     }
   }
 }
+<style scoped>
+.property-selection-table {
+  min-width: 760px;
+}
+.property-selection-table th,
+.property-selection-table td {
+  white-space: nowrap;
+}
+.property-selection-table th:nth-child(3),
+.property-selection-table td:nth-child(3) {
+  white-space: normal;
+  min-width: 260px;
+}
+.property-selection-table .select-column {
+  width: 76px;
+  min-width: 76px;
+  text-align: center;
+  white-space: nowrap;
+}
+.property-selection-table .amount-column {
+  min-width: 120px;
+  text-align: right;
+}
+.property-selection-table .form-check-input {
+  display: inline-block;
+  margin: 0;
+  vertical-align: middle;
+}
+</style>
 </script>
