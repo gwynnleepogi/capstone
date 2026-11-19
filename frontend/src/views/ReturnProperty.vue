@@ -36,7 +36,7 @@
                   @change="selectAllEligible($event.target.checked)" />
               </th>
               <th>Property No.</th>
-              <th>Item</th>
+              <th>Property</th>
               <th>Serial No.</th>
               <th>Receipt No.</th>
               <th>Qty</th>
@@ -95,10 +95,10 @@
           <thead class="table-light">
             <tr>
               <th>Requested</th>
-              <th>Item</th>
+              <th>Property</th>
               <th>Condition</th>
               <th>Reason</th>
-              <th>Items For</th>
+              <th>Properties For</th>
               <th>Status</th>
               <th>Property Office Note</th>
               <th class="text-end">Action</th>
@@ -161,7 +161,7 @@
               </div>
               <div class="table-responsive">
                 <table class="table table-sm align-middle mb-0">
-                  <thead><tr><th>Property No.</th><th>Item</th><th>Serial No.</th><th>Receipt No.</th><th>Qty</th></tr></thead>
+                  <thead><tr><th>Property No.</th><th>Property</th><th>Serial No.</th><th>Receipt No.</th><th>Qty</th></tr></thead>
                   <tbody>
                     <tr v-for="receipt in selectedReceipts" :key="receipt.id">
                       <td>{{ receipt.items?.property_number || '-' }}</td>
@@ -176,7 +176,7 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Items for <span class="text-danger">*</span></label>
+              <label class="form-label">Properties for <span class="text-danger">*</span></label>
               <div class="border rounded p-3 mb-3">
                 <div class="form-check mb-2"><input id="purpose-reissue" v-model="form.return_purpose" class="form-check-input" type="radio" value="Property Utilization/Re-issuance" required /><label class="form-check-label" for="purpose-reissue">Property Utilization / Re-issuance</label></div>
                 <div class="form-check mb-2"><input id="purpose-repair" v-model="form.return_purpose" class="form-check-input" type="radio" value="Repair" required /><label class="form-check-label" for="purpose-repair">Repair</label></div>
@@ -428,8 +428,8 @@ export default {
       <div class="head"><div class="logo"><img src="${logo}"></div><div class="school">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</div><div class="title">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</div></div>
       <div class="arrp">ARRP No.: <span class="line"></span></div>
       <div class="meta"><div><b>Unit/Division/College:</b> ${safe(office)}</div><div><b>Date:</b> ${date(request.return_date)}</div><div><b>Place of Storage:</b> <span class="line"></span></div><div><b>Tag No.:</b> <span class="line"></span></div></div>
-      <div class="items">Items for &nbsp; ${request.return_purpose === 'Property Utilization/Re-issuance' ? '☑' : '☐'} Property Utilization/Re-issuance &nbsp; ${request.return_purpose === 'Repair' ? '☑' : '☐'} Repair &nbsp; ${request.return_purpose === 'Disposal' ? '☑' : '☐'} Disposal</div>
-      <table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Item<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="items">Properties for &nbsp; ${request.return_purpose === 'Property Utilization/Re-issuance' ? '☑' : '☐'} Property Utilization/Re-issuance &nbsp; ${request.return_purpose === 'Repair' ? '☑' : '☐'} Repair &nbsp; ${request.return_purpose === 'Disposal' ? '☑' : '☐'} Disposal</div>
+      <table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Property<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
       <div class="row headrow"><div>Returned by:</div><div><i>(Please indicate name and affix signature)</i></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
       <div class="row"><div>Signature:</div><div></div><div></div><div></div></div><div class="row"><div>Printed Name:</div><div>${safe(requester)}</div><div></div><div></div></div><div class="row"><div>Designation:</div><div></div><div></div><div></div></div><div class="row"><div>Date:</div><div>${date(request.return_date)}</div><div></div><div></div></div>
       <div class="instructions"><h3>INSTRUCTIONS</h3><ol type="A"><li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li><li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li><li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li><li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li><li>This form shall be prepared in two(2) copies distributed as follows:<div class="copy">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</div></li></ol></div></div></body></html>`
