@@ -4,6 +4,7 @@ import Login from '@/views/Login.vue'
 import Dashboard from '@/views/Dashboard.vue'
 import Items from '@/views/Items.vue'
 import Offices from '@/views/Offices.vue'
+import OrganizationManagement from '@/views/OrganizationManagement.vue'
 import Suppliers from '@/views/Suppliers.vue'
 import Personnel from '@/views/Personnel.vue'
 import ItemRequests from '@/views/ItemRequests.vue'
@@ -54,6 +55,27 @@ const router = createRouter({
       path: '/offices',
       name: 'Offices',
       component: Offices,
+      meta: { roles: ['Administrator'] }
+    },
+    {
+      path: '/colleges',
+      name: 'Colleges',
+      component: OrganizationManagement,
+      props: { section: 'colleges' },
+      meta: { roles: ['Administrator'] }
+    },
+    {
+      path: '/departments',
+      name: 'Departments',
+      component: OrganizationManagement,
+      props: { section: 'departments' },
+      meta: { roles: ['Administrator'] }
+    },
+    {
+      path: '/responsibility-centers',
+      name: 'ResponsibilityCenters',
+      component: OrganizationManagement,
+      props: { section: 'responsibility-centers' },
       meta: { roles: ['Administrator'] }
     },
     {
