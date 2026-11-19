@@ -68,8 +68,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
 
   const {
-    office_name,
-    office_code
+    office_name
   } = req.body
 
 
