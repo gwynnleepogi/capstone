@@ -618,24 +618,8 @@
                   :alt="'QR code for property ' + (detailItem.property_number || '')"
                 />
               </div>
-              <div v-else class="py-3">
-                <button
-                  type="button"
-                  class="btn btn-outline-success"
-                  :disabled="qrGenerating"
-                  @click="generateItemQrCode"
-                >
-                  <span
-                    v-if="qrGenerating"
-                    class="spinner-border spinner-border-sm me-1"
-                    role="status"
-                  ></span>
-                  <i v-else class="bi bi-qr-code me-1"></i>
-                  {{ qrGenerating ? 'Generating QR...' : 'Generate QR Code' }}
-                </button>
-                <div v-if="qrCodeError" class="text-danger small mt-2">
-                  {{ qrCodeError }}
-                </div>
+              <div v-if="qrCodeError" class="text-danger small mt-2">
+                {{ qrCodeError }}
               </div>
 
               <div class="fw-semibold mt-2">
@@ -714,6 +698,20 @@
         <div class="card-footer d-flex justify-content-end gap-2 flex-wrap">
           <button type="button" class="btn btn-secondary" @click="closeItemDetails">
             Close
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-success"
+            :disabled="qrGenerating"
+            @click="generateItemQrCode"
+          >
+            <span
+              v-if="qrGenerating"
+              class="spinner-border spinner-border-sm me-1"
+              role="status"
+            ></span>
+            <i v-else class="bi bi-qr-code me-1"></i>
+            {{ qrGenerating ? 'Generating QR...' : 'Generate QR Code' }}
           </button>
           <button
             type="button"
