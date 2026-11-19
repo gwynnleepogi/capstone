@@ -1551,7 +1551,7 @@ export default {
                       <span class="label">Serial Number</span>
                       <strong class="value">${escape(item.serial_number)}</strong>
                     </div>
-                    <img src="${this.detailQrCode}" alt="Item QR code">
+                    <img src="${this.detailQrCode}" alt="Property QR code">
                   </div>
                 </div>
                 <div class="cell inventory">
