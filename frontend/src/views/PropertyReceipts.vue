@@ -666,16 +666,9 @@ export default {
     this.getReceipts()
     this.getItems()
     this.getPersonnel()
-    this.getItemRequests()
-
-    window.addEventListener('focus', this.getItemRequests)
-    window.addEventListener('item-requests-updated', this.getItemRequests)
   },
 
-  beforeUnmount() {
-    window.removeEventListener('focus', this.getItemRequests)
-    window.removeEventListener('item-requests-updated', this.getItemRequests)
-  },
+  beforeUnmount() {  },
 
   watch: {
     receiptSearch() { this.currentPage = 1 },
@@ -752,41 +745,6 @@ export default {
     hidePersonnelOptions(searchKey) {
       setTimeout(() => {
         this.closePersonnelOptions(searchKey)
-      }, 150)
-    },
-
-    onItemRequestSearchInput() {
-      const search = this.itemRequestSearch.trim().toLowerCase()
-      if (this.form.item_request_id && this.selectedRequest) {
-        const selectedText = `${this.selectedRequest.request_number} - ${this.selectedRequest.item_description}`.toLowerCase()
-        if (!selectedText.includes(search) && search !== selectedText) {
-          this.form.item_request_id = ''
-        }
-      }
-      this.showItemRequestOptions = true
-    },
-
-    selectItemRequest(request) {
-      this.form.item_request_id = request.id
-      this.itemRequestSearch = `${request.request_number} - ${request.item_description}`
-      this.showItemRequestOptions = false
-      this.updateReceiptTypeForSelectedRequest()
-    },
-
-    clearItemRequest() {
-      this.form.item_request_id = ''
-      this.itemRequestSearch = ''
-      this.showItemRequestOptions = true
-    },
-
-    hideItemRequestOptions() {
-      setTimeout(() => {
-        this.showItemRequestOptions = false
-        if (this.form.item_request_id && this.selectedRequest) {
-          this.itemRequestSearch = `${this.selectedRequest.request_number} - ${this.selectedRequest.item_description}`
-        } else if (!this.form.item_request_id) {
-          this.itemRequestSearch = ''
-        }
       }, 150)
     },
 
@@ -904,9 +862,7 @@ export default {
       this.editing = false
       this.form = {
         id: null,
-        item_request_id: '',
         item_id: '',
-        receipt_source: 'property',
         receipt_type: 'PAR',
         receipt_number: '',
         date_issued: new Date().toISOString().split('T')[0],
