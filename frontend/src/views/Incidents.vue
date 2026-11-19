@@ -51,7 +51,7 @@
             <thead>
               <tr>
                 <th class="sortable" @click="sortBy('item')">
-                  Item
+                  Property
                   <i :class="getSortIcon('item')"></i>
                 </th>
 
@@ -192,7 +192,7 @@
             <div class="modal-body">
               <div class="mb-3">
                 <label class="form-label">
-                  Item
+                  Property
                 </label>
 
                 <select
@@ -201,7 +201,7 @@
                   required
                 >
                   <option value="">
-                    Select Item
+                    Select Property
                   </option>
 
                   <option
@@ -664,7 +664,7 @@ export default {
           this.items = data
         } else {
           throw new Error(
-            data.error || 'Failed to load items'
+            data.error || 'Failed to load properties'
           )
         }
       } catch (error) {
