@@ -4,7 +4,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2>Returns</h2>
-        <p class="text-muted">Manage returned property items</p>
+        <p class="text-muted">Manage returned properties</p>
       </div>
 
       <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -106,7 +106,7 @@
             <thead>
               <tr>
                 <th class="sortable" @click="sortBy('item')">
-                  Item
+                  Property
                   <i :class="getSortIcon('item')"></i>
                 </th>
 
@@ -1423,8 +1423,8 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px so
 <div class="header"><div class="logo-cell"><img class="logo" src="${logo}" alt="NVSU Logo"></div><div class="school">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</div><div class="form-title">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</div></div>
 <div class="arrp">ARRP No.: <span class="line"></span></div>
 <div class="meta"><div><strong>Unit/Division/College:</strong> ${safe(office)}</div><div><strong>Date:</strong> ${date(record.return_date)}</div><div class="storage-field"><strong>Place of Storage:</strong></div><div class="tag-field"><strong>Tag No.:</strong></div></div>
-<div class="items-for">Items for &nbsp; ____Property Utilization/Re-issuance &nbsp; ____Repair &nbsp; ____Disposal</div>
-<table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Item<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="items-for">Properties for &nbsp; ____Property Utilization/Re-issuance &nbsp; ____Repair &nbsp; ____Disposal</div>
+<table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Property<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="returned-head"><div>Returned by:</div><div><em>(Please indicate name and affix signature)</em></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
 <div class="signature-grid"><div>Signature:</div><div></div><div></div><div></div></div>
 <div class="signature-grid name-row"><div>Printed Name:</div><div><strong>${safe(returnedBy)}</strong></div><div><strong></strong></div><div><strong></strong></div></div>
