@@ -115,7 +115,7 @@
                 </div>
 
                 <dl class="row property-details mb-0">
-                  <dt class="col-sm-4">Item ID</dt>
+                  <dt class="col-sm-4">Property ID</dt>
                   <dd class="col-sm-8">{{ receipt.items?.id || receipt.item_id || '-' }}</dd>
                   <dt class="col-sm-4">Article</dt>
                   <dd class="col-sm-8">{{ receipt.items?.article || '-' }}</dd>
