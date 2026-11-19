@@ -272,8 +272,9 @@
                 <div class="col-md-6">
                   <label class="form-label">Paper Size</label>
                   <select class="form-select" v-model="receiptPrintForm.paperSize">
-                    <option value="short">Short (8.5 × 11 in)</option>
+                    <option value="short">Letter / Short (8.5 × 11 in)</option>
                     <option value="long">Long (8.5 × 13 in)</option>
+                    <option value="legal">Legal (8.5 × 14 in)</option>
                     <option value="a4">A4 (8.27 × 11.69 in)</option>
                     <option value="custom">Custom</option>
                   </select>
@@ -1163,6 +1164,7 @@ export default {
       if (details.paperSize === 'short') return { width: 8.5, height: 11 }
       if (details.paperSize === 'a4') return { width: 8.27, height: 11.69 }
       if (details.paperSize === 'long') return { width: 8.5, height: 13 }
+      if (details.paperSize === 'legal') return { width: 8.5, height: 14 }
       if (details.paperSize !== 'custom') return { width: 8.5, height: 11 }
 
       const width = Number(details.paperWidth)
@@ -1213,13 +1215,13 @@ export default {
             @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 8mm; }
             * { box-sizing: border-box; }
             body { margin: 0; color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 10px; }
-            .page { width: 100%; height: calc(${pageSize.height}in - 16mm); min-height: 0; padding: 5px; display: flex; flex-direction: column; overflow: hidden; }
+            .page { position: relative; width: 100%; height: calc(${pageSize.height}in - 16mm); min-height: 0; padding: 5px 5px 120px; display: block; overflow: hidden; }
             .main-table, .lower-details { flex: 0 0 auto; }
-            .print-footer { flex: 0 0 auto; margin-top: auto; page-break-inside: avoid; break-inside: avoid; }
+            .print-footer { position: absolute; left: 5px; right: 5px; bottom: 5px; width: auto; margin: 0; padding: 0; page-break-inside: avoid; break-inside: avoid; }
             .signature { page-break-inside: avoid; break-inside: avoid; }
             @media print {
-              html, body { width: 100%; height: 100%; margin: 0; }
-              .page { height: calc(${pageSize.height}in - 16mm); min-height: 0; page-break-after: avoid; break-after: avoid; }
+              html, body { width: 100%; margin: 0; padding: 0; }
+              .page { position: relative; height: calc(${pageSize.height}in - 16mm); min-height: 0; page-break-after: avoid; break-after: avoid; }
               body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
             }
             .header { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; min-height: 72px; }
