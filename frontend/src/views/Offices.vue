@@ -35,15 +35,6 @@
               >
             </div>
 
-            <div class="col-12 col-md-6">
-              <label class="form-label">Office Code</label>
-
-              <input
-                v-model="form.office_code"
-                type="text"
-                class="form-control"
-              >
-            </div>
           </div>
         </div>
 
@@ -86,15 +77,6 @@
               >
             </div>
 
-            <div class="col-12 col-md-6">
-              <label class="form-label">Office Code</label>
-
-              <input
-                v-model="editForm.office_code"
-                type="text"
-                class="form-control"
-              >
-            </div>
           </div>
         </div>
 
@@ -196,13 +178,6 @@
                 <i :class="getSortIcon('office_name')"></i>
               </th>
 
-              <th
-                class="sortable"
-                @click="sortBy('office_code')"
-              >
-                Office Code
-                <i :class="getSortIcon('office_code')"></i>
-              </th>
 
               <th
                 class="sortable text-end"
@@ -218,19 +193,19 @@
 
           <tbody>
             <tr v-if="loading">
-              <td colspan="4" class="text-center py-5">
+              <td colspan="3" class="text-center py-5">
                 Loading offices...
               </td>
             </tr>
 
             <tr v-else-if="error">
-              <td colspan="4" class="text-center text-danger py-5">
+              <td colspan="3" class="text-center text-danger py-5">
                 {{ error }}
               </td>
             </tr>
 
             <tr v-else-if="filteredOffices.length === 0">
-              <td colspan="4" class="text-center text-secondary py-5">
+              <td colspan="3" class="text-center text-secondary py-5">
                 No offices found.
               </td>
             </tr>
@@ -241,10 +216,6 @@
             >
               <td>
                 {{ office.office_name }}
-              </td>
-
-              <td>
-                {{ office.office_code || '-' }}
               </td>
 
               <td class="text-end">
@@ -341,8 +312,6 @@
             <dl class="row mb-0">
               <dt class="col-sm-4">Office Name</dt>
               <dd class="col-sm-8">{{ selectedOffice.office_name || '-' }}</dd>
-              <dt class="col-sm-4">Office Code</dt>
-              <dd class="col-sm-8">{{ selectedOffice.office_code || '-' }}</dd>
               <dt class="col-sm-4">Created At</dt>
               <dd class="col-sm-8">{{ formatDate(selectedOffice.created_at) }}</dd>
             </dl>
@@ -389,13 +358,11 @@ export default {
       sortDirection: 'asc',
 
       form: {
-        office_name: '',
-        office_code: ''
+        office_name: ''
       },
 
       editForm: {
-        office_name: '',
-        office_code: ''
+        office_name: ''
       }
     }
   },
@@ -417,14 +384,9 @@ export default {
           office.office_name || ''
         ).toLowerCase()
 
-        const officeCode = (
-          office.office_code || ''
-        ).toLowerCase()
-
         const matchesSearch =
           !searchText ||
-          officeName.includes(searchText) ||
-          officeCode.includes(searchText)
+          officeName.includes(searchText)
 
         const matchesName =
           !this.officeNameFilter ||
@@ -625,8 +587,7 @@ export default {
       this.editingOffice = null
 
       this.form = {
-        office_name: '',
-        office_code: ''
+        office_name: ''
       }
 
       window.scrollTo({
@@ -640,8 +601,7 @@ export default {
       this.showAddForm = false
 
       this.editForm = {
-        office_name: office.office_name || '',
-        office_code: office.office_code || ''
+        office_name: office.office_name || ''
       }
 
       window.scrollTo({
@@ -841,8 +801,7 @@ export default {
 
     resetForm() {
       this.form = {
-        office_name: '',
-        office_code: ''
+        office_name: ''
       }
     },
 
