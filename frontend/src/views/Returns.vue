@@ -532,7 +532,7 @@
               Close
             </button>
 
-            <button type="button" class="btn btn-outline-success" @click="printAcknowledgementForReturnedProperty">
+            <button type="button" class="btn btn-outline-success" @click="openReturnedAcknowledgementModal">
               <i class="bi bi-printer me-1"></i>Print Acknowledgement for Returned Property
             </button>
             <button type="button" class="btn btn-outline-primary" @click="printReturnedPropertyReceipt">
@@ -554,6 +554,50 @@
             >
               <i class="bi bi-trash me-1"></i>
               {{ deletingReturnId === selectedReturn?.id ? 'Deleting...' : 'Delete' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="returnedAcknowledgementInputModal" tabindex="-1" aria-labelledby="returnedAcknowledgementInputModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="returnedAcknowledgementInputModalLabel">Acknowledgement Receipt Signatories</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small">Enter the details that will appear in the returned property acknowledgement form before printing.</p>
+            <div class="mb-3">
+              <label class="form-label">Signature</label>
+              <input type="text" class="form-control" v-model.trim="returnedAcknowledgementSignatory.signature" placeholder="Enter signature text or leave blank for handwritten signature">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Printed Name</label>
+              <input type="text" class="form-control" v-model.trim="returnedAcknowledgementSignatory.printedName" placeholder="Enter printed name">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Designation</label>
+              <input type="text" class="form-control" v-model.trim="returnedAcknowledgementSignatory.designation" placeholder="Enter designation">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Date</label>
+              <input type="date" class="form-control" v-model="returnedAcknowledgementSignatory.date">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Paper Size</label>
+              <select class="form-select" v-model="returnedReceiptPaperSize">
+                <option value="a4">A4 (210 × 297 mm)</option>
+                <option value="short">Short / Letter (8.5 × 11 inches)</option>
+                <option value="long">Long (8.5 × 13 inches)</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" @click="confirmPrintAcknowledgementForReturnedProperty">
+              <i class="bi bi-printer me-1"></i>Print Acknowledgement
             </button>
           </div>
         </div>
@@ -655,6 +699,12 @@ export default {
       saving: false,
       deletingReturnId: null,
       returnedReceiptPaperSize: 'a4',
+      returnedAcknowledgementSignatory: {
+        signature: '',
+        printedName: '',
+        designation: '',
+        date: ''
+      },
       returnedReceiptSignatories: {
         receivedByName: '',
         receivedByTitle: '',
@@ -1379,15 +1429,31 @@ window.onload=function(){
 
     openReturnedAcknowledgementModal() {
       if (!this.selectedReturn) return
+      const record = this.selectedReturn
+      const returnedBy = record.personnel?.full_name || record.users?.full_name || ''
+      this.returnedAcknowledgementSignatory = {
+        signature: '',
+        printedName: returnedBy,
+        designation: record.personnel?.job_title || record.users?.job_title || record.personnel?.designation || record.users?.designation || '',
+        date: record.return_date || new Date().toISOString().slice(0, 10)
+      }
       const modalElement = document.getElementById("returnedAcknowledgementInputModal")
       if (modalElement) Modal.getOrCreateInstance(modalElement).show()
+    },
+
+    confirmPrintAcknowledgementForReturnedProperty() {
+      Modal.getOrCreateInstance(document.getElementById("returnedAcknowledgementInputModal")).hide()
+      this.printAcknowledgementForReturnedProperty()
     },
 
     printAcknowledgementForReturnedProperty() {
       const record = this.selectedReturn
       if (!record) return
       const item = record.items || {}
-      const returnedBy = record.personnel?.full_name || record.users?.full_name || ''
+      const returnedBy = this.returnedAcknowledgementSignatory.printedName || ''
+      const signature = this.returnedAcknowledgementSignatory.signature || ''
+      const designation = this.returnedAcknowledgementSignatory.designation || ''
+      const acknowledgementDate = this.returnedAcknowledgementSignatory.date || ''
       const office = record.offices?.office_name || ''
       const quantity = Number(record.property_receipts?.quantity || 1)
       const safe = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
@@ -1426,10 +1492,10 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px so
 <div class="items-for">Properties for &nbsp; ____Property Utilization/Re-issuance &nbsp; ____Repair &nbsp; ____Disposal</div>
 <table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Property<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="returned-head"><div>Returned by:</div><div><em>(Please indicate name and affix signature)</em></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
-<div class="signature-grid"><div>Signature:</div><div></div><div></div><div></div></div>
+<div class="signature-grid"><div>Signature:</div><div>${safe(signature)}</div><div></div><div></div></div>
 <div class="signature-grid name-row"><div>Printed Name:</div><div><strong>${safe(returnedBy)}</strong></div><div><strong></strong></div><div><strong></strong></div></div>
-<div class="signature-grid designation-row"><div>Designation:</div><div></div><div></div><div></div></div>
-<div class="signature-grid"><div>Date:</div><div>${date(record.return_date)}</div><div></div><div></div></div>
+<div class="signature-grid designation-row"><div>Designation:</div><div>${safe(designation)}</div><div></div><div></div></div>
+<div class="signature-grid"><div>Date:</div><div>${date(acknowledgementDate)}</div><div></div><div></div></div>
 <div class="instructions"><h3>INSTRUCTIONS</h3><ol type="A"><li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li><li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li><li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li><li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li><li>This form shall be prepared in two(2) copies distributed as follows:<div class="copy">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</div></li></ol></div>
 <div class="form-code">NVSU-FR-SMO-02-00 (121421)</div>
 </div><script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script></body></html>`)
