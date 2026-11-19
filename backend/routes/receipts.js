@@ -11,43 +11,41 @@ const createAuditLog = require('../middleware/auditLog')
 // ==========================================
 router.get('/pending-issuance-count', async (req, res) => {
   try {
-    const { data: requests, error: requestError } = await supabase
-      .from('item_requests')
+    const { data: items, error: itemError } = await supabase
+      .from('items')
       .select('id')
-      .eq('status', 'Approved')
+      .eq('status', 'Issued')
+      .not('accountable_employee', 'is', null)
+      .neq('accountable_employee', '')
 
-    if (requestError) {
-      console.error('Pending issuance request lookup failed:', requestError)
-      return res.status(500).json({ error: requestError.message })
+    if (itemError) {
+      console.error('Pending acquisition property lookup failed:', itemError)
+      return res.status(500).json({ error: itemError.message })
     }
 
     const { data: receipts, error: receiptError } = await supabase
       .from('property_receipts')
-      .select('item_request_id')
+      .select('item_id')
 
     if (receiptError) {
-      console.error('Pending issuance receipt lookup failed:', receiptError)
+      console.error('Pending acquisition receipt lookup failed:', receiptError)
       return res.status(500).json({ error: receiptError.message })
     }
 
-    // Only a receipt linked to this exact approved request clears its badge.
-    // Matching by item_id is unsafe because multiple requests may use the same item.
-    const receiptedRequestIds = new Set(
+    const receiptedItemIds = new Set(
       (receipts || [])
-        .filter(receipt => receipt.item_request_id)
-        .map(receipt => String(receipt.item_request_id))
+        .filter(receipt => receipt.item_id)
+        .map(receipt => String(receipt.item_id))
     )
 
-    const pendingCount = (requests || []).filter(request =>
-      !receiptedRequestIds.has(String(request.id))
+    const pendingCount = (items || []).filter(item =>
+      !receiptedItemIds.has(String(item.id))
     ).length
 
     res.json({ count: pendingCount })
   } catch (error) {
-    console.error('Pending issuance count failed:', error)
-    res.status(500).json({
-      error: 'Failed to load pending issuance count'
-    })
+    console.error('Pending acquisition count failed:', error)
+    res.status(500).json({ error: 'Failed to load pending acquisition count' })
   }
 })
 
@@ -136,9 +134,9 @@ router.post('/', async (req, res) => {
       remarks
     } = req.body
 
-    if (Boolean(item_request_id) === Boolean(item_id)) {
+    if (item_request_id || !item_id) {
       return res.status(400).json({
-        error: 'Provide either an item request or an assigned property'
+        error: 'Select an assigned property. Item requests are not a receipt source.'
       })
     }
 
