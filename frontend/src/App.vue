@@ -89,12 +89,12 @@
 
         <router-link
           v-if="canAccess(['Administrator'])"
-          to="/organization-management"
+          to="/offices"
           class="nav-link"
           @click="menuOpen = false"
         >
-          <i class="bi bi-diagram-3"></i>
-          Organizational Management
+          <i class="bi bi-building"></i>
+          Offices
         </router-link>
 
         <router-link
