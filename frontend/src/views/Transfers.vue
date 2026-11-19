@@ -440,7 +440,7 @@
                 <i class="bi bi-trash me-1"></i>Delete Transfer
               </button>
               <button type="button" class="btn btn-outline-primary" @click="printRPTFromDetails">
-                <i class="bi bi-printer me-1"></i>Print RPT
+                <i class="bi bi-printer me-1"></i>Print Request for Property Transfer
               </button>
               <button type="button" class="btn btn-success" @click="printReceiptFromDetails">
                 <i class="bi bi-receipt me-1"></i>Print Property Acknowledgement Receipt - Transfer
