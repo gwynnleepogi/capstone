@@ -36,7 +36,7 @@ app.get('/', (req, res) => {
 })
 
 app.use('/api/offices', requireAuth, requireRole('Administrator'), officesRoutes)
-app.use('/api/personnel', requireAuth, requireRole('Administrator'), personnelRoutes)
+app.use('/api/personnel', requireAuth, requireRole('Administrator', 'Teacher', 'Non-Teaching Staff'), personnelRoutes)
 app.use('/api/suppliers', requireAuth, requireRole('Administrator'), suppliersRoutes)
 app.use('/api/item-requests', requireAuth, requireRole('Administrator', 'Teacher', 'Non-Teaching Staff'), itemRequestsRoutes)
 app.use('/api/receipts', requireAuth, requireRole('Administrator'), receiptsRoutes)
