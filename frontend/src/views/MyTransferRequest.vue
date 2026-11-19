@@ -34,11 +34,20 @@
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Transfer To - Employee Name <span class="text-danger">*</span></label>
-              <input v-model.trim="form.toName" class="form-control" required>
+              <input v-model.trim="form.toName" class="form-control" list="transferEmployeeOptions" placeholder="Search or enter employee name" autocomplete="off" required>
+              <datalist id="transferEmployeeOptions">
+                <option v-for="person in personnel" :key="person.id" :value="person.full_name">
+                  {{ person.job_title || person.role }} - {{ person.office_name }}
+                </option>
+              </datalist>
+              <small class="text-muted">Search an employee with an account, or enter the full name of a new employee.</small>
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Receiving Office / Responsibility Center <span class="text-danger">*</span></label>
-              <input v-model.trim="form.toOffice" class="form-control" required>
+              <input v-model.trim="form.toOffice" class="form-control" list="transferOfficeOptions" placeholder="Search or enter receiving office" autocomplete="off" required>
+              <datalist id="transferOfficeOptions">
+                <option v-for="office in availableOffices" :key="office" :value="office"></option>
+              </datalist>
             </div>
           </div>
           <div class="mb-3">
@@ -77,6 +86,7 @@ export default {
     return {
       loading: true,
       properties: [],
+      personnel: [],
       form: {
         receiptIds: [],
         toName: '',
@@ -89,8 +99,25 @@ export default {
   },
   mounted() {
     this.loadProperties()
+    this.loadPersonnel()
+  },
+  computed: {
+    availableOffices() {
+      return [...new Set(this.personnel.map(person => person.office_name).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b))
+    }
   },
   methods: {
+    async loadPersonnel() {
+      try {
+        const response = await fetch('/api/personnel/directory')
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Could not load employee directory.')
+        this.personnel = Array.isArray(data) ? data : []
+      } catch (error) {
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: error.message }))
+      }
+    },
     async loadProperties() {
       try {
         const response = await fetch('/api/return-requests/eligible')
