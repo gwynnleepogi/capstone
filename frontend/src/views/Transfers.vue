@@ -440,7 +440,7 @@
                 <i class="bi bi-trash me-1"></i>Delete Transfer
               </button>
               <button type="button" class="btn btn-outline-primary" @click="printRPTFromDetails">
-                <i class="bi bi-printer me-1"></i>Print RPT
+                <i class="bi bi-printer me-1"></i>Print Request for Property Transfer
               </button>
               <button type="button" class="btn btn-success" @click="printReceiptFromDetails">
                 <i class="bi bi-receipt me-1"></i>Print Property Acknowledgement Receipt - Transfer
@@ -460,38 +460,55 @@
           </div>
           <div class="modal-body">
             <p class="text-muted small">Complete the approval and signatory details before printing the Request for Property Transfer form.</p>
-            <div class="mb-3">
-              <label class="form-label">RPT No.</label>
-              <input class="form-control" v-model.trim="requestPrintDetails.rptNumber" placeholder="Enter RPT number">
-            </div>
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label">Requested by - Printed Name</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.name">
+                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.name" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Requested by - Designation</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.designation">
+                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.designation" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Approved by - Printed Name</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.name">
+                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.name" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Approved by - Designation</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.designation">
+                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.designation" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Concurred by - Printed Name</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.name">
+                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.name" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Concurred by - Designation</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.designation">
+                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.designation" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Requested by - Date</label>
+                <input type="date" class="form-control" v-model="requestPrintDetails.requestedBy.date">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Approved by - Date (Optional)</label>
+                <input type="date" class="form-control" v-model="requestPrintDetails.approvedBy.date">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Concurred by - Date (Optional)</label>
+                <input type="date" class="form-control" v-model="requestPrintDetails.concurredBy.date">
               </div>
               <div class="col-12">
                 <label class="form-label">Action Taken (Property Officer)</label>
                 <textarea class="form-control" rows="2" v-model.trim="requestPrintDetails.actionTaken"></textarea>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Paper Size</label>
+                <select class="form-select" v-model="requestPrintDetails.paperSize">
+                  <option value="long">Long (8.5 × 13 inches)</option>
+                  <option value="legal">Legal (8.5 × 14 inches)</option>
+                  <option value="letter">Letter (8.5 × 11 inches)</option>
+                  <option value="a4">A4 (210 × 297 mm)</option>
+                </select>
               </div>
             </div>
           </div>
@@ -514,9 +531,9 @@
           </div>
           <div class="modal-body">
             <p class="text-muted small">Complete these details before printing the transfer receipt.</p>
-            <div class="mb-3">
-              <label class="form-label">RPT No.</label>
-              <input class="form-control" v-model.trim="printDetails.rptNumber" placeholder="Enter RPT number">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6"><label class="form-label">RPT No.</label><input class="form-control" v-model.trim="printDetails.rptNumber" placeholder="Enter RPT number"></div>
+              <div class="col-md-6"><label class="form-label">Paper Size</label><select class="form-select" v-model="printDetails.paperSize"><option value="long">Long (8.5 × 13 inches)</option><option value="legal">Legal (8.5 × 14 inches)</option><option value="letter">Letter (8.5 × 11 inches)</option><option value="a4">A4 (210 × 297 mm)</option></select></div>
             </div>
             <div class="mb-3">
               <label class="form-label d-block">Acknowledgement Classification</label>
@@ -532,16 +549,36 @@
             <hr>
             <h6>Received by</h6>
             <div class="row g-3 mb-3">
-              <div class="col-md-6"><label class="form-label">Printed Name</label><input class="form-control" v-model.trim="printDetails.receivedBy.name"></div>
-              <div class="col-md-6"><label class="form-label">Designation</label><input class="form-control" v-model.trim="printDetails.receivedBy.designation"></div>
-              <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.receivedBy.date"></div>
+              <div class="col-md-6">
+                <label class="form-label">Printed Name <span class="text-danger">*</span></label>
+                <div class="personnel-search">
+                  <input v-model="personnelSearch.receivedBy" class="form-control" type="text" placeholder="Search or enter name" autocomplete="off" required role="combobox" aria-autocomplete="list" :aria-expanded="showPersonnelOptions.receivedBy" @focus="openPersonnelOptions('receivedBy', printDetails.receivedBy.name)" @input="onSignatorySearch('receivedBy')" @keydown.esc="closePersonnelOptions('receivedBy')" @blur="hidePersonnelOptions('receivedBy')">
+                  <div v-if="showPersonnelOptions.receivedBy" class="personnel-options" role="listbox">
+                    <button v-if="printDetails.receivedBy.name && !personnel.some(person => person.full_name === printDetails.receivedBy.name)" type="button" role="option" @mousedown.prevent="selectSignatory('receivedBy', printDetails.receivedBy.name)">{{ printDetails.receivedBy.name }}</button>
+                    <button v-for="person in filteredSignatoryPersonnel('receivedBy')" :key="person.id" type="button" role="option" @mousedown.prevent="selectSignatory('receivedBy', person.full_name)">{{ person.full_name }}</button>
+                    <div v-if="!filteredSignatoryPersonnel('receivedBy').length && !printDetails.receivedBy.name" class="personnel-empty">No matching names.</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6"><label class="form-label">Title <span class="text-danger">*</span></label><input class="form-control" v-model.trim="printDetails.receivedBy.title" placeholder="Auto-filled from account; editable" required></div>
+              <div class="col-md-6"><label class="form-label">Date <span class="text-danger">*</span></label><input type="date" class="form-control" v-model="printDetails.receivedBy.date" required></div>
             </div>
             <hr>
             <h6>Issued by</h6>
             <div class="row g-3">
-              <div class="col-md-6"><label class="form-label">Printed Name</label><input class="form-control" v-model.trim="printDetails.issuedBy.name"></div>
-              <div class="col-md-6"><label class="form-label">Designation</label><input class="form-control" v-model.trim="printDetails.issuedBy.designation"></div>
-              <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.issuedBy.date"></div>
+              <div class="col-md-6">
+                <label class="form-label">Printed Name</label>
+                <div class="personnel-search">
+                  <input v-model="personnelSearch.issuedBy" class="form-control" type="text" placeholder="Search or enter name" autocomplete="off" required role="combobox" aria-autocomplete="list" :aria-expanded="showPersonnelOptions.issuedBy" @focus="openPersonnelOptions('issuedBy', printDetails.issuedBy.name)" @input="onSignatorySearch('issuedBy')" @keydown.esc="closePersonnelOptions('issuedBy')" @blur="hidePersonnelOptions('issuedBy')">
+                  <div v-if="showPersonnelOptions.issuedBy" class="personnel-options" role="listbox">
+                    <button v-if="printDetails.issuedBy.name && !personnel.some(person => person.full_name === printDetails.issuedBy.name)" type="button" role="option" @mousedown.prevent="selectSignatory('issuedBy', printDetails.issuedBy.name)">{{ printDetails.issuedBy.name }}</button>
+                    <button v-for="person in filteredSignatoryPersonnel('issuedBy')" :key="person.id" type="button" role="option" @mousedown.prevent="selectSignatory('issuedBy', person.full_name)">{{ person.full_name }}</button>
+                    <div v-if="!filteredSignatoryPersonnel('issuedBy').length && !printDetails.issuedBy.name" class="personnel-empty">No matching names.</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6"><label class="form-label">Title <span class="text-danger">*</span></label><input class="form-control" v-model.trim="printDetails.issuedBy.title" placeholder="Auto-filled from account; editable" required></div>
+              <div class="col-md-6"><label class="form-label">Date <span class="text-danger">*</span></label><input type="date" class="form-control" v-model="printDetails.issuedBy.date" required></div>
             </div>
           </div>
           <div class="modal-footer">
@@ -584,6 +621,8 @@ export default {
         'RETURNED Unserviceable', 'RETURNED Serviceable', 'RETURNED for Repair'
       ],
       printDetails: this.emptyPrintDetails(),
+      personnelSearch: { receivedBy: '', issuedBy: '' },
+      showPersonnelOptions: { receivedBy: false, issuedBy: false },
 
       // Receiving employee search
       employeeSearch: '',
@@ -748,9 +787,10 @@ export default {
     emptyRequestPrintDetails() {
       return {
         rptNumber: '',
-        requestedBy: { name: '', designation: '' },
-        approvedBy: { name: '', designation: '' },
-        concurredBy: { name: '', designation: '' },
+        paperSize: 'long',
+        requestedBy: { name: '', designation: '', date: '' },
+        approvedBy: { name: '', designation: '', date: '' },
+        concurredBy: { name: '', designation: '', date: '' },
         actionTaken: ''
       }
     },
@@ -759,9 +799,10 @@ export default {
       const today = new Date().toISOString().split('T')[0]
       return {
         rptNumber: '',
+        paperSize: 'long',
         classifications: ['TRANSFER'],
-        receivedBy: { name: '', designation: '', date: today },
-        issuedBy: { name: '', designation: '', date: today }
+        receivedBy: { name: '', title: '', date: today },
+        issuedBy: { name: '', title: '', date: today }
       }
     },
 
@@ -828,6 +869,50 @@ export default {
       } catch (error) {
         console.log(error)
       }
+    },
+
+    getSignatoryTitle(name) {
+      if (!name) return ''
+      const person = this.personnel.find(employee =>
+        String(employee.full_name || '').trim().toLowerCase() === String(name).trim().toLowerCase()
+      )
+      return person?.job_title || ''
+    },
+
+    filteredSignatoryPersonnel(section) {
+      const search = String(this.personnelSearch[section] || '').trim().toLowerCase()
+      if (!search) return this.personnel
+      return this.personnel.filter(person =>
+        String(person.full_name || '').toLowerCase().includes(search)
+      )
+    },
+
+    openPersonnelOptions(section, selectedName) {
+      if (!this.personnelSearch[section]) this.personnelSearch[section] = selectedName || ''
+      this.showPersonnelOptions[section] = true
+    },
+
+    onSignatorySearch(section) {
+      const signatory = this.printDetails[section]
+      signatory.name = this.personnelSearch[section].trim()
+      signatory.title = this.getSignatoryTitle(signatory.name)
+      this.showPersonnelOptions[section] = true
+    },
+
+    selectSignatory(section, fullName) {
+      const signatory = this.printDetails[section]
+      signatory.name = fullName
+      signatory.title = this.getSignatoryTitle(fullName)
+      this.personnelSearch[section] = fullName
+      this.showPersonnelOptions[section] = false
+    },
+
+    closePersonnelOptions(section) {
+      this.showPersonnelOptions[section] = false
+    },
+
+    hidePersonnelOptions(section) {
+      setTimeout(() => this.closePersonnelOptions(section), 150)
     },
 
     async getOffices() {
@@ -1008,15 +1093,28 @@ export default {
       }
 
       this.printDetails = this.emptyPrintDetails()
-      this.printDetails.rptNumber = transfer.rpt_number || transfer.rpt_no || ''
+      this.printDetails.rptNumber = transfer.rpt_number || transfer.rpt_no || this.getAutomaticRPTNumber(transfer)
       Modal.getOrCreateInstance(document.getElementById('transferPrintModal')).show()
+    },
+
+    getAutomaticRPTNumber(transfer) {
+      const orderedTransfers = [...this.transfers].sort((a, b) => {
+        const dateA = new Date(a.created_at || a.transfer_date || 0).getTime()
+        const dateB = new Date(b.created_at || b.transfer_date || 0).getTime()
+        return dateA - dateB
+      })
+      let sequence = orderedTransfers.findIndex(row => row.id === transfer?.id)
+      if (sequence < 0) sequence = orderedTransfers.length
+      return '2026-' + String(15 + sequence).padStart(3, '0')
     },
 
     openTransferRequestPrint(transfer) {
       this.selectedRequestTransfer = transfer
       this.requestPrintDetails = this.emptyRequestPrintDetails()
+      this.requestPrintDetails.rptNumber = transfer.rpt_number || transfer.rpt_no || this.getAutomaticRPTNumber(transfer)
       this.requestPrintDetails.requestedBy.name = transfer.from_user?.full_name || ''
       this.requestPrintDetails.requestedBy.designation = transfer.from_user?.job_title || ''
+      this.requestPrintDetails.requestedBy.date = String(transfer.transfer_date || '').slice(0, 10)
       Modal.getOrCreateInstance(document.getElementById('propertyTransferRequestModal')).show()
     },
 
@@ -1028,6 +1126,27 @@ export default {
       }
 
       const details = this.requestPrintDetails
+      const rptNumber = String(details.rptNumber || this.getAutomaticRPTNumber(transfer)).trim()
+      transfer.rpt_number = rptNumber
+      details.rptNumber = rptNumber
+      const requiredRequestFields = [
+        ['Requested by - Printed Name', details.requestedBy.name],
+        ['Requested by - Designation', details.requestedBy.designation],
+        ['Approved by - Printed Name', details.approvedBy.name],
+        ['Approved by - Designation', details.approvedBy.designation],
+        ['Concurred by - Printed Name', details.concurredBy.name],
+        ['Concurred by - Designation', details.concurredBy.designation]
+      ]
+      const missingRequestField = requiredRequestFields.find(field => !String(field[1] || '').trim())
+      if (missingRequestField) {
+        const requiredInputs = this.$el.querySelectorAll('#propertyTransferRequestModal input[required], #propertyTransferRequestModal textarea[required]')
+        const firstInvalidInput = Array.from(requiredInputs).find(input => !String(input.value || '').trim())
+        if (firstInvalidInput) {
+          firstInvalidInput.focus()
+          firstInvalidInput.reportValidity()
+        }
+        return
+      }
       const esc = this.escapePrint
       const item = transfer.items || {}
       const receipt = transfer.property_receipts || {}
@@ -1051,47 +1170,61 @@ export default {
 
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
       const blankRows = Array.from({ length: 9 }, () => '<tr><td></td><td></td><td></td><td></td><td></td></tr>').join('')
+      const paperSizes = { long: '8.5in 13in', legal: '8.5in 14in', letter: '8.5in 11in', a4: '210mm 297mm' }
+      const selectedPaperSize = paperSizes[details.paperSize] || paperSizes.long
       printWindow.document.write(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Request for Property Transfer</title>
 <style>
-@page{size:8.5in 13in portrait;margin:9mm}
+@page{size:${selectedPaperSize} portrait;margin:6mm}
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
-body{font-size:10px}
-.sheet{width:100%;min-height:12.25in;border:1px solid #888;padding:8px 10px 12px;position:relative}
-.header{height:66px;border:1px solid #999;display:grid;grid-template-columns:68px 1fr;align-items:center;text-align:center}
-.logo-cell{height:100%;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
-.logo{width:48px;height:48px;object-fit:contain}
-.header-text{font-size:11px;line-height:1.2;font-weight:bold}
-.header-text .school{font-size:13px}
-.title{font-size:14px;font-weight:bold;text-align:center;margin:8px 0 0}
-.rpt{font-weight:bold;text-align:right;padding:4px 18% 4px 0;border-bottom:1px solid #777;font-size:11px}
-.date{margin:13px 0 5px 8px}
+html,body{margin:0!important;padding:0!important;width:auto!important;color:#111;font-family:Arial,Helvetica,sans-serif}
+body{font-size:9px}
+.sheet{width:100%;min-height:0;padding:4px 6px 5px;position:relative}
+.header{min-height:76px;border:1px solid #999;display:grid;grid-template-columns:60px 1fr;align-items:stretch;text-align:center}
+.logo-cell{min-height:76px;border-right:1px solid #999;display:flex;align-items:center;justify-content:center}
+.logo{width:43px;height:43px;object-fit:contain}
+.header-text{display:flex;flex-direction:column;justify-content:center;font-size:14px;line-height:1.1;font-weight:bold;padding:4px 6px}
+.header-text .school{font-size:16px}
+.header-title{font-size:14px;font-weight:bold;text-align:center;border-top:1px solid #999;margin:4px -6px 0;padding:4px 3px 0}
+.rpt{font-weight:bold;text-align:right;padding:5px 0;font-size:14px}
+.rpt-number{display:inline-block;min-width:105px;text-align:center;border-bottom:1px solid #111;padding:0 5px 1px}
+.date{margin:10px 0 7px 6px;font-size:14px}
 .info,.items,.reason,.approvals{width:100%;border-collapse:collapse;table-layout:fixed}
-.info td{border:1px solid #888;padding:4px 6px;height:25px;font-size:10px}
-.info .label{width:29%}
-.items th,.items td{border:1px solid #888;padding:4px 3px}
-.items th{text-align:center;font-weight:bold;height:34px;font-size:10px}
-.items td{height:26px}
-.items tbody tr:first-child td{height:31px}
+.info td{border:1px solid #888;padding:6px 7px;min-height:34px;font-size:14px;line-height:1.25}
+.info .label{width:34%;white-space:normal;overflow-wrap:break-word}
+.items th,.items td{border:1px solid #888;padding:5px}
+.items th{text-align:center;font-weight:bold;min-height:36px;font-size:14px;line-height:1.2}
+.items td{min-height:30px;font-size:14px;line-height:1.25}
+.items tbody tr:first-child td{min-height:34px}
+.items tbody tr:not(:first-child) td{height:0.33in;min-height:0.33in}
 .center{text-align:center}.right{text-align:right}
-.reason td{border:1px solid #888;padding:5px 7px;height:42px}
-.approvals th,.approvals td{border:1px solid #888;padding:4px 5px}
-.approvals th{text-align:center;height:36px;font-size:10px}
-.approvals td{height:24px}
+.reason td{border:1px solid #888;padding:7px;height:auto;font-size:14px;line-height:1.25}
+.approvals th,.approvals td{border:1px solid #888;padding:6px 7px;font-size:14px;line-height:1.25}
+.approvals th{text-align:center;min-height:38px;font-size:14px}
+.approvals td{min-height:30px}.approvals .signatory,.approvals .signatory-date{text-align:center;vertical-align:middle}
 .approvals .row-label{font-weight:bold;width:12%}
 .approvals .action{vertical-align:top}
-.instructions{border:1px solid #888;padding:8px 12px 10px;font-size:10px;line-height:1.35}
-.instructions h2{text-align:center;text-decoration:underline;font-size:12px;margin:2px 0 9px}
-.instructions p{margin:0 0 8px}
-.instructions .copies{text-align:center;margin-top:10px}
-.form-code{position:absolute;left:10px;bottom:5px;font-size:10px}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{min-height:12.25in}}
+.instructions{border:1px solid #888;padding:9px 11px 10px;font-size:14px;line-height:1.3}
+.instructions h2{text-align:center;text-decoration:underline;font-size:14px;margin:3px 0 9px}
+.instructions p{font-size:14px;line-height:1.3;margin:0 0 8px}
+.instructions .copies{text-align:center;font-size:14px;line-height:1.3;margin-top:9px}
+.form-code{margin-top:8px;text-align:left;font-size:11px;font-weight:bold;line-height:1.2}
+.sheet.paper-long{font-size:11px}
+.sheet.paper-letter,.sheet.paper-a4{font-size:10px}
+.sheet.paper-letter .header-text,.sheet.paper-a4 .header-text{font-size:11px}
+.sheet.paper-letter .header-text .school,.sheet.paper-a4 .header-text .school{font-size:12px}
+.sheet.paper-letter .header-title,.sheet.paper-a4 .header-title{font-size:11px}
+.sheet.paper-letter .rpt,.sheet.paper-a4 .rpt,.sheet.paper-letter .date,.sheet.paper-a4 .date{font-size:11px}
+.sheet.paper-letter .info td,.sheet.paper-a4 .info td,.sheet.paper-letter .items th,.sheet.paper-a4 .items th,.sheet.paper-letter .items td,.sheet.paper-a4 .items td,.sheet.paper-letter .reason td,.sheet.paper-a4 .reason td,.sheet.paper-letter .approvals th,.sheet.paper-a4 .approvals th,.sheet.paper-letter .approvals td,.sheet.paper-a4 .approvals td{font-size:10px;padding:3px 4px}
+.sheet.paper-letter .instructions,.sheet.paper-a4 .instructions,.sheet.paper-letter .instructions p,.sheet.paper-a4 .instructions p,.sheet.paper-letter .instructions h2,.sheet.paper-a4 .instructions h2,.sheet.paper-letter .instructions .copies,.sheet.paper-a4 .instructions .copies{font-size:10px;line-height:1.2}
+.sheet.paper-letter .instructions,.sheet.paper-a4 .instructions{padding:6px 8px}
+.sheet.paper-letter .instructions p,.sheet.paper-a4 .instructions p{margin-bottom:5px}
+.sheet.paper-letter .items tbody tr:not(:first-child) td,.sheet.paper-a4 .items tbody tr:not(:first-child) td{height:0.25in;min-height:0.25in}
+@media print{html,body{margin:0!important;padding:0!important}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{min-height:0;break-inside:avoid;page-break-inside:avoid}}
 </style></head><body>
 <div class="sheet">
-<div class="header"><div class="logo-cell"><img class="logo" src="${logoUrl}" alt="NVSU"></div><div class="header-text">Republic of the Philippines<br><span class="school">NUEVA VIZCAYA STATE UNIVERSITY</span><br>Bambang, Nueva Vizcaya</div></div>
-<div class="title">REQUEST FOR PROPERTY TRANSFER</div>
-<div class="rpt">RPT No.: ${esc(details.rptNumber)}</div>
+<div class="header"><div class="logo-cell"><img class="logo" src="${logoUrl}" alt="NVSU"></div><div class="header-text"><div>Republic of the Philippines</div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div>Bambang, Nueva Vizcaya</div><div class="header-title">REQUEST FOR PROPERTY TRANSFER</div></div></div>
+<div class="rpt">RPT No.: <span class="rpt-number">${esc(details.rptNumber || this.getAutomaticRPTNumber(transfer))}</span></div>
 <div class="date">Date: ${esc(formatDate(transfer.transfer_date))}</div>
 <table class="info">
 <tr><td class="label">From Accountable Employee /<br>Responsibility Center:</td><td>${esc(fromName)} / ${esc(fromCenter)}</td></tr>
@@ -1101,13 +1234,13 @@ body{font-size:10px}
 <thead><tr><th style="width:12%">DATE<br>ACQUIRED</th><th style="width:17%">PROPERTY NO.</th><th style="width:37%">DESCRIPTION</th><th style="width:15%">AMOUNT</th><th style="width:19%">CONDITION OF<br>PPE</th></tr></thead>
 <tbody><tr><td class="center">${esc(formatDate(item.acquisition_date))}</td><td class="center">${esc(item.property_number || '')}</td><td>${esc(item.description || '')}</td><td class="right">${amount.toLocaleString('en-PH',{minimumFractionDigits:2})}</td><td class="center">${esc(condition)}</td></tr>${blankRows}</tbody>
 </table>
-<table class="reason"><tr><td style="width:13%;font-weight:bold">Reason for<br>Transfer:</td><td>${esc(transfer.reason || transfer.remarks || '')}</td></tr></table>
+<table class="reason"><tr><td style="width:12%;font-weight:bold">Reason for<br>Transfer:</td><td>${esc(transfer.reason || transfer.remarks || '')}</td></tr></table>
 <table class="approvals">
 <tr><th style="width:12%"></th><th style="width:19%">Requested by:</th><th style="width:19%">Approved by:</th><th style="width:19%">Concurred by:</th><th>Action Taken (to be<br>filled by the Property Officer)</th></tr>
-<tr><td class="row-label">Signature:</td><td></td><td></td><td></td><td class="action" rowspan="4">${esc(details.actionTaken)}</td></tr>
-<tr><td class="row-label">Printed Name:</td><td>${esc(details.requestedBy.name)}</td><td>${esc(details.approvedBy.name)}</td><td>${esc(details.concurredBy.name)}</td></tr>
-<tr><td class="row-label">Designation:</td><td>${esc(details.requestedBy.designation)}</td><td>${esc(details.approvedBy.designation)}</td><td>${esc(details.concurredBy.designation)}</td></tr>
-<tr><td class="row-label">Date:</td><td>${esc(formatDate(transfer.transfer_date))}</td><td></td><td></td></tr>
+<tr><td class="row-label">Signature:</td><td></td><td></td><td></td><td class="action" rowspan="4"></td></tr>
+<tr><td class="row-label">Printed Name:</td><td class="signatory">${esc(details.requestedBy.name)}</td><td class="signatory">${esc(details.approvedBy.name)}</td><td class="signatory">${esc(details.concurredBy.name)}</td></tr>
+<tr><td class="row-label">Designation:</td><td class="signatory">${esc(details.requestedBy.designation)}</td><td class="signatory">${esc(details.approvedBy.designation)}</td><td class="signatory">${esc(details.concurredBy.designation)}</td></tr>
+<tr><td class="row-label">Date:</td><td class="signatory-date">${esc(details.requestedBy.date ? formatDate(details.requestedBy.date) : '')}</td><td class="signatory-date">${esc(details.approvedBy.date ? formatDate(details.approvedBy.date) : '')}</td><td class="signatory-date">${esc(details.concurredBy.date ? formatDate(details.concurredBy.date) : '')}</td></tr>
 </table>
 <div class="instructions">
 <h2>INSTRUCTIONS</h2>
@@ -1138,11 +1271,29 @@ body{font-size:10px}
       }
       const data = this.transferPrintData
       const details = this.printDetails
+      const requiredSignatoryFields = [
+        ['Received by - Printed Name', details.receivedBy.name],
+        ['Received by - Title', details.receivedBy.title],
+        ['Received by - Date', details.receivedBy.date],
+        ['Issued by - Printed Name', details.issuedBy.name],
+        ['Issued by - Title', details.issuedBy.title],
+        ['Issued by - Date', details.issuedBy.date]
+      ]
+      const missingSignatoryField = requiredSignatoryFields.find(field => !String(field[1] || '').trim())
+      if (missingSignatoryField) {
+        const fieldInputs = this.$el.querySelectorAll('.modal.show input[required]')
+        const firstInvalidInput = Array.from(fieldInputs).find(input => !String(input.value || '').trim())
+        if (firstInvalidInput) {
+          firstInvalidInput.focus()
+          firstInvalidInput.reportValidity()
+        }
+        return
+      }
       const esc = this.escapePrint
       const firstItem = data.receipts[0]?.items || {}
       const isICS = Number(firstItem.cost || 0) < 50000
       const receiptTitle = isICS ? 'INVENTORY CUSTODIAN SLIP - TRANSFER' : 'PROPERTY ACKNOWLEDGEMENT RECEIPT - TRANSFER'
-      const appendix = isICS ? '69' : '71'
+      const appendix = '71'
       const total = data.receipts.reduce((sum, receipt) => sum + Number(receipt.items?.cost || 0) * Number(receipt.quantity || 1), 0)
       const amount = value => Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       const date = value => {
@@ -1151,7 +1302,7 @@ body{font-size:10px}
         return Number.isNaN(parsed.getTime()) ? esc(value) : parsed.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric', year: 'numeric' })
       }
       const classifications = this.acknowledgementClassifications.map(label =>
-        `<span>${details.classifications.includes(label) ? '____' : '____'}${esc(label)}</span>`
+        `<span class="classification-option">${details.classifications.includes(label) ? '☑' : '☐'} ${esc(label)}</span>`
       ).join('')
       const rows = data.receipts.map(receipt => {
         const item = receipt.items || {}
@@ -1166,61 +1317,64 @@ body{font-size:10px}
       }
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
       const responsibilityCenter = data.officeName || firstItem.responsibility_center || '-'
+      const paperSizes = { long: '8.5in 13in', legal: '8.5in 14in', letter: '8.5in 11in', short: '8.5in 11in', a4: '210mm 297mm' }
+      const selectedPaperSize = paperSizes[details.paperSize] || paperSizes.long
       printWindow.document.write(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>${esc(receiptTitle)}</title>
 <style>
-@page{size:8.5in 13in portrait;margin:10mm}
+@page{size:${selectedPaperSize} portrait;margin:10mm}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
-body{font-size:10px}
-.page{width:100%;height:11.85in;min-height:11.85in;display:flex;flex-direction:column;overflow:hidden}
-.header{display:grid;grid-template-columns:62px 1fr 85px;align-items:center;text-align:center;margin-bottom:7px;min-height:52px}
-.logo{width:48px;height:48px;object-fit:contain}
-.school{font-size:15px;font-weight:bold;line-height:1.2}
-.campus{font-size:10px;line-height:1.25;font-weight:bold}
-.appendix{text-align:right;font-weight:bold;align-self:start;font-size:10px;padding-top:2px}
-.receipt-title{text-align:center;font-size:13px;line-height:1.2;margin:3px 0 8px;font-weight:bold}
-.receipt-title.ics-title{font-size:9px;letter-spacing:0;line-height:1;margin:1px auto 5px;max-width:90%;white-space:nowrap}
-.meta{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #111;padding:3px 5px 5px;font-size:10px}
+body{font-size:14px}
+.page{width:100%;min-height:calc(100vh - 20mm);display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid}
+.header{display:grid;grid-template-columns:62px 1fr 100px;align-items:center;text-align:center;margin-bottom:9px;min-height:70px}
+.logo{width:58px;height:58px;object-fit:contain}
+.school{font-size:16px;font-weight:bold;line-height:1.2}
+.campus{font-size:14px;line-height:1.25;font-weight:bold}
+.appendix{text-align:right;font-weight:bold;align-self:start;font-size:14px;padding-top:2px}
+.receipt-title{text-align:center;font-size:14px;line-height:1.2;margin:5px 0 10px;font-weight:bold}
+.receipt-title.ics-title{font-size:14px;letter-spacing:0;line-height:1.2;margin:3px auto 8px;max-width:100%;white-space:normal}
+.meta{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #111;padding:6px 7px 7px;font-size:14px;gap:12px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
-.items th,.items td{padding:4px 3px;vertical-align:top;overflow-wrap:anywhere}
-.items th{text-align:center;border-bottom:1px solid #111;border-top:1px solid #111;font-size:9px;line-height:1.15}
-.items td{font-size:9px;line-height:1.12}
-.items tbody tr{border-bottom:1px solid #aaa}
-.items .description{white-space:pre-line}
+.items th,.items td{padding:5px 4px;vertical-align:middle;border-top:1px solid #111;border-bottom:1px solid #111;border-left:0;border-right:0;font-size:14px;line-height:1.2;overflow-wrap:normal}
+.items th{text-align:center;font-weight:bold}
+.items td{font-size:14px}
+.items tbody tr{border-bottom:1px solid #aaa;min-height:0.33in}
+.items .description{white-space:pre-line;overflow-wrap:break-word}
+.items td:nth-child(4),.items td:nth-child(5){white-space:nowrap}
 .center{text-align:center}.number{text-align:right;white-space:nowrap}
-.total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:5px;padding-bottom:5px}
-.nothing{text-align:center;border-bottom:1px solid #111;padding:5px 0}
-.remarks{border-bottom:1px solid #111;padding:5px 2px;min-height:25px}
-.spacer{flex:1 1 0;height:0;min-height:0}
-.page-number{text-align:right;border-top:1px solid #111;padding-top:3px;margin-bottom:5px;font-size:9px}
-.classification{padding-top:3px}
-.classification-title{font-size:10px;font-weight:bold;text-decoration:underline;margin-bottom:5px}
-.classification-list{display:grid;grid-template-columns:1fr 1fr 1fr 1.5fr;gap:3px 5px;font-size:8.5px;line-height:1.05}
-.classification-list span{white-space:nowrap}
-.signatures{display:grid;grid-template-columns:1fr 1fr;gap:45px;margin-top:12px;min-height:72px;padding:0 12px}
-.sign-block{text-align:center;min-height:70px}
-.sign-heading{text-align:left;font-weight:bold;margin-bottom:20px;font-size:9px}
-.sign-name{font-weight:bold;text-transform:uppercase;font-size:10px}
-.sign-designation{font-size:9px;margin-top:1px}
-.sign-date{font-size:9px;margin-top:2px}
+.total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:6px;padding-bottom:6px;font-size:14px;color:#000}.total td:nth-last-child(-n+2){background:#ffeb3b;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.nothing{text-align:center;border-bottom:1px solid #111;padding:6px 0;font-size:14px}
+.remarks{border-bottom:none;padding:7px 3px;min-height:34px;font-size:14px}
+.bottom-block{margin-top:auto;flex-shrink:0;break-inside:avoid;page-break-inside:avoid}
+.page-number{text-align:right;border-top:1px solid #111;padding-top:5px;margin-bottom:7px;font-size:14px}
+.classification{padding-top:5px}
+.classification-title{font-size:14px;font-weight:bold;text-decoration:underline;margin-bottom:7px}
+.classification-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 8px;font-size:14px;line-height:1.2}
+.classification-option{white-space:normal;overflow-wrap:normal}
+.signatures{display:grid;grid-template-columns:1fr 1fr;gap:45px;margin-top:12px;min-height:105px;padding:0 12px;break-inside:avoid;page-break-inside:avoid}
+.sign-block{text-align:center;min-height:100px}
+.sign-heading{text-align:left;font-weight:bold;margin-bottom:24px;font-size:14px}
+.sign-name{font-weight:bold;text-transform:uppercase;font-size:14px}
+.sign-designation{font-size:14px;margin-top:2px}
+.sign-date{font-size:14px;margin-top:3px}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body><div class="page">
 <div class="header"><img class="logo" src="${logoUrl}" alt="NVSU Logo"><div><div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div><div class="campus">Bambang Campus<br>Bambang, Nueva Vizcaya</div></div><div class="appendix">Appendix ${appendix}</div></div>
 <h1 class="receipt-title ${isICS ? 'ics-title' : ''}">${esc(receiptTitle)}</h1>
 <div class="meta"><div><strong>Responsibility Center:</strong> ${esc(responsibilityCenter)}</div><div><strong>RPT NO:</strong> ${esc(details.rptNumber)}</div></div>
-<table class="items"><colgroup><col style="width:5%"><col style="width:6%"><col style="width:39%"><col style="width:15%"><col style="width:10%"><col style="width:12%"><col style="width:13%"></colgroup>
+<table class="items"><colgroup><col style="width:6%"><col style="width:7%"><col style="width:34%"><col style="width:16%"><col style="width:12%"><col style="width:12%"><col style="width:13%"></colgroup>
 <thead><tr><th>Qty</th><th>Unit</th><th>Article and Description</th><th>Property<br>Number</th><th>Date<br>Acquired</th><th>Unit<br>Value</th><th>Total<br>Value</th></tr></thead>
 <tbody>${rows}<tr class="total"><td colspan="5"></td><td class="number">Total</td><td class="number">${amount(total)}</td></tr></tbody></table>
 <div class="nothing">NOTHING FOLLOWS</div>
 <div class="remarks"><strong>Remarks:</strong> ${esc(data.notes || data.remarks || '')}</div>
-<div class="spacer"></div>
+<div class="bottom-block">
 <div class="page-number">Page 1 of 1</div>
 <div class="classification"><div class="classification-title">ACKNOWLEDGEMENT CLASSIFICATION</div><div class="classification-list">${classifications}</div></div>
 <div class="signatures">
-<div class="sign-block"><div class="sign-heading">Received by:</div><div class="sign-name">${esc(details.receivedBy.name)}</div><div class="sign-designation">${esc(details.receivedBy.designation)}</div><div class="sign-date">${esc(date(details.receivedBy.date))}</div></div>
-<div class="sign-block"><div class="sign-heading">Issued by:</div><div class="sign-name">${esc(details.issuedBy.name)}</div><div class="sign-designation">${esc(details.issuedBy.designation)}</div><div class="sign-date">${esc(date(details.issuedBy.date))}</div></div>
-</div></div>
+<div class="sign-block"><div class="sign-heading">Received by:</div><div class="sign-name">${esc(details.receivedBy.name)}</div><div class="sign-designation">${esc(details.receivedBy.title)}</div><div class="sign-date">${esc(date(details.receivedBy.date))}</div></div>
+<div class="sign-block"><div class="sign-heading">Issued by:</div><div class="sign-name">${esc(details.issuedBy.name)}</div><div class="sign-designation">${esc(details.issuedBy.title)}</div><div class="sign-date">${esc(date(details.issuedBy.date))}</div></div>
+</div></div></div>
 <script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script>
 </body></html>`)
       printWindow.document.close()
@@ -1249,6 +1403,44 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 </script>
 
 <style scoped>
+.personnel-search {
+  position: relative;
+}
+
+.personnel-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  z-index: 1060;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  background: #fff;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, .12);
+}
+
+.personnel-options button {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  background: #fff;
+  color: #212529;
+  text-align: left;
+}
+
+.personnel-options button:hover,
+.personnel-options button:focus {
+  background: #f1f5f2;
+}
+
+.personnel-empty {
+  padding: 0.5rem 0.75rem;
+  color: #6c757d;
+}
+
 .page-link {
   color: #856404;
 }

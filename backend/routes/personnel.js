@@ -15,6 +15,36 @@ const { accountRoles, normalizeDepartment } = require('../accountFields')
 const accountRequestsMigrationError =
   'Account registration is not configured yet. Run backend/sql/account-creation-requests.sql in the Supabase SQL Editor.'
 
+router.get('/directory', requireAuth, requireRole('Administrator', 'Teacher', 'Non-Teaching Staff'), async (req, res) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select(`
+      id,
+      full_name,
+      role,
+      department,
+      job_title,
+      offices (
+        office_name
+      )
+    `)
+    .order('full_name', { ascending: true })
+
+  if (error) {
+    console.error('Personnel directory lookup failed:', error)
+    return res.status(500).json({ error: 'Unable to load employee directory' })
+  }
+
+  res.json((data || []).map(person => ({
+    id: person.id,
+    full_name: person.full_name,
+    role: person.role,
+    department: person.department,
+    job_title: person.job_title,
+    office_name: person.offices?.office_name || person.department || ''
+  })))
+})
+
 router.get('/', requireAuth, requireRole('Administrator'), async (req, res) => {
   const { data, error } = await supabase
     .from('users')

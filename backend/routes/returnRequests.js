@@ -201,7 +201,7 @@ router.get('/', staffOnly, async (req, res) => {
 // ---------------------------------------------------------------------------
 router.post('/', async (req, res) => {
   try {
-    const { property_receipt_id, return_date, condition_declared, return_reason, remarks } = req.body
+    const { property_receipt_id, return_date, return_purpose, condition_declared, return_reason, remarks } = req.body
 
     if (!property_receipt_id) {
       return res.status(400).json({ error: 'Please select the property you want to return.' })
@@ -209,6 +209,10 @@ router.post('/', async (req, res) => {
 
     if (!CONDITIONS.includes(condition_declared)) {
       return res.status(400).json({ error: 'Condition must be Serviceable or Unserviceable.' })
+    }
+
+    if (!['Property Utilization/Re-issuance', 'Repair', 'Disposal'].includes(return_purpose)) {
+      return res.status(400).json({ error: 'Please select what the returned property is for.' })
     }
 
     if (!String(return_reason || '').trim()) {
@@ -257,6 +261,7 @@ router.post('/', async (req, res) => {
         requested_by: req.profile.id,
         office_id: req.profile.office_id || null,
         return_date: return_date || new Date().toISOString().split('T')[0],
+        return_purpose,
         condition_declared,
         return_reason: String(return_reason).trim(),
         remarks: String(remarks || '').trim() || null,
@@ -284,6 +289,7 @@ router.post('/', async (req, res) => {
         status: 'Pending',
         condition_declared,
         return_date: created.return_date,
+        return_purpose: created.return_purpose,
         return_reason: created.return_reason,
         remarks: created.remarks
       }),
@@ -581,7 +587,7 @@ router.patch('/:id/cancel', async (req, res) => {
   try {
     const { data: request, error: requestError } = await supabase
       .from('return_requests')
-      .select('*, items (description, property_number)')
+      .select('*')
       .eq('id', req.params.id)
       .maybeSingle()
 
@@ -609,22 +615,29 @@ router.patch('/:id/cancel', async (req, res) => {
       return res.status(409).json({ error: 'This request was already reviewed.' })
     }
 
+    const itemMap = await lookup(
+      'items',
+      [request.item_id],
+      'id, description, property_number'
+    )
+    const item = itemMap[request.item_id] || null
+
     await createAuditLog(
       'Cancelled',
       request.item_id,
       JSON.stringify({
-        description: request.items?.description,
-        property_number: request.items?.property_number,
+        description: item?.description,
+        property_number: item?.property_number,
         status: request.status,
         condition_declared: request.condition_declared,
         return_reason: request.return_reason
       }),
       JSON.stringify({
-        description: request.items?.description,
-        property_number: request.items?.property_number,
+        description: item?.description,
+        property_number: item?.property_number,
         status: 'Cancelled'
       }),
-      `Cancelled return request for ${request.items?.description || 'property'}`,
+      `Cancelled return request for ${item?.description || 'property'}`,
       req.profile.id
     )
 

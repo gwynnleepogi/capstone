@@ -264,6 +264,14 @@
                   required
                   @update:modelValue="selectAccountableEmployee(newItem, $event)"
                 />
+                <button
+                  type="button"
+                  class="btn btn-outline-success btn-sm mt-2"
+                  @click="showAddEmployeeForm = true"
+                >
+                  <i class="bi bi-person-plus me-1"></i>
+                  Add Employee Account
+                </button>
               </div>
 
               <div class="col-12 col-md-6">
@@ -344,6 +352,91 @@
             </button>
             <button type="submit" class="btn btn-success" :disabled="saving">
               {{ saving ? 'Saving...' : 'Save Property' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+ 
+    <!-- ADD EMPLOYEE ACCOUNT MODAL -->
+    <div
+      v-if="showAddEmployeeForm"
+      class="employee-modal-overlay"
+      role="presentation"
+      @click.self="showAddEmployeeForm = false"
+      @keydown.esc="showAddEmployeeForm = false"
+    >
+      <section
+        class="employee-modal card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-employee-title"
+      >
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <div>
+            <h2 id="add-employee-title" class="h5 mb-1">Add Employee Account</h2>
+            <p class="text-muted small mb-0">Create an employee login account and profile.</p>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" @click="showAddEmployeeForm = false"></button>
+        </div>
+
+        <form class="employee-modal-form" @submit.prevent="createEmployeeAccount">
+          <div class="card-body employee-modal-body">
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label">Employee ID <span class="text-danger">*</span></label>
+                <input v-model.trim="newEmployee.employee_id" type="text" class="form-control" autocomplete="off" required />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                <input v-model.trim="newEmployee.full_name" type="text" class="form-control" autocomplete="name" required />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">Email <span class="text-danger">*</span></label>
+                <input v-model.trim="newEmployee.email" type="email" class="form-control" autocomplete="email" required />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">Temporary Password <span class="text-danger">*</span></label>
+                <input v-model="newEmployee.password" type="password" minlength="6" class="form-control" autocomplete="new-password" required />
+                <small class="text-muted">Must be at least 6 characters.</small>
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">User Type <span class="text-danger">*</span></label>
+                <select v-model="newEmployee.role" class="form-select" required @change="loadEmployeeJobTitles">
+                  <option value="">Select a user type</option>
+                  <option value="Teacher">Teaching</option>
+                  <option value="Non-Teaching Staff">Non-Teaching</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">Job Title <span class="text-danger">*</span></label>
+                <input
+                  v-model.trim="newEmployee.job_title"
+                  type="text"
+                  class="form-control"
+                  list="employee-job-title-options"
+                  placeholder="Search or select a job title"
+                  required
+                />
+                <datalist id="employee-job-title-options">
+                  <option v-for="title in employeeJobTitleOptions" :key="title" :value="title"></option>
+                </datalist>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Office <span class="text-danger">*</span></label>
+                <select v-model="newEmployee.office_id" class="form-select" required>
+                  <option value="">Select an office</option>
+                  <option v-for="office in officeOptions" :key="office.id" :value="office.id">
+                    {{ office.office_name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer bg-white d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" @click="showAddEmployeeForm = false" :disabled="creatingEmployee">Cancel</button>
+            <button type="submit" class="btn btn-success" :disabled="creatingEmployee">
+              {{ creatingEmployee ? 'Creating Account...' : 'Create Employee Account' }}
             </button>
           </div>
         </form>
@@ -517,34 +610,11 @@
         </div>
 
         <div class="card-body">
-          <div class="row g-4 align-items-center">
-            <div class="col-12 col-md-4 text-center">
-              <div v-if="detailQrCode" class="qr-code-frame">
-                <img
-                  :src="detailQrCode"
-                  :alt="'QR code for property ' + (detailItem.property_number || '')"
-                />
-              </div>
-              <div v-else-if="qrCodeError" class="text-danger small">
+          <div class="row g-4">
+            <div class="col-12">
+              <div v-if="qrCodeError" class="text-danger small mb-3">
                 {{ qrCodeError }}
               </div>
-              <div v-else class="text-secondary">
-                Generating QR code...
-              </div>
-
-              <div class="fw-semibold mt-2">
-                {{ detailItem.property_number || 'No property number' }}
-              </div>
-              <small class="text-secondary d-block">
-                Scan to view property details
-              </small>
-              <small v-if="isLocalDevelopmentHost" class="text-warning d-block mt-2">
-                For phone scanning, open this app using your laptop's Wi-Fi address,
-                not localhost.
-              </small>
-            </div>
-
-            <div class="col-12 col-md-8">
               <dl class="row mb-0 item-detail-list">
                 <dt class="col-sm-5">Article</dt>
                 <dd class="col-sm-7">{{ detailItem.article || '-' }}</dd>
@@ -612,6 +682,20 @@
           <button
             type="button"
             class="btn btn-outline-success"
+            :disabled="qrGenerating"
+            @click="generateItemQrCode"
+          >
+            <span
+              v-if="qrGenerating"
+              class="spinner-border spinner-border-sm me-1"
+              role="status"
+            ></span>
+            <i v-else class="bi bi-qr-code me-1"></i>
+            {{ qrGenerating ? 'Generating QR...' : 'Generate QR Code' }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-success"
             :disabled="downloadingDocument || !detailQrCode"
             @click="downloadItemDocument"
           >
@@ -628,6 +712,7 @@
             Print Property Tag
           </button>
           <button
+            v-if="!isReturnedProperty(detailItem)"
             type="button"
             class="btn btn-outline-warning"
             @click="editItemFromDetails"
@@ -635,6 +720,9 @@
             <i class="bi bi-pencil me-1"></i>
             Edit Property
           </button>
+          <span v-else class="text-muted small align-self-center">
+            This property has been returned and can no longer be edited.
+          </span>
           <button
             type="button"
             class="btn btn-outline-danger"
@@ -643,6 +731,48 @@
           >
             <i class="bi bi-trash me-1"></i>
             {{ deletingItemId === detailItem.id ? 'Deleting...' : 'Delete Property' }}
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- GENERATED PROPERTY QR CODE -->
+    <div
+      v-if="showQrModal && detailQrCode"
+      class="qr-modal-overlay"
+      @click.self="showQrModal = false"
+    >
+      <section
+        class="qr-modal-dialog card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="qr-modal-title"
+      >
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h2 id="qr-modal-title" class="h5 mb-0">Property QR Code</h2>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            @click="showQrModal = false"
+          ></button>
+        </div>
+        <div class="card-body text-center">
+          <div class="qr-code-frame">
+            <img
+              :src="detailQrCode"
+              :alt="'QR code for property ' + (detailItem?.property_number || '')"
+            />
+          </div>
+          <h6 class="mt-3 mb-1">{{ detailItem?.property_number || 'No property number' }}</h6>
+          <p class="text-muted small mb-0">Scan this QR code to view the property details.</p>
+          <small v-if="isLocalDevelopmentHost" class="text-warning d-block mt-2">
+            For phone scanning, open this app using your laptop's Wi-Fi address, not localhost.
+          </small>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary" @click="showQrModal = false">
+            Close
           </button>
         </div>
       </section>
@@ -973,6 +1103,17 @@ export default {
       sortDirection: 'asc',
 
       showAddForm: false,
+      showAddEmployeeForm: false,
+      creatingEmployee: false,
+      newEmployee: {
+        employee_id: '',
+        full_name: '',
+        email: '',
+        password: '',
+        role: '',
+        job_title: '',
+        office_id: '',
+      },
 
       fundClusterOptions: [
         'AF-1', 'AF-2', 'AF-3', 'AF-DBM PS/BID',
@@ -985,7 +1126,9 @@ export default {
 
       detailItem: null,
       detailQrCode: '',
+      showQrModal: false,
       qrCodeError: '',
+      qrGenerating: false,
       downloadingDocument: false,
       editingItem: null,
       deletingItemId: null,
@@ -1157,6 +1300,15 @@ export default {
       return this.suppliers
         .map(supplier => supplier && supplier.supplier_name)
         .filter(Boolean)
+    },
+
+    employeeJobTitleOptions() {
+      return [...new Set(
+        this.personnel
+          .filter(person => !this.newEmployee.role || person.role === this.newEmployee.role)
+          .map(person => String(person.job_title || '').trim())
+          .filter(Boolean),
+      )].sort((first, second) => first.localeCompare(second, undefined, { sensitivity: 'base' }))
     },
 
     officeOptions() {
@@ -1463,6 +1615,109 @@ export default {
       }
     },
 
+    async loadEmployeeJobTitles() {
+      this.newEmployee.job_title = ''
+    },
+
+    resetNewEmployee() {
+      this.newEmployee = {
+        employee_id: '',
+        full_name: '',
+        email: '',
+        password: '',
+        role: '',
+        job_title: '',
+        office_id: '',
+      }
+      this.showAddEmployeeForm = false
+    },
+
+    async createEmployeeAccount() {
+      if (this.creatingEmployee) return
+
+      const employee = this.newEmployee
+      if (
+        !employee.employee_id ||
+        !employee.full_name ||
+        !employee.email ||
+        !employee.password ||
+        !employee.role ||
+        !employee.job_title ||
+        !employee.office_id
+      ) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please complete all employee account fields.',
+        }))
+        return
+      }
+
+      if (employee.password.length < 6) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Temporary password must be at least 6 characters.',
+        }))
+        return
+      }
+
+      const selectedOffice = this.offices.find(
+        office => String(office.id) === String(employee.office_id),
+      )
+
+      if (!selectedOffice) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please select a valid office.',
+        }))
+        return
+      }
+
+      this.creatingEmployee = true
+
+      try {
+        const response = await fetch('/api/personnel', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            employee_id: employee.employee_id,
+            full_name: employee.full_name,
+            email: employee.email,
+            password: employee.password,
+            role: employee.role,
+            job_title: employee.job_title,
+            office_id: selectedOffice.id,
+            department: selectedOffice.office_name,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok || !data.data) {
+          throw new Error(data.error || 'Unable to create employee account.')
+        }
+
+        const createdEmployee = {
+          ...data.data,
+          offices: { office_name: selectedOffice.office_name },
+        }
+
+        this.personnel.push(createdEmployee)
+        this.newItem.accountable_employee = createdEmployee.full_name
+        this.selectAccountableEmployee(this.newItem, createdEmployee.full_name)
+        this.resetNewEmployee()
+
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Employee account created and selected as the accountable employee.',
+        }))
+      } catch (error) {
+        console.error('Employee account creation failed:', error)
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: error.message || 'Unable to create employee account.',
+        }))
+      } finally {
+        this.creatingEmployee = false
+      }
+    },
+
     selectAccountableEmployee(form, employeeName) {
       const selectedName = String(employeeName || '').trim()
 
@@ -1679,8 +1934,22 @@ export default {
       }
     },
 
-    async showItemDetails(item) {
+    showItemDetails(item) {
       this.detailItem = item
+      this.detailQrCode = ''
+      this.showQrModal = false
+      this.qrCodeError = ''
+      this.qrGenerating = false
+    },
+
+    async generateItemQrCode() {
+      const item = this.detailItem
+
+      if (!item || this.qrGenerating) {
+        return
+      }
+
+      this.qrGenerating = true
       this.detailQrCode = ''
       this.qrCodeError = ''
 
@@ -1731,6 +2000,7 @@ export default {
 
         if (this.detailItem?.id === item.id) {
           this.detailQrCode = qrCode
+          this.showQrModal = true
         }
       } catch (error) {
         console.error('Failed to generate property QR code:', error)
@@ -1738,6 +2008,8 @@ export default {
         if (this.detailItem?.id === item.id) {
           this.qrCodeError = error.message || 'Unable to generate the QR code.'
         }
+      } finally {
+        this.qrGenerating = false
       }
     },
 
@@ -1878,6 +2150,7 @@ export default {
       this.detailItem = null
       this.detailQrCode = ''
       this.qrCodeError = ''
+      this.qrGenerating = false
 
       if (this.$route.query.item) {
         const query = { ...this.$route.query }
@@ -1890,8 +2163,20 @@ export default {
       }
     },
 
+    isReturnedProperty(item) {
+      return String(item?.status || '').trim().toLowerCase() === 'returned' ||
+        String(item?.condition || '').trim().toLowerCase() === 'unserviceable'
+    },
+
     editItemFromDetails() {
       if (!this.detailItem) {
+        return
+      }
+
+      if (this.isReturnedProperty(this.detailItem)) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'This property has been returned and can no longer be edited.'
+        }))
         return
       }
 
@@ -2047,6 +2332,7 @@ export default {
     },
 
     resetForm() {
+      this.resetNewEmployee()
       this.newItem = {
         property_number: '',
         description: '',
@@ -2245,6 +2531,56 @@ h1 {
   overflow-y: auto;
 }
 
+.employee-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.employee-modal {
+  width: min(760px, 100%);
+  max-height: min(90vh, 900px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.25);
+}
+
+.employee-modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.employee-modal-body {
+  overflow-y: auto;
+}
+
+@media (max-width: 576px) {
+  .employee-modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .employee-modal {
+    max-height: 95vh;
+  }
+
+  .employee-modal .card-footer {
+    flex-wrap: wrap;
+  }
+
+  .employee-modal .card-footer .btn {
+    flex: 1 1 130px;
+  }
+}
+
 .detail-overlay {
   position: fixed;
   inset: 0;
@@ -2261,6 +2597,25 @@ h1 {
   width: min(680px, 100%);
   max-height: 100%;
   overflow-y: auto;
+}
+
+.qr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+.qr-modal-dialog {
+  width: min(420px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  text-align: center;
 }
 
 .qr-code-frame {

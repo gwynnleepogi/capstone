@@ -140,68 +140,6 @@
                 </div>
               </div>
               <div class="mb-3" v-if="!editing">
-                <label class="form-label">Receipt For</label>
-                <select class="form-select" v-model="form.receipt_source" @change="resetReceiptSourceSelection" required>
-                  <option value="request">Approved Item Request</option>
-                  <option value="property">Property with Accountable Employee</option>
-                </select>
-              </div>
-              
-              <!-- ITEM REQUEST (SEARCHABLE DROPDOWN) -->
-              <div class="mb-3" v-if="!editing && form.receipt_source === 'request'">
-                <label class="form-label">Approved Item Request</label>
-                <div class="personnel-search">
-                  <input
-                    v-model="itemRequestSearch"
-                    class="form-control"
-                    type="text"
-                    placeholder="Search request number or item..."
-                    autocomplete="off"
-                    required
-                    @focus="showItemRequestOptions = true"
-                    @blur="hideItemRequestOptions"
-                    @input="onItemRequestSearchInput"
-                  >
-                  <div
-                    v-if="showItemRequestOptions"
-                    class="personnel-options"
-                    role="listbox"
-                    style="max-height: 250px;"
-                  >
-                    <button
-                      v-if="form.item_request_id"
-                      type="button"
-                      role="option"
-                      class="text-danger"
-                      @mousedown.prevent="clearItemRequest"
-                    >
-                      <i class="bi bi-x-circle me-1"></i>
-                      Clear selection
-                    </button>
-                    <button
-                      v-for="request in filteredItemRequests"
-                      :key="request.id"
-                      type="button"
-                      role="option"
-                      :class="{ 'bg-light': form.item_request_id === request.id }"
-                      @mousedown.prevent="selectItemRequest(request)"
-                    >
-                      <strong>{{ request.request_number }}</strong> - {{ request.item_description }}
-                    </button>
-                    <div v-if="!filteredItemRequests.length" class="personnel-empty">
-                      No matching requests.
-                    </div>
-                  </div>
-                </div>
-                <small class="text-muted">
-                  Only approved requests with an assigned inventory item can be issued. Delivered requests already have a receipt.
-                  <button type="button" class="btn btn-link btn-sm p-0 ms-1" @click="getItemRequests">
-                    Refresh list
-                  </button>
-                </small>
-              </div>
-
-              <div class="mb-3" v-if="!editing && form.receipt_source === 'property'">
                 <label class="form-label">Assigned Property</label>
                 <select class="form-select" v-model="form.item_id" @change="updateReceiptTypeForSelectedProperty" required>
                   <option value="">
@@ -213,22 +151,20 @@
                 </select>
                 <small class="text-muted">
                   Properties added with an accountable employee are automatically eligible for an acquisition receipt.
-                  <button type="button" class="btn btn-link btn-sm p-0 ms-1" @click="getItems">
-                    Refresh list
-                  </button>
+                  <button type="button" class="btn btn-link btn-sm p-0 ms-1" @click="getItems">Refresh list</button>
                 </small>
               </div>
 
               <!-- SELECTED ITEM DETAILS -->
-              <div v-if="(selectedRequest || selectedAssignedItem) && !editing" class="alert alert-light border">
+              <div v-if="selectedReceiptItem && !editing" class="alert alert-light border">
                 <h6 class="fw-bold text-success">Selected Item Details</h6>
-                <p class="mb-1"><strong>Item:</strong> {{ selectedReceiptItem.description || selectedRequest?.item_description || '-' }}</p>
+                <p class="mb-1"><strong>Item:</strong> {{ selectedReceiptItem.description || '-' }}</p>
                 <p class="mb-1"><strong>Property Number:</strong> {{ selectedReceiptItem.property_number || '-' }}</p>
                 <p class="mb-1"><strong>Model Number:</strong> {{ selectedReceiptItem.model_number || '-' }}</p>
                 <p class="mb-1"><strong>Serial Number:</strong> {{ selectedReceiptItem.serial_number || '-' }}</p>
                 <p class="mb-1">
-                  <strong>{{ selectedRequest ? 'Requested By:' : 'Accountable Employee:' }}</strong>
-                  {{ selectedRequest?.users?.full_name || selectedRequest?.requested_by_name || selectedAssignedItem?.accountable_employee || '-' }}
+                  <strong>Accountable Employee:</strong>
+                  {{ selectedReceiptItem?.accountable_employee || '-' }}
                 </p>
                 <p class="mb-0"><strong>Cost:</strong> ₱{{ formatAmount(selectedReceiptItem.cost) }}</p>
               </div>
@@ -289,7 +225,7 @@
                 <div class="col-md-6"><label class="form-label">UACS</label><input class="form-control" v-model.trim="receiptPrintForm.uacs"></div>
                 <div class="col-md-6"><label class="form-label">BUR No.</label><input class="form-control" v-model.trim="receiptPrintForm.burNumber"></div>
                 <div class="col-md-6"><label class="form-label">IAR No.</label><input class="form-control" v-model.trim="receiptPrintForm.iarNumber"></div>
-                <div class="col-md-6"><label class="form-label">Appendix</label><input class="form-control" v-model.trim="receiptPrintForm.appendix" required></div>
+                <div class="col-md-6"><label class="form-label">Appendix</label><input class="form-control" value="71" readonly></div>
                 
                 <div class="col-12"><strong>Received By</strong></div>
                 <div class="col-md-6">
@@ -336,8 +272,10 @@
                 <div class="col-md-6">
                   <label class="form-label">Paper Size</label>
                   <select class="form-select" v-model="receiptPrintForm.paperSize">
-                    <option value="short">Short (8.5 × 11 in)</option>
+                    <option value="short">Letter / Short (8.5 × 11 in)</option>
                     <option value="long">Long (8.5 × 13 in)</option>
+                    <option value="legal">Legal (8.5 × 14 in)</option>
+                    <option value="a4">A4 (8.27 × 11.69 in)</option>
                     <option value="custom">Custom</option>
                   </select>
                 </div>
@@ -537,9 +475,6 @@ export default {
       pageSize: 10,
       items: [],
       personnel: [],
-      itemRequests: [],
-      itemRequestSearch: '',
-      showItemRequestOptions: false,
 
       fundClusterOptions: [
         'AF-1', 'AF-2', 'AF-3', 'AF-DBM PS/BID',
@@ -609,9 +544,7 @@ export default {
 
       form: {
         id: null,
-        item_request_id: '',
         item_id: '',
-        receipt_source: 'request',
         receipt_type: 'PAR',
         receipt_number: '',
         date_issued: '',
@@ -702,19 +635,6 @@ export default {
         )
     },
 
-    filteredItemRequests() {
-      const search = this.itemRequestSearch.trim().toLowerCase()
-      if (!search) return this.itemRequests
-      return this.itemRequests.filter(request => {
-        const text = `${request.request_number || ''} ${request.item_description || ''}`.toLowerCase()
-        return text.includes(search)
-      })
-    },
-
-    selectedRequest() {
-      return this.itemRequests.find(request => request.id === this.form.item_request_id) || null
-    },
-
     assignedReceiptItems() {
       const receiptedItemIds = new Set(this.receipts.map(receipt => String(receipt.item_id)))
 
@@ -730,10 +650,7 @@ export default {
     },
 
     selectedReceiptItem() {
-      if (this.form.receipt_source === 'property') {
-        return this.selectedAssignedItem || {}
-      }
-      return this.getRequestItem(this.selectedRequest)
+      return this.selectedAssignedItem || {}
     },
 
     editingItem() {
@@ -751,16 +668,9 @@ export default {
     this.getReceipts()
     this.getItems()
     this.getPersonnel()
-    this.getItemRequests()
-
-    window.addEventListener('focus', this.getItemRequests)
-    window.addEventListener('item-requests-updated', this.getItemRequests)
   },
 
-  beforeUnmount() {
-    window.removeEventListener('focus', this.getItemRequests)
-    window.removeEventListener('item-requests-updated', this.getItemRequests)
-  },
+  beforeUnmount() {  },
 
   watch: {
     receiptSearch() { this.currentPage = 1 },
@@ -837,41 +747,6 @@ export default {
     hidePersonnelOptions(searchKey) {
       setTimeout(() => {
         this.closePersonnelOptions(searchKey)
-      }, 150)
-    },
-
-    onItemRequestSearchInput() {
-      const search = this.itemRequestSearch.trim().toLowerCase()
-      if (this.form.item_request_id && this.selectedRequest) {
-        const selectedText = `${this.selectedRequest.request_number} - ${this.selectedRequest.item_description}`.toLowerCase()
-        if (!selectedText.includes(search) && search !== selectedText) {
-          this.form.item_request_id = ''
-        }
-      }
-      this.showItemRequestOptions = true
-    },
-
-    selectItemRequest(request) {
-      this.form.item_request_id = request.id
-      this.itemRequestSearch = `${request.request_number} - ${request.item_description}`
-      this.showItemRequestOptions = false
-      this.updateReceiptTypeForSelectedRequest()
-    },
-
-    clearItemRequest() {
-      this.form.item_request_id = ''
-      this.itemRequestSearch = ''
-      this.showItemRequestOptions = true
-    },
-
-    hideItemRequestOptions() {
-      setTimeout(() => {
-        this.showItemRequestOptions = false
-        if (this.form.item_request_id && this.selectedRequest) {
-          this.itemRequestSearch = `${this.selectedRequest.request_number} - ${this.selectedRequest.item_description}`
-        } else if (!this.form.item_request_id) {
-          this.itemRequestSearch = ''
-        }
       }, 150)
     },
 
@@ -985,37 +860,17 @@ export default {
       }
     },
 
-    async getItemRequests() {
-      try {
-        const response = await fetch('/api/item-requests')
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'Failed to load item requests')
-
-        const requests = Array.isArray(data) ? data : data.itemRequests || data.requests || []
-        this.itemRequests = requests.filter(request =>
-          String(request.status || '').trim().toLowerCase() === 'approved' && request.item_id
-        )
-      } catch (error) {
-        console.log(error)
-        this.showToast(error.message)
-      }
-    },
-
     openAddModal() {
       this.editing = false
       this.form = {
         id: null,
-        item_request_id: '',
         item_id: '',
-        receipt_source: 'request',
         receipt_type: 'PAR',
         receipt_number: '',
         date_issued: new Date().toISOString().split('T')[0],
         remarks: ''
       }
       
-      this.itemRequestSearch = ''
-      this.showItemRequestOptions = false
 
       const modal = Modal.getOrCreateInstance(document.getElementById('receiptModal'))
       modal.show()
@@ -1025,9 +880,7 @@ export default {
       this.editing = true
       this.form = {
         id: receipt.id,
-        item_request_id: '',
         item_id: '',
-        receipt_source: 'request',
         receipt_type: this.getReceiptTypeForItem(this.getReceiptItem(receipt)),
         receipt_number: receipt.receipt_number || '',
         date_issued: receipt.date_issued || '',
@@ -1063,10 +916,11 @@ export default {
         if (this.editing) {
           url = `/api/receipts/${this.form.id}`
           method = 'PUT'
-        } else if (this.form.receipt_source === 'property') {
-          body.item_id = this.form.item_id
         } else {
-          body.item_request_id = this.form.item_request_id
+          if (!this.form.item_id) {
+            throw new Error('Please select an assigned property')
+          }
+          body.item_id = this.form.item_id
         }
 
         const response = await fetch(url, {
@@ -1084,7 +938,6 @@ export default {
 
         await this.getReceipts()
         await this.getItems()
-        await this.getItemRequests()
 
         this.showToast(this.editing ? 'Receipt updated successfully' : 'Receipt created successfully')
       } catch (error) {
@@ -1107,7 +960,6 @@ export default {
         window.dispatchEvent(new Event('receipts-updated'))
         await this.getReceipts()
         await this.getItems()
-        await this.getItemRequests()
         this.showToast('Receipt deleted successfully')
       } catch (error) {
         console.log(error)
@@ -1152,26 +1004,8 @@ export default {
       return cost >= 50000 ? 'PAR' : 'ICS'
     },
 
-    updateReceiptTypeForSelectedRequest() {
-      const item = this.getRequestItem(this.selectedRequest)
-      this.form.receipt_type = this.getReceiptTypeForItem(item)
-    },
-
     updateReceiptTypeForSelectedProperty() {
       this.form.receipt_type = this.getReceiptTypeForItem(this.selectedAssignedItem)
-    },
-
-    resetReceiptSourceSelection() {
-      this.form.item_request_id = ''
-      this.form.item_id = ''
-      this.itemRequestSearch = ''
-    },
-
-    getRequestItem(request) {
-      if (!request) return {}
-      if (request.items) return Array.isArray(request.items) ? request.items[0] || {} : request.items
-      if (request.item) return request.item
-      return this.items.find(item => item.id === request.item_id) || {}
     },
 
     getIssuedToName(receipt) {
@@ -1328,7 +1162,10 @@ export default {
 
     getPrintPageSize(details) {
       if (details.paperSize === 'short') return { width: 8.5, height: 11 }
-      if (details.paperSize !== 'custom') return { width: 8.5, height: 13 }
+      if (details.paperSize === 'a4') return { width: 8.27, height: 11.69 }
+      if (details.paperSize === 'long') return { width: 8.5, height: 13 }
+      if (details.paperSize === 'legal') return { width: 8.5, height: 14 }
+      if (details.paperSize !== 'custom') return { width: 8.5, height: 11 }
 
       const width = Number(details.paperWidth)
       const height = Number(details.paperHeight)
@@ -1375,10 +1212,19 @@ export default {
         <head>
           <title>${receiptType} - ${receiptNumber}</title>
           <style>
-            @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 8mm; }
+            @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 0; }
             * { box-sizing: border-box; }
-            body { margin: 0; color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 10px; }
-            .page { width: 100%; min-height: calc(${pageSize.height}in - 16mm); padding: 5px; display: flex; flex-direction: column; }
+            html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
+            body { color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 10px; }
+            .page { position: relative; width: ${pageSize.width}in; height: ${pageSize.height}in; min-height: 0; padding: 8mm 13mm; margin: 0; display: block; overflow: hidden; }
+            .main-table, .lower-details { flex: 0 0 auto; }
+            .print-footer { position: fixed; left: 13mm; right: 13mm; bottom: 8mm; width: auto; margin: 0; padding: 0; page-break-inside: avoid; break-inside: avoid; }
+            .signature { page-break-inside: avoid; break-inside: avoid; }
+            @media print {
+              html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
+              .page { position: relative; width: ${pageSize.width}in; height: ${pageSize.height}in; min-height: 0; page-break-after: avoid; break-after: avoid; }\n              .print-footer { position: fixed !important; left: 13mm !important; right: 13mm !important; bottom: 8mm !important; }
+              body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            }
             .header { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; min-height: 72px; }
             .logo-box { height: 72px; display: flex; align-items: center; justify-content: center; }
             .logo { width: 58px; height: 58px; object-fit: contain; }
@@ -1415,7 +1261,7 @@ export default {
             .lower-left, .lower-right { padding: 7px; min-height: 125px; }
             .lower-details p { margin: 0 0 7px; line-height: 1.25; }
             .lower-details strong { color: #000; }
-            .print-footer { width: 100%; margin: auto 0 0; padding-bottom: 0; }
+            .print-footer { width: auto; margin: 0; padding: 0; }
             .page-number { margin: 0 2px 5px; text-align: right; font-size: 8px; }
             .signature { display: grid; grid-template-columns: 38% 38%; justify-content: space-between; gap: 12px; min-height: 78px; border-top: 1px solid #000; padding: 5px 0 0; }
             .signature-box { display: flex; flex-direction: column; font-size: 9px; }
@@ -1439,7 +1285,7 @@ export default {
                 <h2>3702 Bambang, Nueva Vizcaya</h2>
               </div>
             </div>
-            <div class="appendix">APPENDIX ${this.escapeHtml(details.appendix || '71')}</div>
+            <div class="appendix">APPENDIX 71</div>
             <div class="receipt-title">
               <span>${receipt.receipt_type === 'ICS' ? 'INVENTORY CUSTODIAN SLIP' : 'PROPERTY ACKNOWLEDGEMENT RECEIPT'}</span>
             </div>

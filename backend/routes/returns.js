@@ -96,11 +96,8 @@ router.post('/', async (req, res) => {
       })
     }
 
-    if (!['Serviceable', 'Unserviceable'].includes(condition_after_return)) {
-      return res.status(400).json({
-        error: 'Condition must be Serviceable or Unserviceable'
-      })
-    }
+    // Every property recorded through Add Return is automatically Unserviceable.
+    const finalCondition = 'Unserviceable'
 
     const { data: receipt, error: receiptError } = await supabase
       .from('property_receipts')
@@ -193,7 +190,7 @@ router.post('/', async (req, res) => {
         returned_by: returned_by || null,
         office_id: office_id || null,
         return_date: return_date || null,
-        condition_after_return,
+        condition_after_return: finalCondition,
         return_reason: return_reason || null,
         remarks: remarks || null
       }])
@@ -210,7 +207,7 @@ router.post('/', async (req, res) => {
 
     const { data: updatedItem, error: syncError } = await syncReturnedItem(
       newReturn.item_id,
-      newReturn.condition_after_return,
+      finalCondition,
       updatedQuantity
     )
 
@@ -248,7 +245,7 @@ router.post('/', async (req, res) => {
         accountable_employee: updatedItem.accountable_employee,
         old_quantity: currentQuantity,
         new_quantity: updatedItem.quantity,
-        condition_after_return: condition_after_return,
+        condition_after_return: finalCondition,
         return_date: newReturn.return_date,
         returned_by: newReturn.returned_by,
         office_id: newReturn.office_id,
@@ -278,11 +275,8 @@ router.put('/:id', async (req, res) => {
       remarks
     } = req.body
 
-    if (!['Serviceable', 'Unserviceable'].includes(condition_after_return)) {
-      return res.status(400).json({
-        error: 'Condition must be Serviceable or Unserviceable'
-      })
-    }
+    // Returned property records must remain Unserviceable.
+    const finalCondition = 'Unserviceable'
 
     const { data: oldReturn, error: oldReturnError } = await supabase
       .from('item_returns')
@@ -300,7 +294,7 @@ router.put('/:id', async (req, res) => {
         returned_by: returned_by || null,
         office_id: office_id || null,
         return_date: return_date || null,
-        condition_after_return,
+        condition_after_return: finalCondition,
         return_reason: return_reason || null,
         remarks: remarks || null
       })
@@ -314,7 +308,7 @@ router.put('/:id', async (req, res) => {
 
     const { data: updatedItem, error: syncError } = await syncReturnedItem(
       updatedReturn.item_id,
-      updatedReturn.condition_after_return
+      finalCondition
     )
 
     if (syncError) {
@@ -413,10 +407,17 @@ router.delete('/:id', async (req, res) => {
         .eq('id', deletedReturn.item_id)
         .single()
 
+      // The inventory item may have been deleted before this return record.
+      // In that case, keep the return deletable without attempting to restore
+      // or modify stock that no longer exists.
       if (itemError || !item) {
-        return res.status(404).json({ error: 'Inventory item not found' })
+        console.warn(
+          'Deleting orphaned return record; linked inventory item is missing:',
+          deletedReturn.item_id
+        )
       }
 
+      if (item) {
       const returnedQuantity = Number(receipt.quantity)
       const currentQuantity = Number(item.quantity || 0)
       const nextQuantity = currentQuantity - returnedQuantity
@@ -454,6 +455,7 @@ router.delete('/:id', async (req, res) => {
 
       if (updateItemError) {
         return res.status(500).json({ error: updateItemError.message })
+      }
       }
     }
 

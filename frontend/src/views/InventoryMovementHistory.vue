@@ -88,8 +88,8 @@
               <th>Date</th>
               <th>Property No.</th>
               <th>Description</th>
-              <th>Movement</th>
-              <th>Quantity</th>
+              <th style="width: 160px; min-width: 160px; white-space: nowrap;">Movement</th>
+              <th style="width: 120px; min-width: 120px; white-space: nowrap;">Quantity</th>
               <th>Reference</th>
               <th>Recipient / Source</th>
             </tr>
@@ -100,12 +100,12 @@
               <td>{{ formatDate(item.date) }}</td>
               <td>{{ item.propertyNumber || 'N/A' }}</td>
               <td>{{ item.description || 'N/A' }}</td>
-              <td>
-                <span class="movement-badge" :class="badgeClass(item)">
+              <td class="movement-cell" style="width: 160px; min-width: 160px; white-space: nowrap;">
+                <span class="movement-badge" :class="badgeClass(item)" style="white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;">
                   {{ item.category }}
                 </span>
               </td>
-              <td>{{ item.quantity }}</td>
+              <td class="quantity-cell" style="width: 120px; min-width: 120px; white-space: nowrap;">{{ item.quantity }}</td>
               <td>{{ item.reference || 'N/A' }}</td>
               <td>{{ item.person || 'N/A' }}</td>
             </tr>
@@ -287,6 +287,8 @@
 </template>
 
 <script>
+import ExcelJS from 'exceljs';
+
 export default {
   name: 'InventoryMovementHistory',
 
@@ -577,8 +579,6 @@ export default {
       }
 
       try {
-        const imported = await import('exceljs');
-        const ExcelJS = imported.default || imported;
         const workbook = new ExcelJS.Workbook();
 
         const isIssuance = this.reportToPrint === 'issuance';
@@ -1866,22 +1866,51 @@ export default {
 
 table {
   width: 100%;
+  min-width: 1100px;
   border-collapse: collapse;
   font-size: 13px;
   text-align: left;
+  table-layout: auto;
 }
 
 th,
 td {
   padding: 13px 12px;
   border-bottom: 1px solid #e9e7de;
-  white-space: nowrap;
+  white-space: nowrap !important;
+  vertical-align: middle;
 }
 
 th {
   background: #2f5d3a;
   color: #ffffff;
   font-weight: 600;
+}
+
+.table thead th:nth-child(4),
+.table tbody td:nth-child(4) {
+  width: 140px;
+  min-width: 140px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.table thead th:nth-child(5),
+.table tbody td:nth-child(5) {
+  width: 110px;
+  min-width: 110px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.movement-cell,
+.quantity-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.movement-badge {
+  margin: 0 auto;
 }
 
 .movement-badge {

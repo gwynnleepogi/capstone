@@ -19,7 +19,7 @@
 
         <button class="btn btn-warning" @click="openAddModal">
           <i class="bi bi-arrow-return-left me-1"></i>
-          Add Return
+          Return a Property
         </button>
       </div>
     </div>
@@ -137,7 +137,7 @@
 
             <tbody>
               <tr v-for="itemReturn in paginatedReturns" :key="itemReturn.id">
-                <td>{{ itemReturn.items?.description || '-' }}</td>
+                <td>{{ itemReturn.items?.description || 'Original property record deleted' }}</td>
 
                 <td>
                   {{
@@ -257,7 +257,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">
-              {{ editing ? 'Edit Return' : 'Add Return' }}
+              {{ editing ? 'Edit Return' : 'Return a Property' }}
             </h5>
 
             <button
@@ -369,14 +369,12 @@
                   Condition After Return <span class="text-danger">*</span>
                 </label>
 
-                <select
-                  class="form-select"
-                  v-model="form.condition_after_return"
-                  required
-                >
-                  <option value="Serviceable">Serviceable</option>
-                  <option value="Unserviceable">Unserviceable</option>
-                </select>
+                <div class="form-control-plaintext">
+                  <span class="badge bg-danger">Unserviceable</span>
+                  <div class="form-text">
+                    Returned properties are automatically recorded as Unserviceable.
+                  </div>
+                </div>
               </div>
 
               <div class="mb-3">
@@ -468,13 +466,13 @@
           <div v-if="selectedReturn" class="modal-body">
             <dl class="row mb-0">
               <dt class="col-sm-4">Property Number</dt>
-              <dd class="col-sm-8">{{ selectedReturn.items?.property_number || '-' }}</dd>
+              <dd class="col-sm-8">{{ selectedReturn.items?.property_number || 'Unavailable — original property record was deleted' }}</dd>
 
               <dt class="col-sm-4">Description</dt>
-              <dd class="col-sm-8">{{ selectedReturn.items?.description || '-' }}</dd>
+              <dd class="col-sm-8">{{ selectedReturn.items?.description || 'Original property record deleted; return history is retained.' }}</dd>
 
               <dt class="col-sm-4">Serial Number</dt>
-              <dd class="col-sm-8">{{ selectedReturn.items?.serial_number || '-' }}</dd>
+              <dd class="col-sm-8">{{ selectedReturn.items?.serial_number || 'Unavailable — original property record was deleted' }}</dd>
 
               <dt class="col-sm-4">Returned Receipt</dt>
               <dd class="col-sm-8">
@@ -489,7 +487,7 @@
               <dt class="col-sm-4">Inventory Status</dt>
               <dd class="col-sm-8">
                 <span class="badge bg-info text-dark">
-                  {{ selectedReturn.items?.status || 'Returned' }}
+                  {{ selectedReturn.items?.status || 'Original property record deleted' }}
                 </span>
               </dd>
 
@@ -526,6 +524,26 @@
               <dt class="col-sm-4">Remarks</dt>
               <dd class="col-sm-8">{{ selectedReturn.remarks || '-' }}</dd>
             </dl>
+            <hr>
+            <h6 class="mb-3">Acknowledgement Receipt Signatories</h6>
+            <div class="row g-3">
+              <div class="col-md-4" v-for="section in ['returnedBy', 'receivedBy', 'actionTaken']" :key="section">
+                <label class="form-label fw-semibold">{{ section === 'returnedBy' ? 'Returned by' : section === 'receivedBy' ? 'Received by' : 'Action Taken (Property Officer)' }} - Printed Name</label>
+                <div class="position-relative">
+                  <input class="form-control" v-model="returnAckDetails[section].name" @focus="returnAckOptions[section] = true" @input="updateReturnAckSearch(section)" @blur="closeReturnAckOptions(section)" placeholder="Search personnel or type a name">
+                  <div v-if="returnAckOptions[section]" class="return-ack-options">
+                    <button v-for="person in filteredReturnAckPersonnel(section)" :key="person.id" type="button" class="return-ack-option" @mousedown.prevent="selectReturnAckPerson(section, person)">
+                      {{ person.full_name }}<small v-if="person.job_title"> — {{ person.job_title }}</small>
+                    </button>
+                    <div v-if="!filteredReturnAckPersonnel(section).length" class="return-ack-empty">No matching personnel. You can keep the name you typed.</div>
+                  </div>
+                </div>
+                <label class="form-label mt-2">Designation</label>
+                <input class="form-control" v-model.trim="returnAckDetails[section].title" placeholder="Enter designation">
+                <label class="form-label mt-2">Date</label>
+                <input type="date" class="form-control" v-model="returnAckDetails[section].date">
+              </div>
+            </div>
           </div>
 
           <div class="modal-footer">
@@ -533,8 +551,11 @@
               Close
             </button>
 
-            <button type="button" class="btn btn-outline-success" @click="printReturnedPropertyReceipt">
-              <i class="bi bi-printer me-1"></i>Print Property Acknowledgement Receipt - Returned
+            <button type="button" class="btn btn-outline-success" @click="openReturnedAcknowledgementModal">
+              <i class="bi bi-printer me-1"></i>Print Acknowledgement for Returned Property
+            </button>
+            <button type="button" class="btn btn-outline-primary" @click="printReturnedPropertyReceipt">
+              <i class="bi bi-printer me-1"></i>Print PAR / ICS - Returned
             </button>
             <button
               type="button"
@@ -552,6 +573,80 @@
             >
               <i class="bi bi-trash me-1"></i>
               {{ deletingReturnId === selectedReturn?.id ? 'Deleting...' : 'Delete' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="returnedAcknowledgementInputModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Acknowledgement Receipt for Returned Property</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <p class="text-muted small">Enter the printed name, designation, and date for each signatory. Search personnel or type a name manually.</p>
+          <div class="row g-3">
+            <div class="col-md-4" v-for="section in signatorySections" :key="section">
+              <h6 class="fw-semibold">{{ section === "returnedBy" ? "Returned by" : section === "receivedBy" ? "Received by" : "Action Taken (Property Officer)" }}</h6>
+              <label class="form-label">Printed Name</label>
+              <div class="position-relative">
+                <input class="form-control" v-model="returnAckDetails[section].name" @focus="returnAckOptions[section] = true" @input="updateReturnAckSearch(section)" @blur="closeReturnAckOptions(section)" placeholder="Search personnel or type a name">
+                <div v-if="returnAckOptions[section]" class="return-ack-options">
+                  <button v-for="person in filteredReturnAckPersonnel(section)" :key="person.id" type="button" class="return-ack-option" @mousedown.prevent="selectReturnAckPerson(section, person)">{{ person.full_name }}<small v-if="person.job_title"> — {{ person.job_title }}</small></button>
+                  <div v-if="!filteredReturnAckPersonnel(section).length" class="return-ack-empty">No matching personnel. You can keep the name you typed.</div>
+                </div>
+              </div>
+              <label class="form-label mt-2">Designation</label><input class="form-control" v-model.trim="returnAckDetails[section].title" placeholder="Enter designation">
+              <label class="form-label mt-2">Date</label><input type="date" class="form-control" v-model="returnAckDetails[section].date">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" @click="printAcknowledgementForReturnedProperty"><i class="bi bi-printer me-1"></i>Print Acknowledgement</button></div>
+      </div></div>
+    </div>
+    <div class="modal fade" id="returnedReceiptPaperModal" tabindex="-1" aria-labelledby="returnedReceiptPaperModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="returnedReceiptPaperModalLabel">Print PAR / ICS - Returned</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Paper Size</label>
+              <select class="form-select" v-model="returnedReceiptPaperSize">
+                <option value="a4">A4 (210 × 297 mm)</option>
+                <option value="short">Short / Letter (8.5 × 11 inches)</option>
+                <option value="long">Long (8.5 × 13 inches)</option>
+              </select>
+            </div>
+            <hr>
+            <h6>Received by</h6>
+            <div class="row g-2 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Printed Name</label>
+                <input class="form-control" v-model.trim="returnedReceiptSignatories.receivedByName" placeholder="Enter receiving property officer">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Designation</label>
+                <input class="form-control" v-model.trim="returnedReceiptSignatories.receivedByTitle" placeholder="Enter designation">
+              </div>
+            </div>
+            <h6>Issued by</h6>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="form-label">Printed Name</label>
+                <input class="form-control" v-model.trim="returnedReceiptSignatories.issuedByName">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Designation</label>
+                <input class="form-control" v-model.trim="returnedReceiptSignatories.issuedByTitle">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" @click="confirmPrintReturnedPropertyReceipt">
+              <i class="bi bi-printer me-1"></i>Print Receipt
             </button>
           </div>
         </div>
@@ -580,6 +675,14 @@ export default {
       personnel: [],
       offices: [],
       selectedReturn: null,
+      signatorySections: ['returnedBy', 'receivedBy', 'actionTaken'],
+      returnAckDetails: {
+        returnedBy: { name: '', title: '', date: '' },
+        receivedBy: { name: '', title: '', date: '' },
+        actionTaken: { name: '', title: '', date: '' }
+      },
+      returnAckSearch: { returnedBy: '', receivedBy: '', actionTaken: '' },
+      returnAckOptions: { returnedBy: false, receivedBy: false, actionTaken: false },
 
       search: '',
       conditionFilter: '',
@@ -594,6 +697,13 @@ export default {
       editing: false,
       saving: false,
       deletingReturnId: null,
+      returnedReceiptPaperSize: 'a4',
+      returnedReceiptSignatories: {
+        receivedByName: '',
+        receivedByTitle: '',
+        issuedByName: '',
+        issuedByTitle: ''
+      },
 
       form: {
         id: null,
@@ -601,7 +711,7 @@ export default {
         returned_by: '',
         office_id: '',
         return_date: '',
-        condition_after_return: 'Serviceable',
+        condition_after_return: 'Unserviceable',
         return_reason: '',
         otherReason: '',
         remarks: ''
@@ -994,7 +1104,7 @@ export default {
         returned_by: '',
         office_id: '',
         return_date: new Date().toISOString().split('T')[0],
-        condition_after_return: 'Serviceable',
+        condition_after_return: 'Unserviceable',
         return_reason: '',
         otherReason: '',
         remarks: ''
@@ -1037,17 +1147,293 @@ export default {
 
     viewReturnDetails(itemReturn) {
       this.selectedReturn = itemReturn
+      const returnedName = itemReturn.personnel?.full_name || itemReturn.users?.full_name || ''
+      const returnedPerson = this.personnel.find(person => person.full_name === returnedName)
+      const returnDate = String(itemReturn.return_date || '').slice(0, 10)
+      this.returnAckDetails = {
+        returnedBy: { name: returnedName, title: returnedPerson?.job_title || '', date: returnDate },
+        receivedBy: { name: '', title: '', date: '' },
+        actionTaken: { name: '', title: '', date: '' }
+      }
+      this.returnAckSearch = { returnedBy: returnedName, receivedBy: '', actionTaken: '' }
+      this.returnAckOptions = { returnedBy: false, receivedBy: false, actionTaken: false }
 
       Modal.getOrCreateInstance(
         document.getElementById('returnDetailsModal')
       ).show()
     },
 
+    filteredReturnAckPersonnel(section) {
+      const query = String(this.returnAckDetails[section]?.name || '').toLowerCase().trim()
+      if (!query) return this.personnel.slice(0, 10)
+      return this.personnel.filter(person =>
+        String(person.full_name || '').toLowerCase().includes(query) ||
+        String(person.job_title || '').toLowerCase().includes(query)
+      ).slice(0, 10)
+    },
+
+    selectReturnAckPerson(section, person) {
+      this.returnAckDetails[section].name = person.full_name || ''
+      this.returnAckDetails[section].title = person.job_title || ''
+      this.returnAckSearch[section] = person.full_name || ''
+      this.returnAckOptions[section] = false
+    },
+
+    updateReturnAckSearch(section) {
+      const typedName = this.returnAckDetails[section].name || ''
+      this.returnAckSearch[section] = typedName
+      const match = this.personnel.find(person =>
+        String(person.full_name || '').toLowerCase() === String(typedName).toLowerCase()
+      )
+      if (match) this.returnAckDetails[section].title = match.job_title || ''
+      this.returnAckOptions[section] = true
+    },
+
+    closeReturnAckOptions(section) {
+      setTimeout(() => {
+        this.returnAckOptions[section] = false
+      }, 150)
+    },
+
     printReturnedPropertyReceipt() {
+      const record = this.selectedReturn || {}
+      const returnedByPerson = record.personnel || record.users || {}
+      this.returnedReceiptSignatories = {
+        receivedByName: '',
+        receivedByTitle: '',
+        issuedByName: returnedByPerson.full_name || '',
+        issuedByTitle: returnedByPerson.job_title || returnedByPerson.designation || ''
+      }
+      Modal.getOrCreateInstance(document.getElementById('returnedReceiptPaperModal')).show()
+    },
+
+    confirmPrintReturnedPropertyReceipt() {
+      Modal.getOrCreateInstance(document.getElementById('returnedReceiptPaperModal')).hide()
+
+      const record = this.selectedReturn
+      if (!record) return
+
+      const item = record.items || {}
+      const issuedReceipt = record.property_receipts || {}
+      const returnedBy = this.returnedReceiptSignatories.issuedByName || ''
+      const designation = this.returnedReceiptSignatories.issuedByTitle || ''
+      const receivedBy = this.returnedReceiptSignatories.receivedByName || ''
+      const receivedByTitle = this.returnedReceiptSignatories.receivedByTitle || ''
+      const quantity = Number(issuedReceipt.quantity || 1)
+      const unitValue = Number(item.cost || item.unit_value || 0)
+      const isICS = unitValue < 50000
+      const receiptTitle = isICS
+        ? 'INVENTORY CUSTODIAN SLIP - RETURNED'
+        : 'PROPERTY ACKNOWLEDGEMENT RECEIPT - RETURNED'
+      const appendix = isICS ? '69' : '71'
+
+      const safe = value => String(value === null || value === undefined || value === '' ? '-' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+
+      const date = value => {
+        if (!value) return '-'
+        const parsed = new Date(value + 'T00:00:00')
+        return Number.isNaN(parsed.getTime())
+          ? safe(value)
+          : parsed.toLocaleDateString('en-PH', {
+              month: 'numeric',
+              day: 'numeric',
+              year: 'numeric'
+            })
+      }
+
+      const amount = value => Number(value || 0).toLocaleString('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })
+
+      const total = unitValue * quantity
+      const returnDate = date(record.return_date)
+      const description = safe(item.description || 'Original property record deleted')
+      const propertyNumber = safe(item.property_number)
+      const acquiredDate = date(item.acquisition_date || issuedReceipt.date_issued)
+      const responsibilityCenter = safe(
+        item.responsibility_center ||
+        record.offices?.office_name ||
+        '-'
+      )
+      const remarks = safe(record.remarks || record.return_reason || '')
+      const logo = new URL('../assets/LOGO.png', import.meta.url).href
+      const paperSizes = {
+        a4: '210mm 297mm',
+        short: '8.5in 11in',
+        long: '8.5in 13in'
+      }
+      const selectedPaperSize = paperSizes[this.returnedReceiptPaperSize] || paperSizes.a4
+
+      const classifications = [
+        'NEW',
+        'RENEWAL',
+        'UPDATING',
+        'TRANSFER',
+        'CLEARANCE-w/ Retain Accountability',
+        'RETURNED Unserviceable',
+        'RETURNED Serviceable',
+        'RETURNED for Repair'
+      ].map(label => {
+        const checked = label === 'RETURNED Unserviceable'
+        return `<span class="classification-option">${checked ? '☑' : '☐'} ${safe(label)}</span>`
+      }).join('')
+
+      const printWindow = window.open('', '_blank', 'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes')
+      if (!printWindow) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please allow pop-ups to print the returned PAR / ICS.'
+        }))
+        return
+      }
+
+      printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${safe(receiptTitle)}</title>
+<style>
+@page{size:${selectedPaperSize} portrait;margin:10mm}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;color:#111;font-family:Arial,Helvetica,sans-serif}
+body{font-size:14px}
+.page{width:100%;min-height:calc(100vh - 20mm);display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid}
+.header{display:grid;grid-template-columns:62px 1fr 100px;align-items:center;text-align:center;margin-bottom:9px;min-height:70px}
+.logo{width:58px;height:58px;object-fit:contain}
+.school{font-size:16px;font-weight:bold;line-height:1.2}
+.campus{font-size:14px;line-height:1.25;font-weight:bold}
+.appendix{text-align:right;font-weight:bold;align-self:start;font-size:14px;padding-top:2px}
+.receipt-title{text-align:center;font-size:14px;line-height:1.2;margin:5px 0 10px;font-weight:bold}
+.receipt-title.ics-title{font-size:14px;letter-spacing:0;line-height:1.2;margin:3px auto 8px;max-width:100%;white-space:normal}
+.meta{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #111;padding:6px 7px 7px;font-size:14px;gap:12px}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+.items th,.items td{padding:5px 4px;vertical-align:middle;border-top:1px solid #111;border-bottom:1px solid #111;border-left:0;border-right:0;font-size:14px;line-height:1.2;overflow-wrap:normal}
+.items th{text-align:center;font-weight:bold}
+.items td{font-size:14px}
+.items tbody tr{border-bottom:1px solid #aaa;min-height:0.33in}
+.items .description{white-space:pre-line;overflow-wrap:break-word}
+.items td:nth-child(4),.items td:nth-child(5){white-space:nowrap}
+.center{text-align:center}
+.number{text-align:right;white-space:nowrap}
+.total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:6px;padding-bottom:6px;font-size:14px}
+.nothing{text-align:center;border-bottom:1px solid #111;padding:6px 0;font-size:14px}
+.remarks{border-bottom:none;padding:7px 3px;min-height:34px;font-size:14px}
+.bottom-block{margin-top:auto;flex-shrink:0;break-inside:avoid;page-break-inside:avoid}
+.page-number{text-align:right;border-top:1px solid #111;padding-top:5px;margin-bottom:7px;font-size:14px}
+.classification{padding-top:5px}
+.classification-title{font-size:14px;font-weight:bold;text-decoration:underline;margin-bottom:7px}
+.classification-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 8px;font-size:14px;line-height:1.2}
+.classification-option{white-space:normal;overflow-wrap:normal}
+.signatures{display:grid;grid-template-columns:1fr 1fr;gap:45px;margin-top:12px;min-height:105px;padding:0 12px;break-inside:avoid;page-break-inside:avoid}
+.sign-block{text-align:center;min-height:100px}
+.sign-heading{text-align:left;font-weight:bold;margin-bottom:24px;font-size:14px}
+.sign-name{font-weight:bold;text-transform:uppercase;font-size:14px}
+.sign-designation{font-size:14px;margin-top:2px}
+.sign-date{font-size:14px;margin-top:3px}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <img class="logo" src="${logo}" alt="NVSU Logo">
+    <div>
+      <div class="school">NUEVA VIZCAYA STATE UNIVERSITY</div>
+      <div class="campus">Bambang Campus<br>Bambang, Nueva Vizcaya</div>
+    </div>
+    <div class="appendix">Appendix ${appendix}</div>
+  </div>
+  <h1 class="receipt-title ${isICS ? 'ics-title' : ''}">${safe(receiptTitle)}</h1>
+  <div class="meta">
+    <div><strong>Responsibility Center:</strong> ${responsibilityCenter}</div>
+    <div><strong>RPT NO:</strong> -</div>
+  </div>
+  <table class="items">
+    <colgroup>
+      <col style="width:6%"><col style="width:7%"><col style="width:34%">
+      <col style="width:16%"><col style="width:12%"><col style="width:12%"><col style="width:13%">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Qty</th><th>Unit</th><th>Article and Description</th>
+        <th>Property<br>Number</th><th>Date<br>Acquired</th>
+        <th>Unit<br>Value</th><th>Total<br>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="center">${quantity}</td>
+        <td class="center">${safe(item.unit || 'unit')}</td>
+        <td class="description">${description}</td>
+        <td class="center">${propertyNumber}</td>
+        <td class="center">${acquiredDate}</td>
+        <td class="number">${amount(unitValue)}</td>
+        <td class="number">${amount(total)}</td>
+      </tr>
+      <tr class="total">
+        <td colspan="5"></td><td class="number">Total</td><td class="number">${amount(total)}</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="nothing">NOTHING FOLLOWS</div>
+  <div class="remarks"><strong>Remarks:</strong> ${remarks}</div>
+  <div class="bottom-block">
+    <div class="page-number">Page 1 of 1</div>
+    <div class="classification">
+      <div class="classification-title">ACKNOWLEDGEMENT CLASSIFICATION</div>
+      <div class="classification-list">${classifications}</div>
+    </div>
+    <div class="signatures">
+      <div class="sign-block">
+        <div class="sign-heading">Received by:</div>
+        <div class="sign-name">${safe(receivedBy)}</div>
+        <div class="sign-designation">${safe(receivedByTitle)}</div>
+        <div class="sign-date">${safe(returnDate)}</div>
+      </div>
+      <div class="sign-block">
+        <div class="sign-heading">Issued by:</div>
+        <div class="sign-name">${safe(returnedBy)}</div>
+        <div class="sign-designation">${safe(designation)}</div>
+        <div class="sign-date">${safe(returnDate)}</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+window.onload=function(){
+  const logo=document.querySelector('.logo')
+  if(logo&&!logo.complete){
+    logo.onload=function(){window.print()}
+    logo.onerror=function(){window.print()}
+  }else{
+    window.print()
+  }
+}
+<\/script>
+</body>
+</html>`)
+      printWindow.document.close()
+    },
+
+    openReturnedAcknowledgementModal() {
+      if (!this.selectedReturn) return
+      const modalElement = document.getElementById("returnedAcknowledgementInputModal")
+      if (modalElement) Modal.getOrCreateInstance(modalElement).show()
+    },
+
+    printAcknowledgementForReturnedProperty() {
+      const inputModal = document.getElementById("returnedAcknowledgementInputModal")
+      if (inputModal) Modal.getInstance(inputModal)?.hide()
       const record = this.selectedReturn
       if (!record) return
       const item = record.items || {}
       const returnedBy = record.personnel?.full_name || record.users?.full_name || ''
+      const ack = this.returnAckDetails
       const office = record.offices?.office_name || ''
       const quantity = Number(record.property_receipts?.quantity || 1)
       const safe = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
@@ -1057,8 +1443,10 @@ export default {
         return Number.isNaN(parsed.getTime()) ? safe(value) : parsed.toLocaleDateString('en-PH')
       }
       const rows = Array.from({ length: 15 }, (_, i) => i === 0
-        ? `<tr><td>1</td><td>${quantity}</td><td></td><td class="desc">${safe(item.description)}</td><td></td><td>${safe(returnedBy)}</td><td>${safe(record.remarks || record.return_reason || '')}</td></tr>`
+        ? `<tr><td>1</td><td>${quantity}</td><td></td><td class="desc">${safe(item.description || 'Original property record deleted')}</td><td></td><td>${safe(returnedBy)}</td><td>${safe(record.remarks || record.return_reason || '')}</td></tr>`
         : `<tr><td>${i + 1}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')
+      const paperSizes = { a4: '210mm 297mm', short: '8.5in 11in', long: '8.5in 13in' }
+      const selectedPaperSize = paperSizes[this.returnedReceiptPaperSize] || paperSizes.a4
       const logo = new URL('../assets/LOGO.png', import.meta.url).href
       const win = window.open('', '_blank', 'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes')
       if (!win) {
@@ -1067,25 +1455,29 @@ export default {
       }
       win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Acknowledgement Receipt for Returned Property</title>
 <style>
-@page{size:A4 portrait;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif;color:#111}body{font-size:9px}
-.sheet{width:100%;min-height:281mm;border:1px solid #555;padding:5mm}
+@page{size:${selectedPaperSize} portrait;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif;color:#111}body{font-size:9px}
+.sheet{width:100%;min-height:0;border:0;padding:4px 6px 5px}
 .header{display:grid;grid-template-columns:24mm 1fr;border:1px solid #555;text-align:center;font-weight:bold}.logo-cell{grid-row:span 2;border-right:1px solid #555;height:25mm;display:flex;align-items:center;justify-content:center}.logo{width:19mm;height:19mm;object-fit:contain}.school{font-size:12px;line-height:1.25;padding:2mm}.form-title{font-size:12px;border-top:1px solid #555;padding:2mm}
 .arrp{text-align:right;font-size:11px;font-weight:bold;margin:1mm 2mm 4mm}.line{display:inline-block;min-width:48mm;border-bottom:1px solid #222;height:4mm}
-.meta{display:grid;grid-template-columns:1.2fr .8fr;border:1px solid #555}.meta div{padding:2mm;border-bottom:1px solid #555;min-height:8mm}.meta div:nth-child(odd){border-right:1px solid #555}
+.meta{display:grid;grid-template-columns:1.2fr .8fr;border:1px solid #555}.meta div{padding:2mm;border-bottom:1px solid #555;min-height:8mm}.meta div:nth-child(odd){border-right:1px solid #555}.meta .storage-field,.meta .tag-field{display:flex;align-items:baseline;gap:2mm;white-space:nowrap}
 .items-for{text-align:center;border:1px solid #555;border-top:0;padding:2mm;font-weight:bold;font-size:10px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #555;padding:1mm;text-align:center;vertical-align:middle}th{font-size:8px;line-height:1.1;height:10mm}td{height:7.5mm;font-size:8px}.desc{text-align:left}
-.returned-head,.signature-grid{display:grid;grid-template-columns:18% 42% 28% 12%;border:1px solid #555;border-top:0}.returned-head{font-weight:bold}.returned-head div,.signature-grid div{padding:2mm;border-right:1px solid #555;min-height:8mm}.returned-head div{min-height:12mm}.returned-head div:last-child,.signature-grid div:last-child{border-right:0}
-.instructions{margin-top:3mm;font-size:8.5px;line-height:1.25}.instructions h3{text-align:center;text-decoration:underline;font-size:10px;margin:2mm 0}.instructions ol{margin:0;padding-left:7mm}.instructions li{padding:1mm 0}.copy{text-align:center;margin-top:2mm;font-size:9px}
+.returned-head,.signature-grid{display:grid;grid-template-columns:22% 35% 28% 15%;border:1px solid #555;border-top:0}.returned-head{font-weight:bold}.returned-head div,.signature-grid div{padding:2mm;border-right:1px solid #555;min-height:8mm}.returned-head div{min-height:12mm}.returned-head div:last-child,.signature-grid div:last-child{border-right:0}.name-row div:nth-child(2),.designation-row div:nth-child(2){text-align:center;text-transform:uppercase}
+.instructions{margin-top:0;border:1px solid #555;padding:2mm 3mm;font-size:8.5px;line-height:1.25;width:100%}.instructions h3{text-align:center;text-decoration:underline;font-size:10px;margin:1mm 0 2mm}.instructions ol{margin:0;padding-left:7mm}.instructions li{padding:1mm 0}.copy{text-align:center;margin-top:2mm;font-size:9px}.form-code{margin-top:8px;text-align:left;font-size:8.5px;font-weight:bold;line-height:1.25}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{break-inside:avoid}}
 </style></head><body><div class="sheet">
 <div class="header"><div class="logo-cell"><img class="logo" src="${logo}" alt="NVSU Logo"></div><div class="school">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</div><div class="form-title">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</div></div>
 <div class="arrp">ARRP No.: <span class="line"></span></div>
-<div class="meta"><div><strong>Unit/Division/College:</strong> ${safe(office)}</div><div><strong>Date:</strong> ${date(record.return_date)}</div><div><strong>Place of Storage:</strong> <span class="line"></span></div><div><strong>Tag No.:</strong> <span class="line"></span></div></div>
+<div class="meta"><div><strong>Unit/Division/College:</strong> ${safe(office)}</div><div><strong>Date:</strong> ${date(record.return_date)}</div><div class="storage-field"><strong>Place of Storage:</strong></div><div class="tag-field"><strong>Tag No.:</strong></div></div>
 <div class="items-for">Items for &nbsp; ____Property Utilization/Re-issuance &nbsp; ____Repair &nbsp; ____Disposal</div>
 <table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Item<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="returned-head"><div>Returned by:</div><div><em>(Please indicate name and affix signature)</em></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
-<div class="signature-grid"><div>Signature:</div><div></div><div></div><div></div></div><div class="signature-grid"><div>Printed Name:</div><div><strong>${safe(returnedBy)}</strong></div><div></div><div></div></div><div class="signature-grid"><div>Designation:</div><div></div><div></div><div></div></div><div class="signature-grid"><div>Date:</div><div>${date(record.return_date)}</div><div></div><div></div></div>
+<div class="signature-grid"><div>Signature:</div><div></div><div></div><div></div></div>
+<div class="signature-grid name-row"><div>Printed Name:</div><div><strong>${safe(ack.returnedBy.name || returnedBy)}</strong></div><div><strong>${safe(ack.receivedBy.name)}</strong></div><div><strong>${safe(ack.actionTaken.name)}</strong></div></div>
+<div class="signature-grid designation-row"><div>Designation:</div><div>${safe(ack.returnedBy.title)}</div><div>${safe(ack.receivedBy.title)}</div><div>${safe(ack.actionTaken.title)}</div></div>
+<div class="signature-grid"><div>Date:</div><div>${date(ack.returnedBy.date)}</div><div>${date(ack.receivedBy.date)}</div><div>${date(ack.actionTaken.date)}</div></div>
 <div class="instructions"><h3>INSTRUCTIONS</h3><ol type="A"><li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li><li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li><li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li><li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li><li>This form shall be prepared in two(2) copies distributed as follows:<div class="copy">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</div></li></ol></div>
+<div class="form-code">NVSU-FR-SMO-02-00 (121421)</div>
 </div><script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script></body></html>`)
       win.document.close()
     },
@@ -1179,7 +1571,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px so
             returned_by: this.form.returned_by || null,
             office_id: this.form.office_id || null,
             return_date: this.form.return_date || null,
-            condition_after_return: this.form.condition_after_return,
+            condition_after_return: 'Unserviceable',
             return_reason: combinedReason,
             remarks: this.form.remarks
           })
@@ -1203,7 +1595,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px so
           new CustomEvent('show-toast', {
             detail: this.editing
               ? 'Return updated successfully'
-              : 'Return added successfully'
+              : 'Property returned successfully'
           })
         )
       } catch (error) {
@@ -1281,6 +1673,12 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px so
 </script>
 
 <style scoped>
+.return-ack-options{position:absolute;z-index:1080;top:100%;left:0;right:0;max-height:190px;overflow-y:auto;background:var(--bs-body-bg);border:1px solid var(--bs-border-color);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.return-ack-option{display:block;width:100%;padding:8px 10px;border:0;background:transparent;text-align:left;color:inherit}
+.return-ack-option:hover{background:var(--bs-tertiary-bg)}
+.return-ack-option small{display:block;color:var(--bs-secondary-color)}
+.return-ack-empty{padding:9px;color:var(--bs-secondary-color);font-size:12px}
+
 .return-requests-modal-dialog {
   width: 1500px !important;
   max-width: calc(100vw - 2rem) !important;

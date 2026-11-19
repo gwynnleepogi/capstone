@@ -6,54 +6,11 @@ const createAuditLog = require('../middleware/auditLog')
 
 // ==========================================
 // PENDING ISSUANCE COUNT
-// Counts:
-// 1. Approved requests without receipts
-// 2. Issued properties with accountable employees
-//    that do not yet have receipts
+// Counts approved requests that do not yet have
+// a linked property receipt.
 // ==========================================
 router.get('/pending-issuance-count', async (req, res) => {
   try {
-    // Get approved requests.
-    const { data: requests, error: requestError } = await supabase
-      .from('item_requests')
-      .select('id, item_id')
-      .eq('status', 'Approved')
-
-    if (requestError) {
-      console.error('Pending issuance request lookup failed:', requestError)
-      return res.status(500).json({ error: requestError.message })
-    }
-
-    // Get existing receipts.
-    const { data: receipts, error: receiptError } = await supabase
-      .from('property_receipts')
-      .select('item_id, item_request_id')
-
-    if (receiptError) {
-      console.error('Pending issuance receipt lookup failed:', receiptError)
-      return res.status(500).json({ error: receiptError.message })
-    }
-
-    const allReceipts = receipts || []
-
-    const receiptedRequestIds = new Set(
-      allReceipts
-        .filter(receipt => receipt.item_request_id)
-        .map(receipt => String(receipt.item_request_id))
-    )
-
-    const receiptedItemIds = new Set(
-      allReceipts
-        .filter(receipt => receipt.item_id)
-        .map(receipt => String(receipt.item_id))
-    )
-
-    // Approved requests without receipts.
-    const pendingRequests = (requests || []).filter(
-      request => !receiptedRequestIds.has(String(request.id))
-    )
-
-    // Get properties that are already issued and assigned.
     const { data: items, error: itemError } = await supabase
       .from('items')
       .select('id')
@@ -62,32 +19,33 @@ router.get('/pending-issuance-count', async (req, res) => {
       .neq('accountable_employee', '')
 
     if (itemError) {
-      console.error('Pending issuance property lookup failed:', itemError)
+      console.error('Pending acquisition property lookup failed:', itemError)
       return res.status(500).json({ error: itemError.message })
     }
 
-    // Avoid counting properties that already have receipts.
-    // Also avoid counting an item twice when its approved
-    // request is already included in the pending request count.
-    const pendingRequestItemIds = new Set(
-      pendingRequests
-        .filter(request => request.item_id)
-        .map(request => String(request.item_id))
+    const { data: receipts, error: receiptError } = await supabase
+      .from('property_receipts')
+      .select('item_id')
+
+    if (receiptError) {
+      console.error('Pending acquisition receipt lookup failed:', receiptError)
+      return res.status(500).json({ error: receiptError.message })
+    }
+
+    const receiptedItemIds = new Set(
+      (receipts || [])
+        .filter(receipt => receipt.item_id)
+        .map(receipt => String(receipt.item_id))
     )
 
-    const pendingProperties = (items || []).filter(item =>
-      !receiptedItemIds.has(String(item.id)) &&
-      !pendingRequestItemIds.has(String(item.id))
-    )
+    const pendingCount = (items || []).filter(item =>
+      !receiptedItemIds.has(String(item.id))
+    ).length
 
-    res.json({
-      count: pendingRequests.length + pendingProperties.length
-    })
+    res.json({ count: pendingCount })
   } catch (error) {
-    console.error('Pending issuance count failed:', error)
-    res.status(500).json({
-      error: 'Failed to load pending issuance count'
-    })
+    console.error('Pending acquisition count failed:', error)
+    res.status(500).json({ error: 'Failed to load pending acquisition count' })
   }
 })
 
@@ -176,9 +134,9 @@ router.post('/', async (req, res) => {
       remarks
     } = req.body
 
-    if (Boolean(item_request_id) === Boolean(item_id)) {
+    if (item_request_id || !item_id) {
       return res.status(400).json({
-        error: 'Provide either an item request or an assigned property'
+        error: 'Select an assigned property. Item requests are not a receipt source.'
       })
     }
 

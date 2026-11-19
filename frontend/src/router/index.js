@@ -111,6 +111,12 @@ const router = createRouter({
       meta: { roles: ['Teacher', 'Non-Teaching Staff'] }
     },
     {
+      path: '/my-transfer-request',
+      name: 'MyTransferRequest',
+      component: () => import('@/views/MyTransferRequest.vue'),
+      meta: { roles: ['Teacher', 'Non-Teaching Staff'] }
+    },
+    {
       path: '/item-details/:id',
       name: 'ItemDetails',
       component: ItemDetails,
