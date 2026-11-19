@@ -610,31 +610,11 @@
         </div>
 
         <div class="card-body">
-          <div class="row g-4 align-items-center">
-            <div class="col-12 col-md-4 text-center">
-              <div v-if="detailQrCode" class="qr-code-frame">
-                <img
-                  :src="detailQrCode"
-                  :alt="'QR code for property ' + (detailItem.property_number || '')"
-                />
-              </div>
-              <div v-if="qrCodeError" class="text-danger small mt-2">
+          <div class="row g-4">
+            <div class="col-12">
+              <div v-if="qrCodeError" class="text-danger small mb-3">
                 {{ qrCodeError }}
               </div>
-
-              <div class="fw-semibold mt-2">
-                {{ detailItem.property_number || 'No property number' }}
-              </div>
-              <small v-if="detailQrCode" class="text-secondary d-block">
-                Scan to view property details
-              </small>
-              <small v-if="isLocalDevelopmentHost && detailQrCode" class="text-warning d-block mt-2">
-                For phone scanning, open this app using your laptop's Wi-Fi address,
-                not localhost.
-              </small>
-            </div>
-
-            <div class="col-12 col-md-8">
               <dl class="row mb-0 item-detail-list">
                 <dt class="col-sm-5">Article</dt>
                 <dd class="col-sm-7">{{ detailItem.article || '-' }}</dd>
@@ -751,6 +731,48 @@
           >
             <i class="bi bi-trash me-1"></i>
             {{ deletingItemId === detailItem.id ? 'Deleting...' : 'Delete Property' }}
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- GENERATED PROPERTY QR CODE -->
+    <div
+      v-if="showQrModal && detailQrCode"
+      class="qr-modal-overlay"
+      @click.self="showQrModal = false"
+    >
+      <section
+        class="qr-modal-dialog card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="qr-modal-title"
+      >
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h2 id="qr-modal-title" class="h5 mb-0">Property QR Code</h2>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            @click="showQrModal = false"
+          ></button>
+        </div>
+        <div class="card-body text-center">
+          <div class="qr-code-frame">
+            <img
+              :src="detailQrCode"
+              :alt="'QR code for property ' + (detailItem?.property_number || '')"
+            />
+          </div>
+          <h6 class="mt-3 mb-1">{{ detailItem?.property_number || 'No property number' }}</h6>
+          <p class="text-muted small mb-0">Scan this QR code to view the property details.</p>
+          <small v-if="isLocalDevelopmentHost" class="text-warning d-block mt-2">
+            For phone scanning, open this app using your laptop's Wi-Fi address, not localhost.
+          </small>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary" @click="showQrModal = false">
+            Close
           </button>
         </div>
       </section>
@@ -1104,6 +1126,7 @@ export default {
 
       detailItem: null,
       detailQrCode: '',
+      showQrModal: false,
       qrCodeError: '',
       qrGenerating: false,
       downloadingDocument: false,
@@ -1914,6 +1937,7 @@ export default {
     showItemDetails(item) {
       this.detailItem = item
       this.detailQrCode = ''
+      this.showQrModal = false
       this.qrCodeError = ''
       this.qrGenerating = false
     },
@@ -1976,6 +2000,7 @@ export default {
 
         if (this.detailItem?.id === item.id) {
           this.detailQrCode = qrCode
+          this.showQrModal = true
         }
       } catch (error) {
         console.error('Failed to generate property QR code:', error)
@@ -2572,6 +2597,25 @@ h1 {
   width: min(680px, 100%);
   max-height: 100%;
   overflow-y: auto;
+}
+
+.qr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+.qr-modal-dialog {
+  width: min(420px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  text-align: center;
 }
 
 .qr-code-frame {
