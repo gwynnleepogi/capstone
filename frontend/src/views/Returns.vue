@@ -530,7 +530,7 @@
               <div class="col-md-4" v-for="section in ['returnedBy', 'receivedBy', 'actionTaken']" :key="section">
                 <label class="form-label fw-semibold">{{ section === 'returnedBy' ? 'Returned by' : section === 'receivedBy' ? 'Received by' : 'Action Taken (Property Officer)' }} - Printed Name</label>
                 <div class="position-relative">
-                  <input class="form-control" v-model="returnAckSearch[section]" @focus="returnAckOptions[section] = true" @input="updateReturnAckSearch(section)" @blur="closeReturnAckOptions(section)" placeholder="Search personnel or type a name">
+                  <input class="form-control" v-model="returnAckDetails[section].name" @focus="returnAckOptions[section] = true" @input="updateReturnAckSearch(section)" @blur="closeReturnAckOptions(section)" placeholder="Search personnel or type a name">
                   <div v-if="returnAckOptions[section]" class="return-ack-options">
                     <button v-for="person in filteredReturnAckPersonnel(section)" :key="person.id" type="button" class="return-ack-option" @mousedown.prevent="selectReturnAckPerson(section, person)">
                       {{ person.full_name }}<small v-if="person.job_title"> — {{ person.job_title }}</small>
@@ -1139,7 +1139,7 @@ export default {
     },
 
     filteredReturnAckPersonnel(section) {
-      const query = String(this.returnAckSearch[section] || '').toLowerCase().trim()
+      const query = String(this.returnAckDetails[section]?.name || '').toLowerCase().trim()
       if (!query) return this.personnel.slice(0, 10)
       return this.personnel.filter(person =>
         String(person.full_name || '').toLowerCase().includes(query) ||
@@ -1155,9 +1155,10 @@ export default {
     },
 
     updateReturnAckSearch(section) {
-      this.returnAckDetails[section].name = this.returnAckSearch[section]
+      const typedName = this.returnAckDetails[section].name || ''
+      this.returnAckSearch[section] = typedName
       const match = this.personnel.find(person =>
-        String(person.full_name || '').toLowerCase() === String(this.returnAckSearch[section] || '').toLowerCase()
+        String(person.full_name || '').toLowerCase() === String(typedName).toLowerCase()
       )
       if (match) this.returnAckDetails[section].title = match.job_title || ''
       this.returnAckOptions[section] = true
