@@ -1256,7 +1256,12 @@ body{font-size:9px}
       ]
       const missingSignatoryField = requiredSignatoryFields.find(field => !String(field[1] || '').trim())
       if (missingSignatoryField) {
-        this.toast(missingSignatoryField[0] + ' is required.')
+        const fieldInputs = this.$el.querySelectorAll('.modal.show input[required]')
+        const firstInvalidInput = Array.from(fieldInputs).find(input => !String(input.value || '').trim())
+        if (firstInvalidInput) {
+          firstInvalidInput.focus()
+          firstInvalidInput.reportValidity()
+        }
         return
       }
       const esc = this.escapePrint
