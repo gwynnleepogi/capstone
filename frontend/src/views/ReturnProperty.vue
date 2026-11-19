@@ -63,7 +63,7 @@
 
     <!-- My Return Requests Modal -->
     <div class="modal fade" id="myReturnRequestsModal" tabindex="-1" aria-labelledby="myReturnRequestsModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-scrollable modal-xl">
+      <div class="modal-dialog modal-dialog-scrollable modal-xl modal-wide-return-requests">
         <div class="modal-content">
           <div class="modal-header">
             <div>
@@ -396,6 +396,19 @@ export default {
 </script>
 
 <style scoped>
+.modal-wide-return-requests {
+  width: 96vw;
+  max-width: 1600px;
+}
+
+@media (max-width: 767.98px) {
+  .modal-wide-return-requests {
+    width: calc(100% - 1rem);
+    max-width: none;
+    margin: 0.5rem auto;
+  }
+}
+
 .return-overlay {
   position: fixed;
   inset: 0;
