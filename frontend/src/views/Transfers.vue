@@ -462,6 +462,10 @@
             <p class="text-muted small">Complete the approval and signatory details before printing the Request for Property Transfer form.</p>
             <div class="row g-3">
               <div class="col-md-6">
+                <label class="form-label">From Responsibility Center</label>
+                <input class="form-control" v-model.trim="requestPrintDetails.responsibilityCenter" placeholder="Defaults to the property record">
+              </div>
+              <div class="col-md-6">
                 <label class="form-label">Requested by - Printed Name</label>
                 <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.name" required>
               </div>
@@ -533,6 +537,7 @@
             <p class="text-muted small">Complete these details before printing the transfer receipt.</p>
             <div class="row g-3 mb-3">
               <div class="col-md-6"><label class="form-label">RPT No.</label><input class="form-control" v-model.trim="printDetails.rptNumber" placeholder="Enter RPT number"></div>
+              <div class="col-md-6"><label class="form-label">Responsibility Center</label><input class="form-control" v-model.trim="printDetails.responsibilityCenter" placeholder="Defaults to the property record"></div>
               <div class="col-md-6"><label class="form-label">Paper Size</label><select class="form-select" v-model="printDetails.paperSize"><option value="long">Long (8.5 × 13 inches)</option><option value="legal">Legal (8.5 × 14 inches)</option><option value="letter">Letter (8.5 × 11 inches)</option><option value="a4">A4 (210 × 297 mm)</option></select></div>
             </div>
             <div class="mb-3">
@@ -787,6 +792,7 @@ export default {
     emptyRequestPrintDetails() {
       return {
         rptNumber: '',
+        responsibilityCenter: '',
         paperSize: 'long',
         requestedBy: { name: '', designation: '', date: '' },
         approvedBy: { name: '', designation: '', date: '' },
@@ -799,6 +805,7 @@ export default {
       const today = new Date().toISOString().split('T')[0]
       return {
         rptNumber: '',
+        responsibilityCenter: '',
         paperSize: 'long',
         classifications: ['TRANSFER'],
         receivedBy: { name: '', title: '', date: today },
@@ -1002,6 +1009,7 @@ export default {
 
         this.transferPrintData = transferInfo
         this.printDetails = this.emptyPrintDetails()
+        this.printDetails.responsibilityCenter = selectedReceipts[0]?.items?.responsibility_center || ''
         Modal.getOrCreateInstance(document.getElementById('transferModal')).hide()
         this.employeeSearch = ''
         this.showEmployeeOptions = false
@@ -1094,6 +1102,7 @@ export default {
 
       this.printDetails = this.emptyPrintDetails()
       this.printDetails.rptNumber = transfer.rpt_number || transfer.rpt_no || this.getAutomaticRPTNumber(transfer)
+      this.printDetails.responsibilityCenter = transfer.items.responsibility_center || ''
       Modal.getOrCreateInstance(document.getElementById('transferPrintModal')).show()
     },
 
@@ -1112,6 +1121,7 @@ export default {
       this.selectedRequestTransfer = transfer
       this.requestPrintDetails = this.emptyRequestPrintDetails()
       this.requestPrintDetails.rptNumber = transfer.rpt_number || transfer.rpt_no || this.getAutomaticRPTNumber(transfer)
+      this.requestPrintDetails.responsibilityCenter = transfer.items?.responsibility_center || ''
       this.requestPrintDetails.requestedBy.name = transfer.from_user?.full_name || ''
       this.requestPrintDetails.requestedBy.designation = transfer.from_user?.job_title || ''
       this.requestPrintDetails.requestedBy.date = String(transfer.transfer_date || '').slice(0, 10)
@@ -1152,7 +1162,7 @@ export default {
       const receipt = transfer.property_receipts || {}
       const fromName = transfer.from_user?.full_name || item.accountable_employee || '-'
       const toName = transfer.to_user?.full_name || '-'
-      const fromCenter = item.responsibility_center || '-'
+      const fromCenter = details.responsibilityCenter || item.responsibility_center || '-'
       const toCenter = transfer.offices?.office_name || transfer.to_user?.office_name || '-'
       const quantity = Number(receipt.quantity || 1)
       const amount = Number(item.cost || 0) * quantity
@@ -1316,7 +1326,7 @@ body{font-size:9px}
         return
       }
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
-      const responsibilityCenter = data.officeName || firstItem.responsibility_center || '-'
+      const responsibilityCenter = details.responsibilityCenter || firstItem.responsibility_center || data.officeName || '-'
       const paperSizes = { long: '8.5in 13in', legal: '8.5in 14in', letter: '8.5in 11in', short: '8.5in 11in', a4: '210mm 297mm' }
       const selectedPaperSize = paperSizes[details.paperSize] || paperSizes.long
       printWindow.document.write(`<!DOCTYPE html>
