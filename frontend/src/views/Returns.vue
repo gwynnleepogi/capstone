@@ -551,7 +551,7 @@
               Close
             </button>
 
-            <button type="button" class="btn btn-outline-success" @click="printAcknowledgementForReturnedProperty">
+            <button type="button" class="btn btn-outline-success" @click="openReturnedAcknowledgementModal">
               <i class="bi bi-printer me-1"></i>Print Acknowledgement for Returned Property
             </button>
             <button type="button" class="btn btn-outline-primary" @click="printReturnedPropertyReceipt">
@@ -579,6 +579,30 @@
       </div>
     </div>
 
+    <div class="modal fade" id="returnedAcknowledgementInputModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Acknowledgement Receipt for Returned Property</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <p class="text-muted small">Enter the printed name, designation, and date for each signatory. Search personnel or type a name manually.</p>
+          <div class="row g-3">
+            <div class="col-md-4" v-for="section in signatorySections" :key="section">
+              <h6 class="fw-semibold">{{ section === "returnedBy" ? "Returned by" : section === "receivedBy" ? "Received by" : "Action Taken (Property Officer)" }}</h6>
+              <label class="form-label">Printed Name</label>
+              <div class="position-relative">
+                <input class="form-control" v-model="returnAckDetails[section].name" @focus="returnAckOptions[section] = true" @input="updateReturnAckSearch(section)" @blur="closeReturnAckOptions(section)" placeholder="Search personnel or type a name">
+                <div v-if="returnAckOptions[section]" class="return-ack-options">
+                  <button v-for="person in filteredReturnAckPersonnel(section)" :key="person.id" type="button" class="return-ack-option" @mousedown.prevent="selectReturnAckPerson(section, person)">{{ person.full_name }}<small v-if="person.job_title"> — {{ person.job_title }}</small></button>
+                  <div v-if="!filteredReturnAckPersonnel(section).length" class="return-ack-empty">No matching personnel. You can keep the name you typed.</div>
+                </div>
+              </div>
+              <label class="form-label mt-2">Designation</label><input class="form-control" v-model.trim="returnAckDetails[section].title" placeholder="Enter designation">
+              <label class="form-label mt-2">Date</label><input type="date" class="form-control" v-model="returnAckDetails[section].date">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" @click="printAcknowledgementForReturnedProperty"><i class="bi bi-printer me-1"></i>Print Acknowledgement</button></div>
+      </div></div>
+    </div>
     <div class="modal fade" id="returnedReceiptPaperModal" tabindex="-1" aria-labelledby="returnedReceiptPaperModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -651,6 +675,7 @@ export default {
       personnel: [],
       offices: [],
       selectedReturn: null,
+      signatorySections: ['returnedBy', 'receivedBy', 'actionTaken'],
       returnAckDetails: {
         returnedBy: { name: '', title: '', date: '' },
         receivedBy: { name: '', title: '', date: '' },
@@ -1395,7 +1420,15 @@ window.onload=function(){
       printWindow.document.close()
     },
 
+    openReturnedAcknowledgementModal() {
+      if (!this.selectedReturn) return
+      const modalElement = document.getElementById("returnedAcknowledgementInputModal")
+      if (modalElement) Modal.getOrCreateInstance(modalElement).show()
+    },
+
     printAcknowledgementForReturnedProperty() {
+      const inputModal = document.getElementById("returnedAcknowledgementInputModal")
+      if (inputModal) Modal.getInstance(inputModal)?.hide()
       const record = this.selectedReturn
       if (!record) return
       const item = record.items || {}
