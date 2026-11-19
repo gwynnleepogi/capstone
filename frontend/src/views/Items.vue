@@ -652,6 +652,16 @@
                 <dd class="col-sm-7">{{ detailItem.accountable_employee || '-' }}</dd>
                 <dt class="col-sm-5">Responsibility Center</dt>
                 <dd class="col-sm-7">{{ detailItem.responsibility_center || '-' }}</dd>
+                <dt class="col-sm-5">Responsibility Center for Print</dt>
+                <dd class="col-sm-7">
+                  <input
+                    v-model.trim="printResponsibilityCenter"
+                    type="text"
+                    class="form-control form-control-sm"
+                    placeholder="Defaults to the property record"
+                  >
+                  <small class="text-muted">This changes the printable copy only, not the saved property.</small>
+                </dd>
                 <dt class="col-sm-5">Fund Cluster</dt>
                 <dd class="col-sm-7">{{ detailItem.fund_cluster || '-' }}</dd>
                 <dt class="col-sm-5">Unit of Measure</dt>
@@ -1125,6 +1135,7 @@ export default {
       ],
 
       detailItem: null,
+      printResponsibilityCenter: '',
       detailQrCode: '',
       showQrModal: false,
       qrCodeError: '',
@@ -1391,6 +1402,9 @@ export default {
           })[character],
         )
 
+      const printableResponsibilityCenter =
+        this.printResponsibilityCenter || item.responsibility_center || ''
+
       const cost = Number(item.cost)
       const formattedCost = Number.isFinite(cost)
         ? cost.toLocaleString('en-PH', {
@@ -1518,7 +1532,7 @@ export default {
                 <div class="cell two-col">
                   <div>
                     <span class="label">Office / Division</span>
-                    <strong class="value">${escape(item.responsibility_center)}</strong>
+                    <strong class="value">${escape(printableResponsibilityCenter)}</strong>
                   </div>
                   <div>
                     <span class="label">Person Accountable</span>
@@ -1936,6 +1950,7 @@ export default {
 
     showItemDetails(item) {
       this.detailItem = item
+      this.printResponsibilityCenter = item.responsibility_center || ''
       this.detailQrCode = ''
       this.showQrModal = false
       this.qrCodeError = ''
@@ -2054,7 +2069,7 @@ export default {
           ['Condition', item.condition || '-'],
           ['Status', item.status || '-'],
           ['Accountable Employee', item.accountable_employee || '-'],
-          ['Responsibility Center / Office', item.responsibility_center || '-'],
+          ['Responsibility Center / Office', this.printResponsibilityCenter || item.responsibility_center || '-'],
           ['Fund Cluster', item.fund_cluster || '-'],
         ]
 
