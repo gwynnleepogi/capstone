@@ -4,6 +4,7 @@ import Login from '@/views/Login.vue'
 import Dashboard from '@/views/Dashboard.vue'
 import Items from '@/views/Items.vue'
 import Offices from '@/views/Offices.vue'
+import OrganizationManagement from '@/views/OrganizationManagement.vue'
 import Suppliers from '@/views/Suppliers.vue'
 import Personnel from '@/views/Personnel.vue'
 import ItemRequests from '@/views/ItemRequests.vue'
@@ -54,6 +55,12 @@ const router = createRouter({
       path: '/offices',
       name: 'Offices',
       component: Offices,
+      meta: { roles: ['Administrator'] }
+    },
+    {
+      path: '/organization-management',
+      name: 'OrganizationManagement',
+      component: OrganizationManagement,
       meta: { roles: ['Administrator'] }
     },
     {
