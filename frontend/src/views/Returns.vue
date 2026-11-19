@@ -524,26 +524,7 @@
               <dt class="col-sm-4">Remarks</dt>
               <dd class="col-sm-8">{{ selectedReturn.remarks || '-' }}</dd>
             </dl>
-            <hr>
-            <h6 class="mb-3">Acknowledgement Receipt Signatories</h6>
-            <div class="row g-3">
-              <div class="col-md-4" v-for="section in ['returnedBy', 'receivedBy', 'actionTaken']" :key="section">
-                <label class="form-label fw-semibold">{{ section === 'returnedBy' ? 'Returned by' : section === 'receivedBy' ? 'Received by' : 'Action Taken (Property Officer)' }} - Printed Name</label>
-                <div class="position-relative">
-                  <input class="form-control" v-model="returnAckDetails[section].name" @focus="returnAckOptions[section] = true" @input="updateReturnAckSearch(section)" @blur="closeReturnAckOptions(section)" placeholder="Search personnel or type a name">
-                  <div v-if="returnAckOptions[section]" class="return-ack-options">
-                    <button v-for="person in filteredReturnAckPersonnel(section)" :key="person.id" type="button" class="return-ack-option" @mousedown.prevent="selectReturnAckPerson(section, person)">
-                      {{ person.full_name }}<small v-if="person.job_title"> — {{ person.job_title }}</small>
-                    </button>
-                    <div v-if="!filteredReturnAckPersonnel(section).length" class="return-ack-empty">No matching personnel. You can keep the name you typed.</div>
-                  </div>
-                </div>
-                <label class="form-label mt-2">Designation</label>
-                <input class="form-control" v-model.trim="returnAckDetails[section].title" placeholder="Enter designation">
-                <label class="form-label mt-2">Date</label>
-                <input type="date" class="form-control" v-model="returnAckDetails[section].date">
-              </div>
-            </div>
+
           </div>
 
           <div class="modal-footer">
@@ -551,7 +532,7 @@
               Close
             </button>
 
-            <button type="button" class="btn btn-outline-success" @click="openReturnedAcknowledgementModal">
+            <button type="button" class="btn btn-outline-success" @click="printAcknowledgementForReturnedProperty">
               <i class="bi bi-printer me-1"></i>Print Acknowledgement for Returned Property
             </button>
             <button type="button" class="btn btn-outline-primary" @click="printReturnedPropertyReceipt">
@@ -579,30 +560,6 @@
       </div>
     </div>
 
-    <div class="modal fade" id="returnedAcknowledgementInputModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Acknowledgement Receipt for Returned Property</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-          <p class="text-muted small">Enter the printed name, designation, and date for each signatory. Search personnel or type a name manually.</p>
-          <div class="row g-3">
-            <div class="col-md-4" v-for="section in signatorySections" :key="section">
-              <h6 class="fw-semibold">{{ section === "returnedBy" ? "Returned by" : section === "receivedBy" ? "Received by" : "Action Taken (Property Officer)" }}</h6>
-              <label class="form-label">Printed Name</label>
-              <div class="position-relative">
-                <input class="form-control" v-model="returnAckDetails[section].name" @focus="returnAckOptions[section] = true" @input="updateReturnAckSearch(section)" @blur="closeReturnAckOptions(section)" placeholder="Search personnel or type a name">
-                <div v-if="returnAckOptions[section]" class="return-ack-options">
-                  <button v-for="person in filteredReturnAckPersonnel(section)" :key="person.id" type="button" class="return-ack-option" @mousedown.prevent="selectReturnAckPerson(section, person)">{{ person.full_name }}<small v-if="person.job_title"> — {{ person.job_title }}</small></button>
-                  <div v-if="!filteredReturnAckPersonnel(section).length" class="return-ack-empty">No matching personnel. You can keep the name you typed.</div>
-                </div>
-              </div>
-              <label class="form-label mt-2">Designation</label><input class="form-control" v-model.trim="returnAckDetails[section].title" placeholder="Enter designation">
-              <label class="form-label mt-2">Date</label><input type="date" class="form-control" v-model="returnAckDetails[section].date">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" @click="printAcknowledgementForReturnedProperty"><i class="bi bi-printer me-1"></i>Print Acknowledgement</button></div>
-      </div></div>
-    </div>
     <div class="modal fade" id="returnedReceiptPaperModal" tabindex="-1" aria-labelledby="returnedReceiptPaperModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -1427,13 +1384,10 @@ window.onload=function(){
     },
 
     printAcknowledgementForReturnedProperty() {
-      const inputModal = document.getElementById("returnedAcknowledgementInputModal")
-      if (inputModal) Modal.getInstance(inputModal)?.hide()
       const record = this.selectedReturn
       if (!record) return
       const item = record.items || {}
       const returnedBy = record.personnel?.full_name || record.users?.full_name || ''
-      const ack = this.returnAckDetails
       const office = record.offices?.office_name || ''
       const quantity = Number(record.property_receipts?.quantity || 1)
       const safe = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
@@ -1473,9 +1427,9 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px so
 <table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Item<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="returned-head"><div>Returned by:</div><div><em>(Please indicate name and affix signature)</em></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
 <div class="signature-grid"><div>Signature:</div><div></div><div></div><div></div></div>
-<div class="signature-grid name-row"><div>Printed Name:</div><div><strong>${safe(ack.returnedBy.name || returnedBy)}</strong></div><div><strong>${safe(ack.receivedBy.name)}</strong></div><div><strong>${safe(ack.actionTaken.name)}</strong></div></div>
-<div class="signature-grid designation-row"><div>Designation:</div><div>${safe(ack.returnedBy.title)}</div><div>${safe(ack.receivedBy.title)}</div><div>${safe(ack.actionTaken.title)}</div></div>
-<div class="signature-grid"><div>Date:</div><div>${date(ack.returnedBy.date)}</div><div>${date(ack.receivedBy.date)}</div><div>${date(ack.actionTaken.date)}</div></div>
+<div class="signature-grid name-row"><div>Printed Name:</div><div><strong>${safe(returnedBy)}</strong></div><div><strong></strong></div><div><strong></strong></div></div>
+<div class="signature-grid designation-row"><div>Designation:</div><div></div><div></div><div></div></div>
+<div class="signature-grid"><div>Date:</div><div>${date(record.return_date)}</div><div></div><div></div></div>
 <div class="instructions"><h3>INSTRUCTIONS</h3><ol type="A"><li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li><li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li><li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li><li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li><li>This form shall be prepared in two(2) copies distributed as follows:<div class="copy">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</div></li></ol></div>
 <div class="form-code">NVSU-FR-SMO-02-00 (121421)</div>
 </div><script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script></body></html>`)
