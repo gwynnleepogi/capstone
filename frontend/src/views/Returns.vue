@@ -570,12 +570,28 @@
           <div class="modal-body">
             <p class="text-muted small">Enter the details that will appear in the returned property acknowledgement form before printing.</p>
             <div class="mb-3">
-              <label class="form-label">Signature</label>
-              <input type="text" class="form-control" v-model.trim="returnedAcknowledgementSignatory.signature" placeholder="Enter signature text or leave blank for handwritten signature">
+              <label class="form-label">Returned By</label>
+              <input type="text" class="form-control" v-model.trim="returnedAcknowledgementSignatory.printedName" placeholder="Search or enter returned person's name" list="returnedAcknowledgementPersonnelList">
+              <datalist id="returnedAcknowledgementPersonnelList">
+                <option v-for="person in personnel" :key="person.id" :value="person.full_name">
+                  {{ person.job_title || '' }}
+                </option>
+              </datalist>
+              <div class="form-text">Select a name from the suggestions or type a name manually.</div>
             </div>
             <div class="mb-3">
-              <label class="form-label">Printed Name</label>
-              <input type="text" class="form-control" v-model.trim="returnedAcknowledgementSignatory.printedName" placeholder="Enter printed name">
+              <label class="form-label">Received By</label>
+              <input type="text" class="form-control" v-model.trim="returnedAcknowledgementSignatory.receivedByName" placeholder="Search or enter receiving person's name" list="receivedAcknowledgementPersonnelList">
+              <datalist id="receivedAcknowledgementPersonnelList">
+                <option v-for="person in personnel" :key="person.id" :value="person.full_name">
+                  {{ person.job_title || '' }}
+                </option>
+              </datalist>
+              <div class="form-text">Select a name from the suggestions or type a name manually.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Received By Designation</label>
+              <input type="text" class="form-control" v-model.trim="returnedAcknowledgementSignatory.receivedByDesignation" placeholder="Enter designation">
             </div>
             <div class="mb-3">
               <label class="form-label">Designation</label>
@@ -700,8 +716,9 @@ export default {
       deletingReturnId: null,
       returnedReceiptPaperSize: 'a4',
       returnedAcknowledgementSignatory: {
-        signature: '',
         printedName: '',
+        receivedByName: '',
+        receivedByDesignation: '',
         designation: '',
         date: ''
       },
@@ -1432,8 +1449,9 @@ window.onload=function(){
       const record = this.selectedReturn
       const returnedBy = record.personnel?.full_name || record.users?.full_name || ''
       this.returnedAcknowledgementSignatory = {
-        signature: '',
         printedName: returnedBy,
+        receivedByName: '',
+        receivedByDesignation: '',
         designation: record.personnel?.job_title || record.users?.job_title || record.personnel?.designation || record.users?.designation || '',
         date: record.return_date || new Date().toISOString().slice(0, 10)
       }
@@ -1492,10 +1510,10 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px so
 <div class="items-for">Properties for &nbsp; ____Property Utilization/Re-issuance &nbsp; ____Repair &nbsp; ____Disposal</div>
 <table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Property<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="returned-head"><div>Returned by:</div><div><em>(Please indicate name and affix signature)</em></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
-<div class="signature-grid"><div>Signature:</div><div>${safe(signature)}</div><div></div><div></div></div>
-<div class="signature-grid name-row"><div>Printed Name:</div><div><strong>${safe(returnedBy)}</strong></div><div><strong></strong></div><div><strong></strong></div></div>
-<div class="signature-grid designation-row"><div>Designation:</div><div>${safe(designation)}</div><div></div><div></div></div>
-<div class="signature-grid"><div>Date:</div><div>${date(acknowledgementDate)}</div><div></div><div></div></div>
+<div class="signature-grid"><div>Signature:</div><div></div><div></div><div></div></div>
+<div class="signature-grid name-row"><div>Printed Name:</div><div><strong>${safe(returnedBy)}</strong></div><div><strong>${safe(receivedByName)}</strong></div><div><strong></strong></div></div>
+<div class="signature-grid designation-row"><div>Designation:</div><div>${safe(designation)}</div><div>${safe(receivedByDesignation)}</div><div></div></div>
+<div class="signature-grid"><div>Date:</div><div>${date(acknowledgementDate)}</div><div>${date(acknowledgementDate)}</div><div></div></div>
 <div class="instructions"><h3>INSTRUCTIONS</h3><ol type="A"><li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li><li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li><li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li><li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li><li>This form shall be prepared in two(2) copies distributed as follows:<div class="copy">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</div></li></ol></div>
 <div class="form-code">NVSU-FR-SMO-02-00 (121421)</div>
 </div><script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script></body></html>`)
