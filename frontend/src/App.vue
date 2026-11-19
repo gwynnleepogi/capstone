@@ -87,37 +87,15 @@
           Inventory Management
         </div>
 
-        <div v-if="canAccess(['Administrator'])" class="organizational-menu">
-          <button
-            type="button"
-            class="nav-link organizational-toggle"
-            :aria-expanded="orgManagementOpen"
-            @click="orgManagementOpen = !orgManagementOpen"
-          >
-            <i class="bi bi-diagram-3"></i>
-            Organizational Management
-            <i :class="orgManagementOpen ? 'bi bi-chevron-up ms-auto' : 'bi bi-chevron-down ms-auto'"></i>
-          </button>
-
-          <div v-if="orgManagementOpen" class="organizational-submenu">
-            <router-link to="/colleges" class="nav-link" @click="menuOpen = false">
-              <i class="bi bi-building"></i>
-              Colleges
-            </router-link>
-            <router-link to="/departments" class="nav-link" @click="menuOpen = false">
-              <i class="bi bi-diagram-2"></i>
-              Departments
-            </router-link>
-            <router-link to="/offices" class="nav-link" @click="menuOpen = false">
-              <i class="bi bi-briefcase"></i>
-              Offices
-            </router-link>
-            <router-link to="/responsibility-centers" class="nav-link" @click="menuOpen = false">
-              <i class="bi bi-upc"></i>
-              Responsibility Centers
-            </router-link>
-          </div>
-        </div>
+        <router-link
+          v-if="canAccess(['Administrator'])"
+          to="/offices"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-building"></i>
+          Offices
+        </router-link>
 
         <router-link
   v-if="canAccess(['Administrator'])"
@@ -329,7 +307,6 @@ export default {
     return {
       logo,
       menuOpen: false,
-      orgManagementOpen: false,
       currentUser: JSON.parse(localStorage.getItem('user') || 'null'),
       pendingRequestCount: 0,
       pendingIssuanceCount: 0,
