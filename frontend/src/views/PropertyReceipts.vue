@@ -140,25 +140,6 @@
                 </div>
               </div>
               <div class="mb-3" v-if="!editing">
-                <label class="form-label">Receipt Source</label>
-                <select class="form-select" v-model="form.receipt_source" @change="resetReceiptSourceSelection">
-                  <option value="property">Assigned Property</option>
-                  <option value="request">Approved Item Request</option>
-                </select>
-              </div>
-
-              <div class="mb-3" v-if="!editing && form.receipt_source === 'request'">
-                <label class="form-label">Approved Item Request</label>
-                <select class="form-select" v-model="form.item_request_id" @change="updateReceiptTypeForSelectedRequest" required>
-                  <option value="">Select Approved Request</option>
-                  <option v-for="request in filteredItemRequests" :key="request.id" :value="request.id">
-                    {{ request.request_number || 'Request' }} - {{ request.item_description }} ({{ request.users?.full_name || request.requested_by_name || 'Requester' }})
-                  </option>
-                </select>
-                <small class="text-muted" v-if="!filteredItemRequests.length">No approved requests are waiting for a receipt.</small>
-              </div>
-
-              <div class="mb-3" v-if="!editing && form.receipt_source === 'property'">
                 <label class="form-label">Assigned Property</label>
                 <select class="form-select" v-model="form.item_id" @change="updateReceiptTypeForSelectedProperty" required>
                   <option value="">
@@ -492,9 +473,6 @@ export default {
       pageSize: 10,
       items: [],
       personnel: [],
-      itemRequests: [],
-      itemRequestSearch: '',
-      showItemRequestOptions: false,
 
       fundClusterOptions: [
         'AF-1', 'AF-2', 'AF-3', 'AF-DBM PS/BID',
@@ -564,9 +542,7 @@ export default {
 
       form: {
         id: null,
-        item_request_id: '',
         item_id: '',
-        receipt_source: 'property',
         receipt_type: 'PAR',
         receipt_number: '',
         date_issued: '',
@@ -657,27 +633,6 @@ export default {
         )
     },
 
-    filteredItemRequests() {
-      const receiptedRequestIds = new Set(
-        this.receipts
-          .filter(receipt => receipt.item_request_id)
-          .map(receipt => String(receipt.item_request_id))
-      )
-      const pendingRequests = this.itemRequests.filter(request =>
-        !receiptedRequestIds.has(String(request.id))
-      )
-      const search = this.itemRequestSearch.trim().toLowerCase()
-      if (!search) return pendingRequests
-      return pendingRequests.filter(request => {
-        const text = `${request.request_number || ''} ${request.item_description || ''}`.toLowerCase()
-        return text.includes(search)
-      })
-    },
-
-    selectedRequest() {
-      return this.itemRequests.find(request => request.id === this.form.item_request_id) || null
-    },
-
     assignedReceiptItems() {
       const receiptedItemIds = new Set(this.receipts.map(receipt => String(receipt.item_id)))
 
@@ -693,9 +648,6 @@ export default {
     },
 
     selectedReceiptItem() {
-      if (this.form.receipt_source === 'request') {
-        return this.getRequestItem(this.selectedRequest)
-      }
       return this.selectedAssignedItem || {}
     },
 
@@ -948,22 +900,6 @@ export default {
       }
     },
 
-    async getItemRequests() {
-      try {
-        const response = await fetch('/api/item-requests')
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'Failed to load item requests')
-
-        const requests = Array.isArray(data) ? data : data.itemRequests || data.requests || []
-        this.itemRequests = requests.filter(request =>
-          String(request.status || '').trim().toLowerCase() === 'approved' && request.item_id
-        )
-      } catch (error) {
-        console.log(error)
-        this.showToast(error.message)
-      }
-    },
-
     openAddModal() {
       this.editing = false
       this.form = {
@@ -977,8 +913,6 @@ export default {
         remarks: ''
       }
       
-      this.itemRequestSearch = ''
-      this.showItemRequestOptions = false
 
       const modal = Modal.getOrCreateInstance(document.getElementById('receiptModal'))
       modal.show()
@@ -1026,11 +960,6 @@ export default {
         if (this.editing) {
           url = `/api/receipts/${this.form.id}`
           method = 'PUT'
-        } else if (this.form.receipt_source === 'request') {
-          if (!this.form.item_request_id) {
-            throw new Error('Please select an approved item request')
-          }
-          body.item_request_id = this.form.item_request_id
         } else {
           if (!this.form.item_id) {
             throw new Error('Please select an assigned property')
@@ -1048,13 +977,11 @@ export default {
         if (!response.ok) throw new Error(data.error || 'Failed to save receipt')
 
         window.dispatchEvent(new Event('receipts-updated'))
-        window.dispatchEvent(new Event('item-requests-updated'))
         const modal = Modal.getOrCreateInstance(document.getElementById('receiptModal'))
         modal.hide()
 
         await this.getReceipts()
         await this.getItems()
-        await this.getItemRequests()
 
         this.showToast(this.editing ? 'Receipt updated successfully' : 'Receipt created successfully')
       } catch (error) {
@@ -1077,7 +1004,6 @@ export default {
         window.dispatchEvent(new Event('receipts-updated'))
         await this.getReceipts()
         await this.getItems()
-        await this.getItemRequests()
         this.showToast('Receipt deleted successfully')
       } catch (error) {
         console.log(error)
@@ -1132,16 +1058,7 @@ export default {
     },
 
     resetReceiptSourceSelection() {
-      this.form.item_request_id = ''
       this.form.item_id = ''
-      this.itemRequestSearch = ''
-    },
-
-    getRequestItem(request) {
-      if (!request) return {}
-      if (request.items) return Array.isArray(request.items) ? request.items[0] || {} : request.items
-      if (request.item) return request.item
-      return this.items.find(item => item.id === request.item_id) || {}
     },
 
     getIssuedToName(receipt) {
