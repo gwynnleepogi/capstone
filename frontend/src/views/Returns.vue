@@ -19,7 +19,7 @@
 
         <button class="btn btn-warning" @click="openAddModal">
           <i class="bi bi-arrow-return-left me-1"></i>
-          Add Return
+          Return a Property
         </button>
       </div>
     </div>
@@ -257,7 +257,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">
-              {{ editing ? 'Edit Return' : 'Add Return' }}
+              {{ editing ? 'Edit Return' : 'Return a Property' }}
             </h5>
 
             <button
@@ -1595,7 +1595,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px so
           new CustomEvent('show-toast', {
             detail: this.editing
               ? 'Return updated successfully'
-              : 'Return added successfully'
+              : 'Property returned successfully'
           })
         )
       } catch (error) {
