@@ -31,15 +31,13 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
 
   const {
-    office_name,
-    office_code
+    office_name
   } = req.body
 
   const { data, error } = await supabase
     .from('offices')
     .insert([{
-      office_name,
-      office_code
+      office_name
     }])
     .select()
     .single()
@@ -94,8 +92,7 @@ router.put('/:id', async (req, res) => {
   const { data, error } = await supabase
     .from('offices')
     .update({
-      office_name,
-      office_code
+      office_name
     })
     .eq('id', req.params.id)
     .select()
