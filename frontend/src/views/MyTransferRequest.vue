@@ -271,6 +271,8 @@ export default {
     }
   }
 }
+</script>
+
 <style scoped>
 .property-selection-table {
   min-width: 760px;
@@ -300,4 +302,3 @@ export default {
   vertical-align: middle;
 }
 </style>
-</script>
