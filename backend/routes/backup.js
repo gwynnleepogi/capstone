@@ -164,6 +164,37 @@ router.post('/restore', async (req, res) => {
   }
 
   try {
+    // Check Auth references through the SAME backend client used for restore.
+    // This catches a backend .env pointing to a different Supabase project
+    // before any public table is changed.
+    const userRows = backup.tables.users || []
+    const missingAuthUsers = []
+
+    for (const user of userRows) {
+      if (!user.auth_user_id) continue
+
+      const { data, error } = await client.auth.admin.getUserById(user.auth_user_id)
+
+      if (error || !data?.user) {
+        missingAuthUsers.push({
+          email: user.email || '',
+          full_name: user.full_name || '',
+          auth_user_id: user.auth_user_id
+        })
+      }
+    }
+
+    if (missingAuthUsers.length) {
+      return res.status(409).json({
+        error:
+          'Restore was stopped before changing any records. The backend Supabase project cannot find these Auth user IDs. ' +
+          'Make sure the backend SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY belong to the same Supabase project where these accounts exist.',
+        failed_table: 'users',
+        missing_auth_users: missingAuthUsers,
+        restored_records: 0
+      })
+    }
+
     let restoredRecords = 0
 
     for (const table of BACKUP_TABLES) {
@@ -171,8 +202,12 @@ router.post('/restore', async (req, res) => {
 
       if (!rows.length) continue
 
-      for (let index = 0; index < rows.length; index += 500) {
-        const batch = rows.slice(index, index + 500)
+      // User profiles have an Auth foreign key. Restore them individually
+      // so any unexpected row-level problem can be identified precisely.
+      const batchSize = table === 'users' ? 1 : 500
+
+      for (let index = 0; index < rows.length; index += batchSize) {
+        const batch = rows.slice(index, index + batchSize)
 
         const { error } = await client
           .from(table)
@@ -184,13 +219,22 @@ router.post('/restore', async (req, res) => {
           }
 
           console.error('RESTORE TABLE ERROR (' + table + '):', error)
+          const failedUser = table === 'users' ? batch[0] : null
+
           return res.status(500).json({
             error:
               'Restore stopped at table "' + table + '". ' +
-              'Some earlier records may already have been restored. ' +
-              'Your downloaded safety backup can be used to recover them. ' +
+              (failedUser
+                ? 'Failed user profile: ' + (failedUser.email || failedUser.full_name || failedUser.id) +
+                  '. Auth user ID: ' + (failedUser.auth_user_id || 'none') + '. '
+                : 'Some earlier records may already have been restored. ') +
               error.message,
             failed_table: table,
+            failed_record: failedUser ? {
+              id: failedUser.id,
+              email: failedUser.email || null,
+              auth_user_id: failedUser.auth_user_id || null
+            } : null,
             restored_records: restoredRecords
           })
         }
