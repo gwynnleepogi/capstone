@@ -104,7 +104,7 @@
   @click="menuOpen = false"
 >
   <i class="bi bi-arrow-left-right"></i>
-  Inventory Movement History
+  Inventory Summary
 </router-link>
 
         <router-link
