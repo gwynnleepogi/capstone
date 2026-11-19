@@ -7,12 +7,7 @@
         <p class="text-muted mb-0">Read-only information for the scanned item</p>
       </div>
 
-      <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-secondary" @click="goBack">
-          <i class="bi bi-arrow-left me-1"></i>
-          Back
-        </button>
-
+      <div>
         <button type="button" class="btn btn-success" @click="scanAgain">
           <i class="bi bi-qr-code-scan me-1"></i>
           Scan Another
@@ -206,14 +201,6 @@ export default {
 
     scanAgain() {
       window.dispatchEvent(new CustomEvent('open-qr-scanner'))
-    },
-
-    goBack() {
-      if (window.history.length > 1) {
-        this.$router.back()
-      } else {
-        this.$router.push('/request')
-      }
     },
 
     displayClassification(classification) {
