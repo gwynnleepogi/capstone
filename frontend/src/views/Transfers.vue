@@ -537,7 +537,7 @@
             <h6>Received by</h6>
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="form-label">Printed Name</label>
+                <label class="form-label">Printed Name <span class="text-danger">*</span></label>
                 <div class="personnel-search">
                   <input v-model="personnelSearch.receivedBy" class="form-control" type="text" placeholder="Search or enter name" autocomplete="off" required role="combobox" aria-autocomplete="list" :aria-expanded="showPersonnelOptions.receivedBy" @focus="openPersonnelOptions('receivedBy', printDetails.receivedBy.name)" @input="onSignatorySearch('receivedBy')" @keydown.esc="closePersonnelOptions('receivedBy')" @blur="hidePersonnelOptions('receivedBy')">
                   <div v-if="showPersonnelOptions.receivedBy" class="personnel-options" role="listbox">
@@ -547,8 +547,8 @@
                   </div>
                 </div>
               </div>
-              <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" v-model.trim="printDetails.receivedBy.title" placeholder="Auto-filled from account; editable" required></div>
-              <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.receivedBy.date" required></div>
+              <div class="col-md-6"><label class="form-label">Title <span class="text-danger">*</span></label><input class="form-control" v-model.trim="printDetails.receivedBy.title" placeholder="Auto-filled from account; editable" required></div>
+              <div class="col-md-6"><label class="form-label">Date <span class="text-danger">*</span></label><input type="date" class="form-control" v-model="printDetails.receivedBy.date" required></div>
             </div>
             <hr>
             <h6>Issued by</h6>
@@ -564,8 +564,8 @@
                   </div>
                 </div>
               </div>
-              <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" v-model.trim="printDetails.issuedBy.title" placeholder="Auto-filled from account; editable" required></div>
-              <div class="col-md-6"><label class="form-label">Date</label><input type="date" class="form-control" v-model="printDetails.issuedBy.date" required></div>
+              <div class="col-md-6"><label class="form-label">Title <span class="text-danger">*</span></label><input class="form-control" v-model.trim="printDetails.issuedBy.title" placeholder="Auto-filled from account; editable" required></div>
+              <div class="col-md-6"><label class="form-label">Date <span class="text-danger">*</span></label><input type="date" class="form-control" v-model="printDetails.issuedBy.date" required></div>
             </div>
           </div>
           <div class="modal-footer">
