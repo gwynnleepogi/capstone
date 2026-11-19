@@ -1,10 +1,16 @@
 <template>
   <div>
-    <div class="mb-4">
-      <h2>Return Property</h2>
-      <p class="text-muted mb-0">
-        Request to return property issued to you. The property office will accept or reject it.
-      </p>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+      <div>
+        <h2>Return Property</h2>
+        <p class="text-muted mb-0">
+          Request to return property issued to you. The property office will accept or reject it.
+        </p>
+      </div>
+      <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2" @click="openReturnRequestsModal">
+        <i class="bi bi-inbox"></i>
+        Return Requests
+      </button>
     </div>
 
     <!-- Property issued to me -->
@@ -55,8 +61,19 @@
       </div>
     </div>
 
-    <!-- My return requests -->
-    <div class="card">
+    <!-- My Return Requests Modal -->
+    <div class="modal fade" id="myReturnRequestsModal" tabindex="-1" aria-labelledby="myReturnRequestsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h5 id="myReturnRequestsModalLabel" class="modal-title">My Return Requests</h5>
+              <p class="text-muted small mb-0">View the status and details of your submitted return requests.</p>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="card">
       <div class="card-header bg-white">
         <strong>My return requests</strong>
       </div>
@@ -106,6 +123,10 @@
             </tr>
           </tbody>
         </table>
+      </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -183,6 +204,8 @@
 </template>
 
 <script>
+import { Modal } from 'bootstrap'
+
 function today() {
   return new Date().toISOString().split('T')[0]
 }
@@ -245,6 +268,11 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+
+    openReturnRequestsModal() {
+      const modalElement = document.getElementById('myReturnRequestsModal')
+      Modal.getOrCreateInstance(modalElement).show()
     },
 
     openReturnForm(receipt) {
