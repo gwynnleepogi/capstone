@@ -3,7 +3,7 @@
   <div class="container-fluid">
     <div class="row align-items-center mb-4">
       <div class="col">
-        <h1 class="h3 mb-1">Item Requests</h1>
+        <h1 class="h3 mb-1">Property Requests</h1>
         <p class="text-secondary mb-0">
           {{
             canManageRequests
@@ -23,7 +23,7 @@
 
     <div class="card">
       <div class="card-header bg-white">
-        <strong>Item Requests</strong>
+        <strong>Property Requests</strong>
       </div>
 
       <div class="card-body">
@@ -235,18 +235,18 @@
           <form @submit.prevent="saveRequest">
             <div class="modal-body">
               <div class="mb-3">
-                <label class="form-label">Item (from Inventory)</label>
+                <label class="form-label">Property (from Inventory)</label>
 
                 <SearchableSelect
                   v-model="form.item_id"
                   :options="itemSelectOptions"
-                  placeholder="Search inventory items"
+                  placeholder="Search properties"
                   required
                   input-id="request-item-select"
                 />
 
                 <small v-if="items.length === 0" class="text-danger">
-                  No available inventory items found.
+                  No available properties found.
                 </small>
 
                 <div
@@ -889,7 +889,7 @@ export default {
 
         if (!response.ok) {
           throw new Error(
-            data.error || 'Failed to load inventory items'
+            data.error || 'Failed to load properties'
           )
         }
 
