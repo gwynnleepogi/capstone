@@ -1212,16 +1212,17 @@ export default {
         <head>
           <title>${receiptType} - ${receiptNumber}</title>
           <style>
-            @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 8mm; }
+            @page { size: ${pageSize.width}in ${pageSize.height}in portrait; margin: 0; }
             * { box-sizing: border-box; }
-            body { margin: 0; color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 10px; }
-            .page { position: relative; width: 100%; height: calc(${pageSize.height}in - 16mm); min-height: 0; padding: 5px 5px 120px; display: block; overflow: hidden; }
+            html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
+            body { color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 10px; }
+            .page { position: relative; width: ${pageSize.width}in; height: ${pageSize.height}in; min-height: 0; padding: 8mm 13mm; margin: 0; display: block; overflow: hidden; }
             .main-table, .lower-details { flex: 0 0 auto; }
-            .print-footer { position: absolute; left: 5px; right: 5px; bottom: 5px; width: auto; margin: 0; padding: 0; page-break-inside: avoid; break-inside: avoid; }
+            .print-footer { position: absolute; left: 13mm; right: 13mm; bottom: 8mm; width: auto; margin: 0; padding: 0; page-break-inside: avoid; break-inside: avoid; }
             .signature { page-break-inside: avoid; break-inside: avoid; }
             @media print {
-              html, body { width: 100%; margin: 0; padding: 0; }
-              .page { position: relative; height: calc(${pageSize.height}in - 16mm); min-height: 0; page-break-after: avoid; break-after: avoid; }
+              html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
+              .page { position: relative; width: ${pageSize.width}in; height: ${pageSize.height}in; min-height: 0; page-break-after: avoid; break-after: avoid; }
               body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
             }
             .header { display: grid; grid-template-columns: 72px 1fr; align-items: center; text-align: center; min-height: 72px; }
@@ -1260,7 +1261,7 @@ export default {
             .lower-left, .lower-right { padding: 7px; min-height: 125px; }
             .lower-details p { margin: 0 0 7px; line-height: 1.25; }
             .lower-details strong { color: #000; }
-            .print-footer { width: 100%; margin: auto 0 0; padding-bottom: 0; }
+            .print-footer { width: auto; margin: 0; padding: 0; }
             .page-number { margin: 0 2px 5px; text-align: right; font-size: 8px; }
             .signature { display: grid; grid-template-columns: 38% 38%; justify-content: space-between; gap: 12px; min-height: 78px; border-top: 1px solid #000; padding: 5px 0 0; }
             .signature-box { display: flex; flex-direction: column; font-size: 9px; }
