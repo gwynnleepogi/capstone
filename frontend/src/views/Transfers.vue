@@ -485,6 +485,18 @@
                 <label class="form-label">Concurred by - Designation</label>
                 <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.designation" required>
               </div>
+              <div class="col-md-4">
+                <label class="form-label">Requested by - Date</label>
+                <input type="date" class="form-control" v-model="requestPrintDetails.requestedBy.date">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Approved by - Date (Optional)</label>
+                <input type="date" class="form-control" v-model="requestPrintDetails.approvedBy.date">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Concurred by - Date (Optional)</label>
+                <input type="date" class="form-control" v-model="requestPrintDetails.concurredBy.date">
+              </div>
               <div class="col-12">
                 <label class="form-label">Action Taken (Property Officer)</label>
                 <textarea class="form-control" rows="2" v-model.trim="requestPrintDetails.actionTaken"></textarea>
@@ -776,9 +788,9 @@ export default {
       return {
         rptNumber: '',
         paperSize: 'long',
-        requestedBy: { name: '', designation: '' },
-        approvedBy: { name: '', designation: '' },
-        concurredBy: { name: '', designation: '' },
+        requestedBy: { name: '', designation: '', date: '' },
+        approvedBy: { name: '', designation: '', date: '' },
+        concurredBy: { name: '', designation: '', date: '' },
         actionTaken: ''
       }
     },
@@ -1102,6 +1114,7 @@ export default {
       this.requestPrintDetails.rptNumber = transfer.rpt_number || transfer.rpt_no || this.getAutomaticRPTNumber(transfer)
       this.requestPrintDetails.requestedBy.name = transfer.from_user?.full_name || ''
       this.requestPrintDetails.requestedBy.designation = transfer.from_user?.job_title || ''
+      this.requestPrintDetails.requestedBy.date = String(transfer.transfer_date || '').slice(0, 10)
       Modal.getOrCreateInstance(document.getElementById('propertyTransferRequestModal')).show()
     },
 
@@ -1227,7 +1240,7 @@ body{font-size:9px}
 <tr><td class="row-label">Signature:</td><td></td><td></td><td></td><td class="action" rowspan="4"></td></tr>
 <tr><td class="row-label">Printed Name:</td><td class="signatory">${esc(details.requestedBy.name)}</td><td class="signatory">${esc(details.approvedBy.name)}</td><td class="signatory">${esc(details.concurredBy.name)}</td></tr>
 <tr><td class="row-label">Designation:</td><td class="signatory">${esc(details.requestedBy.designation)}</td><td class="signatory">${esc(details.approvedBy.designation)}</td><td class="signatory">${esc(details.concurredBy.designation)}</td></tr>
-<tr><td class="row-label">Date:</td><td class="signatory-date">${esc(formatDate(transfer.transfer_date))}</td><td class="signatory-date"></td><td class="signatory-date"></td></tr>
+<tr><td class="row-label">Date:</td><td class="signatory-date">${esc(details.requestedBy.date ? formatDate(details.requestedBy.date) : '')}</td><td class="signatory-date">${esc(details.approvedBy.date ? formatDate(details.approvedBy.date) : '')}</td><td class="signatory-date">${esc(details.concurredBy.date ? formatDate(details.concurredBy.date) : '')}</td></tr>
 </table>
 <div class="instructions">
 <h2>INSTRUCTIONS</h2>
