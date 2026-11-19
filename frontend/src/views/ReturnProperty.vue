@@ -341,6 +341,7 @@ export default {
 
       this.form = {
         return_date: today(),
+        return_purpose: '',
         condition_declared: 'Serviceable',
         return_reason: '',
         otherReason: '',
