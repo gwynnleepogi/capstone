@@ -83,7 +83,7 @@
     <!-- Summary Cards -->
     <div class="row g-3 mb-4">
 
-      <!-- Total Items -->
+      <!-- Total Properties -->
       <div class="col-12 col-sm-6 col-lg-3">
         <div class="card summary-card">
           <div class="card-body">
@@ -93,7 +93,7 @@
 
             <div>
               <p class="text-secondary mb-1">
-                Total Items
+                Total Properties
               </p>
 
               <h2 class="mb-0">
@@ -213,7 +213,7 @@
                 </svg>
                 <div class="chart-center">
                   <strong>{{ items.length }}</strong>
-                  <span>Total Items</span>
+                  <span>Total Properties</span>
                 </div>
               </div>
 
@@ -311,7 +311,7 @@
                 </svg>
                 <div class="chart-center">
                   <strong>{{ items.length }}</strong>
-                  <span>Total Items</span>
+                  <span>Total Properties</span>
                 </div>
               </div>
 
