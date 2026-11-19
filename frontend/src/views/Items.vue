@@ -618,20 +618,33 @@
                   :alt="'QR code for property ' + (detailItem.property_number || '')"
                 />
               </div>
-              <div v-else-if="qrCodeError" class="text-danger small">
-                {{ qrCodeError }}
-              </div>
-              <div v-else class="text-secondary">
-                Generating QR code...
+              <div v-else class="py-3">
+                <button
+                  type="button"
+                  class="btn btn-outline-success"
+                  :disabled="qrGenerating"
+                  @click="generateItemQrCode"
+                >
+                  <span
+                    v-if="qrGenerating"
+                    class="spinner-border spinner-border-sm me-1"
+                    role="status"
+                  ></span>
+                  <i v-else class="bi bi-qr-code me-1"></i>
+                  {{ qrGenerating ? 'Generating QR...' : 'Generate QR Code' }}
+                </button>
+                <div v-if="qrCodeError" class="text-danger small mt-2">
+                  {{ qrCodeError }}
+                </div>
               </div>
 
               <div class="fw-semibold mt-2">
                 {{ detailItem.property_number || 'No property number' }}
               </div>
-              <small class="text-secondary d-block">
+              <small v-if="detailQrCode" class="text-secondary d-block">
                 Scan to view property details
               </small>
-              <small v-if="isLocalDevelopmentHost" class="text-warning d-block mt-2">
+              <small v-if="isLocalDevelopmentHost && detailQrCode" class="text-warning d-block mt-2">
                 For phone scanning, open this app using your laptop's Wi-Fi address,
                 not localhost.
               </small>
@@ -1094,6 +1107,7 @@ export default {
       detailItem: null,
       detailQrCode: '',
       qrCodeError: '',
+      qrGenerating: false,
       downloadingDocument: false,
       editingItem: null,
       deletingItemId: null,
@@ -1899,8 +1913,21 @@ export default {
       }
     },
 
-    async showItemDetails(item) {
+    showItemDetails(item) {
       this.detailItem = item
+      this.detailQrCode = ''
+      this.qrCodeError = ''
+      this.qrGenerating = false
+    },
+
+    async generateItemQrCode() {
+      const item = this.detailItem
+
+      if (!item || this.qrGenerating) {
+        return
+      }
+
+      this.qrGenerating = true
       this.detailQrCode = ''
       this.qrCodeError = ''
 
@@ -1958,6 +1985,8 @@ export default {
         if (this.detailItem?.id === item.id) {
           this.qrCodeError = error.message || 'Unable to generate the QR code.'
         }
+      } finally {
+        this.qrGenerating = false
       }
     },
 
@@ -2098,6 +2127,7 @@ export default {
       this.detailItem = null
       this.detailQrCode = ''
       this.qrCodeError = ''
+      this.qrGenerating = false
 
       if (this.$route.query.item) {
         const query = { ...this.$route.query }
