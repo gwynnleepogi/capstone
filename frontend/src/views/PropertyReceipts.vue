@@ -878,9 +878,7 @@ export default {
       this.editing = true
       this.form = {
         id: receipt.id,
-        item_request_id: '',
         item_id: '',
-        receipt_source: 'property',
         receipt_type: this.getReceiptTypeForItem(this.getReceiptItem(receipt)),
         receipt_number: receipt.receipt_number || '',
         date_issued: receipt.date_issued || '',
@@ -1004,17 +1002,8 @@ export default {
       return cost >= 50000 ? 'PAR' : 'ICS'
     },
 
-    updateReceiptTypeForSelectedRequest() {
-      const item = this.getRequestItem(this.selectedRequest)
-      this.form.receipt_type = this.getReceiptTypeForItem(item)
-    },
-
     updateReceiptTypeForSelectedProperty() {
       this.form.receipt_type = this.getReceiptTypeForItem(this.selectedAssignedItem)
-    },
-
-    resetReceiptSourceSelection() {
-      this.form.item_id = ''
     },
 
     getIssuedToName(receipt) {
