@@ -487,7 +487,7 @@
               </div>
               <div class="col-12">
                 <label class="form-label">Action Taken (Property Officer)</label>
-                <textarea class="form-control" rows="2" v-model.trim="requestPrintDetails.actionTaken" required></textarea>
+                <textarea class="form-control" rows="2" v-model.trim="requestPrintDetails.actionTaken"></textarea>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Paper Size</label>
@@ -1122,8 +1122,7 @@ export default {
         ['Approved by - Printed Name', details.approvedBy.name],
         ['Approved by - Designation', details.approvedBy.designation],
         ['Concurred by - Printed Name', details.concurredBy.name],
-        ['Concurred by - Designation', details.concurredBy.designation],
-        ['Action Taken (Property Officer)', details.actionTaken]
+        ['Concurred by - Designation', details.concurredBy.designation]
       ]
       const missingRequestField = requiredRequestFields.find(field => !String(field[1] || '').trim())
       if (missingRequestField) {
@@ -1189,7 +1188,7 @@ body{font-size:9px}
 .reason td{border:1px solid #888;padding:7px;height:auto;font-size:14px;line-height:1.25}
 .approvals th,.approvals td{border:1px solid #888;padding:6px 7px;font-size:14px;line-height:1.25}
 .approvals th{text-align:center;min-height:38px;font-size:14px}
-.approvals td{min-height:30px}
+.approvals td{min-height:30px}.approvals .signatory{text-align:center;vertical-align:middle}
 .approvals .row-label{font-weight:bold;width:12%}
 .approvals .action{vertical-align:top}
 .instructions{border:1px solid #888;padding:9px 11px 10px;font-size:14px;line-height:1.3}
@@ -1215,8 +1214,8 @@ body{font-size:9px}
 <table class="approvals">
 <tr><th style="width:12%"></th><th style="width:19%">Requested by:</th><th style="width:19%">Approved by:</th><th style="width:19%">Concurred by:</th><th>Action Taken (to be<br>filled by the Property Officer)</th></tr>
 <tr><td class="row-label">Signature:</td><td></td><td></td><td></td><td class="action" rowspan="4"></td></tr>
-<tr><td class="row-label">Printed Name:</td><td>${esc(details.requestedBy.name)}</td><td>${esc(details.approvedBy.name)}</td><td>${esc(details.concurredBy.name)}</td></tr>
-<tr><td class="row-label">Designation:</td><td>${esc(details.requestedBy.designation)}</td><td>${esc(details.approvedBy.designation)}</td><td>${esc(details.concurredBy.designation)}</td></tr>
+<tr><td class="row-label">Printed Name:</td><td class="signatory">${esc(details.requestedBy.name)}</td><td class="signatory">${esc(details.approvedBy.name)}</td><td class="signatory">${esc(details.concurredBy.name)}</td></tr>
+<tr><td class="row-label">Designation:</td><td class="signatory">${esc(details.requestedBy.designation)}</td><td class="signatory">${esc(details.approvedBy.designation)}</td><td class="signatory">${esc(details.concurredBy.designation)}</td></tr>
 <tr><td class="row-label">Date:</td><td>${esc(formatDate(transfer.transfer_date))}</td><td></td><td></td></tr>
 </table>
 <div class="instructions">
