@@ -1080,7 +1080,7 @@ export default {
       }
 
       this.printDetails = this.emptyPrintDetails()
-      this.printDetails.rptNumber = transfer.rpt_number || transfer.rpt_no || ''
+      this.printDetails.rptNumber = transfer.rpt_number || transfer.rpt_no || this.getAutomaticRPTNumber(transfer)
       Modal.getOrCreateInstance(document.getElementById('transferPrintModal')).show()
     },
 
@@ -1112,6 +1112,9 @@ export default {
       }
 
       const details = this.requestPrintDetails
+      const rptNumber = String(details.rptNumber || this.getAutomaticRPTNumber(transfer)).trim()
+      transfer.rpt_number = rptNumber
+      details.rptNumber = rptNumber
       const requiredSignatoryFields = [
         ['Requested by - Printed Name', details.requestedBy.name],
         ['Requested by - Designation', details.requestedBy.designation],
