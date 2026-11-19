@@ -15,46 +15,58 @@
 
     <!-- Property issued to me -->
     <div class="card mb-4">
-      <div class="card-header bg-white">
-        <strong>Property issued to you</strong>
+      <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <strong>Property issued to you</strong>
+          <div class="small text-muted">Select the properties you want to return.</div>
+        </div>
+        <button type="button" class="btn btn-warning" :disabled="selectedEligible.length === 0 || loading" @click="openReturnForm">
+          <i class="bi bi-arrow-return-left me-1"></i>
+          Return Selected Properties ({{ selectedEligible.length }})
+        </button>
       </div>
 
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
             <tr>
+              <th class="text-center">
+                <input type="checkbox" class="form-check-input" aria-label="Select all eligible properties"
+                  :checked="allEligibleSelected" :disabled="eligible.length === 0"
+                  @change="selectAllEligible($event.target.checked)" />
+              </th>
               <th>Property No.</th>
               <th>Item</th>
+              <th>Serial No.</th>
               <th>Receipt No.</th>
               <th>Qty</th>
               <th>Date Issued</th>
-              <th class="text-end">Action</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="loading">
-              <td colspan="6" class="text-center text-muted py-4">Loading...</td>
+              <td colspan="7" class="text-center text-muted py-4">Loading...</td>
             </tr>
 
             <tr v-else-if="!eligible.length">
-              <td colspan="6" class="text-center text-muted py-4">
+              <td colspan="7" class="text-center text-muted py-4">
                 You have no issued property that can be returned.
               </td>
             </tr>
 
             <tr v-for="receipt in eligible" :key="receipt.id">
+              <td class="text-center">
+                <input v-model="selectedReceiptIds" type="checkbox" class="form-check-input"
+                  :value="String(receipt.id)"
+                  :aria-label="'Select ' + (receipt.items?.description || 'property')" />
+              </td>
               <td>{{ receipt.items?.property_number || '-' }}</td>
               <td>{{ receipt.items?.description || '-' }}</td>
+              <td>{{ receipt.items?.serial_number || '-' }}</td>
               <td>{{ receipt.receipt_number || '-' }}</td>
               <td>{{ receipt.quantity }}</td>
               <td>{{ formatDate(receipt.date_issued) }}</td>
-              <td class="text-end">
-                <button type="button" class="btn btn-sm btn-warning" @click="openReturnForm(receipt)">
-                  <i class="bi bi-arrow-return-left me-1"></i>
-                  Return
-                </button>
-              </td>
             </tr>
           </tbody>
         </table>
@@ -140,11 +152,24 @@
 
         <form class="return-form" @submit.prevent="submitReturn">
           <div class="card-body">
-            <div class="alert alert-light border small">
-              <strong>{{ selected?.items?.description }}</strong>
-              <div class="text-muted">
-                {{ selected?.items?.property_number }} &middot; Receipt {{ selected?.receipt_number }} &middot;
-                Qty {{ selected?.quantity }}
+            <div class="alert alert-light border">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>Selected properties to return</strong>
+                <span class="badge bg-warning text-dark">{{ selectedReceipts.length }} selected</span>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead><tr><th>Property No.</th><th>Item</th><th>Serial No.</th><th>Receipt No.</th><th>Qty</th></tr></thead>
+                  <tbody>
+                    <tr v-for="receipt in selectedReceipts" :key="receipt.id">
+                      <td>{{ receipt.items?.property_number || '-' }}</td>
+                      <td>{{ receipt.items?.description || '-' }}</td>
+                      <td>{{ receipt.items?.serial_number || '-' }}</td>
+                      <td>{{ receipt.receipt_number || '-' }}</td>
+                      <td>{{ receipt.quantity }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -217,6 +242,8 @@ export default {
     return {
       eligible: [],
       requests: [],
+      selectedReceiptIds: [],
+      selectedReceipts: [],
       loading: true,
       saving: false,
       busyId: null,
@@ -229,6 +256,19 @@ export default {
         otherReason: '',
         remarks: ''
       }
+    }
+  },
+
+  computed: {
+    selectedEligible() {
+      return this.eligible.filter(receipt =>
+        this.selectedReceiptIds.includes(String(receipt.id))
+      )
+    },
+
+    allEligibleSelected() {
+      return this.eligible.length > 0 &&
+        this.eligible.every(receipt => this.selectedReceiptIds.includes(String(receipt.id)))
     }
   },
 
@@ -263,6 +303,8 @@ export default {
 
         this.eligible = Array.isArray(eligible) ? eligible : []
         this.requests = Array.isArray(requests) ? requests : []
+        const availableIds = this.eligible.map(receipt => String(receipt.id))
+        this.selectedReceiptIds = this.selectedReceiptIds.filter(id => availableIds.includes(id))
       } catch (error) {
         this.toast(error.message)
       } finally {
@@ -275,8 +317,19 @@ export default {
       Modal.getOrCreateInstance(modalElement).show()
     },
 
-    openReturnForm(receipt) {
-      this.selected = receipt
+    selectAllEligible(checked) {
+      this.selectedReceiptIds = checked
+        ? this.eligible.map(receipt => String(receipt.id))
+        : []
+    },
+
+    openReturnForm() {
+      this.selectedReceipts = this.selectedEligible.slice()
+      if (!this.selectedReceipts.length) {
+        this.toast('Please select at least one property to return.')
+        return
+      }
+
       this.form = {
         return_date: today(),
         condition_declared: 'Serviceable',
@@ -289,32 +342,50 @@ export default {
 
     closeForm() {
       this.showForm = false
-      this.selected = null
+      this.selectedReceipts = []
     },
 
     async submitReturn() {
-      if (!this.selected || this.saving) return
+      if (!this.selectedReceipts.length || this.saving) return
 
       this.saving = true
+      let submittedCount = 0
 
       try {
-        await this.request('/api/return-requests', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            property_receipt_id: this.selected.id,
-            ...this.form,
-            return_reason: this.form.return_reason === 'Others'
-              ? `Others: ${this.form.otherReason.trim()}`
-              : this.form.return_reason
-          })
-        })
+        const returnReason = this.form.return_reason === 'Others'
+          ? `Others: ${this.form.otherReason.trim()}`
+          : this.form.return_reason
 
-        this.toast('Return request sent. Please wait for the property office to review it.')
+        for (const receipt of this.selectedReceipts) {
+          await this.request('/api/return-requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              property_receipt_id: receipt.id,
+              ...this.form,
+              return_reason: returnReason
+            })
+          })
+          submittedCount += 1
+        }
+
+        this.toast(
+          submittedCount === 1
+            ? 'Return request sent. Please wait for the property office to review it.'
+            : `${submittedCount} return requests sent. Please wait for the property office to review them.`
+        )
         this.closeForm()
+        this.selectedReceiptIds = []
         await this.loadAll()
       } catch (error) {
-        this.toast(error.message)
+        if (submittedCount > 0) {
+          this.toast(`${submittedCount} of ${this.selectedReceipts.length} return requests were sent. The remaining items were not submitted: ${error.message}`)
+          this.closeForm()
+          this.selectedReceiptIds = []
+          await this.loadAll()
+        } else {
+          this.toast(error.message)
+        }
       } finally {
         this.saving = false
       }
