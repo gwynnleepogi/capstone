@@ -20,67 +20,7 @@
       </div>
 
       <div class="row g-3">
-        <div class="col-12 col-xl-6">
-          <section class="card pending-card property-pending-card h-100">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
-              <div class="d-flex align-items-center gap-2">
-                <span class="pending-icon"><i class="bi bi-box-arrow-in-down"></i></span>
-                <div>
-                  <strong>Property Requests</strong>
-                  <div class="small text-secondary">Waiting for approval</div>
-                </div>
-                <span class="pending-count">{{ pendingPropertyRequests.length }}</span>
-              </div>
-              <router-link class="btn btn-sm btn-success" to="/request">
-                Review <i class="bi bi-arrow-right ms-1"></i>
-              </router-link>
-            </div>
-            <div class="table-responsive">
-              <table class="table table-hover align-middle mb-0">
-                <thead>
-                  <tr>
-                    <th>Request No.</th>
-                    <th>Property</th>
-                    <th>Requested By</th>
-                    <th>Office</th>
-                    <th>Quantity</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-if="pendingRequestsLoading">
-                    <td colspan="5" class="text-center text-secondary py-4">
-                      Loading pending property requests...
-                    </td>
-                  </tr>
-                  <tr v-else-if="pendingRequestsError">
-                    <td colspan="5" class="text-center text-danger py-4">
-                      {{ pendingRequestsError }}
-                    </td>
-                  </tr>
-                  <tr v-else-if="pendingPropertyRequests.length === 0">
-                    <td colspan="5" class="text-center text-secondary py-4">
-                      No pending property requests.
-                    </td>
-                  </tr>
-                  <tr
-                    v-for="request in pendingPropertyRequests.slice(0, 5)"
-                    :key="request.id"
-                  >
-                    <td>{{ request.request_number || '-' }}</td>
-                    <td>{{ request.item_description || '-' }}</td>
-                    <td>
-                      {{ request.users?.full_name || request.personnel?.full_name || '-' }}
-                    </td>
-                    <td>{{ request.offices?.office_name || '-' }}</td>
-                    <td>{{ request.quantity || 0 }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
-
-        <div class="col-12 col-xl-6">
+        <div class="col-12">
           <section class="card pending-card account-pending-card h-100">
             <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
               <div class="d-flex align-items-center gap-2">
@@ -432,15 +372,12 @@ export default {
 
       items: [],
 
-      pendingPropertyRequests: [],
 
       pendingAccountRequests: [],
 
-      pendingRequestsLoading: true,
 
       pendingAccountsLoading: true,
 
-      pendingRequestsError: '',
 
       pendingAccountsError: '',
 
@@ -479,19 +416,16 @@ export default {
 
   async mounted() {
 
-    window.addEventListener('item-requests-updated', this.getPendingPropertyRequests)
     window.addEventListener('account-requests-updated', this.getPendingAccountRequests)
 
     await Promise.all([
       this.getItems(),
-      this.getPendingPropertyRequests(),
       this.getPendingAccountRequests()
     ])
 
   },
 
   beforeUnmount() {
-    window.removeEventListener('item-requests-updated', this.getPendingPropertyRequests)
     window.removeEventListener('account-requests-updated', this.getPendingAccountRequests)
   },
 
@@ -577,33 +511,6 @@ export default {
 
       }
 
-    },
-
-    async getPendingPropertyRequests() {
-      this.pendingRequestsLoading = true
-      this.pendingRequestsError = ''
-
-      try {
-        const response = await fetch('/api/item-requests')
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to load pending property requests')
-        }
-
-        if (!Array.isArray(data)) {
-          throw new Error('The property requests response was not a list')
-        }
-
-        this.pendingPropertyRequests = data.filter(
-          request => request.status === 'Pending'
-        )
-      } catch (error) {
-        console.error('Pending property requests error:', error)
-        this.pendingRequestsError = error.message || 'Failed to load pending property requests'
-      } finally {
-        this.pendingRequestsLoading = false
-      }
     },
 
     async getPendingAccountRequests() {
