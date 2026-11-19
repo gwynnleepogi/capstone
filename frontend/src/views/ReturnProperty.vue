@@ -97,8 +97,8 @@
               </td>
               <td>{{ request.review_remarks || '-' }}</td>
               <td class="text-end text-nowrap">
-                <button type="button" class="btn btn-sm btn-outline-success me-1" @click="printReturnPaperwork(request)">
-                  <i class="bi bi-printer me-1"></i>Print ARRP
+                <button type="button" class="btn btn-sm btn-outline-success me-1" @click="downloadReturnPaperwork(request)">
+                  <i class="bi bi-download me-1"></i>Download ARRP
                 </button>
                 <button v-if="request.status === 'Pending'" type="button" class="btn btn-sm btn-outline-danger"
                   :disabled="busyId === request.id" @click="cancelRequest(request)">Cancel</button>
@@ -292,7 +292,7 @@ export default {
       }
     },
 
-    printReturnPaperwork(request) {
+    downloadReturnPaperwork(request) {
       const safe = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       const item = request.items || {}
       const receipt = request.property_receipts || {}
@@ -303,9 +303,7 @@ export default {
         ? `<tr><td>1</td><td>${safe(receipt.quantity || '')}</td><td></td><td>${safe(item.description)}</td><td></td><td>${safe(requester)}</td><td>${safe(request.return_reason)}</td></tr>`
         : `<tr><td>${i + 1}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')
       const logo = new URL('../assets/LOGO.png', import.meta.url).href
-      const win = window.open('', '_blank', 'popup=yes,width=1100,height=900')
-      if (!win) return this.toast('Please allow pop-ups to print the ARRP.')
-      win.document.write(`<!doctype html><html><head><title>Acknowledgement Receipt for Returned Property</title><style>
+      const documentContent = `<!doctype html><html><head><title>Acknowledgement Receipt for Returned Property</title><style>
       @page{size:A4 portrait;margin:8mm}*{box-sizing:border-box}body{font:9px Arial;margin:0;color:#111}.sheet{border:1px solid #555;padding:5mm;min-height:281mm}
       .head{display:grid;grid-template-columns:24mm 1fr;border:1px solid #555;text-align:center;font-weight:bold}.logo{grid-row:span 2;border-right:1px solid #555;height:25mm;display:flex;align-items:center;justify-content:center}.logo img{width:19mm;height:19mm;object-fit:contain}.school{font-size:12px;padding:2mm;line-height:1.25}.title{border-top:1px solid #555;padding:2mm;font-size:12px}
       .arrp{text-align:right;font-weight:bold;margin:2mm}.line{display:inline-block;border-bottom:1px solid #222;min-width:40mm;height:4mm}.meta{display:grid;grid-template-columns:1.2fr .8fr;border:1px solid #555}.meta div{padding:2mm;border-bottom:1px solid #555;min-height:8mm}.meta div:nth-child(odd){border-right:1px solid #555}
@@ -320,8 +318,17 @@ export default {
       <table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Item<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
       <div class="row headrow"><div>Returned by:</div><div><i>(Please indicate name and affix signature)</i></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
       <div class="row"><div>Signature:</div><div></div><div></div><div></div></div><div class="row"><div>Printed Name:</div><div>${safe(requester)}</div><div></div><div></div></div><div class="row"><div>Designation:</div><div></div><div></div><div></div></div><div class="row"><div>Date:</div><div>${date(request.return_date)}</div><div></div><div></div></div>
-      <div class="instructions"><h3>INSTRUCTIONS</h3><ol type="A"><li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li><li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li><li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li><li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li><li>This form shall be prepared in two(2) copies distributed as follows:<div class="copy">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</div></li></ol></div></div><script>window.onload=()=>window.print()<\/script></body></html>`)
-      win.document.close()
+      <div class="instructions"><h3>INSTRUCTIONS</h3><ol type="A"><li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li><li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li><li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li><li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li><li>This form shall be prepared in two(2) copies distributed as follows:<div class="copy">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</div></li></ol></div></div></body></html>`
+      const blob = new Blob(['\ufeff', documentContent], { type: 'application/msword;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'ARRP-' + String(request.id || 'returned-property') + '.doc'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      this.toast('Acknowledgement Receipt for Returned Property downloaded.')
     },
 
     async cancelRequest(request) {
