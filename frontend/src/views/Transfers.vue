@@ -1260,7 +1260,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 .items .description{white-space:pre-line;overflow-wrap:break-word}
 .items td:nth-child(4),.items td:nth-child(5){white-space:nowrap}
 .center{text-align:center}.number{text-align:right;white-space:nowrap}
-.total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:6px;padding-bottom:6px;font-size:14px;background:#ffeb3b;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:6px;padding-bottom:6px;font-size:14px;color:#000}.total td:nth-last-child(-n+2){background:#ffeb3b;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .nothing{text-align:center;border-bottom:1px solid #111;padding:6px 0;font-size:14px}
 .remarks{border-bottom:none;padding:7px 3px;min-height:34px;font-size:14px}
 .bottom-block{margin-top:auto;flex-shrink:0;break-inside:avoid;page-break-inside:avoid}
