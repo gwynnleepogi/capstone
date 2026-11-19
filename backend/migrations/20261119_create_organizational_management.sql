@@ -41,18 +41,4 @@ create index if not exists responsibility_centers_department_id_idx
 create index if not exists responsibility_centers_office_id_idx
   on public.responsibility_centers(office_id);
 
-alter table public.colleges enable row level security;
-alter table public.departments enable row level security;
-alter table public.responsibility_centers enable row level security;
-
-drop policy if exists "Authenticated users can manage colleges" on public.colleges;
-create policy "Authenticated users can manage colleges"
-  on public.colleges for all to authenticated using (true) with check (true);
-
-drop policy if exists "Authenticated users can manage departments" on public.departments;
-create policy "Authenticated users can manage departments"
-  on public.departments for all to authenticated using (true) with check (true);
-
-drop policy if exists "Authenticated users can manage responsibility centers" on public.responsibility_centers;
-create policy "Authenticated users can manage responsibility centers"
-  on public.responsibility_centers for all to authenticated using (true) with check (true);
+-- API access is protected by the Express authentication and Administrator role middleware.
