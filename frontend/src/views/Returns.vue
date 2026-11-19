@@ -602,6 +602,10 @@
               <input type="date" class="form-control" v-model="returnedAcknowledgementSignatory.date">
             </div>
             <div class="mb-3">
+              <label class="form-label">Responsibility Center</label>
+              <input class="form-control" v-model.trim="returnedReceiptSignatories.responsibilityCenter" placeholder="Defaults to the property record">
+            </div>
+            <div class="mb-3">
               <label class="form-label">Paper Size</label>
               <select class="form-select" v-model="returnedReceiptPaperSize">
                 <option value="a4">A4 (210 × 297 mm)</option>
@@ -723,6 +727,7 @@ export default {
         date: ''
       },
       returnedReceiptSignatories: {
+        responsibilityCenter: '',
         receivedByName: '',
         receivedByTitle: '',
         issuedByName: '',
@@ -1223,6 +1228,7 @@ export default {
       const record = this.selectedReturn || {}
       const returnedByPerson = record.personnel || record.users || {}
       this.returnedReceiptSignatories = {
+        responsibilityCenter: this.selectedReturn?.items?.responsibility_center || '',
         receivedByName: '',
         receivedByTitle: '',
         issuedByName: returnedByPerson.full_name || '',
@@ -1281,9 +1287,7 @@ export default {
       const propertyNumber = safe(item.property_number)
       const acquiredDate = date(item.acquisition_date || issuedReceipt.date_issued)
       const responsibilityCenter = safe(
-        item.responsibility_center ||
-        record.offices?.office_name ||
-        '-'
+        this.returnedReceiptSignatories.responsibilityCenter || item.responsibility_center || record.offices?.office_name || '-'
       )
       const remarks = safe(record.remarks || record.return_reason || '')
       const logo = new URL('../assets/LOGO.png', import.meta.url).href
