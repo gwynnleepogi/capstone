@@ -520,7 +520,7 @@
             <p class="text-muted small">Complete these details before printing the transfer receipt.</p>
             <div class="row g-3 mb-3">
               <div class="col-md-6"><label class="form-label">RPT No.</label><input class="form-control" v-model.trim="printDetails.rptNumber" placeholder="Enter RPT number"></div>
-              <div class="col-md-6"><label class="form-label">Paper Size</label><select class="form-select" v-model="printDetails.paperSize"><option value="long">Long (8.5 × 13 inches)</option><option value="short">Short (8.5 × 11 inches)</option><option value="a4">A4 (210 × 297 mm)</option></select></div>
+              <div class="col-md-6"><label class="form-label">Paper Size</label><select class="form-select" v-model="printDetails.paperSize"><option value="long">Long (8.5 × 13 inches)</option><option value="legal">Legal (8.5 × 14 inches)</option><option value="letter">Letter (8.5 × 11 inches)</option><option value="a4">A4 (210 × 297 mm)</option></select></div>
             </div>
             <div class="mb-3">
               <label class="form-label d-block">Acknowledgement Classification</label>
@@ -1210,7 +1210,7 @@ body{font-size:9px}
       const firstItem = data.receipts[0]?.items || {}
       const isICS = Number(firstItem.cost || 0) < 50000
       const receiptTitle = isICS ? 'INVENTORY CUSTODIAN SLIP - TRANSFER' : 'PROPERTY ACKNOWLEDGEMENT RECEIPT - TRANSFER'
-      const appendix = isICS ? '69' : '71'
+      const appendix = '71'
       const total = data.receipts.reduce((sum, receipt) => sum + Number(receipt.items?.cost || 0) * Number(receipt.quantity || 1), 0)
       const amount = value => Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       const date = value => {
@@ -1234,7 +1234,7 @@ body{font-size:9px}
       }
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
       const responsibilityCenter = data.officeName || firstItem.responsibility_center || '-'
-      const paperSizes = { long: '8.5in 13in', short: '8.5in 11in', a4: '210mm 297mm' }
+      const paperSizes = { long: '8.5in 13in', legal: '8.5in 14in', letter: '8.5in 11in', short: '8.5in 11in', a4: '210mm 297mm' }
       const selectedPaperSize = paperSizes[details.paperSize] || paperSizes.long
       printWindow.document.write(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>${esc(receiptTitle)}</title>
@@ -1260,7 +1260,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 .items .description{white-space:pre-line;overflow-wrap:break-word}
 .items td:nth-child(4),.items td:nth-child(5){white-space:nowrap}
 .center{text-align:center}.number{text-align:right;white-space:nowrap}
-.total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:6px;padding-bottom:6px;font-size:14px}
+.total td{border-top:1px solid #111;border-bottom:1px solid #111;font-weight:bold;padding-top:6px;padding-bottom:6px;font-size:14px;background:#ffeb3b;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .nothing{text-align:center;border-bottom:1px solid #111;padding:6px 0;font-size:14px}
 .remarks{border-bottom:none;padding:7px 3px;min-height:34px;font-size:14px}
 .bottom-block{margin-top:auto;flex-shrink:0;break-inside:avoid;page-break-inside:avoid}
