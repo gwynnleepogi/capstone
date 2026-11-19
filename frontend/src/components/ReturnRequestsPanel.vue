@@ -66,7 +66,7 @@
           <tr>
             <th>Requested</th>
             <th>Requested By</th>
-            <th>Item</th>
+            <th>Property</th>
             <th>Receipt No.</th>
             <th>Qty</th>
             <th>Condition</th>
