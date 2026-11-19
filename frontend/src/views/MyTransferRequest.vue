@@ -208,7 +208,7 @@ export default {
       if (selected?.items?.responsibility_center) {
         this.form.fromResponsibilityCenter = selected.items.responsibility_center
       } else if (!this.form.receiptIds.length) {
-        this.form.fromResponsibilityCenter = '
+        this.form.fromResponsibilityCenter = ''
       }
     },
     toggleAllProperties() {
@@ -217,6 +217,7 @@ export default {
       } else {
         this.form.receiptIds = this.properties.map(property => String(property.id))
       }
+      this.fillFromResponsibilityCenter()
     },
     async loadPersonnel() {
       try {
