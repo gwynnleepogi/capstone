@@ -87,7 +87,7 @@ const assignItem = (itemId) =>
   setItemStatus(
     itemId,
     'Assigned',
-    ['Available', 'Returned']
+    ['Returned']
   )
 
 const releaseItem = (itemId) =>
