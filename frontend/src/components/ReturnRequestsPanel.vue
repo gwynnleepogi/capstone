@@ -7,7 +7,7 @@
           {{ pendingCount }} pending
         </span>
         <div class="small text-muted">
-          Teachers and Non-Teaching Staff ask to return property here. Accept to put the stock back.
+          Teachers and Non-Teaching Staff submit property return requests here. View a request to record the return and add it to Returns.
         </div>
       </div>
 
@@ -123,11 +123,12 @@
               <template v-if="request.status === 'Pending'">
                 <button
                   type="button"
-                  class="btn btn-sm btn-success me-1"
-                  @click="openAccept(request)"
+                  class="btn btn-sm btn-primary"
+                  :disabled="saving"
+                  @click="viewRequest(request)"
                 >
-                  <i class="bi bi-check-lg me-1"></i>
-                  Accept
+                  <i class="bi bi-eye me-1"></i>
+                  View
                 </button>
               </template>
             </td>
@@ -136,61 +137,7 @@
       </table>
     </div>
 
-    <!-- Accept dialog -->
-    <div v-if="dialog" class="rr-overlay" tabindex="-1" @keydown.esc="closeDialog">
-      <section class="rr-dialog card" role="dialog" aria-modal="true" aria-labelledby="rr-title">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-          <strong id="rr-title">Accept Return</strong>
-          <button type="button" class="btn-close" aria-label="Close" @click="closeDialog"></button>
-        </div>
 
-        <form @submit.prevent="submitDialog">
-          <div class="card-body">
-            <div class="alert alert-light border small">
-              <strong>{{ dialog.request.items?.description }}</strong>
-              <div class="text-muted">
-                {{ dialog.request.items?.property_number }} &middot;
-                Qty {{ dialog.request.property_receipts?.quantity }} &middot;
-                from {{ dialog.request.requester?.full_name }}
-              </div>
-              <div class="mt-1">Reason: {{ dialog.request.return_reason || '-' }}</div>
-            </div>
-
-            <template v-if="dialog.mode === 'accept'">
-              <div class="alert alert-warning mb-3">
-                <strong>Condition after return: Unserviceable</strong>
-                <div class="small mt-1">
-                  Once this return is accepted, the property's condition will automatically be changed to Unserviceable.
-                </div>
-              </div>
-
-              <div>
-                <label class="form-label">Remarks (optional)</label>
-                <textarea v-model.trim="dialog.remarks" class="form-control" rows="2"></textarea>
-              </div>
-
-              <p class="small text-muted mt-3 mb-0">
-                Accepting records the return and restores the quantity to inventory.
-              </p>
-            </template>
-
-          </div>
-
-          <div class="card-footer bg-white text-end">
-            <button type="button" class="btn btn-outline-secondary me-2" @click="closeDialog">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="btn btn-success"
-              :disabled="saving"
-            >
-              {{ saving ? 'Saving...' : 'Accept Return' }}
-            </button>
-          </div>
-        </form>
-      </section>
-    </div>
   </div>
 </template>
 
@@ -211,7 +158,6 @@ export default {
       dateFrom: '',
       dateTo: '',
       tabs: ['All', 'Pending', 'Accepted'],
-      dialog: null
     }
   },
 
@@ -285,22 +231,8 @@ export default {
       }
     },
 
-    openAccept(request) {
-      this.dialog = {
-        mode: 'accept',
-        request,
-        remarks: ''
-      }
-    },
-
-    closeDialog() {
-      this.dialog = null
-    },
-
-    async submitDialog() {
-      if (!this.dialog || this.saving) return
-
-      const { request, remarks } = this.dialog
+    async viewRequest(request) {
+      if (this.saving || request.status !== 'Pending') return
 
       this.saving = true
 
@@ -310,17 +242,16 @@ export default {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             condition_after_return: 'Unserviceable',
-            review_remarks: remarks || null
+            review_remarks: null
           })
         })
         const data = await response.json().catch(() => ({}))
 
         if (!response.ok) {
-          throw new Error(data.error || 'Could not update the return request')
+          throw new Error(data.error || 'Could not record the property return')
         }
 
-        this.toast('Return accepted and stock restored.')
-        this.closeDialog()
+        this.toast('Return recorded and added to Returns.')
         await this.loadRequests()
 
         window.dispatchEvent(new CustomEvent('return-requests-updated'))
