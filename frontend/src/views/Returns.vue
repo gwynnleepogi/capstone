@@ -379,7 +379,7 @@
 
               <div class="mb-3">
                 <label class="form-label">
-                  Why is this property being returned as unserviceable? <span class="text-danger">*</span>
+                  Return Reason <span class="text-danger">*</span>
                 </label>
 
                 <select
