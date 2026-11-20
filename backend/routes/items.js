@@ -254,8 +254,8 @@ router.post('/', async (req, res) => {
         responsibility_center: responsibilityCenter,
         fund_cluster: cleanText(fund_cluster),
 
-        // Automatically set status based on employee assignment.
-        status: employeeName ? 'Issued' : 'Available'
+        // A new property always has an accountable employee and starts as Issued.
+        status: 'Issued'
       })
     }
 
