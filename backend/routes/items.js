@@ -350,25 +350,30 @@ router.put('/:id', async (req, res) => {
       })
     }
 
-    // Returned or unserviceable properties are locked from further editing.
-    if (
-      String(oldData.status || '').trim().toLowerCase() === 'returned' ||
-      String(oldData.condition || '').trim().toLowerCase() === 'unserviceable'
-    ) {
-      return res.status(409).json({
-        error: 'This property has been returned and can no longer be edited.'
-      })
-    }
+    const isReturnedProperty =
+      String(oldData.status || '').trim().toLowerCase() === 'returned'
 
     const employeeName = cleanText(accountable_employee)
     const itemCondition = cleanText(condition) || 'Serviceable'
-
-    // Both accountability fields are required for every property record.
     const responsibilityCenter = getResponsibilityCenter(responsibility_center)
 
-    if (!employeeName) {
+    // A returned property stays unassigned until it goes through the
+    // request and issuance workflow again.
+    if (!employeeName && !isReturnedProperty) {
       return res.status(400).json({
         error: 'Accountable Employee is required.'
+      })
+    }
+
+    if (!responsibilityCenter) {
+      return res.status(400).json({
+        error: 'Responsibility Center is required.'
+      })
+    }
+
+    if (isReturnedProperty && employeeName) {
+      return res.status(400).json({
+        error: 'Returned properties must be assigned through the request and issuance process.'
       })
     }
 
@@ -391,15 +396,13 @@ router.put('/:id', async (req, res) => {
         classification: classification || 'PAR',
         condition: itemCondition,
 
-        // Match the return workflow: an unserviceable property is marked Returned.
-        // Otherwise, derive its status from the accountable employee assignment.
-        status: itemCondition === 'Unserviceable'
+        // Never set a property to Available. A returned property remains
+        // Returned until it is issued through the request workflow.
+        status: isReturnedProperty || itemCondition === 'Unserviceable'
           ? 'Returned'
-          : employeeName
-            ? 'Issued'
-            : 'Available',
+          : 'Issued',
 
-        accountable_employee: employeeName || null,
+        accountable_employee: isReturnedProperty ? null : employeeName,
         responsibility_center: responsibilityCenter,
         fund_cluster: cleanText(fund_cluster),
         unit: cleanText(unit) || 'PC',
