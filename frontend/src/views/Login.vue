@@ -42,7 +42,7 @@
                 : signUpMode
                   ? 'Submit your employee details for administrator approval.'
                   : loginStep === 1
-                    ? 'Choose your personnel type to get started.'
+                    ? 'Choose your account type to get started.'
                     : loginStep === 3
                       ? 'Your temporary password must be changed before continuing.'
                       : loginStep === 4
@@ -257,11 +257,25 @@
 
           <template v-else-if="loginStep === 1">
             <div class="section-heading">
-              <h2>Choose personnel type</h2>
-              <span>Select the account you use at NVSU</span>
+              <h2>Choose account type</h2>
+              <span>Select how you access the NVSU system</span>
             </div>
 
             <div class="role-options">
+              <button
+                type="button"
+                class="role-button"
+                :class="{ selected: preferredRole === 'Employee' }"
+                :aria-pressed="preferredRole === 'Employee'"
+                @click="selectRole('Employee')"
+              >
+                <span class="role-icon">
+                  <i class="bi bi-person-badge"></i>
+                </span>
+                <span class="role-label">Employee</span>
+                <i class="bi bi-check-circle-fill role-check"></i>
+              </button>
+
               <button
                 type="button"
                 class="role-button"
@@ -272,35 +286,7 @@
                 <span class="role-icon">
                   <i class="bi bi-person-gear"></i>
                 </span>
-                <span class="role-label">Administrator</span>
-                <i class="bi bi-check-circle-fill role-check"></i>
-              </button>
-
-              <button
-                type="button"
-                class="role-button"
-                :class="{ selected: preferredRole === 'Teacher' }"
-                :aria-pressed="preferredRole === 'Teacher'"
-                @click="selectRole('Teacher')"
-              >
-                <span class="role-icon">
-                  <i class="bi bi-mortarboard"></i>
-                </span>
-                <span class="role-label">Teaching Staff</span>
-                <i class="bi bi-check-circle-fill role-check"></i>
-              </button>
-
-              <button
-                type="button"
-                class="role-button"
-                :class="{ selected: preferredRole === 'Non-Teaching Staff' }"
-                :aria-pressed="preferredRole === 'Non-Teaching Staff'"
-                @click="selectRole('Non-Teaching Staff')"
-              >
-                <span class="role-icon">
-                  <i class="bi bi-people"></i>
-                </span>
-                <span class="role-label">Non-Teaching Staff</span>
+                <span class="role-label">Admin</span>
                 <i class="bi bi-check-circle-fill role-check"></i>
               </button>
             </div>
@@ -366,7 +352,7 @@
               @click="goBackToRoles"
             >
               <i class="bi bi-arrow-left"></i>
-              Change personnel type
+              Change account type
             </button>
           </template>
 
@@ -908,7 +894,7 @@ export default {
       if (!this.preferredRole) {
         window.dispatchEvent(
           new CustomEvent('show-toast', {
-            detail: 'Please choose your personnel type'
+            detail: 'Please choose an account type'
           })
         )
         return
@@ -1238,7 +1224,7 @@ export default {
 
 .role-options {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
