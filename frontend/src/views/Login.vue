@@ -265,20 +265,6 @@
               <button
                 type="button"
                 class="role-button"
-                :class="{ selected: preferredRole === 'Employee' }"
-                :aria-pressed="preferredRole === 'Employee'"
-                @click="selectRole('Employee')"
-              >
-                <span class="role-icon">
-                  <i class="bi bi-person-badge"></i>
-                </span>
-                <span class="role-label">Employee</span>
-                <i class="bi bi-check-circle-fill role-check"></i>
-              </button>
-
-              <button
-                type="button"
-                class="role-button"
                 :class="{ selected: preferredRole === 'Administrator' }"
                 :aria-pressed="preferredRole === 'Administrator'"
                 @click="selectRole('Administrator')"
@@ -287,6 +273,20 @@
                   <i class="bi bi-person-gear"></i>
                 </span>
                 <span class="role-label">Admin</span>
+                <i class="bi bi-check-circle-fill role-check"></i>
+              </button>
+
+              <button
+                type="button"
+                class="role-button"
+                :class="{ selected: preferredRole === 'Employee' }"
+                :aria-pressed="preferredRole === 'Employee'"
+                @click="selectRole('Employee')"
+              >
+                <span class="role-icon">
+                  <i class="bi bi-person-badge"></i>
+                </span>
+                <span class="role-label">Employee</span>
                 <i class="bi bi-check-circle-fill role-check"></i>
               </button>
             </div>
