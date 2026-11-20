@@ -933,7 +933,8 @@
 
             <div class="mb-3">
               <label class="form-label">
-                Accountable Employee <span class="text-danger">*</span>
+                Accountable Employee
+                <span v-if="!isReturnedProperty(editingItem)" class="text-danger">*</span>
               </label>
               <SearchableSelect
                 v-model="editForm.accountable_employee"
@@ -1725,7 +1726,7 @@ export default {
       if (!selectedName) {
         form.accountable_employee = ''
         form.responsibility_center = ''
-        form.status = 'Available'
+        form.status = 'Returned'
         return
       }
 
@@ -1922,7 +1923,7 @@ export default {
         acquisition_date: item.acquisition_date || '',
         classification: item.classification || 'PAR',
         condition: item.condition || 'Serviceable',
-        status: item.status || 'Available',
+        status: item.status || 'Returned',
         accountable_employee: item.accountable_employee || '',
         responsibility_center: item.responsibility_center || '',
         fund_cluster: item.fund_cluster || '',
