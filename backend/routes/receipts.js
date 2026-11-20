@@ -426,7 +426,7 @@ router.post('/', async (req, res) => {
     const remainingQuantity = availableQuantity - quantityToIssue
 
     const newStatus = remainingQuantity > 0
-      ? 'Available'
+      ? 'Assigned'
       : 'Issued'
 
     const newAccountableEmployee = remainingQuantity === 0
@@ -742,7 +742,7 @@ router.delete('/:id', async (req, res) => {
         .from('items')
         .update({
           quantity: Number(item.quantity || 0) + restoreQuantity,
-          status: 'Available',
+          status: 'Returned',
           accountable_employee: null
         })
         .eq('id', receipt.item_id)
