@@ -13,10 +13,15 @@
         <i :class="menuOpen ? 'bi bi-x-lg' : 'bi bi-list'"></i>
       </button>
 
-      <div class="mobile-brand">
+      <button
+        class="mobile-brand"
+        type="button"
+        aria-label="Refresh page"
+        @click="window.location.reload()"
+      >
         <img :src="logo" alt="NVSU logo" class="mobile-brand-logo">
         <h2>Property Inventory</h2>
-      </div>
+      </button>
     </div>
 
     <aside class="sidebar" :class="{ 'show-menu': menuOpen }">
@@ -1367,6 +1372,12 @@ body {
     align-items: center;
     gap: 9px;
     min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
   }
 
   .mobile-brand-logo {
