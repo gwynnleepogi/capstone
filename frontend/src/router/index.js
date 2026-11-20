@@ -185,7 +185,9 @@ router.beforeEach((to) => {
       return to.query.redirect
     }
 
-    return { name: 'Dashboard' }
+    return user?.role === 'Teacher' || user?.role === 'Non-Teaching Staff'
+      ? { name: 'MyProperties' }
+      : { name: 'Dashboard' }
   }
 
   // Scanned item links point to /items?item=ID, but only Administrators
