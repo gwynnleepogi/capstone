@@ -1459,6 +1459,8 @@ window.onload=function(){
         designation: record.personnel?.job_title || record.users?.job_title || record.personnel?.designation || record.users?.designation || '',
         date: record.return_date || new Date().toISOString().slice(0, 10)
       }
+      this.returnedReceiptSignatories.responsibilityCenter =
+        record.items?.responsibility_center || ''
       const modalElement = document.getElementById("returnedAcknowledgementInputModal")
       if (modalElement) Modal.getOrCreateInstance(modalElement).show()
     },
@@ -1473,10 +1475,13 @@ window.onload=function(){
       if (!record) return
       const item = record.items || {}
       const returnedBy = this.returnedAcknowledgementSignatory.printedName || ''
-      const signature = this.returnedAcknowledgementSignatory.signature || ''
+      const receivedByName = this.returnedAcknowledgementSignatory.receivedByName || ''
+      const receivedByDesignation = this.returnedAcknowledgementSignatory.receivedByDesignation || ''
       const designation = this.returnedAcknowledgementSignatory.designation || ''
       const acknowledgementDate = this.returnedAcknowledgementSignatory.date || ''
       const office = record.offices?.office_name || ''
+      const responsibilityCenter = this.returnedReceiptSignatories.responsibilityCenter ||
+        item.responsibility_center || ''
       const quantity = Number(record.property_receipts?.quantity || 1)
       const safe = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
       const date = value => {
@@ -1501,7 +1506,7 @@ window.onload=function(){
 .sheet{width:100%;min-height:0;border:0;padding:4px 6px 5px}
 .header{display:grid;grid-template-columns:24mm 1fr;border:1px solid #555;text-align:center;font-weight:bold}.logo-cell{grid-row:span 2;border-right:1px solid #555;height:25mm;display:flex;align-items:center;justify-content:center}.logo{width:19mm;height:19mm;object-fit:contain}.school{font-size:12px;line-height:1.25;padding:2mm}.form-title{font-size:12px;border-top:1px solid #555;padding:2mm}
 .arrp{text-align:right;font-size:11px;font-weight:bold;margin:1mm 2mm 4mm}.line{display:inline-block;min-width:48mm;border-bottom:1px solid #222;height:4mm}
-.meta{display:grid;grid-template-columns:1.2fr .8fr;border:1px solid #555}.meta div{padding:2mm;border-bottom:1px solid #555;min-height:8mm}.meta div:nth-child(odd){border-right:1px solid #555}.meta .storage-field,.meta .tag-field{display:flex;align-items:baseline;gap:2mm;white-space:nowrap}
+.meta{display:grid;grid-template-columns:1.2fr .8fr;border:1px solid #555}.meta div{padding:2mm;border-bottom:1px solid #555;min-height:8mm}.meta div:nth-child(odd){border-right:1px solid #555}.meta .storage-field,.meta .tag-field{display:flex;align-items:baseline;gap:2mm;white-space:nowrap}.meta .responsibility-center-field{grid-column:1 / -1;border-right:0;border-bottom:0}
 .items-for{text-align:center;border:1px solid #555;border-top:0;padding:2mm;font-weight:bold;font-size:10px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #555;padding:1mm;text-align:center;vertical-align:middle}th{font-size:8px;line-height:1.1;height:10mm}td{height:7.5mm;font-size:8px}.desc{text-align:left}
 .returned-head,.signature-grid{display:grid;grid-template-columns:22% 35% 28% 15%;border:1px solid #555;border-top:0}.returned-head{font-weight:bold}.returned-head div,.signature-grid div{padding:2mm;border-right:1px solid #555;min-height:8mm}.returned-head div{min-height:12mm}.returned-head div:last-child,.signature-grid div:last-child{border-right:0}.signature-grid div:nth-child(2){text-align:center}.name-row div:nth-child(2),.designation-row div:nth-child(2){text-transform:uppercase}
@@ -1510,7 +1515,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px so
 </style></head><body><div class="sheet">
 <div class="header"><div class="logo-cell"><img class="logo" src="${logo}" alt="NVSU Logo"></div><div class="school">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</div><div class="form-title">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</div></div>
 <div class="arrp">ARRP No.: <span class="line"></span></div>
-<div class="meta"><div><strong>Unit/Division/College:</strong> ${safe(office)}</div><div><strong>Date:</strong> ${date(record.return_date)}</div><div class="storage-field"><strong>Place of Storage:</strong></div><div class="tag-field"><strong>Tag No.:</strong></div></div>
+<div class="meta"><div><strong>Unit/Division/College:</strong> ${safe(office)}</div><div><strong>Date:</strong> ${date(record.return_date)}</div><div class="storage-field"><strong>Place of Storage:</strong></div><div class="tag-field"><strong>Tag No.:</strong></div><div class="responsibility-center-field"><strong>Responsibility Center:</strong> ${safe(responsibilityCenter || '-')}</div></div>
 <div class="items-for">Properties for &nbsp; ____Property Utilization/Re-issuance &nbsp; ____Repair &nbsp; ____Disposal</div>
 <table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Property<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="returned-head"><div>Returned by:</div><div><em>(Please indicate name and affix signature)</em></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
