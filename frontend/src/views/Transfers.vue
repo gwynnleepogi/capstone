@@ -1257,7 +1257,7 @@ body{font-size:9px}
 <p><strong>A.</strong> The RPT shall be used by the accountable employee to request transfer of property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Immediate Supervisor for the approval, by the personnel who will receive the property and the Property Officer to act on the request;</p>
 <p><strong>B.</strong> The property to be transferred shall be inspected/checked first by the assigned receiving employee/user before affixing his/her signature on the "concurred" portion of this form;</p>
 <p><strong>C.</strong> This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</p>
-<p><strong>D.</strong> The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</p>
+<p><strong>D.</strong> The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 71); and</p>
 <p><strong>E.</strong> This form shall be prepared in two(2) copies distributed as follows:</p>
 <div class="copies">Original – Supply and/or Property Division/Unit's file<br>Copy 2 – Accounting Division/Unit (to be attached to Property Transfer Report)</div>
 </div>
