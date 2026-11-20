@@ -217,8 +217,14 @@
             </div>
 
             <div>
-              <label class="form-label">Remarks</label>
-              <textarea v-model.trim="form.remarks" class="form-control" rows="2"></textarea>
+              <label class="form-label">Reason for Unserviceable Condition <span class="text-danger">*</span></label>
+              <textarea
+                v-model.trim="form.remarks"
+                class="form-control"
+                rows="2"
+                placeholder="Explain why this property is being returned as unserviceable."
+                required
+              ></textarea>
             </div>
           </div>
 
