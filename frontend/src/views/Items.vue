@@ -1136,7 +1136,7 @@ export default {
         accountable_employee: '',
         office_name: '',
         responsibility_center: '',
-        fund_cluster: ''
+        fund_cluster: '',
         article: '',
         unit: 'PC',
         dr_ci_si_number: '',
