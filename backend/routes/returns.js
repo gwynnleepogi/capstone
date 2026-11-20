@@ -435,7 +435,9 @@ router.delete('/:id', async (req, res) => {
         return res.status(500).json({ error: otherReturnError.message })
       }
 
-      const fallbackCondition = otherReturn?.condition_after_return || 'Serviceable'
+      // Deleting the return record must not make the property Serviceable again.
+      // Keep its returned condition as Unserviceable even when no other return record exists.
+      const fallbackCondition = 'Unserviceable'
       const restoredInventory = {
         quantity: nextQuantity,
         status: 'Returned',
