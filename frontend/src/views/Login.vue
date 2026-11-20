@@ -304,16 +304,6 @@
                 <i class="bi bi-check-circle-fill role-check"></i>
               </button>
             </div>
-
-            <button
-              type="button"
-              class="primary-button"
-              :disabled="!preferredRole"
-              @click="continueToLogin"
-            >
-              Continue
-              <i class="bi bi-arrow-right"></i>
-            </button>
           </template>
 
           <template v-else-if="loginStep === 2">
@@ -909,6 +899,9 @@ export default {
 
     selectRole(role) {
       this.preferredRole = role
+      this.email = ''
+      this.password = ''
+      this.loginStep = 2
     },
 
     continueToLogin() {
