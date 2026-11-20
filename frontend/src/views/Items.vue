@@ -275,17 +275,12 @@
               </div>
 
               <div class="col-12 col-md-6">
-                <label class="form-label">
-                  Responsibility Center <span class="text-danger">*</span>
-                </label>
-                <input
-                  v-model="newItem.responsibility_center"
-                  type="text"
-                  class="form-control"
-                  placeholder="Automatically filled from the employee account"
-                  readonly
-                  required
-                />
+                <label class="form-label">Office <span class="text-danger">*</span></label>
+                <SearchableSelect v-model="newItem.office_name" :options="officeSelectOptions" placeholder="Search or select an office" required />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">Responsibility Center <span class="text-danger">*</span></label>
+                <input v-model.trim="newItem.responsibility_center" type="text" class="form-control" placeholder="Enter responsibility center" required />
               </div>
 
               <div class="col-12 col-md-6">
@@ -915,12 +910,9 @@
               <label class="form-label">
                 Condition <span class="text-danger">*</span>
               </label>
-              <SearchableSelect
-                v-model="editForm.condition"
-                :options="conditionOptions"
-                placeholder="Select condition"
-                required
-              />
+              <input v-if="isReturnedProperty(editingItem)" type="text" class="form-control" value="Unserviceable" readonly />
+              <SearchableSelect v-else v-model="editForm.condition" :options="conditionOptions" placeholder="Select condition" required />
+              <small v-if="isReturnedProperty(editingItem)" class="form-text text-muted">Returned properties must remain Unserviceable.</small>
             </div>
 
             <div class="mb-3">
@@ -949,14 +941,11 @@
               <label class="form-label">
                 Responsibility Center <span class="text-danger">*</span>
               </label>
-              <input
-                v-model="editForm.responsibility_center"
-                type="text"
-                class="form-control"
-                placeholder="Automatically filled from the employee account"
-                readonly
-                required
-              />
+              <SearchableSelect v-model="editForm.office_name" :options="officeSelectOptions" placeholder="Search or select an office" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Responsibility Center <span class="text-danger">*</span></label>
+              <input v-model.trim="editForm.responsibility_center" type="text" class="form-control" placeholder="Enter responsibility center" required />
             </div>
 
             <div class="mb-3">
@@ -1145,8 +1134,9 @@ export default {
         condition: 'Serviceable',
         status: 'Issued',
         accountable_employee: '',
+        office_name: '',
         responsibility_center: '',
-        fund_cluster: '',
+        fund_cluster: ''
         article: '',
         unit: 'PC',
         dr_ci_si_number: '',
@@ -1853,19 +1843,14 @@ export default {
           throw new Error('Select an accountable employee from the existing user accounts.')
         }
 
-        const responsibilityCenter =
-          selectedEmployee.offices?.office_name ||
-          selectedEmployee.department ||
-          ''
-
-        if (!responsibilityCenter) {
-          throw new Error('The selected user account has no assigned office.')
-        }
+        if (!String(this.newItem.office_name || '').trim()) throw new Error('Office is required.')
+        if (!String(this.newItem.responsibility_center || '').trim()) throw new Error('Responsibility Center is required.')
 
         const payload = {
           ...this.newItem,
           accountable_employee: selectedEmployee.full_name,
-          responsibility_center: responsibilityCenter,
+          office_name: this.newItem.office_name.trim(),
+          responsibility_center: this.newItem.responsibility_center.trim(),
           classification: this.classificationFromCost(this.newItem.cost),
           quantity: 1,
         }
@@ -1922,9 +1907,10 @@ export default {
         cost: item.cost || 0,
         acquisition_date: item.acquisition_date || '',
         classification: item.classification || 'PAR',
-        condition: item.condition || 'Serviceable',
+        condition: this.isReturnedProperty(item) ? 'Unserviceable' : (item.condition || 'Serviceable'),
         status: item.status || 'Returned',
         accountable_employee: item.accountable_employee || '',
+        office_name: item.office_name || '',
         responsibility_center: item.responsibility_center || '',
         fund_cluster: item.fund_cluster || '',
         article: item.article || '',
@@ -2199,22 +2185,15 @@ export default {
           throw new Error('Select an accountable employee from the existing user accounts.')
         }
 
-        const responsibilityCenter = selectedEmployee
-          ? (
-              selectedEmployee.offices?.office_name ||
-              selectedEmployee.department ||
-              ''
-            )
-          : this.editForm.responsibility_center
-
-        if (!responsibilityCenter) {
-          throw new Error('Responsibility Center is required.')
-        }
+        if (!String(this.editForm.office_name || '').trim()) throw new Error('Office is required.')
+        if (!String(this.editForm.responsibility_center || '').trim()) throw new Error('Responsibility Center is required.')
 
         const payload = {
           ...this.editForm,
+          condition: isReturned ? 'Unserviceable' : this.editForm.condition,
           accountable_employee: selectedEmployee ? selectedEmployee.full_name : '',
-          responsibility_center: responsibilityCenter,
+          office_name: this.editForm.office_name.trim(),
+          responsibility_center: this.editForm.responsibility_center.trim(),
           status: isReturned ? 'Returned' : 'Issued',
           quantity: 1,
         }
