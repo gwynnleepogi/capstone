@@ -1255,7 +1255,7 @@ export default {
       const receiptTitle = isICS
         ? 'INVENTORY CUSTODIAN SLIP - RETURNED'
         : 'PROPERTY ACKNOWLEDGEMENT RECEIPT - RETURNED'
-      const appendix = isICS ? '69' : '71'
+      const appendix = '71'
 
       const safe = value => String(value === null || value === undefined || value === '' ? '-' : value)
         .replace(/&/g, '&amp;')
