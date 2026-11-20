@@ -1556,7 +1556,7 @@ export default {
             <div class="instructions">
               <div class="instructions-title">INSTRUCTIONS</div>
               <p><strong>A.</strong> The RIS shall be prepared by the authorized officer or employee to request needed Property/Supply, by the Supervisor of the requesting unit to approve the request, by the Property/Supply Custodian to verify the availability of stocks and issuance of the item/s, and by the end user or authorized personnel of the requesting unit to receive the item/s as an accountable/responsible officer or employee.</p>
-              <p><strong>B.</strong> For requested item/s other than the category of consumable property/supply, the approved RIS (GAM Appendix 63) shall be the basis of the SMO Staff in preparing and processing the Inventory Custodian Slip (GAM Appendix 69) for semi-expendable property and/or Property Acknowledgement Receipt (GAM Appendix 71) for non-expendable property prior to issuance if the item/s is available on stock; and</p>
+              <p><strong>B.</strong> For requested item/s other than the category of consumable property/supply, the approved RIS (GAM Appendix 63) shall be the basis of the SMO Staff in preparing and processing the Inventory Custodian Slip (GAM Appendix 71) for semi-expendable property and/or Property Acknowledgement Receipt (GAM Appendix 71) for non-expendable property prior to issuance if the item/s is available on stock; and</p>
               <p><strong>C.</strong> This form shall be prepared in three (3) copies and in 8.5" x 13" paper. It will be distributed as follows:</p>
               <div class="copies">Original - Accounting Office</div>
               <div class="copies">Copy 2 - Requesting Office</div>
