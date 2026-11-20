@@ -318,15 +318,6 @@
               <div class="chart-legend status-legend">
 
                 <div class="legend-item">
-                  <span class="legend-color available-color"></span>
-
-                  <div>
-                    <p class="mb-0">Available</p>
-                    <strong>{{ countStatus('Available') }}</strong>
-                  </div>
-                </div>
-
-                <div class="legend-item">
                   <span class="legend-color issued-color"></span>
 
                   <div>
@@ -406,7 +397,6 @@ export default {
 
     statusChartSegments() {
       return this.buildChartSegments([
-        { name: 'Available', className: 'available-segment', count: this.countStatus('Available') },
         { name: 'Issued', className: 'issued-segment', count: this.countStatus('Issued') },
         { name: 'Returned', className: 'returned-segment', count: this.countStatus('Returned') }
       ])
