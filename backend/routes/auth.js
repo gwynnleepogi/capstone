@@ -282,9 +282,7 @@ router.post('/login', async (req, res) => {
   }
 
   if (preferred_role && preferred_role !== profile.role) {
-    return res.status(403).json({
-      error: `This account is registered as ${profile.role}`
-    })
+    return res.status(401).json({ error: 'Invalid email or password' })
   }
 
   res.json({
