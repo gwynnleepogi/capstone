@@ -1478,7 +1478,7 @@ export default {
 
 .signup-link {
   display: block;
-  margin: 18px auto 0;
+  margin: 34px auto 0;
   text-align: center;
 }
 
