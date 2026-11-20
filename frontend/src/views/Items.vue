@@ -2364,7 +2364,6 @@ export default {
     },
 
     getStatusClass(status) {
-      if (status === 'Available') return 'bg-success'
       if (status === 'Assigned') return 'bg-primary'
       if (status === 'Issued') return 'bg-warning text-dark'
       if (status === 'Returned') return 'bg-info'
