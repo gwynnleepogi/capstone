@@ -3,7 +3,7 @@
     <div class="mb-4">
       <h1 class="h3 mb-1">Backup &amp; Restore</h1>
       <p class="text-secondary mb-0">
-        Download a copy of your system records or restore records from a backup file.
+        Download or restore a backup containing only properties and offices.
       </p>
     </div>
 
@@ -19,13 +19,13 @@
               <div class="backup-icon"><i class="bi bi-cloud-download"></i></div>
               <div>
                 <h2 class="h5 mb-1">Create Backup</h2>
-                <p class="text-secondary small mb-0">Download your current database records.</p>
+                <p class="text-secondary small mb-0">Download your properties and offices.</p>
               </div>
             </div>
 
             <p class="small text-secondary">
-              The backup contains the configured public system tables, including properties,
-              users, requests, receipts, returns, transfers, incidents and audit logs.
+              The backup contains only property records and office records. Property records are stored
+              in the database's items table; office records are stored in the offices table.
             </p>
 
             <button
@@ -49,7 +49,7 @@
               <div class="backup-icon"><i class="bi bi-cloud-upload"></i></div>
               <div>
                 <h2 class="h5 mb-1">Restore Backup</h2>
-                <p class="text-secondary small mb-0">Add or update records using a backup file.</p>
+                <p class="text-secondary small mb-0">Add or update properties and offices using a backup file.</p>
               </div>
             </div>
 
@@ -67,12 +67,12 @@
             <div v-if="selectedBackup" class="alert alert-light border small">
               <strong>Selected backup</strong><br>
               Created: {{ formatDate(selectedBackup.created_at) }}<br>
-              Records in file: {{ selectedRecordCount }}
+              Properties and offices in file: {{ selectedRecordCount }}
             </div>
 
             <div class="alert alert-warning small">
               <strong>Important:</strong> Restore first downloads a safety backup of the current
-              records. It then adds missing records and updates records with matching IDs.
+              property and office records. It then adds missing records and updates records with matching IDs.
               It does not delete records that are not in the selected file.
             </div>
 
@@ -97,7 +97,8 @@
         <ul class="small text-secondary mb-0">
           <li>Only an Administrator can open this page and use these actions.</li>
           <li>Keep backup files in a safe place. They may contain staff and system records.</li>
-          <li>This feature backs up public database records only. It does not include Supabase Auth passwords, uploaded Storage files, database functions, triggers, indexes or RLS policies.</li>
+          <li>This backup includes only properties and offices. It does not include users, requests, receipts, returns, transfers, incidents, audit logs, Supabase Auth passwords or uploaded Storage files.</li>
+          <li>Other system records are not changed by creating a backup. Restoring this file only adds or updates properties and offices.</li>
           <li>For a full database backup, also use a PostgreSQL backup from a trusted administrator environment.</li>
         </ul>
       </div>
