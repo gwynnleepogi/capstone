@@ -11,7 +11,9 @@ const {
 // The database stores properties in the "items" table.
 const BACKUP_TABLES = [
   'offices',
-  'items'
+  'items',
+  'item_returns',
+  'item_transfers'
 ]
 
 const BACKUP_FORMAT = 'nvsu-property-backup'
