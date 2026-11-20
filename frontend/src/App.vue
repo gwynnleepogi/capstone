@@ -127,6 +127,16 @@
 
         <router-link
           v-if="canAccess(['Teacher', 'Non-Teaching Staff'])"
+          to="/my-properties"
+          class="nav-link"
+          @click="menuOpen = false"
+        >
+          <i class="bi bi-box-seam"></i>
+          My Properties
+        </router-link>
+
+        <router-link
+          v-if="canAccess(['Teacher', 'Non-Teaching Staff'])"
           to="/my-returns"
           class="nav-link"
           @click="menuOpen = false"
@@ -143,16 +153,6 @@
         >
           <i class="bi bi-arrow-left-right"></i>
           Request for Property Transfer
-        </router-link>
-
-        <router-link
-          v-if="canAccess(['Teacher', 'Non-Teaching Staff'])"
-          to="/my-properties"
-          class="nav-link"
-          @click="menuOpen = false"
-        >
-          <i class="bi bi-box-seam"></i>
-          My Properties
         </router-link>
 
         <router-link
