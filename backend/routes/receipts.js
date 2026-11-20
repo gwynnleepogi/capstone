@@ -404,7 +404,7 @@ router.post('/', async (req, res) => {
       })
     }
 
-    if (!['Available', 'Assigned'].includes(item.status)) {
+    if (item.status !== 'Assigned') {
       return res.status(400).json({
         error: `This item cannot be issued. Current status: ${item.status}`
       })
@@ -813,7 +813,7 @@ router.delete('/:id', async (req, res) => {
           inventory_quantity: item
             ? Number(item.quantity || 0) + Number(receipt.quantity)
             : null,
-          inventory_status: item ? 'Available' : null,
+          inventory_status: item ? 'Returned' : null,
           accountable_employee: item ? null : undefined,
           request_status: receipt.item_request_id ? 'Approved' : null
         }),
