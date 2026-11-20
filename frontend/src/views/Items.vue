@@ -939,7 +939,7 @@
 
             <div class="mb-3">
               <label class="form-label">
-                Responsibility Center <span class="text-danger">*</span>
+                Office <span class="text-danger">*</span>
               </label>
               <SearchableSelect v-model="editForm.office_name" :options="officeSelectOptions" placeholder="Search or select an office" required />
             </div>
@@ -1715,7 +1715,6 @@ export default {
 
       if (!selectedName) {
         form.accountable_employee = ''
-        form.responsibility_center = ''
         form.status = 'Returned'
         return
       }
@@ -1727,15 +1726,10 @@ export default {
 
       if (!employee) {
         form.accountable_employee = ''
-        form.responsibility_center = ''
         return
       }
 
       form.accountable_employee = employee.full_name
-      form.responsibility_center =
-        employee.offices?.office_name ||
-        employee.department ||
-        ''
       form.status = 'Issued'
     },
 
