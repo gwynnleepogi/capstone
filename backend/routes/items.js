@@ -157,6 +157,7 @@ router.post('/', async (req, res) => {
       acquisition_date,
       condition,
       accountable_employee,
+      office_name,
       responsibility_center,
       fund_cluster,
       unit,
@@ -202,6 +203,7 @@ router.post('/', async (req, res) => {
     }
 
     const employeeName = cleanText(accountable_employee)
+    const officeName = cleanText(office_name)
     const responsibilityCenter = getResponsibilityCenter(responsibility_center)
 
     if (!employeeName) {
@@ -210,10 +212,10 @@ router.post('/', async (req, res) => {
       })
     }
 
+    if (!officeName) return res.status(400).json({ error: 'Office is required.' })
+
     if (!responsibilityCenter) {
-      return res.status(400).json({
-        error: 'Responsibility Center is required.'
-      })
+      return res.status(400).json({ error: 'Responsibility Center is required.' })
     }
 
     const itemsToInsert = []
@@ -251,6 +253,7 @@ router.post('/', async (req, res) => {
         classification: itemClassification,
         condition: condition || 'Serviceable',
         accountable_employee: employeeName || null,
+        office_name: officeName,
         responsibility_center: responsibilityCenter,
         fund_cluster: cleanText(fund_cluster),
 
@@ -354,7 +357,8 @@ router.put('/:id', async (req, res) => {
       String(oldData.status || '').trim().toLowerCase() === 'returned'
 
     const employeeName = cleanText(accountable_employee)
-    const itemCondition = cleanText(condition) || 'Serviceable'
+    const itemCondition = isReturnedProperty ? 'Unserviceable' : (cleanText(condition) || 'Serviceable')
+    const officeName = cleanText(office_name)
     const responsibilityCenter = getResponsibilityCenter(responsibility_center)
 
     // A returned property stays unassigned until it goes through the
@@ -365,10 +369,10 @@ router.put('/:id', async (req, res) => {
       })
     }
 
+    if (!officeName) return res.status(400).json({ error: 'Office is required.' })
+
     if (!responsibilityCenter) {
-      return res.status(400).json({
-        error: 'Responsibility Center is required.'
-      })
+      return res.status(400).json({ error: 'Responsibility Center is required.' })
     }
 
     if (isReturnedProperty && employeeName) {
@@ -403,6 +407,7 @@ router.put('/:id', async (req, res) => {
           : 'Issued',
 
         accountable_employee: isReturnedProperty ? null : employeeName,
+        office_name: officeName,
         responsibility_center: responsibilityCenter,
         fund_cluster: cleanText(fund_cluster),
         unit: cleanText(unit) || 'PC',
