@@ -7,22 +7,11 @@ const {
   adminCredentialsError
 } = require('../supabaseAdmin')
 
-// Keep this list aligned with the supplied NVSU database schema.
-// Parent tables are placed before tables that refer to them.
+// Only office records and property records are included in backups.
+// The database stores properties in the "items" table.
 const BACKUP_TABLES = [
   'offices',
-  'suppliers',
-  'users',
-  'items',
-  'item_requests',
-  'property_receipts',
-  'item_returns',
-  'incidents',
-  'item_transfers',
-  'return_requests',
-  'account_requests',
-  'password_reset_requests',
-  'audit_logs'
+  'items'
 ]
 
 const BACKUP_FORMAT = 'nvsu-property-backup'
@@ -80,7 +69,7 @@ function getAdminClient(res) {
   return client
 }
 
-// Download a complete JSON backup of the configured public tables.
+// Download a JSON backup containing only offices and properties.
 router.get('/', async (req, res) => {
   const client = getAdminClient(res)
   if (!client) return
@@ -164,37 +153,6 @@ router.post('/restore', async (req, res) => {
   }
 
   try {
-    // Check Auth references through the SAME backend client used for restore.
-    // This catches a backend .env pointing to a different Supabase project
-    // before any public table is changed.
-    const userRows = backup.tables.users || []
-    const missingAuthUsers = []
-
-    for (const user of userRows) {
-      if (!user.auth_user_id) continue
-
-      const { data, error } = await client.auth.admin.getUserById(user.auth_user_id)
-
-      if (error || !data?.user) {
-        missingAuthUsers.push({
-          email: user.email || '',
-          full_name: user.full_name || '',
-          auth_user_id: user.auth_user_id
-        })
-      }
-    }
-
-    if (missingAuthUsers.length) {
-      return res.status(409).json({
-        error:
-          'Restore was stopped before changing any records. The backend Supabase project cannot find these Auth user IDs. ' +
-          'Make sure the backend SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY belong to the same Supabase project where these accounts exist.',
-        failed_table: 'users',
-        missing_auth_users: missingAuthUsers,
-        restored_records: 0
-      })
-    }
-
     let restoredRecords = 0
 
     for (const table of BACKUP_TABLES) {
