@@ -379,7 +379,7 @@
 
               <div class="mb-3">
                 <label class="form-label">
-                  Return Reason <span class="text-danger">*</span>
+                  Why is this property being returned as unserviceable? <span class="text-danger">*</span>
                 </label>
 
                 <select
@@ -407,16 +407,12 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">
-                  Reason for Unserviceable Condition <span class="text-danger">*</span>
-                </label>
+                <label class="form-label">Remarks</label>
 
                 <textarea
                   class="form-control"
                   rows="3"
                   v-model="form.remarks"
-                  placeholder="Explain why this property is being returned as unserviceable."
-                  required
                 ></textarea>
               </div>
             </div>
@@ -525,7 +521,7 @@
               <dt class="col-sm-4">Reason</dt>
               <dd class="col-sm-8">{{ selectedReturn.return_reason || '-' }}</dd>
 
-              <dt class="col-sm-4">Reason for Unserviceable Condition</dt>
+              <dt class="col-sm-4">Remarks</dt>
               <dd class="col-sm-8">{{ selectedReturn.remarks || '-' }}</dd>
             </dl>
 
