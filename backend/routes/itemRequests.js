@@ -93,7 +93,7 @@ const assignItem = (itemId) =>
 const releaseItem = (itemId) =>
   setItemStatus(
     itemId,
-    'Available',
+    'Returned',
     ['Assigned']
   )
 
@@ -206,7 +206,7 @@ router.get('/available-items', async (req, res) => {
       accountable_employee,
       responsibility_center
     `)
-    .in('status', ['Available', 'Returned'])
+    .eq('status', 'Returned')
     .eq('condition', 'Serviceable')
     .order('description', {
       ascending: true
@@ -418,7 +418,6 @@ async function getSelectedItem(itemId, excludeRequestId) {
   }
 
   if (
-    data.status !== 'Available' &&
     data.status !== 'Returned'
   ) {
     return {
