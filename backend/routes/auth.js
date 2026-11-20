@@ -281,7 +281,10 @@ router.post('/login', async (req, res) => {
     })
   }
 
-  if (preferred_role && preferred_role !== profile.role) {
+  if (
+    (preferred_role === 'Administrator' && profile.role !== 'Administrator') ||
+    (preferred_role === 'Employee' && !['Teacher', 'Non-Teaching Staff'].includes(profile.role))
+  ) {
     return res.status(401).json({ error: 'Invalid email or password' })
   }
 
