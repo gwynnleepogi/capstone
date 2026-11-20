@@ -329,15 +329,11 @@
               </div>
 
               <div class="col-12 col-md-4">
-                <label class="form-label">
-                  Status <span class="text-danger">*</span>
-                </label>
-                <SearchableSelect
-                  v-model="newItem.status"
-                  :options="statusOptions"
-                  placeholder="Select status"
-                  required
-                />
+                <label class="form-label">Status</label>
+                <input type="text" class="form-control" value="Issued" readonly />
+                <small class="form-text text-muted">
+                  Automatically set to Issued because an accountable employee is required.
+                </small>
               </div>
             </div>
           </div>
@@ -722,7 +718,6 @@
             Print Property Tag
           </button>
           <button
-            v-if="!isReturnedProperty(detailItem)"
             type="button"
             class="btn btn-outline-warning"
             @click="editItemFromDetails"
@@ -730,9 +725,6 @@
             <i class="bi bi-pencil me-1"></i>
             Edit Property
           </button>
-          <span v-else class="text-muted small align-self-center">
-            This property has been returned and can no longer be edited.
-          </span>
           <button
             type="button"
             class="btn btn-outline-danger"
@@ -932,15 +924,11 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label">
-                Status <span class="text-danger">*</span>
-              </label>
-              <SearchableSelect
-                v-model="editForm.status"
-                :options="statusOptions"
-                placeholder="Select status"
-                required
-              />
+              <label class="form-label">Status</label>
+              <input type="text" class="form-control" :value="editForm.status" readonly />
+              <small v-if="isReturnedProperty(editingItem)" class="form-text text-muted">
+                This property will remain Returned until it is issued through the request process.
+              </small>
             </div>
 
             <div class="mb-3">
@@ -951,7 +939,7 @@
                 v-model="editForm.accountable_employee"
                 :options="accountableEmployeeOptions"
                 placeholder="Search or select an employee account"
-                required
+                :required="!isReturnedProperty(editingItem)"
                 @update:modelValue="selectAccountableEmployee(editForm, $event)"
               />
             </div>
@@ -1154,7 +1142,7 @@ export default {
         acquisition_date: '',
         classification: 'PAR',
         condition: 'Serviceable',
-        status: 'Available',
+        status: 'Issued',
         accountable_employee: '',
         responsibility_center: '',
         fund_cluster: '',
@@ -1176,7 +1164,7 @@ export default {
         acquisition_date: '',
         classification: 'PAR',
         condition: 'Serviceable',
-        status: 'Available',
+        status: 'Returned',
         accountable_employee: '',
         responsibility_center: '',
         fund_cluster: '',
@@ -1205,7 +1193,6 @@ export default {
 
     statusOptions() {
       return [
-        'Available',
         'Assigned',
         'Issued',
         'Returned',
@@ -2188,13 +2175,6 @@ export default {
         return
       }
 
-      if (this.isReturnedProperty(this.detailItem)) {
-        window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: 'This property has been returned and can no longer be edited.'
-        }))
-        return
-      }
-
       const item = this.detailItem
       this.closeItemDetails()
       this.startEdit(item)
@@ -2208,28 +2188,33 @@ export default {
       this.updating = true
 
       try {
+        const isReturned = this.isReturnedProperty(this.editingItem)
         const selectedEmployee = this.personnel.find(person =>
           String(person.full_name || '').trim().toLowerCase() ===
           String(this.editForm.accountable_employee || '').trim().toLowerCase(),
         )
 
-        if (!selectedEmployee) {
+        if (!selectedEmployee && !isReturned) {
           throw new Error('Select an accountable employee from the existing user accounts.')
         }
 
-        const responsibilityCenter =
-          selectedEmployee.offices?.office_name ||
-          selectedEmployee.department ||
-          ''
+        const responsibilityCenter = selectedEmployee
+          ? (
+              selectedEmployee.offices?.office_name ||
+              selectedEmployee.department ||
+              ''
+            )
+          : this.editForm.responsibility_center
 
         if (!responsibilityCenter) {
-          throw new Error('The selected user account has no assigned office.')
+          throw new Error('Responsibility Center is required.')
         }
 
         const payload = {
           ...this.editForm,
-          accountable_employee: selectedEmployee.full_name,
+          accountable_employee: selectedEmployee ? selectedEmployee.full_name : '',
           responsibility_center: responsibilityCenter,
+          status: isReturned ? 'Returned' : 'Issued',
           quantity: 1,
         }
 
@@ -2358,7 +2343,7 @@ export default {
         acquisition_date: '',
         classification: 'PAR',
         condition: 'Serviceable',
-        status: 'Available',
+        status: 'Issued',
         accountable_employee: '',
         responsibility_center: '',
         fund_cluster: '',
