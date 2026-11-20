@@ -3,11 +3,6 @@
 
   <div v-else class="layout">
     <div class="mobile-header">
-      <div class="mobile-brand">
-        <img :src="logo" alt="NVSU logo" class="mobile-brand-logo">
-        <h2>Property Inventory</h2>
-      </div>
-
       <button
         class="hamburger"
         type="button"
@@ -17,6 +12,11 @@
       >
         <i :class="menuOpen ? 'bi bi-x-lg' : 'bi bi-list'"></i>
       </button>
+
+      <div class="mobile-brand">
+        <img :src="logo" alt="NVSU logo" class="mobile-brand-logo">
+        <h2>Property Inventory</h2>
+      </div>
     </div>
 
     <aside class="sidebar" :class="{ 'show-menu': menuOpen }">
