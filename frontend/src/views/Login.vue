@@ -52,7 +52,7 @@
           </p>
         </header>
 
-        <form class="auth-form" @submit.prevent="handleSubmit">
+        <form class="auth-form" autocomplete="off" @submit.prevent="handleSubmit">
           <template v-if="signupComplete">
             <div class="signup-success">
               <i class="bi bi-check-circle-fill"></i>
@@ -334,7 +334,7 @@
                   id="login-email"
                   v-model="email"
                   type="email"
-                  autocomplete="username"
+                  autocomplete="off"
                   placeholder="you@example.com"
                   required
                 >
@@ -350,7 +350,7 @@
                   id="login-password"
                   v-model="password"
                   type="password"
-                  autocomplete="current-password"
+                  autocomplete="new-password"
                   placeholder="Enter your password"
                   required
                 >
