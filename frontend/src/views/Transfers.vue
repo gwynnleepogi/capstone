@@ -68,8 +68,8 @@
             <tbody>
               <tr v-for="transfer in paginatedTransfers" :key="transfer.id">
                 <td>
-                  <div>{{ transfer.items?.description || '-' }}</div>
-                  <small class="text-muted">{{ transfer.items?.property_number || '' }}</small>
+                  <div>{{ (transfer.properties || []).length > 1 ? `${transfer.properties.length} properties` : (transfer.items?.description || '-') }}</div>
+                  <small class="text-muted">{{ (transfer.properties || []).length > 1 ? transfer.properties.map(property => property.items?.property_number).filter(Boolean).join(', ') : (transfer.items?.property_number || '') }}</small>
                 </td>
 
                 <td>{{ transfer.transfer_type }}</td>
@@ -394,15 +394,11 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body" v-if="selectedTransferDetails">
+            <div class="mb-3" v-if="selectedTransferDetails.properties?.length">
+              <small class="text-muted d-block mb-2">Properties in this transfer ({{ selectedTransferDetails.properties.length }})</small>
+              <div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Property No.</th><th>Description</th><th>Amount</th></tr></thead><tbody><tr v-for="property in selectedTransferDetails.properties" :key="property.transfer_id"><td>{{ property.items?.property_number || '-' }}</td><td>{{ property.items?.description || '-' }}</td><td>₱{{ Number(property.items?.cost || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}</td></tr></tbody></table></div>
+            </div>
             <div class="row g-3">
-              <div class="col-md-6">
-                <small class="text-muted d-block">Property</small>
-                <strong>{{ selectedTransferDetails.items?.description || '-' }}</strong>
-              </div>
-              <div class="col-md-6">
-                <small class="text-muted d-block">Property Number</small>
-                <strong>{{ selectedTransferDetails.items?.property_number || '-' }}</strong>
-              </div>
               <div class="col-md-6">
                 <small class="text-muted d-block">From Accountable Employee</small>
                 <strong>{{ selectedTransferDetails.from_user?.full_name || selectedTransferDetails.items?.accountable_employee || '-' }}</strong>
@@ -701,7 +697,9 @@ export default {
       const text = this.search.toLowerCase().trim()
 
       return this.transfers.filter(transfer => {
+        const propertyText = (transfer.properties || []).map(property => `${property.items?.description || ''} ${property.items?.property_number || ''}`).join(' ')
         const haystack = [
+          propertyText,
           transfer.items?.description,
           transfer.items?.property_number,
           transfer.from_user?.full_name,
@@ -987,25 +985,23 @@ export default {
       }
 
       try {
-        for (const receiptId of this.form.property_receipt_ids) {
-          const response = await fetch('/api/transfers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              property_receipt_id: receiptId,
-              transfer_type: 'To Employee',
-              to_user_id: this.form.to_user_id,
-              office_id: this.form.office_id || null,
-              transfer_date: this.form.transfer_date,
-              condition_after_transfer: null,
-              reason: transferInfo.remarks,
-              remarks: this.form.remarks
-            })
+        const response = await fetch('/api/transfers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            property_receipt_ids: this.form.property_receipt_ids,
+            transfer_type: 'To Employee',
+            to_user_id: this.form.to_user_id,
+            office_id: this.form.office_id || null,
+            transfer_date: this.form.transfer_date,
+            condition_after_transfer: null,
+            reason: transferInfo.remarks,
+            remarks: this.form.remarks
           })
-          const data = await response.json()
-          if (!response.ok) throw new Error(data.error || 'Failed to transfer a selected property')
-          transferredCount++
-        }
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Failed to transfer selected properties')
+        transferredCount = selectedReceipts.length
 
         this.transferPrintData = transferInfo
         this.printDetails = this.emptyPrintDetails()
@@ -1045,7 +1041,7 @@ export default {
       }
 
       const confirmed = confirm(
-        'Are you sure you want to delete this transfer? The property will be restored to the previous accountable employee.'
+        'Are you sure you want to delete this transfer? All properties in this transfer group will be restored to their previous accountable employees.'
       )
       if (!confirmed) return
 
@@ -1087,7 +1083,7 @@ export default {
       }
 
       this.transferPrintData = {
-        receipts: [{
+        receipts: transfer.receipts?.length ? transfer.receipts : [{
           items: transfer.items,
           quantity: transfer.property_receipts?.quantity || 1,
           date_issued: transfer.property_receipts?.date_issued || transfer.transfer_date
@@ -1179,7 +1175,14 @@ export default {
       }
 
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
-      const blankRows = Array.from({ length: 9 }, () => '<tr><td></td><td></td><td></td><td></td><td></td></tr>').join('')
+      const transferProperties = transfer.properties?.length ? transfer.properties : [{ items: item, property_receipts: receipt, condition_after_transfer: transfer.condition_after_transfer }]
+      const itemRows = transferProperties.map(property => {
+        const propertyItem = property.items || {}
+        const propertyReceipt = property.property_receipts || {}
+        const propertyAmount = Number(propertyItem.cost || 0) * Number(propertyReceipt.quantity || 1)
+        return `<tr><td class="center">${esc(formatDate(propertyItem.acquisition_date))}</td><td class="center">${esc(propertyItem.property_number || '')}</td><td>${esc(propertyItem.description || '')}</td><td class="right">${propertyAmount.toLocaleString('en-PH',{minimumFractionDigits:2})}</td><td class="center">${esc(property.condition_after_transfer || propertyItem.condition || '-')}</td></tr>`
+      }).join('')
+      const blankRows = Array.from({ length: Math.max(0, 9 - transferProperties.length) }, () => '<tr><td></td><td></td><td></td><td></td><td></td></tr>').join('')
       const paperSizes = { long: '8.5in 13in', legal: '8.5in 14in', letter: '8.5in 11in', a4: '210mm 297mm' }
       const selectedPaperSize = paperSizes[details.paperSize] || paperSizes.long
       printWindow.document.write(`<!DOCTYPE html>
@@ -1242,7 +1245,7 @@ body{font-size:9px}
 </table>
 <table class="items">
 <thead><tr><th style="width:12%">DATE<br>ACQUIRED</th><th style="width:17%">PROPERTY NO.</th><th style="width:37%">DESCRIPTION</th><th style="width:15%">AMOUNT</th><th style="width:19%">CONDITION OF<br>PPE</th></tr></thead>
-<tbody><tr><td class="center">${esc(formatDate(item.acquisition_date))}</td><td class="center">${esc(item.property_number || '')}</td><td>${esc(item.description || '')}</td><td class="right">${amount.toLocaleString('en-PH',{minimumFractionDigits:2})}</td><td class="center">${esc(condition)}</td></tr>${blankRows}</tbody>
+<tbody>${itemRows}${blankRows}</tbody>
 </table>
 <table class="reason"><tr><td style="width:12%;font-weight:bold">Reason for<br>Transfer:</td><td>${esc(transfer.reason || transfer.remarks || '')}</td></tr></table>
 <table class="approvals">
