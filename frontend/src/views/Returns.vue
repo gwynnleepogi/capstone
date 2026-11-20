@@ -407,12 +407,16 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Remarks</label>
+                <label class="form-label">
+                  Reason for Unserviceable Condition <span class="text-danger">*</span>
+                </label>
 
                 <textarea
                   class="form-control"
                   rows="3"
                   v-model="form.remarks"
+                  placeholder="Explain why this property is being returned as unserviceable."
+                  required
                 ></textarea>
               </div>
             </div>
@@ -521,7 +525,7 @@
               <dt class="col-sm-4">Reason</dt>
               <dd class="col-sm-8">{{ selectedReturn.return_reason || '-' }}</dd>
 
-              <dt class="col-sm-4">Remarks</dt>
+              <dt class="col-sm-4">Reason for Unserviceable Condition</dt>
               <dd class="col-sm-8">{{ selectedReturn.remarks || '-' }}</dd>
             </dl>
 
