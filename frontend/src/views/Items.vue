@@ -510,8 +510,8 @@
                 </button>
               </th>
               <th>
-                <button type="button" class="sort-header" @click="sortBy('responsibility_center')">
-                  Responsibility Center <i :class="sortIcon('responsibility_center')"></i>
+                <button type="button" class="sort-header" @click="sortBy('office_name')">
+                  Office <i :class="sortIcon('office_name')"></i>
                 </button>
               </th>
               <th class="actions-column">Actions</th>
@@ -564,7 +564,7 @@
                 </span>
               </td>
               <td>{{ item.accountable_employee || '-' }}</td>
-              <td>{{ item.responsibility_center || '-' }}</td>
+              <td>{{ item.office_name || '-' }}</td>
               <td>
                 <button
                   type="button"
@@ -2319,6 +2319,7 @@ export default {
         condition: 'Serviceable',
         status: 'Issued',
         accountable_employee: '',
+        office_name: '',
         responsibility_center: '',
         fund_cluster: '',
         article: '',
