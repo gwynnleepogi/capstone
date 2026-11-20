@@ -382,7 +382,7 @@ export default {
       this.currentUser = event.detail
       this.refreshPendingRequestCount()
 
-      this.showToast('Welcome back, ' + event.detail.role + '!')
+      this.showToast('Login successful.')
 
       if (
         this.$route.meta.roles &&
