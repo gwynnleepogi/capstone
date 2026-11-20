@@ -3,7 +3,7 @@
     <div class="mb-4">
       <h1 class="h3 mb-1">Backup &amp; Restore</h1>
       <p class="text-secondary mb-0">
-        Download or restore a backup containing only properties and offices.
+        Download or restore a backup containing properties, offices, returns, and transfers.
       </p>
     </div>
 
@@ -19,13 +19,13 @@
               <div class="backup-icon"><i class="bi bi-cloud-download"></i></div>
               <div>
                 <h2 class="h5 mb-1">Create Backup</h2>
-                <p class="text-secondary small mb-0">Download your properties and offices.</p>
+                <p class="text-secondary small mb-0">Download your properties, offices, returns, and transfers.</p>
               </div>
             </div>
 
             <p class="small text-secondary">
-              The backup contains only property records and office records. Property records are stored
-              in the database's items table; office records are stored in the offices table.
+              The backup contains property records, office records, return records, and transfer records.
+              Property records are stored in the items table.
             </p>
 
             <button
@@ -49,7 +49,7 @@
               <div class="backup-icon"><i class="bi bi-cloud-upload"></i></div>
               <div>
                 <h2 class="h5 mb-1">Restore Backup</h2>
-                <p class="text-secondary small mb-0">Add or update properties and offices using a backup file.</p>
+                <p class="text-secondary small mb-0">Add or update properties, offices, returns, and transfers using a backup file.</p>
               </div>
             </div>
 
@@ -67,12 +67,12 @@
             <div v-if="selectedBackup" class="alert alert-light border small">
               <strong>Selected backup</strong><br>
               Created: {{ formatDate(selectedBackup.created_at) }}<br>
-              Properties and offices in file: {{ selectedRecordCount }}
+              Properties, offices, returns, and transfers in file: {{ selectedRecordCount }}
             </div>
 
             <div class="alert alert-warning small">
               <strong>Important:</strong> Restore first downloads a safety backup of the current
-              property and office records. It then adds missing records and updates records with matching IDs.
+              property, office, return, and transfer records. It then adds missing records and updates records with matching IDs.
               It does not delete records that are not in the selected file.
             </div>
 
@@ -97,8 +97,8 @@
         <ul class="small text-secondary mb-0">
           <li>Only an Administrator can open this page and use these actions.</li>
           <li>Keep backup files in a safe place. They may contain staff and system records.</li>
-          <li>This backup includes only properties and offices. It does not include users, requests, receipts, returns, transfers, incidents, audit logs, Supabase Auth passwords or uploaded Storage files.</li>
-          <li>Other system records are not changed by creating a backup. Restoring this file only adds or updates properties and offices.</li>
+          <li>This backup includes properties, offices, returns, and transfers. It does not include users, requests, receipts, incidents, audit logs, Supabase Auth passwords or uploaded Storage files.</li>
+          <li>Restoring this file only adds or updates the four included record types. It does not delete records missing from the backup.</li>
           <li>For a full database backup, also use a PostgreSQL backup from a trusted administrator environment.</li>
         </ul>
       </div>
