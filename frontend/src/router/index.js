@@ -6,7 +6,6 @@ import Items from '@/views/Items.vue'
 import Offices from '@/views/Offices.vue'
 import Suppliers from '@/views/Suppliers.vue'
 import Personnel from '@/views/Personnel.vue'
-import ItemRequests from '@/views/ItemRequests.vue'
 import PropertyReceipts from '@/views/PropertyReceipts.vue'
 import Returns from '@/views/Returns.vue'
 import Transfers from '@/views/Transfers.vue'
@@ -85,12 +84,6 @@ const router = createRouter({
       name: 'PasswordResetRequests',
       component: PasswordResetRequests,
       meta: { roles: ['Administrator'] }
-    },
-    {
-      path: '/request',
-      name: 'ItemRequest',
-      component: ItemRequests,
-      meta: { roles: ['Administrator', 'Teacher', 'Non-Teaching Staff'] }
     },
     {
       path: '/receipts',
@@ -208,7 +201,7 @@ router.beforeEach((to) => {
 
   if (to.meta.roles && !to.meta.roles.includes(user?.role)) {
     return user?.role === 'Teacher' || user?.role === 'Non-Teaching Staff'
-      ? { name: 'ItemRequest' }
+      ? { name: 'MyProperties' }
       : { name: 'Dashboard' }
   }
 })
