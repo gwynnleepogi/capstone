@@ -110,77 +110,85 @@
               aria-modal="true"
               :aria-label="`Details for ${receipt.items?.property_number || 'property'}`"
             >
-              <div class="property-modal-header">
+              <header class="property-modal-header">
                 <div>
                   <div class="text-muted small">Property No. {{ receipt.items?.property_number || '-' }}</div>
                   <h2 class="h5 mb-0">{{ receipt.items?.description || 'Unnamed property' }}</h2>
                 </div>
-                <button type="button" class="btn-close" aria-label="Close" @click="toggleDetails(receipt.id)"></button>
-              </div>
+                <button
+                  type="button"
+                  class="btn-close"
+                  aria-label="Close property details"
+                  @click="toggleDetails(receipt.id)"
+                ></button>
+              </header>
+
               <div class="property-modal-body">
-            <div class="row g-3 align-items-center">
-              <div class="col-12 col-md">
-                <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
-                  <div>
-                    <div class="text-muted small">
-                      Property No. {{ receipt.items?.property_number || '-' }}
-                    </div>
-                    <h2 class="h5 mb-0">{{ receipt.items?.description || 'Unnamed property' }}</h2>
-                  </div>
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                   <span class="badge bg-primary">{{ receipt.status || 'Issued' }}</span>
+                  <span class="text-muted small">Property information and QR code</span>
                 </div>
 
-                <dl class="row property-details mb-0">
-                  <dt class="col-sm-4">Property ID</dt>
-                  <dd class="col-sm-8">{{ receipt.items?.id || receipt.item_id || '-' }}</dd>
-                  <dt class="col-sm-4">Article</dt>
-                  <dd class="col-sm-8">{{ receipt.items?.article || '-' }}</dd>
-                  <dt class="col-sm-4">Receipt Number</dt>
-                  <dd class="col-sm-8">{{ receipt.receipt_number || '-' }}</dd>
-                  <dt class="col-sm-4">Date Issued</dt>
-                  <dd class="col-sm-8">{{ formatDate(receipt.date_issued) }}</dd>
-                  <dt class="col-sm-4">Quantity</dt>
-                  <dd class="col-sm-8">{{ receipt.quantity ?? '-' }}</dd>
-                  <dt class="col-sm-4">Serial Number</dt>
-                  <dd class="col-sm-8">{{ receipt.items?.serial_number || '-' }}</dd>
-                  <dt class="col-sm-4">Model Number</dt>
-                  <dd class="col-sm-8">{{ receipt.items?.model_number || '-' }}</dd>
-                  <dt class="col-sm-4">Unit of Measure</dt>
-                  <dd class="col-sm-8">{{ receipt.items?.unit || '-' }}</dd>
-                  <dt class="col-sm-4">Classification</dt>
-                  <dd class="col-sm-8">{{ receipt.items?.classification || '-' }}</dd>
-                  <dt class="col-sm-4">Condition</dt>
-                  <dd class="col-sm-8">{{ receipt.items?.condition || '-' }}</dd>
-                  <dt class="col-sm-4">Cost</dt>
-                  <dd class="col-sm-8">{{ formatCost(receipt.items?.cost) }}</dd>
-                  <dt class="col-sm-4">Acquisition Date</dt>
-                  <dd class="col-sm-8">{{ formatDate(receipt.items?.acquisition_date) }}</dd>
-                  <dt class="col-sm-4">Responsibility Center</dt>
-                  <dd class="col-sm-8">{{ receipt.items?.responsibility_center || '-' }}</dd>
-                  <dt class="col-sm-4">Accountable Employee</dt>
-                  <dd class="col-sm-8">{{ receipt.items?.accountable_employee || '-' }}</dd>
-                  <dt class="col-sm-4">Fund Cluster</dt>
-                  <dd class="col-sm-8">{{ receipt.items?.fund_cluster || '-' }}</dd>
-                </dl>
-              </div>
+                <div class="row g-4 align-items-start">
+                  <div class="col-12 col-lg">
+                    <dl class="row property-details mb-0">
+                      <dt class="col-sm-4">Property ID</dt>
+                      <dd class="col-sm-8">{{ receipt.items?.id || receipt.item_id || '-' }}</dd>
+                      <dt class="col-sm-4">Property Number</dt>
+                      <dd class="col-sm-8">{{ receipt.items?.property_number || '-' }}</dd>
+                      <dt class="col-sm-4">Article</dt>
+                      <dd class="col-sm-8">{{ receipt.items?.article || '-' }}</dd>
+                      <dt class="col-sm-4">Description</dt>
+                      <dd class="col-sm-8">{{ receipt.items?.description || '-' }}</dd>
+                      <dt class="col-sm-4">Receipt Number</dt>
+                      <dd class="col-sm-8">{{ receipt.receipt_number || '-' }}</dd>
+                      <dt class="col-sm-4">Date Issued</dt>
+                      <dd class="col-sm-8">{{ formatDate(receipt.date_issued) }}</dd>
+                      <dt class="col-sm-4">Quantity</dt>
+                      <dd class="col-sm-8">{{ receipt.quantity ?? '-' }}</dd>
+                      <dt class="col-sm-4">Serial Number</dt>
+                      <dd class="col-sm-8">{{ receipt.items?.serial_number || '-' }}</dd>
+                      <dt class="col-sm-4">Model Number</dt>
+                      <dd class="col-sm-8">{{ receipt.items?.model_number || '-' }}</dd>
+                      <dt class="col-sm-4">Unit of Measure</dt>
+                      <dd class="col-sm-8">{{ receipt.items?.unit || '-' }}</dd>
+                      <dt class="col-sm-4">Classification</dt>
+                      <dd class="col-sm-8">{{ receipt.items?.classification || '-' }}</dd>
+                      <dt class="col-sm-4">Condition</dt>
+                      <dd class="col-sm-8">{{ receipt.items?.condition || '-' }}</dd>
+                      <dt class="col-sm-4">Cost</dt>
+                      <dd class="col-sm-8">{{ formatCost(receipt.items?.cost) }}</dd>
+                      <dt class="col-sm-4">Acquisition Date</dt>
+                      <dd class="col-sm-8">{{ formatDate(receipt.items?.acquisition_date) }}</dd>
+                      <dt class="col-sm-4">Responsibility Center</dt>
+                      <dd class="col-sm-8">{{ receipt.items?.responsibility_center || '-' }}</dd>
+                      <dt class="col-sm-4">Accountable Employee</dt>
+                      <dd class="col-sm-8">{{ receipt.items?.accountable_employee || '-' }}</dd>
+                      <dt class="col-sm-4">Fund Cluster</dt>
+                      <dd class="col-sm-8">{{ receipt.items?.fund_cluster || '-' }}</dd>
+                    </dl>
+                  </div>
 
-              <div class="col-12 col-md-auto text-center qr-panel">
-                <img
-                  v-if="qrCodes[receipt.id]"
-                  :src="qrCodes[receipt.id]"
-                  :alt="`QR code for ${receipt.items?.property_number || receipt.items?.description || 'issued property'}`"
-                  class="property-qr"
-                >
-                <div v-else-if="qrErrors[receipt.id]" class="small text-danger">
-                  {{ qrErrors[receipt.id] }}
+                  <div class="col-12 col-lg-auto text-center qr-panel">
+                    <div class="qr-card">
+                      <img
+                        v-if="qrCodes[receipt.id]"
+                        :src="qrCodes[receipt.id]"
+                        :alt="`QR code for ${receipt.items?.property_number || receipt.items?.description || 'issued property'}`"
+                        class="property-qr"
+                      >
+                      <div v-else-if="qrErrors[receipt.id]" class="small text-danger">
+                        {{ qrErrors[receipt.id] }}
+                      </div>
+                      <div v-else class="small text-muted">Preparing QR code...</div>
+                      <div class="small text-muted mt-2">Scan for property details</div>
+                    </div>
+                  </div>
                 </div>
-                <div v-else class="small text-muted">Preparing QR code...</div>
-                <div class="small text-muted mt-1">Scan for property details</div>
-              </div>
-            </div>
               </div>
             </section>
           </div>
+
           </article>
         </div>
       </div>
@@ -334,7 +342,6 @@ export default {
 .property-card:hover {
   border-color: #9db9a2;
   box-shadow: 0 6px 18px rgba(32, 70, 42, 0.08);
-  transform: translateY(-2px);
 }
 
 .property-summary {
@@ -421,6 +428,7 @@ export default {
   justify-content: center;
   padding: 1rem;
   background: rgba(18, 28, 20, 0.55);
+  backdrop-filter: blur(3px);
 }
 
 .property-modal {
@@ -430,6 +438,12 @@ export default {
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.22);
+  animation: property-modal-enter 0.18s ease-out;
+}
+
+@keyframes property-modal-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .property-modal-header {
@@ -447,6 +461,13 @@ export default {
 
 .property-modal-body {
   padding: 1.25rem;
+}
+
+.qr-card {
+  padding: 1rem;
+  border: 1px solid #e8ece8;
+  border-radius: 12px;
+  background: #fafcf9;
 }
 
 .property-details dt,
