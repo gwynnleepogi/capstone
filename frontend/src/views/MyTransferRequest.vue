@@ -2,14 +2,15 @@
   <div>
     <div class="mb-4">
       <h2>Request for Property Transfer</h2>
-      <p class="text-muted mb-0">Prepare a request to transfer property currently issued to you.</p>
+      <p class="text-muted mb-0">Select the properties you want the Property Office to review for transfer.</p>
     </div>
+
     <div class="card mb-4">
       <div class="card-header bg-white"><strong>Property Transfer Details</strong></div>
       <div class="card-body">
-        <div v-if="loading" class="text-muted">Loading your issued properties...</div>
-        <div v-else-if="!properties.length" class="text-muted">You have no issued property available for a transfer request.</div>
-        <form v-else @submit.prevent="printRequest">
+        <div v-if="loading" class="text-muted py-3">Loading your issued properties...</div>
+        <div v-else-if="!properties.length" class="text-muted py-3">You have no issued properties available for a transfer request.</div>
+        <form v-else @submit.prevent="submitRequest">
           <div class="row g-3 mb-4">
             <div class="col-md-6">
               <label class="form-label fw-semibold">From Accountable Employee</label>
@@ -17,9 +18,10 @@
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">From Responsibility Center</label>
-              <div class="form-control bg-light">{{ selectedFromResponsibilityCenter || 'Automatically filled when you select a property' }}</div>
+              <div class="form-control bg-light">{{ selectedFromResponsibilityCenter || 'Select a property to display its responsibility center' }}</div>
             </div>
           </div>
+
           <div class="mb-4">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <label class="form-label mb-0">Select Properties to Transfer <span class="text-danger">*</span></label>
@@ -27,88 +29,81 @@
                 {{ allPropertiesSelected ? 'Clear Selection' : 'Select All' }}
               </button>
             </div>
-            <div class="mb-2">
-              <input v-model.trim="propertySearch" type="search" class="form-control" placeholder="Search by property number, description, receipt number, or condition...">
-            </div>
+            <input v-model.trim="propertySearch" type="search" class="form-control mb-2" placeholder="Search property number, description, receipt number, or condition">
             <div class="table-responsive border rounded">
               <table class="table table-hover align-middle mb-0 property-selection-table">
-
                 <thead class="table-light">
                   <tr><th class="select-column">Select</th><th>Property No.</th><th>Description</th><th class="amount-column">Amount (₱)</th><th>Condition</th></tr>
                 </thead>
                 <tbody>
                   <tr v-for="property in filteredProperties" :key="property.id">
-                    <td class="select-column"><input class="form-check-input" type="checkbox" v-model="form.receiptIds" :value="String(property.id)"></td>
-                    <td><strong>{{ property.items?.property_number || '-' }}</strong><div v-if="property.receipt_number" class="small text-muted">Receipt: {{ property.receipt_number }}</div></td>
+                    <td class="select-column"><input class="form-check-input" type="checkbox" v-model="form.receiptIds" :value="String(property.id)" :disabled="property.items?.condition !== 'Serviceable'"></td>
+                    <td><strong>{{ property.items?.property_number || '-' }}</strong><div class="small text-muted">Receipt: {{ property.receipt_number || '-' }}</div></td>
                     <td class="description-cell">{{ property.items?.description || '-' }}</td>
                     <td class="amount-cell">{{ formatAmount(property) }}</td>
                     <td><span class="badge rounded-pill" :class="property.items?.condition === 'Serviceable' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">{{ property.items?.condition || 'Not specified' }}</span></td>
                   </tr>
+                  <tr v-if="filteredProperties.length === 0"><td colspan="5" class="text-center text-muted py-3">No properties match your search.</td></tr>
                 </tbody>
               </table>
-              <div v-if="filteredProperties.length === 0" class="text-center text-muted small py-3">No properties match your search.</div>
             </div>
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2">
-              <div class="form-text mb-0">{{ form.receiptIds.length }} {{ form.receiptIds.length === 1 ? 'property' : 'properties' }} selected</div>
-              <div class="small fw-semibold">Selected Total: ₱{{ selectedPropertiesTotal }}</div>
+            <div class="d-flex justify-content-between flex-wrap gap-2 mt-2">
+              <small class="text-muted">{{ form.receiptIds.length }} {{ form.receiptIds.length === 1 ? 'property' : 'properties' }} selected</small>
+              <strong class="small">Selected Total: ₱{{ selectedPropertiesTotal }}</strong>
             </div>
+            <small class="form-text">Only serviceable properties can be requested for transfer. The Property Office will verify your selection.</small>
           </div>
+
           <hr>
-          <div class="mb-3">
-            <h5 class="mb-1">Transfer To</h5>
-            <p class="text-muted small mb-0">Enter the employee and office that will receive the selected property.</p>
-          </div>
-          <div class="row g-3 mb-3">
-            <div class="col-md-6">
-              <label class="form-label">Receiving Employee <span class="text-danger">*</span></label>
-              <div class="position-relative">
-                <input type="text" class="form-control" v-model.trim="form.toName" placeholder="Search employee name or job title..." autocomplete="off" required @focus="showEmployeeOptions = true" @input="handleTransferEmployeeInput">
-                <div v-if="showEmployeeOptions" class="list-group position-absolute w-100 shadow" style="max-height:220px;overflow-y:auto;z-index:1056;">
-                  <button v-for="person in filteredPersonnel" :key="person.id" type="button" class="list-group-item list-group-item-action" @mousedown.prevent="selectTransferEmployee(person)">
-                    <div>{{ person.full_name }}</div>
-                    <small class="text-muted">{{ person.job_title || person.role || 'Employee' }}<span v-if="person.office_name"> · {{ person.office_name }}</span></small>
-                  </button>
-                  <div v-if="filteredPersonnel.length === 0" class="list-group-item text-muted">No matching employee. You can enter a new employee name manually.</div>
-                </div>
-              </div>
-              <small class="form-text text-muted">Choose an employee account or enter a new employee name.</small>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Title</label>
-              <input class="form-control bg-light" :value="selectedEmployee ? (selectedEmployee.job_title || selectedEmployee.role || '') : ''" placeholder="Automatically filled when an employee is selected" readonly>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Receiving Office / Responsibility Center <span class="text-danger">*</span></label>
-              <input v-model.trim="form.toOffice" class="form-control" list="transferOfficeOptions" placeholder="Search or enter receiving office" autocomplete="off" required>
-              <datalist id="transferOfficeOptions"><option v-for="office in availableOffices" :key="office" :value="office"></option></datalist>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Transfer Date <span class="text-danger">*</span></label>
-              <input v-model="form.date" type="date" class="form-control" required>
-            </div>
-          </div>
           <div class="mb-3">
             <label class="form-label">Reason for Transfer <span class="text-danger">*</span></label>
             <select v-model="form.reason" class="form-select" required>
               <option value="">Select a reason</option>
-              <option value="End of Contract">End of Contract</option>
-              <option value="Transfer of Agency">Transfer of Agency</option>
-              <option value="Resignation">Resignation</option>
-              <option value="Change of Designation">Change of Designation</option>
-              <option value="Retirement">Retirement</option>
-              <option value="Others">Others</option>
+              <option>End of Contract</option>
+              <option>Transfer of Agency</option>
+              <option>Resignation</option>
+              <option>Change of Designation</option>
+              <option>Retirement</option>
+              <option>Others</option>
             </select>
             <input v-if="form.reason === 'Others'" v-model.trim="form.otherReason" class="form-control mt-2" placeholder="Enter reason" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Remarks</label>
-            <textarea v-model.trim="form.remarks" class="form-control" rows="2" placeholder="Enter additional remarks (optional)"></textarea>
+            <label class="form-label">Remarks <span class="text-muted">(Optional)</span></label>
+            <textarea v-model.trim="form.remarks" class="form-control" rows="2" placeholder="Add information for the Property Office, if needed"></textarea>
           </div>
-          <div class="alert alert-light border small">Printing this form does not transfer the property automatically. The Property Office must review the request and process the transfer.</div>
+          <div class="alert alert-info small">
+            Submitting this request will not transfer the properties immediately. The Property Office will review your request and select the receiving employee if it is approved.
+          </div>
           <div class="d-flex justify-content-end">
-            <button type="submit" class="btn btn-warning"><i class="bi bi-printer me-1"></i>Print Request for Property Transfer</button>
+            <button type="submit" class="btn btn-warning" :disabled="saving || !form.receiptIds.length">
+              {{ saving ? 'Submitting...' : 'Submit Transfer Request' }}
+            </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header bg-white"><strong>My Transfer Requests</strong></div>
+      <div class="card-body">
+        <div v-if="requestsLoading" class="text-muted">Loading your requests...</div>
+        <div v-else-if="!requests.length" class="text-muted">You have not submitted any transfer requests.</div>
+        <div v-else class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead><tr><th>Date Submitted</th><th>Properties</th><th>Reason</th><th>Receiving Employee</th><th>Status</th><th>Remarks</th></tr></thead>
+            <tbody>
+              <tr v-for="request in requests" :key="request.id">
+                <td>{{ formatDate(request.created_at) }}</td>
+                <td>{{ (request.properties || []).length }}</td>
+                <td>{{ request.reason }}</td>
+                <td>{{ request.recipient?.full_name || (request.status === 'Pending' ? 'To be assigned by Property Office' : '-') }}</td>
+                <td><span class="badge" :class="statusClass(request.status)">{{ request.status }}</span></td>
+                <td>{{ request.review_remarks || request.remarks || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -120,133 +115,65 @@ export default {
   data() {
     return {
       loading: true,
+      requestsLoading: true,
+      saving: false,
       properties: [],
+      requests: [],
       propertySearch: '',
-      personnel: [],
-      showEmployeeOptions: false,
       currentUser: JSON.parse(localStorage.getItem('user') || 'null') || {},
-      form: {
-        receiptIds: [],
-        toName: '',
-        toOffice: '',
-        officeAutoFilled: false,
-        reason: '',
-        otherReason: '',
-        remarks: '',
-        date: new Date().toISOString().slice(0, 10),
-        paperSize: 'long'
-      }
+      form: { receiptIds: [], reason: '', otherReason: '', remarks: '' }
     }
-  },
-  mounted() {
-    this.loadProperties()
-    this.loadPersonnel()
   },
   computed: {
     filteredProperties() {
-      const search = this.propertySearch.trim().toLowerCase()
+      const search = this.propertySearch.toLowerCase().trim()
       if (!search) return this.properties
       return this.properties.filter(property => {
         const item = property.items || {}
-        const values = [
-          item.property_number,
-          item.description,
-          property.receipt_number,
-          item.condition,
-          item.cost,
-          item.unit_value
-        ]
-        return values.some(value => String(value == null ? '' : value).toLowerCase().includes(search))
+        return [item.property_number, item.description, property.receipt_number, item.condition]
+          .some(value => String(value || '').toLowerCase().includes(search))
       })
     },
-    selectedEmployee() {
-      return this.personnel.find(person =>
-        String(person.full_name || '').trim().toLowerCase() === this.form.toName.trim().toLowerCase()
-      ) || null
-    },
-    filteredPersonnel() {
-      const search = this.form.toName.trim().toLowerCase()
-      const currentId = this.currentUser.id
-      return this.personnel
-        .filter(person => person.id !== currentId)
-        .filter(person => {
-          const name = String(person.full_name || '').toLowerCase()
-          const title = String(person.job_title || person.role || '').toLowerCase()
-          return !search || name.includes(search) || title.includes(search)
-        })
-        .sort((a, b) => String(a.full_name || '').localeCompare(String(b.full_name || ''), undefined, { sensitivity: 'base' }))
-    },
     allPropertiesSelected() {
-      return this.properties.length > 0 && this.properties.every(property => this.form.receiptIds.includes(String(property.id)))
+      const available = this.properties.filter(property => property.items?.condition === 'Serviceable')
+      return available.length > 0 && available.every(property => this.form.receiptIds.includes(String(property.id)))
     },
     selectedFromResponsibilityCenter() {
       const centers = [...new Set(this.properties
         .filter(property => this.form.receiptIds.includes(String(property.id)))
-        .map(property => String(property.items?.responsibility_center || '').trim())
-        .filter(Boolean))]
+        .map(property => String(property.items?.responsibility_center || '').trim()).filter(Boolean))]
       if (!centers.length) return ''
       return centers.length === 1 ? centers[0] : 'Multiple responsibility centers'
     },
     selectedPropertiesTotal() {
-      const total = this.properties
-        .filter(property => this.form.receiptIds.includes(String(property.id)))
-        .reduce((sum, property) => {
-          const item = property.items || {}
-          return sum + Number(item.cost || item.unit_value || item.unitValue || 0)
-        }, 0)
+      const total = this.properties.filter(property => this.form.receiptIds.includes(String(property.id)))
+        .reduce((sum, property) => sum + Number(property.items?.cost || property.items?.unit_value || 0), 0)
       return total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    },
-    availableOffices() {
-      return [...new Set(this.personnel.map(person => person.office_name).filter(Boolean))]
-        .sort((a, b) => a.localeCompare(b))
     }
   },
+  mounted() {
+    this.loadProperties()
+    this.loadRequests()
+  },
   methods: {
-    handleTransferEmployeeInput() {
-      this.showEmployeeOptions = true
-      const enteredName = this.form.toName.trim().toLowerCase()
-      const matchedEmployee = this.personnel.find(person =>
-        String(person.full_name || '').trim().toLowerCase() === enteredName
-      )
-
-      if (matchedEmployee) {
-        this.form.toOffice = matchedEmployee.office_name || ''
-        this.form.officeAutoFilled = Boolean(matchedEmployee.office_name)
-      } else if (this.form.officeAutoFilled) {
-        this.form.toOffice = ''
-        this.form.officeAutoFilled = false
-      }
-    },
-
-    selectTransferEmployee(person) {
-      this.form.toName = person.full_name || ''
-      this.form.toOffice = person.office_name || ''
-      this.form.officeAutoFilled = Boolean(person.office_name)
-      this.showEmployeeOptions = false
-    },
     formatAmount(property) {
-      const item = property.items || {}
-      return Number(item.cost || item.unit_value || item.unitValue || 0).toLocaleString('en-PH', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+      return Number(property.items?.cost || property.items?.unit_value || 0).toLocaleString('en-PH', {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
       })
     },
-    toggleAllProperties() {
-      if (this.allPropertiesSelected) {
-        this.form.receiptIds = []
-      } else {
-        this.form.receiptIds = this.properties.map(property => String(property.id))
-      }
+    formatDate(value) {
+      if (!value) return '-'
+      return new Date(value).toLocaleDateString('en-PH')
     },
-    async loadPersonnel() {
-      try {
-        const response = await fetch('/api/personnel/directory')
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'Could not load employee directory.')
-        this.personnel = Array.isArray(data) ? data : []
-      } catch (error) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: error.message }))
-      }
+    statusClass(status) {
+      if (status === 'Approved') return 'bg-success'
+      if (status === 'Disapproved') return 'bg-danger'
+      if (status === 'Processing') return 'bg-info text-dark'
+      return 'bg-warning text-dark'
+    },
+    toggleAllProperties() {
+      const ids = this.properties.filter(property => property.items?.condition === 'Serviceable').map(property => String(property.id))
+      this.form.receiptIds = this.allPropertiesSelected ? [] : ids
     },
     async loadProperties() {
       try {
@@ -255,93 +182,63 @@ export default {
         if (!response.ok) throw new Error(data.error || 'Could not load issued properties.')
         this.properties = Array.isArray(data) ? data : []
       } catch (error) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: error.message }))
+        this.toast(error.message)
       } finally {
         this.loading = false
       }
     },
-    escape(value) {
-      return String(value == null ? '' : value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
+    async loadRequests() {
+      try {
+        const response = await fetch('/api/property-transfer-requests/mine')
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Could not load transfer requests.')
+        this.requests = Array.isArray(data) ? data : []
+      } catch (error) {
+        this.toast(error.message)
+      } finally {
+        this.requestsLoading = false
+      }
     },
-    printRequest() {
-      const selectedProperties = this.properties.filter(p => this.form.receiptIds.includes(String(p.id)))
-      if (!selectedProperties.length) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Please select at least one property.' }))
-        return
+    async submitRequest() {
+      if (!this.form.receiptIds.length) return this.toast('Please select at least one property.')
+      this.saving = true
+      try {
+        const response = await fetch('/api/property-transfer-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            property_receipt_ids: this.form.receiptIds,
+            from_responsibility_center: this.selectedFromResponsibilityCenter,
+            reason: this.form.reason,
+            other_reason: this.form.otherReason,
+            remarks: this.form.remarks
+          })
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Unable to submit transfer request.')
+        this.toast('Transfer request submitted successfully.')
+        this.form = { receiptIds: [], reason: '', otherReason: '', remarks: '' }
+        await Promise.all([this.loadProperties(), this.loadRequests()])
+      } catch (error) {
+        this.toast(error.message)
+      } finally {
+        this.saving = false
       }
-      const user = this.currentUser
-      const esc = this.escape
-      const paper = { long: '8.5in 13in', legal: '8.5in 14in', letter: '8.5in 11in', a4: '210mm 297mm' }
-      const win = window.open('', '_blank', 'popup=yes,width=1100,height=900')
-      if (!win) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Please allow pop-ups to print the request.' }))
-        return
-      }
-      const logo = new URL('../assets/LOGO.png', import.meta.url).href
-      const date = new Date(this.form.date + 'T00:00:00').toLocaleDateString('en-PH')
-      const propertyRows = selectedProperties.map(property => {
-        const item = property.items || {}
-        const amount = Number(item.cost || item.unit_value || item.unitValue || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })
-        const acquired = property.date_acquired || item.date_acquired || property.date_issued || ''
-        return '<tr><td class="center">' + esc(acquired) + '</td><td class="center">' + esc(item.property_number || '') + '</td><td>' + esc(item.description || '') + '</td><td class="center">' + amount + '</td><td class="center">' + esc(item.condition || '') + '</td></tr>'
-      }).join('')
-      const blankRows = Array.from({ length: Math.max(0, 8 - selectedProperties.length) }, () => '<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>').join('')
-      win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Request for Property Transfer</title><style>
-      @page{size:${paper[this.form.paperSize] || paper.long} portrait;margin:8mm}*{box-sizing:border-box}body{font:12px Arial;color:#111;margin:0}.sheet{width:100%;padding:4mm}.header{display:grid;grid-template-columns:22mm 1fr;text-align:center;border:1px solid #555}.logo{grid-row:span 2;border-right:1px solid #555;display:flex;align-items:center;justify-content:center}.logo img{width:18mm;height:18mm;object-fit:contain}.school{padding:3mm;font-weight:bold;line-height:1.4}.heading{border-top:1px solid #555;padding:3mm;font-weight:bold;font-size:14px}.rpt{text-align:right;font-weight:bold;margin:5mm 0}.date{margin:5mm 0}table{width:100%;border-collapse:collapse;table-layout:fixed;margin:3mm 0}th,td{border:1px solid #555;padding:3mm;vertical-align:middle}th{text-align:center}.label{width:27%;font-weight:bold}.reason{min-height:22mm}.signatures{margin-top:12mm}.signatures td{height:18mm}.center{text-align:center}.code{margin-top:5mm;font-size:10px;font-weight:bold}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="sheet">
-      <div class="header"><div class="logo"><img src="${logo}"></div><div class="school">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bambang, Nueva Vizcaya</div><div class="heading">REQUEST FOR PROPERTY TRANSFER</div></div>
-      <div class="rpt">RPT No.: ____________________</div><div class="date">Date: ${esc(date)}</div>
-      <table><tr><td class="label">From Accountable Employee / Responsibility Center:</td><td>${esc(user.full_name || '')} / ${esc(this.selectedFromResponsibilityCenter || '')}</td></tr><tr><td class="label">To Accountable Employee / Responsibility Center:</td><td>${esc(this.form.toName)} / ${esc(this.form.toOffice)}</td></tr></table>
-      <table><thead><tr><th>DATE ACQUIRED</th><th>PROPERTY NO.</th><th>DESCRIPTION</th><th>AMOUNT</th><th>CONDITION OF PPE</th></tr></thead><tbody>${propertyRows}${blankRows}</tbody></table>
-      <table><tr><td class="label">Reason for Transfer:</td><td class="reason">${esc(this.form.reason === 'Others' ? this.form.otherReason : this.form.reason)}${this.form.remarks ? '<br><strong>Remarks:</strong> ' + esc(this.form.remarks) : ''}</td></tr></table>
-      <table class="signatures"><tr><th></th><th>Requested by:</th><th>Approved by:</th><th>Concurred by:</th></tr><tr><td class="label">Signature:</td><td></td><td></td><td></td></tr><tr><td class="label">Printed Name:</td><td class="center">${esc(user.full_name || '')}</td><td></td><td></td></tr><tr><td class="label">Designation:</td><td></td><td></td><td></td></tr><tr><td class="label">Date:</td><td class="center">${esc(date)}</td><td></td><td></td></tr></table>
-      <p class="code">NVSU-FR-SMO-02-00 (121421)</p></div><script>window.onload=()=>window.print()<\/script></body></html>`)
-      win.document.close()
+    },
+    toast(message) {
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: message }))
     }
   }
 }
 </script>
 
 <style scoped>
-.property-selection-table {
-  min-width: 760px;
-}
-.property-selection-table thead th {
-  color: #495057;
-  font-size: 0.82rem;
-  font-weight: 600;
-  white-space: nowrap;
-  padding: 0.85rem 0.75rem;
-}
-.property-selection-table tbody td {
-  padding: 0.8rem 0.75rem;
-}
-.property-selection-table .description-cell {
-  white-space: normal;
-  min-width: 260px;
-}
-.property-selection-table .amount-cell {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.property-selection-table .select-column {
-  width: 76px;
-  min-width: 76px;
-  text-align: center;
-  white-space: nowrap;
-}
-.property-selection-table .amount-column {
-  min-width: 120px;
-  text-align: right;
-}
-.property-selection-table .form-check-input {
-  display: inline-block;
-  margin: 0;
-  vertical-align: middle;
-}
+.property-selection-table { min-width: 760px; }
+.property-selection-table thead th { color: #495057; font-size: .82rem; font-weight: 600; white-space: nowrap; padding: .85rem .75rem; }
+.property-selection-table tbody td { padding: .8rem .75rem; }
+.property-selection-table .description-cell { white-space: normal; min-width: 260px; }
+.property-selection-table .amount-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.property-selection-table .select-column { width: 76px; min-width: 76px; text-align: center; }
+.property-selection-table .amount-column { min-width: 120px; text-align: right; }
+.property-selection-table .form-check-input { display: inline-block; margin: 0; vertical-align: middle; }
 </style>
