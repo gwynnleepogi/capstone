@@ -25,13 +25,47 @@ CREATE INDEX IF NOT EXISTS property_transfer_requests_status_idx
 ALTER TABLE public.property_transfer_requests ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Authenticated users can read property transfer requests" ON public.property_transfer_requests;
-CREATE POLICY "Authenticated users can read property transfer requests"
-  ON public.property_transfer_requests FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Users can read own transfer requests and admins can read all"
+  ON public.property_transfer_requests FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = property_transfer_requests.requested_by
+        AND u.auth_user_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1 FROM public.users admin_user
+      WHERE admin_user.auth_user_id = auth.uid()
+        AND admin_user.role = 'Administrator'
+    )
+  );
 
 DROP POLICY IF EXISTS "Authenticated users can insert property transfer requests" ON public.property_transfer_requests;
-CREATE POLICY "Authenticated users can insert property transfer requests"
-  ON public.property_transfer_requests FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Employees can submit their own transfer requests"
+  ON public.property_transfer_requests FOR INSERT TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = property_transfer_requests.requested_by
+        AND u.auth_user_id = auth.uid()
+        AND u.role IN ('Teacher', 'Non-Teaching Staff')
+    )
+  );
 
 DROP POLICY IF EXISTS "Authenticated users can update property transfer requests" ON public.property_transfer_requests;
-CREATE POLICY "Authenticated users can update property transfer requests"
-  ON public.property_transfer_requests FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Administrators can update transfer requests"
+  ON public.property_transfer_requests FOR UPDATE TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.auth_user_id = auth.uid()
+        AND u.role = 'Administrator'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.auth_user_id = auth.uid()
+        AND u.role = 'Administrator'
+    )
+  );
