@@ -638,12 +638,22 @@
                 <label class="form-label">Job Title</label>
                 <SearchableSelect
                   input-id="editPersonnelJobTitle"
-                  v-model="personnelForm.job_title"
+                  v-model="editTitleSelection"
                   :options="editPersonnelTitleOptions"
                   placeholder="Search or select a job title"
                   required
                   :disabled="!personnelForm.role"
                 />
+              </div>
+              <div v-if="editTitleSelection === '__other__'" class="mb-3">
+                <label class="form-label">Other Job Title</label>
+                <input
+                  v-model.trim="editOtherJobTitle"
+                  class="form-control"
+                  maxlength="120"
+                  required
+                  placeholder="Enter the job title"
+                >
               </div>
               <div class="mb-3">
                 <label class="form-label">Office</label>
@@ -719,6 +729,8 @@ export default {
       resetPasswordResult: null,
       newTitleSelection: '',
       newOtherJobTitle: '',
+      editTitleSelection: '',
+      editOtherJobTitle: '',
       newPersonnelForm: {
         full_name: '',
         email: '',
@@ -801,7 +813,10 @@ export default {
         first.localeCompare(second, undefined, { sensitivity: 'base' })
       )
 
-      return titles.map(title => ({ value: title, label: title }))
+      return [
+        ...titles.map(title => ({ value: title, label: title })),
+        { value: '__other__', label: 'Others' }
+      ]
     },
 
     roles() {
@@ -1156,6 +1171,8 @@ export default {
       const matchingOffice = this.offices.find(office =>
         String(office.id) === String(person.office_id)
       )
+      this.editTitleSelection = person.job_title || ''
+      this.editOtherJobTitle = ''
       this.personnelForm = {
         full_name: person.full_name || '',
         email: person.email || '',
@@ -1172,6 +1189,8 @@ export default {
     },
 
     clearPersonnelEditTitle() {
+      this.editTitleSelection = ''
+      this.editOtherJobTitle = ''
       this.personnelForm.job_title = ''
     },
 
@@ -1196,7 +1215,21 @@ export default {
         }))
         return
       }
+      const jobTitle = this.editTitleSelection === '__other__'
+        ? this.editOtherJobTitle.trim()
+        : this.editTitleSelection
+
+      if (!jobTitle || jobTitle.length > 120) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: jobTitle
+            ? 'Job title must be 120 characters or fewer'
+            : 'Select or enter a job title'
+        }))
+        return
+      }
+
       this.personnelForm.department = selectedOffice.office_name
+      this.personnelForm.job_title = jobTitle
       this.personnelSaving = true
 
       try {
