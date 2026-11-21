@@ -518,6 +518,9 @@
               <dt class="col-sm-4">Return Date</dt>
               <dd class="col-sm-8">{{ selectedReturn.return_date || '-' }}</dd>
 
+              <dt class="col-sm-4">Properties For</dt>
+              <dd class="col-sm-8">{{ selectedReturn.return_purpose || '-' }}</dd>
+
               <dt class="col-sm-4">Reason</dt>
               <dd class="col-sm-8">{{ selectedReturn.return_reason || '-' }}</dd>
 
@@ -532,6 +535,19 @@
               Close
             </button>
 
+            <button
+              v-if="selectedReturn.return_purpose === 'Repair' && !selectedReturn.reissued_receipt_id"
+              type="button"
+              class="btn btn-success"
+              :disabled="reissuingReturnId === selectedReturn.id"
+              @click="reissueReturnedProperty(selectedReturn)"
+            >
+              <i class="bi bi-arrow-repeat me-1"></i>
+              {{ reissuingReturnId === selectedReturn.id ? 'Reissuing...' : 'Mark Repaired & Reissue to Same Employee' }}
+            </button>
+            <span v-else-if="selectedReturn.return_purpose === 'Repair' && selectedReturn.reissued_receipt_id" class="badge bg-success">
+              Reissued after repair
+            </span>
             <button type="button" class="btn btn-outline-success" @click="openReturnedAcknowledgementModal">
               <i class="bi bi-printer me-1"></i>Print Acknowledgement for Returned Property
             </button>
@@ -718,6 +734,7 @@ export default {
       editing: false,
       saving: false,
       deletingReturnId: null,
+      reissuingReturnId: null,
       returnedReceiptPaperSize: 'a4',
       returnedAcknowledgementSignatory: {
         printedName: '',
@@ -1016,6 +1033,45 @@ export default {
     nextPage() {
       if (this.currentPage < this.totalPages) {
         this.currentPage++
+      }
+    },
+
+    async reissueReturnedProperty(itemReturn) {
+      if (!itemReturn || itemReturn.return_purpose !== 'Repair' || itemReturn.reissued_receipt_id) return
+
+      const employeeName =
+        itemReturn.personnel?.full_name ||
+        itemReturn.users?.full_name ||
+        'the original employee'
+
+      if (!window.confirm(
+        'Mark this property as repaired and reissue it to ' + employeeName + '? A new PAR/ICS receipt will be created.'
+      )) return
+
+      this.reissuingReturnId = itemReturn.id
+
+      try {
+        const response = await fetch('/api/returns/' + itemReturn.id + '/reissue', {
+          method: 'PATCH'
+        })
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Could not reissue the repaired property.')
+        }
+
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: data.message || 'Repaired property reissued successfully.'
+        }))
+
+        await Promise.all([this.getReturns(), this.getReceipts()])
+
+        const refreshed = this.returns.find(row => String(row.id) === String(itemReturn.id))
+        if (refreshed) this.selectedReturn = refreshed
+      } catch (error) {
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: error.message }))
+      } finally {
+        this.reissuingReturnId = null
       }
     },
 
