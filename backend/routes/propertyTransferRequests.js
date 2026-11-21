@@ -53,7 +53,15 @@ router.get('/mine', async (req, res) => {
 router.get('/', async (req, res) => {
   if (req.role !== 'Administrator') return res.status(403).json({ error: 'Only administrators can review transfer requests.' })
   try {
-    const { data, error } = await supabase.from('property_transfer_requests').select('*').order('created_at', { ascending: false })
+    // Forward the administrator's token so the RLS policy can identify the admin
+    // and allow access to all employee-submitted transfer requests.
+    const userSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
+      global: { headers: { Authorization: req.headers.authorization } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    })
+
+    const { data, error } = await userSupabase.from('property_transfer_requests').select('*')
+      .order('created_at', { ascending: false })
     if (error) return res.status(500).json({ error: error.message })
     res.json(await details(data || []))
   } catch (error) { res.status(500).json({ error: error.message }) }
