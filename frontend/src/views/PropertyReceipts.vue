@@ -1103,11 +1103,12 @@ export default {
       this.signatureDates = { receivedBy: '', receivedFrom: '', requestedBy: '', approvedBy: '', issuedBy: '', receivedByRIS: '' }
 
       const request = receipt.item_requests || {}
+      const item = this.getReceiptItem(receipt)
       const issuedTo = this.getIssuedToName(receipt)
       this.selectedRISReceipt = receipt
 
       this.risForm = {
-        fundCluster: request.fund_cluster || receipt.fund_cluster || '',
+        fundCluster: item.fund_cluster || '',
         division: request.division || receipt.division || '',
         officeName: request.offices?.office_name || receipt.offices?.office_name || request.office_name || receipt.office_name || '',
         responsibilityCenter: this.getReceiptItem(receipt).responsibility_center || request.responsibility_center || receipt.responsibility_center || '',
