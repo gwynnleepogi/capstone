@@ -135,7 +135,7 @@
           <button
             class="print-button"
             :disabled="loading || Boolean(errorMessage) || invalidDateRange || (!getReportRowCount('acquisition') && !getReportRowCount('issuance'))"
-            @click="showPrintModal = true"
+            @click="openPrintModal"
           >
             <i class="bi bi-printer"></i>
             Choose Report to Print
@@ -160,7 +160,7 @@
         <div class="print-picker-header">
           <div>
             <h3 id="print-picker-title">Choose a report to print</h3>
-            <p>Select the report type. The current date range and fund cluster will be used.</p>
+            <p>Choose the fund cluster and date range, then select the report you want to print.</p>
           </div>
           <button
             type="button"
@@ -170,11 +170,37 @@
           ></button>
         </div>
 
+        <div class="print-report-filters">
+          <div class="certification-field">
+            <label for="print-fund-cluster">Fund Cluster <span>*</span></label>
+            <select id="print-fund-cluster" v-model="printFundCluster" required>
+              <option value="ALL">All Fund Clusters</option>
+              <option v-for="cluster in fundClusters" :key="cluster" :value="cluster">
+                {{ cluster }}
+              </option>
+            </select>
+          </div>
+
+          <div class="print-date-fields">
+            <div class="certification-field">
+              <label for="print-date-from">Date From <span>*</span></label>
+              <input id="print-date-from" v-model="printDateFrom" type="date" required>
+            </div>
+            <div class="certification-field">
+              <label for="print-date-to">Date To <span>*</span></label>
+              <input id="print-date-to" v-model="printDateTo" type="date" required>
+            </div>
+          </div>
+          <p v-if="invalidPrintDateRange" class="date-range-error">
+            {{ printDateRangeError }}
+          </p>
+        </div>
+
         <div class="print-picker-options">
           <button
             type="button"
             class="print-option"
-            :disabled="!canPrintReport('acquisition')"
+            :disabled="invalidPrintDateRange || !canPrintReport('acquisition')"
             @click="printSelectedReport('acquisition')"
           >
             <span class="print-option-icon acquisition-icon">
@@ -191,7 +217,7 @@
           <button
             type="button"
             class="print-option"
-            :disabled="!canPrintReport('issuance')"
+            :disabled="invalidPrintDateRange || !canPrintReport('issuance')"
             @click="printSelectedReport('issuance')"
           >
             <span class="print-option-icon issuance-icon">
@@ -265,7 +291,7 @@
           <div v-if="reportToPrint === 'issuance'" class="certification-field">
             <label>Responsibility Center Code for Each Property</label>
             <div
-              v-for="item in printRows"
+              v-for="item in reportRows"
               :key="item.id"
               class="mb-2"
             >
@@ -333,6 +359,9 @@ export default {
       reportToPrint: 'acquisition',
       search: '',
       showPrintModal: false,
+      printFundCluster: 'ALL',
+      printDateFrom: '',
+      printDateTo: '',
       showCertificationModal: false,
       certificationCustodian: '',
       certificationAccountingStaff: '',
@@ -423,6 +452,47 @@ export default {
       });
     },
 
+    invalidPrintDateRange() {
+      return !this.printDateFrom ||
+        !this.printDateTo ||
+        this.printDateFrom > this.printDateTo;
+    },
+
+    printDateRangeError() {
+      if (!this.printDateFrom || !this.printDateTo) {
+        return 'Choose both a start date and an end date.';
+      }
+
+      return 'The start date must be on or before the end date.';
+    },
+
+    reportRows() {
+      if (this.invalidPrintDateRange) {
+        return [];
+      }
+
+      const category = this.reportToPrint === 'issuance'
+        ? 'Issuance'
+        : 'Acquisition';
+
+      return this.movements
+        .filter(item =>
+          item.category === category &&
+          item.date >= this.printDateFrom &&
+          item.date <= this.printDateTo &&
+          (
+            this.printFundCluster === 'ALL' ||
+            String(item.fundCluster || '').trim().toUpperCase() ===
+              this.printFundCluster.toUpperCase()
+          )
+        )
+        .slice()
+        .sort((a, b) =>
+          a.date.localeCompare(b.date) ||
+          String(a.reference || '').localeCompare(String(b.reference || ''))
+        );
+    },
+
     totalAcquired() {
       return this.filteredMovements
         .filter(item => item.category === 'Acquisition')
@@ -490,7 +560,7 @@ export default {
     },
 
     getReportRowCount(reportType) {
-      if (this.invalidDateRange) {
+      if (this.invalidPrintDateRange) {
         return 0;
       }
 
@@ -500,12 +570,12 @@ export default {
 
       return this.movements.filter(item =>
         item.category === category &&
-        item.date >= this.dateFrom &&
-        item.date <= this.dateTo &&
+        item.date >= this.printDateFrom &&
+        item.date <= this.printDateTo &&
         (
-          this.selectedFundCluster === 'ALL' ||
+          this.printFundCluster === 'ALL' ||
           String(item.fundCluster || '').trim().toUpperCase() ===
-            this.selectedFundCluster.toUpperCase()
+            this.printFundCluster.toUpperCase()
         )
       ).length;
     },
@@ -513,8 +583,15 @@ export default {
     canPrintReport(reportType) {
       return !this.loading &&
         !this.errorMessage &&
-        !this.invalidDateRange &&
+        !this.invalidPrintDateRange &&
         this.getReportRowCount(reportType) > 0;
+    },
+
+    openPrintModal() {
+      this.printFundCluster = this.selectedFundCluster;
+      this.printDateFrom = this.dateFrom;
+      this.printDateTo = this.dateTo;
+      this.showPrintModal = true;
     },
 
     printSelectedReport(reportType) {
@@ -526,7 +603,7 @@ export default {
       this.responsibilityCenterOverrides = {};
       if (reportType === 'issuance') {
         this.responsibilityCenterOverrides = Object.fromEntries(
-          this.printRows.map(item => [item.id, item.rcCode || ''])
+          this.reportRows.map(item => [item.id, item.rcCode || ''])
         );
       }
       this.showPrintModal = false;
@@ -932,7 +1009,7 @@ export default {
         return;
       }
 
-      if (!this.printRows.length) {
+      if (!this.reportRows.length) {
         window.dispatchEvent(new CustomEvent('show-toast', {
           detail: 'There are no records for the selected report, fund cluster and date range.'
         }));
@@ -1214,12 +1291,12 @@ export default {
       const valueOf = item =>
         Number(item.quantity || 0) * Number(item.unitCost || 0);
 
-      const grandTotal = this.printRows.reduce(
+      const grandTotal = this.reportRows.reduce(
         (sum, item) => sum + valueOf(item),
         0
       );
 
-      const rows = this.printRows.map((item, index) => `
+      const rows = this.reportRows.map((item, index) => `
         <tr>
           <td class="center">${e(this.formatDate(item.date))}</td>
           <td>${e(item.article)}</td>
@@ -1337,12 +1414,12 @@ export default {
       const amountOf = item =>
         Number(item.quantity || 0) * Number(item.unitCost || 0);
 
-      const total = this.printRows.reduce(
+      const total = this.reportRows.reduce(
         (sum, item) => sum + amountOf(item),
         0
       );
 
-      const rows = this.printRows.map((item, index) => `
+      const rows = this.reportRows.map((item, index) => `
         <tr>
           <td class="center">${e(this.formatDate(item.date))}</td>
           <td class="center">${e(item.reference)}</td>
@@ -2081,6 +2158,28 @@ th {
   font-size: 13px;
 }
 
+.print-report-filters {
+  display: grid;
+  gap: 14px;
+  padding: 18px 24px 4px;
+}
+
+.print-report-filters select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dfe3d9;
+  border-radius: 6px;
+  background: #fff;
+  color: #26332a;
+  font: inherit;
+}
+
+.print-date-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .print-picker-options {
   display: grid;
   gap: 10px;
@@ -2248,9 +2347,14 @@ th {
   }
 
   .print-picker-header,
-  .print-picker-options {
+  .print-picker-options,
+  .print-report-filters {
     padding-right: 16px;
     padding-left: 16px;
+  }
+
+  .print-date-fields {
+    grid-template-columns: 1fr;
   }
 
   .filter-section {
