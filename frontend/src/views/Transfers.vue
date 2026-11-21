@@ -1457,7 +1457,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 <thead><tr><th>Qty</th><th>Unit</th><th>Article and Description</th><th>Property<br>Number</th><th>Date<br>Acquired</th><th>Unit<br>Value</th><th>Total<br>Value</th></tr></thead>
 <tbody>${rows}<tr class="total"><td colspan="5"></td><td class="number">Total</td><td class="number">${amount(total)}</td></tr></tbody></table>
 <div class="nothing">NOTHING FOLLOWS</div>
-<div class="remarks"><strong>Remarks:</strong> ${esc(data.notes || data.remarks || '')}</div>
+<div class="remarks"><strong>Remarks:</strong> ${esc(data.notes || '')}</div>
 <div class="bottom-block">
 <div class="page-number">Page 1 of 1</div>
 <div class="classification"><div class="classification-title">ACKNOWLEDGEMENT CLASSIFICATION</div><div class="classification-list">${classifications}</div></div>
