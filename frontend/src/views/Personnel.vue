@@ -121,9 +121,9 @@
                 <i :class="getSortIcon('full_name')"></i>
               </th>
 
-              <th class="sortable" @click="sortBy('department')">
-                Department
-                <i :class="getSortIcon('department')"></i>
+              <th class="sortable" @click="sortBy('office')">
+                Office
+                <i :class="getSortIcon('office')"></i>
               </th>
 
               <th class="sortable" @click="sortBy('job_title')">
@@ -147,13 +147,6 @@
                 <i :class="getSortIcon('role')"></i>
               </th>
 
-              <th
-                class="sortable"
-                @click="sortBy('office')"
-              >
-                Office
-                <i :class="getSortIcon('office')"></i>
-              </th>
 
               <th
                 class="sortable text-end"
@@ -195,7 +188,7 @@
                 {{ person.full_name }}
               </td>
 
-              <td>{{ person.department || '-' }}</td>
+              <td>{{ person.offices?.office_name || '-' }}</td>
               <td>{{ person.job_title || '-' }}</td>
 
               <td>
@@ -551,8 +544,8 @@
               <dd class="col-sm-8">{{ selectedPersonnel.email || '-' }}</dd>
               <dt class="col-sm-4">Role</dt>
               <dd class="col-sm-8">{{ selectedPersonnel.role || '-' }}</dd>
-              <dt class="col-sm-4">Department</dt>
-              <dd class="col-sm-8">{{ selectedPersonnel.department || '-' }}</dd>
+              <dt class="col-sm-4">Office</dt>
+              <dd class="col-sm-8">{{ selectedPersonnel.offices?.office_name || '-' }}</dd>
               <dt class="col-sm-4">Job Title</dt>
               <dd class="col-sm-8">{{ selectedPersonnel.job_title || '-' }}</dd>
               <dt class="col-sm-4">Office</dt>
@@ -844,7 +837,6 @@ export default {
         ).toLowerCase()
 
         const employeeId = (person.employee_id || '').toLowerCase()
-        const department = (person.department || '').toLowerCase()
         const jobTitle = (person.job_title || '').toLowerCase()
 
         const role = (
@@ -859,7 +851,6 @@ export default {
           !searchText ||
           employeeId.includes(searchText) ||
           fullName.includes(searchText) ||
-          department.includes(searchText) ||
           jobTitle.includes(searchText) ||
           email.includes(searchText) ||
           role.includes(searchText) ||
