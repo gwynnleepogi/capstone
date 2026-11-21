@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const supabase = require('../supabase')
+const { createClient } = require('@supabase/supabase-js')
 const createAuditLog = require('../middleware/auditLog')
 
 const REASONS = ['End of Contract', 'Transfer of Agency', 'Resignation', 'Change of Designation', 'Retirement', 'Others']
@@ -81,7 +82,12 @@ router.post('/', async (req, res) => {
     const pendingIds = new Set((existing || []).flatMap(row => row.property_receipt_ids || []).map(String))
     if (ids.some(id => pendingIds.has(id))) return res.status(409).json({ error: 'One or more selected properties already have a pending transfer request.' })
 
-    const { data: created, error } = await supabase.from('property_transfer_requests').insert([{
+    // Use the logged-in employee's access token so Supabase RLS can resolve auth.uid().
+    const userSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
+      global: { headers: { Authorization: req.headers.authorization } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    })
+    const { data: created, error } = await userSupabase.from('property_transfer_requests').insert([{
       requested_by: req.profile.id,
       from_responsibility_center: String(req.body.from_responsibility_center || '').trim() || null,
       property_receipt_ids: ids,
