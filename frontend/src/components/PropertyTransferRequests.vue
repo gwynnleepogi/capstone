@@ -70,8 +70,8 @@
             </div>
             <label class="form-label">Transfer Date</label>
             <input type="date" v-model="transferDate" class="form-control mb-3">
-            <label class="form-label">Disapproval Reason <span class="text-muted">(Required only if disapproved)</span></label>
-            <textarea v-model.trim="rejectReason" class="form-control" rows="2" placeholder="Enter reason if you disapprove this request"></textarea>
+            <label class="form-label">Reason</label>
+            <textarea v-model.trim="rejectReason" class="form-control" rows="2" placeholder="Enter reason if needed"></textarea>
           </template>
           <div v-else class="alert alert-light border mb-0">
             <strong>Status:</strong> {{ selected.status }}
