@@ -132,7 +132,7 @@ router.get('/eligible', async (req, res) => {
     const items = await lookup(
       'items',
       open.map(r => r.item_id),
-      'id, description, property_number, serial_number, condition, status, cost, unit_value, responsibility_center'
+      'id, description, property_number, serial_number, condition, status, cost, responsibility_center, office_name'
     )
 
     res.json(open.map(r => ({ ...r, items: items[r.item_id] || null })))
