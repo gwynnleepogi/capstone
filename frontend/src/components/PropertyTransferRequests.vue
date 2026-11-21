@@ -70,8 +70,6 @@
             </div>
             <label class="form-label">Transfer Date</label>
             <input type="date" v-model="transferDate" class="form-control mb-3">
-            <label class="form-label">Reason</label>
-            <textarea v-model.trim="rejectReason" class="form-control" rows="2" placeholder="Enter reason if needed"></textarea>
           </template>
           <div v-else class="alert alert-light border mb-0">
             <strong>Status:</strong> {{ selected.status }}
@@ -82,7 +80,6 @@
         <div class="border-top p-3 d-flex justify-content-between gap-2 flex-wrap">
           <button class="btn btn-outline-secondary" @click="closeReview">Close</button>
           <div v-if="selected.status === 'Pending'" class="d-flex gap-2">
-            <button class="btn btn-outline-danger" @click="disapprove" :disabled="saving">Disapprove</button>
             <button class="btn btn-success" @click="approve" :disabled="saving || !toUserId">{{ saving ? 'Processing...' : 'Approve and Assign Property' }}</button>
           </div>
         </div>
@@ -103,7 +100,6 @@ export default {
       selected: null,
       toUserId: '',
       transferDate: new Date().toISOString().slice(0, 10),
-      rejectReason: ''
     }
   },
   computed: {
@@ -163,7 +159,6 @@ export default {
       this.selected = request
       this.toUserId = ''
       this.transferDate = new Date().toISOString().slice(0, 10)
-      this.rejectReason = ''
     },
     closeReview() { this.selected = null },
     toast(message) { window.dispatchEvent(new CustomEvent('show-toast', { detail: message })) },
@@ -184,23 +179,6 @@ export default {
       } catch (error) { this.toast(error.message) }
       finally { this.saving = false }
     },
-    async disapprove() {
-      if (!this.rejectReason) return this.toast('Enter a reason for disapproving this request.')
-      this.saving = true
-      try {
-        const response = await fetch('/api/property-transfer-requests/' + this.selected.id + '/reject', {
-          method: 'PATCH',
-          headers: this.authHeaders(true),
-          body: JSON.stringify({ review_remarks: this.rejectReason })
-        })
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'Could not disapprove transfer request.')
-        this.toast('Transfer request disapproved. Property accountability was not changed.')
-        this.closeReview()
-        await this.loadRequests()
-      } catch (error) { this.toast(error.message) }
-      finally { this.saving = false }
-    }
   }
 }
 </script>
