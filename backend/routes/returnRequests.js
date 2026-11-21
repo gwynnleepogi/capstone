@@ -427,6 +427,7 @@ router.patch('/:id/accept', staffOnly, async (req, res) => {
         office_id: request.office_id || null,
         return_date: request.return_date || new Date().toISOString().split('T')[0],
         condition_after_return: finalCondition,
+        return_purpose: request.return_purpose || null,
         return_reason: request.return_reason || null,
         remarks: ['Return request accepted', request.remarks, reviewFields.review_remarks]
           .filter(Boolean)
