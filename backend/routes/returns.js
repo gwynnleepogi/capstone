@@ -46,7 +46,7 @@ router.get('/', async (req, res) => {
           responsibility_center,
           fund_cluster
         ),
-        property_receipts (
+        property_receipts!item_returns_property_receipt_id_fkey (
           id,
           receipt_number,
           quantity,
