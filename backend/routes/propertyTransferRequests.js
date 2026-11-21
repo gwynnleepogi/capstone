@@ -36,8 +36,15 @@ async function details(rows) {
 
 router.get('/mine', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('property_transfer_requests').select('*')
+    // Forward the signed-in employee's token so Supabase RLS can identify auth.uid().
+    const userSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
+      global: { headers: { Authorization: req.headers.authorization } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    })
+
+    const { data, error } = await userSupabase.from('property_transfer_requests').select('*')
       .eq('requested_by', req.profile.id).order('created_at', { ascending: false })
+
     if (error) return res.status(500).json({ error: error.message })
     res.json(await details(data || []))
   } catch (error) { res.status(500).json({ error: error.message }) }
