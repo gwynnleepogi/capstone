@@ -204,10 +204,6 @@
                 </span>
               </td>
 
-              <td>
-                {{ person.offices?.office_name || '-' }}
-              </td>
-
               <td class="text-end">
                 {{ formatDate(person.created_at) }}
               </td>
@@ -548,8 +544,6 @@
               <dd class="col-sm-8">{{ selectedPersonnel.offices?.office_name || '-' }}</dd>
               <dt class="col-sm-4">Job Title</dt>
               <dd class="col-sm-8">{{ selectedPersonnel.job_title || '-' }}</dd>
-              <dt class="col-sm-4">Office</dt>
-              <dd class="col-sm-8">{{ selectedPersonnel.offices?.office_name || '-' }}</dd>
               <dt class="col-sm-4">Created</dt>
               <dd class="col-sm-8">{{ formatDate(selectedPersonnel.created_at) }}</dd>
             </dl>
