@@ -52,6 +52,7 @@ router.get('/', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
+  if (!['Teacher', 'Non-Teaching Staff'].includes(req.role)) return res.status(403).json({ error: 'Only employees can submit transfer requests.' })
   try {
     const ids = [...new Set((Array.isArray(req.body.property_receipt_ids) ? req.body.property_receipt_ids : []).map(String).filter(Boolean))]
     const reason = String(req.body.reason || '').trim()
