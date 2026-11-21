@@ -7,14 +7,29 @@
           Request to return property issued to you. The property office will accept or reject it.
         </p>
       </div>
+      <div class="d-flex gap-2 flex-wrap">
+      <button type="button" class="btn btn-warning d-flex align-items-center gap-2" @click="openPropertySelectionModal">
+        <i class="bi bi-arrow-return-left"></i>
+        Request to Return Property
+      </button>
       <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2" @click="openReturnRequestsModal">
         <i class="bi bi-inbox"></i>
         Return Requests
       </button>
+      </div>
     </div>
 
-    <!-- Property issued to me -->
-    <div class="card mb-4">
+    <!-- Property selection modal -->
+    <div v-if="showPropertySelectionModal" class="return-overlay" tabindex="-1" @keydown.esc="closePropertySelectionModal">
+      <section class="return-dialog return-selection-dialog card" role="dialog" aria-modal="true" aria-labelledby="property-selection-title">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <div>
+            <strong id="property-selection-title">Property issued to you</strong>
+            <div class="small text-muted">Select the properties you want to return.</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" @click="closePropertySelectionModal"></button>
+        </div>
+        <div class="card-body p-0 overflow-auto">
       <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
           <strong>Property issued to you</strong>
@@ -70,7 +85,8 @@
             </tr>
           </tbody>
         </table>
-      </div>
+        </div>
+      </section>
     </div>
 
     <!-- My Return Requests Modal -->
@@ -262,6 +278,7 @@ export default {
       saving: false,
       busyId: null,
       showForm: false,
+      showPropertySelectionModal: false,
       selected: null,
       form: {
         return_date: today(),
@@ -332,6 +349,14 @@ export default {
       Modal.getOrCreateInstance(modalElement).show()
     },
 
+    openPropertySelectionModal() {
+      this.showPropertySelectionModal = true
+    },
+
+    closePropertySelectionModal() {
+      this.showPropertySelectionModal = false
+    },
+
     selectAllEligible(checked) {
       this.selectedReceiptIds = checked
         ? this.eligible.map(receipt => String(receipt.id))
@@ -345,6 +370,7 @@ export default {
         return
       }
 
+      this.showPropertySelectionModal = false
       this.form = {
         return_date: today(),
         return_purpose: '',
