@@ -1257,7 +1257,7 @@ export default {
       const formatDate = value => {
         if (!value) return ''
         const parsed = new Date(value + 'T00:00:00')
-        return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit', year: 'numeric' })
+        return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
       }
       const printWindow = window.open('', '_blank', 'popup=yes,width=1100,height=900,resizable=yes,scrollbars=yes')
       if (!printWindow) {
