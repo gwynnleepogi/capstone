@@ -184,6 +184,7 @@ router.patch('/:id/approve', async (req, res) => {
         changedReceipts.push(receipt)
         const itemUpdate = await supabase.from('items').update({
           accountable_employee: recipient.full_name, status: 'Issued',
+          office_name: office?.office_name || item.office_name,
           responsibility_center: office?.office_name || item.responsibility_center
         }).eq('id', item.id)
         if (itemUpdate.error) throw new Error(itemUpdate.error.message)
@@ -191,7 +192,7 @@ router.patch('/:id/approve', async (req, res) => {
       }
     } catch (updateError) {
       for (const receipt of changedReceipts) await supabase.from('property_receipts').update({ issued_to: request.requested_by }).eq('id', receipt.id)
-      for (const item of changedItems) await supabase.from('items').update({ accountable_employee: item.accountable_employee, status: item.status, responsibility_center: item.responsibility_center }).eq('id', item.id)
+      for (const item of changedItems) await supabase.from('items').update({ accountable_employee: item.accountable_employee, status: item.status, office_name: item.office_name, responsibility_center: item.responsibility_center }).eq('id', item.id)
       await supabase.from('item_transfers').delete().eq('transfer_group_id', groupId)
       await supabase.from('property_transfer_requests').update({ status: 'Pending', reviewed_by: null, reviewed_at: null, to_user_id: null, transfer_date: null }).eq('id', requestId)
       return res.status(500).json({ error: 'Transfer failed. No transfer was completed: ' + updateError.message })
