@@ -526,7 +526,7 @@
               </div>
               <div class="col-md-6">
                 <label class="form-label">Concurred by - Designation</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.designation" readonly required>
+                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.designation" placeholder="Enter any designation" required>
               </div>
               <div class="col-md-4">
                 <label class="form-label">Requested by - Date</label>
