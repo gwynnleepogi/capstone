@@ -1,6 +1,7 @@
 
 <template>
   <div>
+    <PropertyTransferRequests />
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2>Transfers</h2>
@@ -594,9 +595,11 @@
 
 <script>
 import { Modal } from 'bootstrap'
+import PropertyTransferRequests from '@/components/PropertyTransferRequests.vue'
 
 export default {
   name: 'Transfers',
+  components: { PropertyTransferRequests },
 
   data() {
     return {
