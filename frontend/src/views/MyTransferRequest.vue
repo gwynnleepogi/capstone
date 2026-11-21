@@ -188,9 +188,18 @@ export default {
       const ids = this.properties.filter(property => property.items?.condition === 'Serviceable').map(property => String(property.id))
       this.form.receiptIds = this.allPropertiesSelected ? [] : ids
     },
+    authHeaders(includeJson = false) {
+      const headers = {}
+      const token = localStorage.getItem('accessToken')
+      if (token) headers.Authorization = 'Bearer ' + token
+      if (includeJson) headers['Content-Type'] = 'application/json'
+      return headers
+    },
     async loadProperties() {
       try {
-        const response = await fetch('/api/return-requests/eligible')
+        const response = await fetch('/api/return-requests/eligible', {
+          headers: this.authHeaders()
+        })
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Could not load issued properties.')
         this.properties = Array.isArray(data) ? data : []
@@ -202,7 +211,9 @@ export default {
     },
     async loadRequests() {
       try {
-        const response = await fetch('/api/property-transfer-requests/mine')
+        const response = await fetch('/api/property-transfer-requests/mine', {
+          headers: this.authHeaders()
+        })
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Could not load transfer requests.')
         this.requests = Array.isArray(data) ? data : []
@@ -218,7 +229,7 @@ export default {
       try {
         const response = await fetch('/api/property-transfer-requests', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.authHeaders(true),
           body: JSON.stringify({
             property_receipt_ids: this.form.receiptIds,
             from_responsibility_center: this.selectedFromResponsibilityCenter,
