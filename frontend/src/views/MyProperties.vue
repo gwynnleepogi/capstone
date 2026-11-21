@@ -74,7 +74,7 @@
       </div>
 
       <div v-else class="row g-3">
-        <div v-for="receipt in filteredProperties" :key="receipt.id" class="col-12">
+        <div v-for="receipt in filteredProperties" :key="receipt.id" class="col-12 col-md-6 col-xl-4">
           <article class="card property-card">
           <button
             type="button"
@@ -83,18 +83,24 @@
             :aria-controls="`property-details-${receipt.id}`"
             @click="toggleDetails(receipt.id)"
           >
-            <span class="property-id">
-              ID: {{ receipt.items?.property_number || receipt.items?.id || '-' }}
+            <span class="property-tile-top">
+              <span class="property-id">
+                <i class="bi bi-box-seam me-1"></i>
+                {{ receipt.items?.property_number || receipt.items?.id || 'No property number' }}
+              </span>
+              <i
+                class="bi tile-chevron"
+                :class="expandedReceiptId === receipt.id ? 'bi-chevron-up' : 'bi-chevron-down'"
+                aria-hidden="true"
+              ></i>
             </span>
-            <span class="property-article">
-              Article: {{ receipt.items?.article || '-' }}
-            </span>
+            <span class="property-article">Article: {{ receipt.items?.article || '-' }}</span>
             <span class="property-name">{{ receipt.items?.description || 'Unnamed property' }}</span>
-            <i
-              class="bi"
-              :class="expandedReceiptId === receipt.id ? 'bi-chevron-up' : 'bi-chevron-down'"
-              aria-hidden="true"
-            ></i>
+            <span class="property-tile-bottom">
+              <span class="badge classification-badge">{{ receipt.items?.classification || 'Unclassified' }}</span>
+              <span class="badge condition-badge">{{ receipt.items?.condition || 'Condition not set' }}</span>
+            </span>
+            <span class="property-tile-hint">View property details <i class="bi bi-arrow-right ms-1"></i></span>
           </button>
 
           <div
@@ -306,16 +312,27 @@ export default {
 
 <style scoped>
 .property-card {
-  border-color: #e4e2d8;
+  height: 100%;
+  border: 1px solid #e4e2d8;
+  border-radius: 12px;
   overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.property-card:hover {
+  border-color: #9db9a2;
+  box-shadow: 0 6px 18px rgba(32, 70, 42, 0.08);
+  transform: translateY(-2px);
 }
 
 .property-summary {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.7rem;
   width: 100%;
-  padding: 1rem 1.25rem;
+  min-height: 190px;
+  padding: 1.15rem;
   border: 0;
   background: #fff;
   color: inherit;
@@ -324,24 +341,61 @@ export default {
 
 .property-summary:hover,
 .property-summary:focus-visible {
-  background: #f7f8f5;
+  background: #fbfcfa;
+}
+
+.property-tile-top,
+.property-tile-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .property-id {
   color: #2f5d3a;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+
+.tile-chevron {
+  color: #6c757d;
+  flex: 0 0 auto;
 }
 
 .property-article {
   color: #6c757d;
-  font-size: 0.875rem;
-  white-space: nowrap;
+  font-size: 0.8rem;
 }
 
 .property-name {
-  flex: 1;
+  min-height: 2.8rem;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.classification-badge {
+  color: #245b38;
+  background: #e8f2e9;
+  font-weight: 600;
+}
+
+.condition-badge {
+  color: #555;
+  background: #f0f1f2;
+  font-weight: 600;
+}
+
+.property-tile-hint {
+  margin-top: auto;
+  padding-top: 0.65rem;
+  border-top: 1px solid #edf0ec;
+  color: #47734e;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
