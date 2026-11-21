@@ -28,6 +28,9 @@ async function syncReturnedItem(itemId, condition, quantity) {
 
 router.get('/', async (req, res) => {
   try {
+    // Do not embed property_receipts here. item_returns has two foreign keys
+    // to property_receipts (the original receipt and the reissued receipt),
+    // so PostgREST cannot safely infer which relationship to use.
     const { data, error } = await supabase
       .from('item_returns')
       .select(`
@@ -46,13 +49,6 @@ router.get('/', async (req, res) => {
           responsibility_center,
           fund_cluster
         ),
-        property_receipts!item_returns_property_receipt_id_fkey (
-          id,
-          receipt_number,
-          quantity,
-          date_issued,
-          status
-        ),
         users (
           id,
           full_name
@@ -68,7 +64,31 @@ router.get('/', async (req, res) => {
       return res.status(500).json({ error: error.message })
     }
 
-    res.json(data)
+    const receiptIds = [...new Set((data || [])
+      .flatMap(row => [row.property_receipt_id, row.reissued_receipt_id])
+      .filter(Boolean))]
+
+    let receiptsById = {}
+    if (receiptIds.length) {
+      const { data: receiptRows, error: receiptError } = await supabase
+        .from('property_receipts')
+        .select('id, receipt_number, quantity, date_issued, status')
+        .in('id', receiptIds)
+
+      if (receiptError) {
+        return res.status(500).json({ error: receiptError.message })
+      }
+
+      receiptsById = Object.fromEntries((receiptRows || []).map(receipt => [String(receipt.id), receipt]))
+    }
+
+    const results = (data || []).map(row => ({
+      ...row,
+      property_receipts: receiptsById[String(row.property_receipt_id)] || null,
+      reissued_receipt: receiptsById[String(row.reissued_receipt_id)] || null
+    }))
+
+    res.json(results)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
