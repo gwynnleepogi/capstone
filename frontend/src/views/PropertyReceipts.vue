@@ -1410,6 +1410,17 @@ export default {
       const request = receipt.item_requests || {}
       const office = request.offices || receipt.offices || {}
       const escape = value => this.escapeHtml(value === null || value === undefined || value === '' ? '-' : value)
+      const formatSignatureDate = value => {
+        if (!value) return '-'
+        const parts = String(value).split('T')[0].split('-')
+        if (parts.length !== 3) return escape(value)
+        const year = Number(parts[0])
+        const month = Number(parts[1])
+        const day = Number(parts[2])
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+        if (!year || month < 1 || month > 12 || day < 1 || day > 31) return escape(value)
+        return escape(`${monthNames[month - 1]} ${day}, ${year}`)
+      }
       const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
       const signatureImageMarkup = key =>
         details.signatureImages?.[key] ? `<img class="print-signature" src="${details.signatureImages[key]}" alt="Signature">` : ''
@@ -1586,10 +1597,10 @@ export default {
                 </tr>
                 <tr class="date-row">
                   <td class="sign-label">Date:</td>
-                  <td>${escape(details.signatureDates?.requestedBy || '')}</td>
-                  <td>${escape(details.signatureDates?.approvedBy || '')}</td>
-                  <td>${escape(details.signatureDates?.issuedBy || '')}</td>
-                  <td>${escape(details.signatureDates?.receivedByRIS || '')}</td>
+                  <td class="center">${formatSignatureDate(details.signatureDates?.requestedBy)}</td>
+                  <td class="center">${formatSignatureDate(details.signatureDates?.approvedBy)}</td>
+                  <td class="center">${formatSignatureDate(details.signatureDates?.issuedBy)}</td>
+                  <td class="center">${formatSignatureDate(details.signatureDates?.receivedByRIS)}</td>
                 </tr>
               </tbody>
             </table>
