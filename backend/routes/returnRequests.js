@@ -116,6 +116,14 @@ router.get('/eligible', async (req, res) => {
 
     if (pendingError) return res.status(500).json({ error: pendingError.message })
 
+    const { data: pendingTransfers, error: pendingTransfersError } = await supabase
+      .from('property_transfer_requests')
+      .select('property_receipt_ids')
+      .eq('status', 'Pending')
+
+    if (pendingTransfersError) return res.status(500).json({ error: pendingTransfersError.message })
+
+    const pendingTransferReceiptIds = new Set((pendingTransfers || []).flatMap(row => row.property_receipt_ids || []))
     const returnedReceiptIds = new Set((returns || []).map(r => r.property_receipt_id).filter(Boolean))
     const legacyItemIds = new Set(
       (returns || []).filter(r => !r.property_receipt_id).map(r => r.item_id)
@@ -126,7 +134,8 @@ router.get('/eligible', async (req, res) => {
       r =>
         !returnedReceiptIds.has(r.id) &&
         !legacyItemIds.has(r.item_id) &&
-        !pendingReceiptIds.has(r.id)
+        !pendingReceiptIds.has(r.id) &&
+        !pendingTransferReceiptIds.has(r.id)
     )
 
     const items = await lookup(
