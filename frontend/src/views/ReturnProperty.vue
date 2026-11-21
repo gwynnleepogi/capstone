@@ -540,6 +540,13 @@ export default {
   flex-direction: column;
   overflow: hidden;
 }
+.return-selection-dialog {
+  width: min(1100px, 100%);
+  max-height: 90vh;
+}
+.return-selection-dialog .card-body {
+  min-height: 0;
+}
 
 .return-form {
   display: flex;
