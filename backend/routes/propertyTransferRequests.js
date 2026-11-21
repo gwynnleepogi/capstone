@@ -76,8 +76,10 @@ router.post('/', async (req, res) => {
       if (item.condition !== 'Serviceable') return res.status(400).json({ error: 'Only serviceable properties can be requested for transfer.' })
     }
 
+    // Block duplicate requests while another transfer is pending or being processed.
+    // Approved historical transfers are intentionally not checked: the new holder may transfer again.
     const { data: existing, error: existingError } = await supabase.from('property_transfer_requests')
-      .select('property_receipt_ids').eq('status', 'Pending')
+      .select('property_receipt_ids').in('status', ['Pending', 'Processing'])
     if (existingError) return res.status(500).json({ error: existingError.message })
     const pendingIds = new Set((existing || []).flatMap(row => row.property_receipt_ids || []).map(String))
     if (ids.some(id => pendingIds.has(id))) return res.status(409).json({ error: 'One or more selected properties already have a pending transfer request.' })
