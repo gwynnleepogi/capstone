@@ -10,16 +10,15 @@
         <div v-if="loading" class="text-muted">Loading your issued properties...</div>
         <div v-else-if="!properties.length" class="text-muted">You have no issued property available for a transfer request.</div>
         <form v-else @submit.prevent="printRequest">
-          <div class="mb-4">
-            <label class="form-label">From Accountable Employee</label>
-            <div class="form-control bg-light">
-              <strong>{{ currentUser.full_name || 'Your account' }}</strong>
-
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">From Accountable Employee</label>
+              <div class="form-control bg-light">{{ currentUser.full_name || 'Your account' }}</div>
             </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">From Responsibility Center</label>
-            <input v-model.trim="form.fromResponsibilityCenter" class="form-control" placeholder="Automatically filled from the selected property; editable">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">From Responsibility Center</label>
+              <div class="form-control bg-light">{{ selectedFromResponsibilityCenter || 'Automatically filled when you select a property' }}</div>
+            </div>
           </div>
           <div class="mb-4">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -32,27 +31,33 @@
               <input v-model.trim="propertySearch" type="search" class="form-control" placeholder="Search by property number, description, receipt number, or condition...">
             </div>
             <div class="table-responsive border rounded">
-              <table class="table table-sm table-hover align-middle mb-0 property-selection-table">
+              <table class="table table-hover align-middle mb-0 property-selection-table">
 
                 <thead class="table-light">
-                  <tr><th class="select-column">Select</th><th>Property No.</th><th>Description</th><th class="amount-column">Amount</th><th>Condition</th></tr>
+                  <tr><th class="select-column">Select</th><th>Property No.</th><th>Description</th><th class="amount-column">Amount (₱)</th><th>Condition</th></tr>
                 </thead>
                 <tbody>
                   <tr v-for="property in filteredProperties" :key="property.id">
-                    <td class="select-column"><input class="form-check-input" type="checkbox" v-model="form.receiptIds" :value="String(property.id)" @change="fillFromResponsibilityCenter"></td>
-                    <td>{{ property.items?.property_number || '-' }}<div class="small text-muted">{{ property.receipt_number || '' }}</div></td>
-                    <td>{{ property.items?.description || '-' }}</td>
-                    <td>₱{{ Number(property.items?.cost || property.items?.unit_value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}</td>
-                    <td><span class="badge" :class="property.items?.condition === 'Serviceable' ? 'bg-success' : 'bg-secondary'">{{ property.items?.condition || '-' }}</span></td>
+                    <td class="select-column"><input class="form-check-input" type="checkbox" v-model="form.receiptIds" :value="String(property.id)"></td>
+                    <td><strong>{{ property.items?.property_number || '-' }}</strong><div v-if="property.receipt_number" class="small text-muted">Receipt: {{ property.receipt_number }}</div></td>
+                    <td class="description-cell">{{ property.items?.description || '-' }}</td>
+                    <td class="amount-cell">{{ formatAmount(property) }}</td>
+                    <td><span class="badge rounded-pill" :class="property.items?.condition === 'Serviceable' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">{{ property.items?.condition || 'Not specified' }}</span></td>
                   </tr>
                 </tbody>
               </table>
               <div v-if="filteredProperties.length === 0" class="text-center text-muted small py-3">No properties match your search.</div>
             </div>
-            <div class="form-text">{{ form.receiptIds.length }} property/properties selected.</div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2">
+              <div class="form-text mb-0">{{ form.receiptIds.length }} {{ form.receiptIds.length === 1 ? 'property' : 'properties' }} selected</div>
+              <div class="small fw-semibold">Selected Total: ₱{{ selectedPropertiesTotal }}</div>
+            </div>
           </div>
           <hr>
-          <h6 class="mb-3">Transfer To</h6>
+          <div class="mb-3">
+            <h5 class="mb-1">Transfer To</h5>
+            <p class="text-muted small mb-0">Enter the employee and office that will receive the selected property.</p>
+          </div>
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <label class="form-label">Receiving Employee <span class="text-danger">*</span></label>
@@ -122,7 +127,6 @@ export default {
       currentUser: JSON.parse(localStorage.getItem('user') || 'null') || {},
       form: {
         receiptIds: [],
-        fromResponsibilityCenter: '',
         toName: '',
         toOffice: '',
         officeAutoFilled: false,
@@ -175,6 +179,23 @@ export default {
     allPropertiesSelected() {
       return this.properties.length > 0 && this.properties.every(property => this.form.receiptIds.includes(String(property.id)))
     },
+    selectedFromResponsibilityCenter() {
+      const centers = [...new Set(this.properties
+        .filter(property => this.form.receiptIds.includes(String(property.id)))
+        .map(property => String(property.items?.responsibility_center || '').trim())
+        .filter(Boolean))]
+      if (!centers.length) return ''
+      return centers.length === 1 ? centers[0] : 'Multiple responsibility centers'
+    },
+    selectedPropertiesTotal() {
+      const total = this.properties
+        .filter(property => this.form.receiptIds.includes(String(property.id)))
+        .reduce((sum, property) => {
+          const item = property.items || {}
+          return sum + Number(item.cost || item.unit_value || item.unitValue || 0)
+        }, 0)
+      return total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
     availableOffices() {
       return [...new Set(this.personnel.map(person => person.office_name).filter(Boolean))]
         .sort((a, b) => a.localeCompare(b))
@@ -203,13 +224,12 @@ export default {
       this.form.officeAutoFilled = Boolean(person.office_name)
       this.showEmployeeOptions = false
     },
-    fillFromResponsibilityCenter() {
-      const selected = this.properties.find(property => this.form.receiptIds.includes(String(property.id)))
-      if (selected?.items?.responsibility_center) {
-        this.form.fromResponsibilityCenter = selected.items.responsibility_center
-      } else if (!this.form.receiptIds.length) {
-        this.form.fromResponsibilityCenter = ''
-      }
+    formatAmount(property) {
+      const item = property.items || {}
+      return Number(item.cost || item.unit_value || item.unitValue || 0).toLocaleString('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })
     },
     toggleAllProperties() {
       if (this.allPropertiesSelected) {
@@ -217,7 +237,6 @@ export default {
       } else {
         this.form.receiptIds = this.properties.map(property => String(property.id))
       }
-      this.fillFromResponsibilityCenter()
     },
     async loadPersonnel() {
       try {
@@ -276,7 +295,7 @@ export default {
       @page{size:${paper[this.form.paperSize] || paper.long} portrait;margin:8mm}*{box-sizing:border-box}body{font:12px Arial;color:#111;margin:0}.sheet{width:100%;padding:4mm}.header{display:grid;grid-template-columns:22mm 1fr;text-align:center;border:1px solid #555}.logo{grid-row:span 2;border-right:1px solid #555;display:flex;align-items:center;justify-content:center}.logo img{width:18mm;height:18mm;object-fit:contain}.school{padding:3mm;font-weight:bold;line-height:1.4}.heading{border-top:1px solid #555;padding:3mm;font-weight:bold;font-size:14px}.rpt{text-align:right;font-weight:bold;margin:5mm 0}.date{margin:5mm 0}table{width:100%;border-collapse:collapse;table-layout:fixed;margin:3mm 0}th,td{border:1px solid #555;padding:3mm;vertical-align:middle}th{text-align:center}.label{width:27%;font-weight:bold}.reason{min-height:22mm}.signatures{margin-top:12mm}.signatures td{height:18mm}.center{text-align:center}.code{margin-top:5mm;font-size:10px;font-weight:bold}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="sheet">
       <div class="header"><div class="logo"><img src="${logo}"></div><div class="school">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bambang, Nueva Vizcaya</div><div class="heading">REQUEST FOR PROPERTY TRANSFER</div></div>
       <div class="rpt">RPT No.: ____________________</div><div class="date">Date: ${esc(date)}</div>
-      <table><tr><td class="label">From Accountable Employee / Responsibility Center:</td><td>${esc(user.full_name || '')} / ${esc(this.form.fromResponsibilityCenter || '')}</td></tr><tr><td class="label">To Accountable Employee / Responsibility Center:</td><td>${esc(this.form.toName)} / ${esc(this.form.toOffice)}</td></tr></table>
+      <table><tr><td class="label">From Accountable Employee / Responsibility Center:</td><td>${esc(user.full_name || '')} / ${esc(this.selectedFromResponsibilityCenter || '')}</td></tr><tr><td class="label">To Accountable Employee / Responsibility Center:</td><td>${esc(this.form.toName)} / ${esc(this.form.toOffice)}</td></tr></table>
       <table><thead><tr><th>DATE ACQUIRED</th><th>PROPERTY NO.</th><th>DESCRIPTION</th><th>AMOUNT</th><th>CONDITION OF PPE</th></tr></thead><tbody>${propertyRows}${blankRows}</tbody></table>
       <table><tr><td class="label">Reason for Transfer:</td><td class="reason">${esc(this.form.reason === 'Others' ? this.form.otherReason : this.form.reason)}${this.form.remarks ? '<br><strong>Remarks:</strong> ' + esc(this.form.remarks) : ''}</td></tr></table>
       <table class="signatures"><tr><th></th><th>Requested by:</th><th>Approved by:</th><th>Concurred by:</th></tr><tr><td class="label">Signature:</td><td></td><td></td><td></td></tr><tr><td class="label">Printed Name:</td><td class="center">${esc(user.full_name || '')}</td><td></td><td></td></tr><tr><td class="label">Designation:</td><td></td><td></td><td></td></tr><tr><td class="label">Date:</td><td class="center">${esc(date)}</td><td></td><td></td></tr></table>
@@ -291,14 +310,24 @@ export default {
 .property-selection-table {
   min-width: 760px;
 }
-.property-selection-table th,
-.property-selection-table td {
+.property-selection-table thead th {
+  color: #495057;
+  font-size: 0.82rem;
+  font-weight: 600;
   white-space: nowrap;
+  padding: 0.85rem 0.75rem;
 }
-.property-selection-table th:nth-child(3),
-.property-selection-table td:nth-child(3) {
+.property-selection-table tbody td {
+  padding: 0.8rem 0.75rem;
+}
+.property-selection-table .description-cell {
   white-space: normal;
   min-width: 260px;
+}
+.property-selection-table .amount-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .property-selection-table .select-column {
   width: 76px;
