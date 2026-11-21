@@ -102,7 +102,7 @@
               <td>{{ item.description || 'N/A' }}</td>
               <td class="movement-cell" style="width: 160px; min-width: 160px; white-space: nowrap;">
                 <span class="movement-badge" :class="badgeClass(item)" style="white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;">
-                  {{ item.category }}
+                  {{ item.category === 'Return' ? 'Unserviceable' : item.category }}
                 </span>
               </td>
               <td class="quantity-cell" style="width: 120px; min-width: 120px; white-space: nowrap;">{{ item.quantity }}</td>
@@ -484,8 +484,9 @@ export default {
 
     badgeClass(item) {
       if (item.category === 'Acquisition') return 'badge-acquisition';
-      if (item.category === 'Return') return 'badge-return';
-      return 'badge-out';
+      if (item.category === 'Return') return 'badge-unserviceable';
+      if (item.category === 'Issuance') return 'badge-issuance';
+      return '';
     },
 
     getReportRowCount(reportType) {
@@ -1953,9 +1954,14 @@ th {
   color: #2f5d3a;
 }
 
-.badge-out {
+.badge-unserviceable {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.badge-issuance {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .badge-acquisition {
@@ -1963,10 +1969,6 @@ th {
   color: #1d4ed8;
 }
 
-.badge-return {
-  background: #fef3c7;
-  color: #92400e;
-}
 
 .empty-message {
   padding: 30px;
