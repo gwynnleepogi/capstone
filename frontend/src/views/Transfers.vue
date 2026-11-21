@@ -462,29 +462,59 @@
                 <label class="form-label">From Responsibility Center</label>
                 <input class="form-control" v-model.trim="requestPrintDetails.responsibilityCenter" placeholder="Defaults to the property record">
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6 position-relative">
                 <label class="form-label">Requested by - Printed Name</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.name" required>
+                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.name"
+                  @focus="openRequestPersonnelOptions('requestedBy')"
+                  @input="searchRequestPersonnel('requestedBy')"
+                  @blur="hideRequestPersonnelOptions('requestedBy')" autocomplete="off" required>
+                <div v-if="showRequestPersonnelOptions.requestedBy" class="list-group position-absolute w-100 shadow" style="z-index:1080; max-height:220px; overflow-y:auto;">
+                  <button v-for="person in filteredRequestPersonnel('requestedBy')" :key="person.id" type="button"
+                    class="list-group-item list-group-item-action text-start" @mousedown.prevent="selectRequestSignatory('requestedBy', person)">
+                    <strong>{{ person.full_name }}</strong><small v-if="person.job_title" class="d-block text-muted">{{ person.job_title }}</small>
+                  </button>
+                  <div v-if="filteredRequestPersonnel('requestedBy').length === 0" class="list-group-item text-muted">No personnel found.</div>
+                </div>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Requested by - Designation</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.designation" required>
+                <input class="form-control" v-model.trim="requestPrintDetails.requestedBy.designation" readonly required>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6 position-relative">
                 <label class="form-label">Approved by - Printed Name</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.name" required>
+                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.name"
+                  @focus="openRequestPersonnelOptions('approvedBy')"
+                  @input="searchRequestPersonnel('approvedBy')"
+                  @blur="hideRequestPersonnelOptions('approvedBy')" autocomplete="off" required>
+                <div v-if="showRequestPersonnelOptions.approvedBy" class="list-group position-absolute w-100 shadow" style="z-index:1080; max-height:220px; overflow-y:auto;">
+                  <button v-for="person in filteredRequestPersonnel('approvedBy')" :key="person.id" type="button"
+                    class="list-group-item list-group-item-action text-start" @mousedown.prevent="selectRequestSignatory('approvedBy', person)">
+                    <strong>{{ person.full_name }}</strong><small v-if="person.job_title" class="d-block text-muted">{{ person.job_title }}</small>
+                  </button>
+                  <div v-if="filteredRequestPersonnel('approvedBy').length === 0" class="list-group-item text-muted">No personnel found.</div>
+                </div>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Approved by - Designation</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.designation" required>
+                <input class="form-control" v-model.trim="requestPrintDetails.approvedBy.designation" readonly required>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6 position-relative">
                 <label class="form-label">Concurred by - Printed Name</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.name" required>
+                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.name"
+                  @focus="openRequestPersonnelOptions('concurredBy')"
+                  @input="searchRequestPersonnel('concurredBy')"
+                  @blur="hideRequestPersonnelOptions('concurredBy')" autocomplete="off" required>
+                <div v-if="showRequestPersonnelOptions.concurredBy" class="list-group position-absolute w-100 shadow" style="z-index:1080; max-height:220px; overflow-y:auto;">
+                  <button v-for="person in filteredRequestPersonnel('concurredBy')" :key="person.id" type="button"
+                    class="list-group-item list-group-item-action text-start" @mousedown.prevent="selectRequestSignatory('concurredBy', person)">
+                    <strong>{{ person.full_name }}</strong><small v-if="person.job_title" class="d-block text-muted">{{ person.job_title }}</small>
+                  </button>
+                  <div v-if="filteredRequestPersonnel('concurredBy').length === 0" class="list-group-item text-muted">No personnel found.</div>
+                </div>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Concurred by - Designation</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.designation" required>
+                <input class="form-control" v-model.trim="requestPrintDetails.concurredBy.designation" readonly required>
               </div>
               <div class="col-md-4">
                 <label class="form-label">Requested by - Date</label>
@@ -619,6 +649,8 @@ export default {
       selectedRequestTransfer: null,
       selectedTransferDetails: null,
       requestPrintDetails: this.emptyRequestPrintDetails(),
+      requestPersonnelSearch: { requestedBy: '', approvedBy: '', concurredBy: '' },
+      showRequestPersonnelOptions: { requestedBy: false, approvedBy: false, concurredBy: false },
       acknowledgementClassifications: [
         'NEW', 'RENEWAL', 'UPDATING', 'TRANSFER',
         'CLEARANCE-w/ Retain Accountability',
@@ -1116,6 +1148,42 @@ export default {
       return '2026-' + String(15 + sequence).padStart(3, '0')
     },
 
+    filteredRequestPersonnel(section) {
+      const search = String(this.requestPersonnelSearch[section] || '').trim().toLowerCase()
+      if (!search) return this.personnel
+      return this.personnel.filter(person =>
+        String(person.full_name || '').toLowerCase().includes(search) ||
+        String(person.job_title || '').toLowerCase().includes(search)
+      )
+    },
+
+    openRequestPersonnelOptions(section) {
+      this.requestPersonnelSearch[section] = this.requestPrintDetails[section].name || ''
+      this.showRequestPersonnelOptions[section] = true
+    },
+
+    searchRequestPersonnel(section) {
+      this.requestPersonnelSearch[section] = this.requestPrintDetails[section].name || ''
+      this.showRequestPersonnelOptions[section] = true
+      const matched = this.personnel.find(person =>
+        String(person.full_name || '').trim().toLowerCase() === this.requestPersonnelSearch[section].trim().toLowerCase()
+      )
+      this.requestPrintDetails[section].designation = matched?.job_title || ''
+    },
+
+    selectRequestSignatory(section, person) {
+      this.requestPrintDetails[section].name = person.full_name || ''
+      this.requestPrintDetails[section].designation = person.job_title || ''
+      this.requestPersonnelSearch[section] = person.full_name || ''
+      this.showRequestPersonnelOptions[section] = false
+    },
+
+    hideRequestPersonnelOptions(section) {
+      setTimeout(() => {
+        this.showRequestPersonnelOptions[section] = false
+      }, 150)
+    },
+
     openTransferRequestPrint(transfer) {
       this.selectedRequestTransfer = transfer
       this.requestPrintDetails = this.emptyRequestPrintDetails()
@@ -1124,6 +1192,12 @@ export default {
       this.requestPrintDetails.requestedBy.name = transfer.from_user?.full_name || ''
       this.requestPrintDetails.requestedBy.designation = transfer.from_user?.job_title || ''
       this.requestPrintDetails.requestedBy.date = String(transfer.transfer_date || '').slice(0, 10)
+      this.requestPersonnelSearch = {
+        requestedBy: this.requestPrintDetails.requestedBy.name,
+        approvedBy: '',
+        concurredBy: ''
+      }
+      this.showRequestPersonnelOptions = { requestedBy: false, approvedBy: false, concurredBy: false }
       Modal.getOrCreateInstance(document.getElementById('propertyTransferRequestModal')).show()
     },
 
