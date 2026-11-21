@@ -35,52 +35,57 @@
           </div>
         </div>
         <div class="card-body p-0 overflow-auto">
-
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th class="text-center">
-                <input type="checkbox" class="form-check-input" aria-label="Select all eligible properties"
-                  :checked="allEligibleSelected" :disabled="eligible.length === 0"
-                  @change="selectAllEligible($event.target.checked)" />
-              </th>
-              <th>Property No.</th>
-              <th>Property</th>
-              <th>Serial No.</th>
-              <th>Receipt No.</th>
-              <th>Qty</th>
-              <th>Date Issued</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr v-if="loading">
-              <td colspan="7" class="text-center text-muted py-4">Loading...</td>
-            </tr>
-
-            <tr v-else-if="!eligible.length">
-              <td colspan="7" class="text-center text-muted py-4">
-                You have no issued property that can be returned.
-              </td>
-            </tr>
-
-            <tr v-for="receipt in eligible" :key="receipt.id">
-              <td class="text-center">
-                <input v-model="selectedReceiptIds" type="checkbox" class="form-check-input"
-                  :value="String(receipt.id)"
-                  :aria-label="'Select ' + (receipt.items?.description || 'property')" />
-              </td>
-              <td>{{ receipt.items?.property_number || '-' }}</td>
-              <td>{{ receipt.items?.description || '-' }}</td>
-              <td>{{ receipt.items?.serial_number || '-' }}</td>
-              <td>{{ receipt.receipt_number || '-' }}</td>
-              <td>{{ receipt.quantity }}</td>
-              <td>{{ formatDate(receipt.date_issued) }}</td>
-            </tr>
-          </tbody>
-        </table>
-        </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="text-center">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      aria-label="Select all eligible properties"
+                      :checked="allEligibleSelected"
+                      :disabled="eligible.length === 0"
+                      @change="selectAllEligible($event.target.checked)"
+                    />
+                  </th>
+                  <th>Property No.</th>
+                  <th>Property</th>
+                  <th>Serial No.</th>
+                  <th>Receipt No.</th>
+                  <th>Qty</th>
+                  <th>Date Issued</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="loading">
+                  <td colspan="7" class="text-center text-muted py-4">Loading...</td>
+                </tr>
+                <tr v-else-if="!eligible.length">
+                  <td colspan="7" class="text-center text-muted py-4">
+                    You have no issued property that can be returned.
+                  </td>
+                </tr>
+                <tr v-for="receipt in eligible" :key="receipt.id">
+                  <td class="text-center">
+                    <input
+                      v-model="selectedReceiptIds"
+                      type="checkbox"
+                      class="form-check-input"
+                      :value="String(receipt.id)"
+                      :aria-label="'Select ' + (receipt.items?.description || 'property')"
+                    />
+                  </td>
+                  <td>{{ receipt.items?.property_number || '-' }}</td>
+                  <td>{{ receipt.items?.description || '-' }}</td>
+                  <td>{{ receipt.items?.serial_number || '-' }}</td>
+                  <td>{{ receipt.receipt_number || '-' }}</td>
+                  <td>{{ receipt.quantity }}</td>
+                  <td>{{ formatDate(receipt.date_issued) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </div>
