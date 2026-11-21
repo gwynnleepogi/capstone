@@ -661,7 +661,24 @@
             <div class="row g-2 mb-3">
               <div class="col-md-6">
                 <label class="form-label">Printed Name</label>
-                <input class="form-control" v-model.trim="returnedReceiptSignatories.receivedByName" placeholder="Enter receiving property officer">
+                <div class="position-relative">
+                  <input
+                    class="form-control"
+                    v-model.trim="returnedReceiptSignatories.receivedByName"
+                    placeholder="Search or enter receiving property officer"
+                    autocomplete="off"
+                    @focus="returnedReceiptSignatoryOptions.receivedBy = true"
+                    @input="updateReturnedReceiptSignatorySearch('receivedBy')"
+                    @blur="closeReturnedReceiptSignatoryOptions('receivedBy')"
+                  >
+                  <div v-if="returnedReceiptSignatoryOptions.receivedBy" class="list-group position-absolute w-100 shadow" style="max-height:200px;overflow-y:auto;z-index:1060">
+                    <button v-for="person in filteredReturnedReceiptPersonnel('receivedBy')" :key="person.id" type="button" class="list-group-item list-group-item-action" @mousedown.prevent="selectReturnedReceiptPerson('receivedBy', person)">
+                      <div>{{ person.full_name }}</div>
+                      <small class="text-muted">{{ person.job_title || person.designation || '' }}</small>
+                    </button>
+                    <div v-if="filteredReturnedReceiptPersonnel('receivedBy').length === 0" class="list-group-item text-muted">No personnel found. You can enter a name manually.</div>
+                  </div>
+                </div>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Designation</label>
@@ -672,11 +689,28 @@
             <div class="row g-2">
               <div class="col-md-6">
                 <label class="form-label">Printed Name</label>
-                <input class="form-control" v-model.trim="returnedReceiptSignatories.issuedByName">
+                <div class="position-relative">
+                  <input
+                    class="form-control"
+                    v-model.trim="returnedReceiptSignatories.issuedByName"
+                    placeholder="Search or enter issuing person's name"
+                    autocomplete="off"
+                    @focus="returnedReceiptSignatoryOptions.issuedBy = true"
+                    @input="updateReturnedReceiptSignatorySearch('issuedBy')"
+                    @blur="closeReturnedReceiptSignatoryOptions('issuedBy')"
+                  >
+                  <div v-if="returnedReceiptSignatoryOptions.issuedBy" class="list-group position-absolute w-100 shadow" style="max-height:200px;overflow-y:auto;z-index:1060">
+                    <button v-for="person in filteredReturnedReceiptPersonnel('issuedBy')" :key="person.id" type="button" class="list-group-item list-group-item-action" @mousedown.prevent="selectReturnedReceiptPerson('issuedBy', person)">
+                      <div>{{ person.full_name }}</div>
+                      <small class="text-muted">{{ person.job_title || person.designation || '' }}</small>
+                    </button>
+                    <div v-if="filteredReturnedReceiptPersonnel('issuedBy').length === 0" class="list-group-item text-muted">No personnel found. You can enter a name manually.</div>
+                  </div>
+                </div>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Designation</label>
-                <input class="form-control" v-model.trim="returnedReceiptSignatories.issuedByTitle">
+                <input class="form-control" v-model.trim="returnedReceiptSignatories.issuedByTitle" placeholder="Enter designation">
               </div>
             </div>
           </div>
@@ -749,6 +783,10 @@ export default {
         receivedByTitle: '',
         issuedByName: '',
         issuedByTitle: ''
+      },
+      returnedReceiptSignatoryOptions: {
+        receivedBy: false,
+        issuedBy: false
       },
 
       form: {
@@ -1277,6 +1315,43 @@ export default {
     closeReturnAckOptions(section) {
       setTimeout(() => {
         this.returnAckOptions[section] = false
+      }, 150)
+    },
+
+    filteredReturnedReceiptPersonnel(section) {
+      const query = String(this.returnedReceiptSignatories[section === 'receivedBy' ? 'receivedByName' : 'issuedByName'] || '').toLowerCase().trim()
+      if (!query) return this.personnel.slice(0, 10)
+      return this.personnel.filter(person =>
+        String(person.full_name || '').toLowerCase().includes(query) ||
+        String(person.job_title || person.designation || '').toLowerCase().includes(query)
+      ).slice(0, 10)
+    },
+
+    selectReturnedReceiptPerson(section, person) {
+      if (section === 'receivedBy') {
+        this.returnedReceiptSignatories.receivedByName = person.full_name || ''
+        this.returnedReceiptSignatories.receivedByTitle = person.job_title || person.designation || ''
+      } else {
+        this.returnedReceiptSignatories.issuedByName = person.full_name || ''
+        this.returnedReceiptSignatories.issuedByTitle = person.job_title || person.designation || ''
+      }
+      this.returnedReceiptSignatoryOptions[section] = false
+    },
+
+    updateReturnedReceiptSignatorySearch(section) {
+      const nameKey = section === 'receivedBy' ? 'receivedByName' : 'issuedByName'
+      const titleKey = section === 'receivedBy' ? 'receivedByTitle' : 'issuedByTitle'
+      const typedName = this.returnedReceiptSignatories[nameKey] || ''
+      const match = this.personnel.find(person =>
+        String(person.full_name || '').toLowerCase() === typedName.toLowerCase()
+      )
+      if (match) this.returnedReceiptSignatories[titleKey] = match.job_title || match.designation || ''
+      this.returnedReceiptSignatoryOptions[section] = true
+    },
+
+    closeReturnedReceiptSignatoryOptions(section) {
+      setTimeout(() => {
+        this.returnedReceiptSignatoryOptions[section] = false
       }, 150)
     },
 
