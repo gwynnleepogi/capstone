@@ -225,7 +225,6 @@
                 <div class="col-md-6"><label class="form-label">UACS</label><input class="form-control" v-model.trim="receiptPrintForm.uacs"></div>
                 <div class="col-md-6"><label class="form-label">BUR No.</label><input class="form-control" v-model.trim="receiptPrintForm.burNumber"></div>
                 <div class="col-md-6"><label class="form-label">IAR No.</label><input class="form-control" v-model.trim="receiptPrintForm.iarNumber"></div>
-                <div class="col-md-6"><label class="form-label">Appendix</label><input class="form-control" value="71" readonly></div>
                 
                 <div class="col-12"><strong>Received By</strong></div>
                 <div class="col-md-6">
