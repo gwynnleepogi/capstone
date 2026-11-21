@@ -151,12 +151,13 @@ router.patch('/:id/approve', async (req, res) => {
       ? await supabase.from('offices').select('id, office_name').eq('id', recipient.office_id).maybeSingle()
       : { data: null, error: null }
     if (officeError) return revert(officeError.message)
+    if (!office) return revert('The selected receiving employee does not have an assigned office. Update the employee profile before approving this transfer.')
 
     const receiptIds = request.property_receipt_ids || []
     const { data: receipts, error: receiptsError } = await supabase.from('property_receipts')
       .select('id, item_id, issued_to, status, quantity').in('id', receiptIds)
     if (receiptsError || !receipts || receipts.length !== receiptIds.length) return revert('One or more requested properties could not be found.')
-    const itemMap = await lookup('items', receipts.map(row => row.item_id), 'id, description, property_number, condition, status, accountable_employee, responsibility_center, cost, acquisition_date')
+    const itemMap = await lookup('items', receipts.map(row => row.item_id), 'id, description, property_number, condition, status, accountable_employee, responsibility_center, office_name, cost, acquisition_date')
     for (const receipt of receipts) {
       const item = itemMap[String(receipt.item_id)]
       if (String(receipt.issued_to) !== String(request.requested_by) || receipt.status !== 'Issued') return revert('A requested property is no longer issued to the requesting employee.')
@@ -180,8 +181,10 @@ router.patch('/:id/approve', async (req, res) => {
     try {
       for (const receipt of receipts) {
         const item = itemMap[String(receipt.item_id)]
-        const receiptUpdate = await supabase.from('property_receipts').update({ issued_to: recipient.id }).eq('id', receipt.id).eq('issued_to', request.requested_by)
+        const receiptUpdate = await supabase.from('property_receipts').update({ issued_to: recipient.id })
+          .eq('id', receipt.id).eq('issued_to', request.requested_by).select('id').maybeSingle()
         if (receiptUpdate.error) throw new Error(receiptUpdate.error.message)
+        if (!receiptUpdate.data) throw new Error('A requested property changed while the transfer was being processed.')
         changedReceipts.push(receipt)
         const itemUpdate = await supabase.from('items').update({
           accountable_employee: recipient.full_name, status: 'Issued',
