@@ -8,10 +8,6 @@
         <p class="text-muted">Transfer issued property to another employee</p>
       </div>
 
-      <button class="btn btn-warning" @click="openAddModal">
-        <i class="bi bi-arrow-left-right me-1"></i>
-        New Transfer
-      </button>
     </div>
 
     <div class="card mb-4">
