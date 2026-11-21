@@ -1,11 +1,16 @@
 <template>
   <div>
-    <div class="mb-4">
-      <h2>Request for Property Transfer</h2>
-      <p class="text-muted mb-0">Select the properties you want the Property Office to review for transfer.</p>
+    <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <h2 class="mb-1">Request for Property Transfer</h2>
+        <p class="text-muted mb-0">Submit properties for the Property Office to review for transfer.</p>
+      </div>
+      <button type="button" class="btn btn-warning" @click="showRequestForm = !showRequestForm">
+        {{ showRequestForm ? 'Close Request Form' : 'Request Property Transfer' }}
+      </button>
     </div>
 
-    <div class="card mb-4">
+    <div v-if="showRequestForm" class="card mb-4">
       <div class="card-header bg-white"><strong>Property Transfer Details</strong></div>
       <div class="card-body">
         <div v-if="loading" class="text-muted py-3">Loading your issued properties...</div>
@@ -75,7 +80,8 @@
           <div class="alert alert-info small">
             Submitting this request will not transfer the properties immediately. The Property Office will review your request and select the receiving employee if it is approved.
           </div>
-          <div class="d-flex justify-content-end">
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary" @click="showRequestForm = false" :disabled="saving">Cancel</button>
             <button type="submit" class="btn btn-warning" :disabled="saving || !form.receiptIds.length">
               {{ saving ? 'Submitting...' : 'Submit Transfer Request' }}
             </button>
@@ -117,6 +123,7 @@ export default {
       loading: true,
       requestsLoading: true,
       saving: false,
+      showRequestForm: false,
       properties: [],
       requests: [],
       propertySearch: '',
@@ -218,6 +225,7 @@ export default {
         if (!response.ok) throw new Error(data.error || 'Unable to submit transfer request.')
         this.toast('Transfer request submitted successfully.')
         this.form = { receiptIds: [], reason: '', otherReason: '', remarks: '' }
+        this.showRequestForm = false
         await Promise.all([this.loadProperties(), this.loadRequests()])
       } catch (error) {
         this.toast(error.message)
