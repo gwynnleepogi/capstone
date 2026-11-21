@@ -1110,7 +1110,7 @@ export default {
       this.risForm = {
         fundCluster: item.fund_cluster || '',
         division: request.division || receipt.division || '',
-        officeName: request.offices?.office_name || receipt.offices?.office_name || request.office_name || receipt.office_name || '',
+        officeName: item.offices?.office_name || item.office_name || request.offices?.office_name || receipt.offices?.office_name || request.office_name || receipt.office_name || '',
         responsibilityCenter: this.getReceiptItem(receipt).responsibility_center || request.responsibility_center || receipt.responsibility_center || '',
         purpose: request.purpose || receipt.purpose || request.remarks || '',
         requestedBy: request.requested_by_name || request.users?.full_name || '',
