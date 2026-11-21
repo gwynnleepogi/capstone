@@ -337,7 +337,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="col-md-6"><label class="form-label">Requested By Title <span class="text-danger">*</span></label><input class="form-control" v-model.trim="risForm.requestedDesignation" required :readonly="Boolean(getPersonnelTitle(risForm.requestedBy))"></div>
+                <div class="col-md-6"><label class="form-label">Requested By Title <span class="text-danger">*</span></label><input class="form-control" v-model.trim="risForm.requestedDesignation" @input="risForm.receivedDesignation = risForm.requestedDesignation" required :readonly="Boolean(getPersonnelTitle(risForm.requestedBy))"></div>
                 
                 <div class="col-md-6">
                   <label class="form-label">Approved By <span class="text-danger">*</span></label>
@@ -367,16 +367,13 @@
                 
                 <div class="col-md-6">
                   <label class="form-label">Received By <span class="text-danger">*</span></label>
-                  <div class="personnel-search">
-                    <input v-model="personnelSearch.risReceivedBy" class="form-control" type="text" placeholder="Search or enter name" autocomplete="off" required role="combobox" aria-autocomplete="list" :aria-expanded="showPersonnelOptions.risReceivedBy" @focus="openPersonnelOptions('risReceivedBy', risForm.receivedBy)" @input="onPersonnelSearch(risForm, 'risReceivedBy', 'receivedBy', 'receivedDesignation')" @keydown.esc="closePersonnelOptions('risReceivedBy')" @blur="hidePersonnelOptions('risReceivedBy')">
-                    <div v-if="showPersonnelOptions.risReceivedBy" class="personnel-options" role="listbox">
-                      <button v-if="risForm.receivedBy && !printablePersonnel.some(person => person.full_name === risForm.receivedBy)" type="button" role="option" @mousedown.prevent="selectPersonnel(risForm, 'risReceivedBy', 'receivedBy', 'receivedDesignation', risForm.receivedBy)">{{ risForm.receivedBy }}</button>
-                      <button v-for="person in filteredPersonnel('risReceivedBy')" :key="person.id" type="button" role="option" @mousedown.prevent="selectPersonnel(risForm, 'risReceivedBy', 'receivedBy', 'receivedDesignation', person.full_name)">{{ person.full_name }}</button>
-                      <div v-if="!filteredPersonnel('risReceivedBy').length && !risForm.receivedBy" class="personnel-empty">No matching names.</div>
-                    </div>
-                  </div>
+                  <input class="form-control" :value="risForm.requestedBy" readonly>
+                  <small class="text-muted">Automatically copied from Requested By.</small>
                 </div>
-                <div class="col-md-6"><label class="form-label">Received By Title <span class="text-danger">*</span></label><input class="form-control" v-model.trim="risForm.receivedDesignation" required :readonly="Boolean(getPersonnelTitle(risForm.receivedBy))"></div>
+                <div class="col-md-6">
+                  <label class="form-label">Received By Title <span class="text-danger">*</span></label>
+                  <input class="form-control" :value="risForm.requestedDesignation" readonly>
+                </div>
                 
                 <div class="col-md-6">
                   <label class="form-label">Import Signature for Requested By</label>
@@ -1137,7 +1134,8 @@ export default {
 
       const request = receipt.item_requests || {}
       const item = this.getReceiptItem(receipt)
-      const issuedTo = this.getIssuedToName(receipt)
+      const requestedBy = request.requested_by_name || request.users?.full_name || ''
+      const requestedDesignation = this.getPersonnelTitle(requestedBy) || request.requested_by_designation || ''
       this.selectedRISReceipt = receipt
 
       this.risForm = {
@@ -1146,14 +1144,14 @@ export default {
         officeName: item.offices?.office_name || item.office_name || request.offices?.office_name || receipt.offices?.office_name || request.office_name || receipt.office_name || '',
         responsibilityCenter: this.getReceiptItem(receipt).responsibility_center || request.responsibility_center || receipt.responsibility_center || '',
         purpose: request.purpose || receipt.purpose || request.remarks || '',
-        requestedBy: request.requested_by_name || request.users?.full_name || '',
-        requestedDesignation: this.getPersonnelTitle(request.requested_by_name || request.users?.full_name || '') || request.requested_by_designation || '',
+        requestedBy,
+        requestedDesignation,
         approvedBy: receipt.approved_by_name || '',
         approvedDesignation: this.getPersonnelTitle(receipt.approved_by_name) || receipt.approved_by_designation || '',
         issuedBy: receipt.issued_by_name || '',
         issuedDesignation: this.getPersonnelTitle(receipt.issued_by_name) || receipt.issued_by_designation || '',
-        receivedBy: issuedTo === '-' ? '' : issuedTo,
-        receivedDesignation: this.getPersonnelTitle(issuedTo) || receipt.received_by_designation || '',
+        receivedBy: requestedBy,
+        receivedDesignation: requestedDesignation,
         paperSize: 'long',
         paperWidth: 8.5,
         paperHeight: 13
