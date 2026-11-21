@@ -61,7 +61,6 @@
                 <th>Date</th>
                 <th>Condition</th>
                 <th>Property Status</th>
-                <th>Remarks</th>
                 <th class="text-center">Action</th>
               </tr>
             </thead>
@@ -113,7 +112,6 @@
                   </span>
                 </td>
 
-                <td>{{ transfer.remarks || '-' }}</td>
                 <td class="text-center">
                   <button type="button" class="btn btn-sm btn-outline-secondary" @click="openTransferDetails(transfer)">
                     <i class="bi bi-eye me-1"></i>Details
@@ -122,7 +120,7 @@
               </tr>
 
               <tr v-if="paginatedTransfers.length === 0">
-                <td colspan="9" class="text-center text-muted py-4">
+                <td colspan="8" class="text-center text-muted py-4">
                   No transfers found.
                 </td>
               </tr>
