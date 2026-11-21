@@ -1048,7 +1048,7 @@ export default {
       this.selectedPrintReceipt = receipt
 
       this.receiptPrintForm = {
-        fundCluster: receipt.fund_cluster || 'TF-2',
+        fundCluster: item.fund_cluster || '',
         appendix: receipt.appendix || '71',
         purpose: receipt.remarks || '',
         unitOffice: item.responsibility_center || receipt.offices?.office_name || '',
