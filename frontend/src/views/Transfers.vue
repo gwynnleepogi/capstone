@@ -1307,7 +1307,7 @@ body{font-size:9px}
 .reason td{border:1px solid #888;padding:7px;height:auto;font-size:14px;line-height:1.25}
 .approvals th,.approvals td{border:1px solid #888;padding:6px 7px;font-size:14px;line-height:1.25}
 .approvals th{text-align:center;min-height:38px;font-size:14px}
-.approvals td{min-height:30px}.approvals .signatory,.approvals .signatory-date{text-align:center;vertical-align:middle}
+.approvals td{min-height:30px}.approvals .signatory,.approvals .signatory-date{text-align:center;vertical-align:middle}.approvals .signatory-name{text-align:center;text-transform:uppercase;vertical-align:middle}
 .approvals .row-label{font-weight:bold;width:12%}
 .approvals .action{vertical-align:top}
 .instructions{border:1px solid #888;padding:9px 11px 10px;font-size:14px;line-height:1.3}
@@ -1344,7 +1344,7 @@ body{font-size:9px}
 <table class="approvals">
 <tr><th style="width:12%"></th><th style="width:19%">Requested by:</th><th style="width:19%">Approved by:</th><th style="width:19%">Concurred by:</th><th>Action Taken (to be<br>filled by the Property Officer)</th></tr>
 <tr><td class="row-label">Signature:</td><td></td><td></td><td></td><td class="action" rowspan="4"></td></tr>
-<tr><td class="row-label">Printed Name:</td><td class="signatory">${esc(details.requestedBy.name)}</td><td class="signatory">${esc(details.approvedBy.name)}</td><td class="signatory">${esc(details.concurredBy.name)}</td></tr>
+<tr><td class="row-label">Printed Name:</td><td class="signatory-name">${esc(String(details.requestedBy.name || '').toUpperCase())}</td><td class="signatory-name">${esc(String(details.approvedBy.name || '').toUpperCase())}</td><td class="signatory-name">${esc(String(details.concurredBy.name || '').toUpperCase())}</td></tr>
 <tr><td class="row-label">Designation:</td><td class="signatory">${esc(details.requestedBy.designation)}</td><td class="signatory">${esc(details.approvedBy.designation)}</td><td class="signatory">${esc(details.concurredBy.designation)}</td></tr>
 <tr><td class="row-label">Date:</td><td class="signatory-date">${esc(details.requestedBy.date ? formatDate(details.requestedBy.date) : '')}</td><td class="signatory-date">${esc(details.approvedBy.date ? formatDate(details.approvedBy.date) : '')}</td><td class="signatory-date">${esc(details.concurredBy.date ? formatDate(details.concurredBy.date) : '')}</td></tr>
 </table>
