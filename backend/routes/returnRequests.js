@@ -119,7 +119,7 @@ router.get('/eligible', async (req, res) => {
     const { data: pendingTransfers, error: pendingTransfersError } = await supabase
       .from('property_transfer_requests')
       .select('property_receipt_ids')
-      .eq('status', 'Pending')
+      .in('status', ['Pending', 'Processing'])
 
     if (pendingTransfersError) return res.status(500).json({ error: pendingTransfersError.message })
 
