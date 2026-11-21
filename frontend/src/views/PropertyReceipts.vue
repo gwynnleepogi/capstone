@@ -315,7 +315,14 @@
                   </select>
                 </div>
                 <div class="col-md-6"><label class="form-label">Division</label><input class="form-control" v-model.trim="risForm.division"></div>
-                <div class="col-md-6"><label class="form-label">Office</label><input class="form-control" v-model.trim="risForm.officeName"></div>
+                <div class="col-md-6">
+                  <label class="form-label">Office</label>
+                  <SearchableSelect
+                    v-model="risForm.officeName"
+                    :options="risOfficeOptions"
+                    placeholder="Search or select office"
+                  />
+                </div>
                 <div class="col-md-6"><label class="form-label">Responsibility Center</label><input class="form-control" v-model.trim="risForm.responsibilityCenter" placeholder="Defaults to the property record"></div>
                 <div class="col-12"><label class="form-label">Purpose</label><textarea class="form-control" v-model.trim="risForm.purpose" rows="2"></textarea></div>
                 
@@ -460,9 +467,11 @@
 
 <script>
 import { Modal } from 'bootstrap'
+import SearchableSelect from '@/components/SearchableSelect.vue'
 
 export default {
   name: 'PropertyReceipts',
+  components: { SearchableSelect },
   data() {
     return {
       receipts: [],
@@ -624,6 +633,17 @@ export default {
 
     paginationEnd() {
       return Math.min(this.currentPage * this.pageSize, this.filteredReceipts.length)
+    },
+
+    risOfficeOptions() {
+      const officeNames = [...new Set(
+        (this.items || [])
+          .map(item => String(item.office_name || '').trim())
+          .filter(Boolean)
+      )]
+      return officeNames
+        .sort((first, second) => first.localeCompare(second, undefined, { sensitivity: 'base' }))
+        .map(officeName => ({ value: officeName, label: officeName }))
     },
 
     printablePersonnel() {
