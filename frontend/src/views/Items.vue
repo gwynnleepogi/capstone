@@ -199,7 +199,7 @@
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Office <span class="text-danger">*</span></label>
-                <SearchableSelect v-model="newItem.office_name" :options="officeSelectOptions" placeholder="Search or select an office" required />
+                <input v-model="newItem.office_name" type="text" class="form-control" placeholder="Automatically filled from the accountable employee" readonly required />
               </div>
 
               <div class="col-12 col-md-6">
@@ -1634,6 +1634,7 @@ export default {
 
       if (!selectedName) {
         form.accountable_employee = ''
+        form.office_name = ''
         form.status = 'Returned'
         return
       }
@@ -1645,13 +1646,20 @@ export default {
 
       if (!employee) {
         form.accountable_employee = ''
+        form.office_name = ''
         return
       }
 
+      const employeeOffice =
+        employee.offices?.office_name ||
+        employee.office?.office_name ||
+        employee.office_name ||
+        ''
+
       form.accountable_employee = employee.full_name
+      form.office_name = employeeOffice
       form.status = 'Issued'
     },
-
     async getItems() {
       this.loading = true
 
