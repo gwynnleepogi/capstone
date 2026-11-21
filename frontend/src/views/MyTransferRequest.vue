@@ -5,14 +5,19 @@
         <h2 class="mb-1">Request for Property Transfer</h2>
         <p class="text-muted mb-0">Submit properties for the Property Office to review for transfer.</p>
       </div>
-      <button type="button" class="btn btn-warning" @click="showRequestForm = !showRequestForm">
-        {{ showRequestForm ? 'Close Request Form' : 'Request Property Transfer' }}
+      <button type="button" class="btn btn-warning" @click="openRequestModal">
+        Request Property Transfer
       </button>
     </div>
 
-    <div v-if="showRequestForm" class="card mb-4">
-      <div class="card-header bg-white"><strong>Property Transfer Details</strong></div>
-      <div class="card-body">
+    <div v-if="showRequestForm" class="transfer-modal-backdrop" @click.self="closeRequestModal">
+      <div class="transfer-modal" role="dialog" aria-modal="true" aria-labelledby="transferModalTitle">
+        <div class="transfer-modal-header">
+          <h5 id="transferModalTitle" class="mb-0">Request for Property Transfer</h5>
+          <button type="button" class="btn-close" aria-label="Close" @click="closeRequestModal" :disabled="saving"></button>
+        </div>
+        <div class="transfer-modal-body">
+          <div class="mb-3"><strong>Property Transfer Details</strong></div>
         <div v-if="loading" class="text-muted py-3">Loading your issued properties...</div>
         <div v-else-if="!properties.length" class="text-muted py-3">You have no issued properties available for a transfer request.</div>
         <form v-else @submit.prevent="submitRequest">
@@ -73,20 +78,14 @@
             </select>
             <input v-if="form.reason === 'Others'" v-model.trim="form.otherReason" class="form-control mt-2" placeholder="Enter reason" required>
           </div>
-          <div class="mb-3">
-            <label class="form-label">Remarks <span class="text-muted">(Optional)</span></label>
-            <textarea v-model.trim="form.remarks" class="form-control" rows="2" placeholder="Add information for the Property Office, if needed"></textarea>
-          </div>
-          <div class="alert alert-info small">
-            Submitting this request will not transfer the properties immediately. The Property Office will review your request and select the receiving employee if it is approved.
-          </div>
-          <div class="d-flex justify-content-end gap-2">
-            <button type="button" class="btn btn-outline-secondary" @click="showRequestForm = false" :disabled="saving">Cancel</button>
-            <button type="submit" class="btn btn-warning" :disabled="saving || !form.receiptIds.length">
+          <div class="transfer-modal-footer">
+            <button type="button" class="btn btn-outline-secondary" @click="closeRequestModal" :disabled="saving">Cancel</button>
+            <button type="submit" class="btn btn-warning" :disabled="saving || !form.receiptIds.length || !form.reason || (form.reason === 'Others' && !form.otherReason.trim())">
               {{ saving ? 'Submitting...' : 'Submit Transfer Request' }}
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
 
@@ -178,6 +177,13 @@ export default {
       if (status === 'Processing') return 'bg-info text-dark'
       return 'bg-warning text-dark'
     },
+    openRequestModal() {
+      this.showRequestForm = true
+    },
+    closeRequestModal() {
+      if (this.saving) return
+      this.showRequestForm = false
+    },
     toggleAllProperties() {
       const ids = this.properties.filter(property => property.items?.condition === 'Serviceable').map(property => String(property.id))
       this.form.receiptIds = this.allPropertiesSelected ? [] : ids
@@ -241,6 +247,49 @@ export default {
 </script>
 
 <style scoped>
+.transfer-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, .5);
+}
+.transfer-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 1000px);
+  max-height: 90vh;
+  overflow: hidden;
+  background: #fff;
+  border-radius: .75rem;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, .2);
+}
+.transfer-modal-header,
+.transfer-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #dee2e6;
+}
+.transfer-modal-footer {
+  justify-content: flex-end;
+  border-top: 1px solid #dee2e6;
+  border-bottom: 0;
+}
+.transfer-modal-body {
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+@media (max-width: 576px) {
+  .transfer-modal-backdrop { padding: .5rem; }
+  .transfer-modal { max-height: 95vh; }
+  .transfer-modal-body { padding: 1rem; }
+}
 .property-selection-table { min-width: 760px; }
 .property-selection-table thead th { color: #495057; font-size: .82rem; font-weight: 600; white-space: nowrap; padding: .85rem .75rem; }
 .property-selection-table tbody td { padding: .8rem .75rem; }
