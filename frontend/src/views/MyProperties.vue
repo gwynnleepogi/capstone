@@ -432,8 +432,8 @@ export default {
 }
 
 .property-modal {
-  width: min(900px, 100%);
-  max-height: 90vh;
+  width: min(1180px, 96vw);
+  max-height: 94vh;
   overflow-y: auto;
   border-radius: 14px;
   background: #fff;
@@ -454,13 +454,29 @@ export default {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.25rem;
+  padding: 1.5rem 1.75rem;
   border-bottom: 1px solid #e9ecef;
   background: #fff;
 }
 
 .property-modal-body {
-  padding: 1.25rem;
+  padding: 1.5rem 1.75rem;
+}
+
+@media (max-width: 768px) {
+  .property-modal-backdrop {
+    padding: 0.5rem;
+  }
+
+  .property-modal {
+    width: 100%;
+    max-height: 96vh;
+  }
+
+  .property-modal-header,
+  .property-modal-body {
+    padding: 1rem;
+  }
 }
 
 .qr-card {
@@ -477,8 +493,8 @@ export default {
 
 .property-qr {
   display: block;
-  width: 180px;
-  height: 180px;
+  width: 210px;
+  height: 210px;
   margin: 0 auto;
   padding: 8px;
   border: 1px solid #e4e2d8;
