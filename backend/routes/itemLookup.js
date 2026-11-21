@@ -42,7 +42,27 @@ router.get('/mine', async (req, res) => {
       return res.status(500).json({ error: 'Failed to load your issued properties.' })
     }
 
-    res.json(data || [])
+    // Accepted returns are recorded in item_returns. Exclude those receipts
+    // even if an older workflow left the receipt status as "Issued".
+    const { data: returnedReceipts, error: returnsError } = await supabase
+      .from('item_returns')
+      .select('property_receipt_id')
+      .not('property_receipt_id', 'is', null)
+
+    if (returnsError) {
+      console.error('Failed to check returned properties:', returnsError)
+      return res.status(500).json({ error: 'Failed to check your returned properties.' })
+    }
+
+    const returnedReceiptIds = new Set(
+      (returnedReceipts || []).map(row => String(row.property_receipt_id))
+    )
+
+    const stillIssued = (data || []).filter(
+      receipt => !returnedReceiptIds.has(String(receipt.id))
+    )
+
+    res.json(stillIssued)
   } catch (error) {
     console.error('Failed to load issued properties:', error)
     res.status(500).json({ error: 'Failed to load your issued properties.' })
