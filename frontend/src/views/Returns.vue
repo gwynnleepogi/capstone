@@ -536,7 +536,7 @@
             </button>
 
             <button
-              v-if="selectedReturn.return_purpose === 'Repair' && !selectedReturn.reissued_receipt_id"
+              v-if="selectedReturn && selectedReturn.return_purpose === 'Repair' && !selectedReturn.reissued_receipt_id"
               type="button"
               class="btn btn-success"
               :disabled="reissuingReturnId === selectedReturn.id"
@@ -545,7 +545,7 @@
               <i class="bi bi-arrow-repeat me-1"></i>
               {{ reissuingReturnId === selectedReturn.id ? 'Reissuing...' : 'Mark Repaired & Reissue to Same Employee' }}
             </button>
-            <span v-else-if="selectedReturn.return_purpose === 'Repair' && selectedReturn.reissued_receipt_id" class="badge bg-success">
+            <span v-else-if="selectedReturn && selectedReturn.return_purpose === 'Repair' && selectedReturn.reissued_receipt_id" class="badge bg-success">
               Reissued after repair
             </span>
             <button type="button" class="btn btn-outline-success" @click="openReturnedAcknowledgementModal">
