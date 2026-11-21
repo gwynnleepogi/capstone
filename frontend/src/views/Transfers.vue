@@ -5,9 +5,13 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2>Transfers</h2>
-        <p class="text-muted">Transfer issued property to another employee</p>
+        <p class="text-muted mb-0">Transfer issued property to another employee</p>
       </div>
 
+      <button type="button" class="btn btn-warning" @click="openAddModal">
+        <i class="bi bi-arrow-left-right me-1"></i>
+        Add Transfer
+      </button>
     </div>
 
     <div class="card mb-4">
