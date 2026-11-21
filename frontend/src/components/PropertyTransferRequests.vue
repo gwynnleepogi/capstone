@@ -119,10 +119,17 @@ export default {
     this.loadPersonnel()
   },
   methods: {
+    authHeaders(includeJson = false) {
+      const headers = {}
+      const token = localStorage.getItem('accessToken')
+      if (token) headers.Authorization = 'Bearer ' + token
+      if (includeJson) headers['Content-Type'] = 'application/json'
+      return headers
+    },
     async loadRequests() {
       this.loading = true
       try {
-        const response = await fetch('/api/property-transfer-requests')
+        const response = await fetch('/api/property-transfer-requests', { headers: this.authHeaders() })
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Could not load transfer requests.')
         this.requests = Array.isArray(data) ? data : []
@@ -131,7 +138,7 @@ export default {
     },
     async loadPersonnel() {
       try {
-        const response = await fetch('/api/personnel/directory')
+        const response = await fetch('/api/personnel/directory', { headers: this.authHeaders() })
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Could not load employee directory.')
         this.personnel = Array.isArray(data) ? data : []
@@ -166,7 +173,7 @@ export default {
       try {
         const response = await fetch('/api/property-transfer-requests/' + this.selected.id + '/approve', {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.authHeaders(true),
           body: JSON.stringify({ to_user_id: this.toUserId, transfer_date: this.transferDate })
         })
         const data = await response.json()
@@ -183,7 +190,7 @@ export default {
       try {
         const response = await fetch('/api/property-transfer-requests/' + this.selected.id + '/reject', {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.authHeaders(true),
           body: JSON.stringify({ review_remarks: this.rejectReason })
         })
         const data = await response.json()
