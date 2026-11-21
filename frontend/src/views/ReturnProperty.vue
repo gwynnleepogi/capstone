@@ -22,24 +22,19 @@
     <!-- Property selection modal -->
     <div v-if="showPropertySelectionModal" class="return-overlay" tabindex="-1" @keydown.esc="closePropertySelectionModal">
       <section class="return-dialog return-selection-dialog card" role="dialog" aria-modal="true" aria-labelledby="property-selection-title">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
           <div>
             <strong id="property-selection-title">Property issued to you</strong>
             <div class="small text-muted">Select the properties you want to return.</div>
           </div>
-          <button type="button" class="btn-close" aria-label="Close" @click="closePropertySelectionModal"></button>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-warning btn-sm" :disabled="selectedEligible.length === 0 || loading" @click="openReturnForm">
+              Return Selected ({{ selectedEligible.length }})
+            </button>
+            <button type="button" class="btn-close" aria-label="Close" @click="closePropertySelectionModal"></button>
+          </div>
         </div>
         <div class="card-body p-0 overflow-auto">
-      <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>
-          <strong>Property issued to you</strong>
-          <div class="small text-muted">Select the properties you want to return.</div>
-        </div>
-        <button type="button" class="btn btn-warning" :disabled="selectedEligible.length === 0 || loading" @click="openReturnForm">
-          <i class="bi bi-arrow-return-left me-1"></i>
-          Return Selected Properties ({{ selectedEligible.length }})
-        </button>
-      </div>
 
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
