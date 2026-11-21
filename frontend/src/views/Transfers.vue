@@ -1407,6 +1407,11 @@ body{font-size:9px}
         const parsed = new Date(value + 'T00:00:00')
         return Number.isNaN(parsed.getTime()) ? esc(value) : parsed.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric', year: 'numeric' })
       }
+      const signatureDate = value => {
+        if (!value) return '-'
+        const parsed = new Date(value + 'T00:00:00')
+        return Number.isNaN(parsed.getTime()) ? esc(value) : parsed.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+      }
       const classifications = this.acknowledgementClassifications.map(label =>
         `<span class="classification-option">${details.classifications.includes(label) ? '☑' : '☐'} ${esc(label)}</span>`
       ).join('')
@@ -1478,8 +1483,8 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 <div class="page-number">Page 1 of 1</div>
 <div class="classification"><div class="classification-title">ACKNOWLEDGEMENT CLASSIFICATION</div><div class="classification-list">${classifications}</div></div>
 <div class="signatures">
-<div class="sign-block"><div class="sign-heading">Received by:</div><div class="sign-name">${esc(details.receivedBy.name)}</div><div class="sign-designation">${esc(details.receivedBy.title)}</div><div class="sign-date">${esc(date(details.receivedBy.date))}</div></div>
-<div class="sign-block"><div class="sign-heading">Issued by:</div><div class="sign-name">${esc(details.issuedBy.name)}</div><div class="sign-designation">${esc(details.issuedBy.title)}</div><div class="sign-date">${esc(date(details.issuedBy.date))}</div></div>
+<div class="sign-block"><div class="sign-heading">Received by:</div><div class="sign-name">${esc(details.receivedBy.name)}</div><div class="sign-designation">${esc(details.receivedBy.title)}</div><div class="sign-date">${esc(signatureDate(details.receivedBy.date))}</div></div>
+<div class="sign-block"><div class="sign-heading">Issued by:</div><div class="sign-name">${esc(details.issuedBy.name)}</div><div class="sign-designation">${esc(details.issuedBy.title)}</div><div class="sign-date">${esc(signatureDate(details.issuedBy.date))}</div></div>
 </div></div></div>
 <script>window.onload=function(){const logo=document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=function(){window.print()};logo.onerror=function(){window.print()}}else{window.print()}}<\/script>
 </body></html>`)
