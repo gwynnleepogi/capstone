@@ -114,9 +114,7 @@
                 <div>
                   <div class="text-muted small">Property No. {{ receipt.items?.property_number || '-' }}</div>
                   <h2 class="h5 mb-0">{{ receipt.items?.description || 'Unnamed property' }}</h2>
-                    </div>
-            </section>
-          </div>
+                </div>
                 <button type="button" class="btn-close" aria-label="Close" @click="toggleDetails(receipt.id)"></button>
               </div>
               <div class="property-modal-body">
@@ -180,6 +178,8 @@
                 <div class="small text-muted mt-1">Scan for property details</div>
               </div>
             </div>
+              </div>
+            </section>
           </div>
           </article>
         </div>
