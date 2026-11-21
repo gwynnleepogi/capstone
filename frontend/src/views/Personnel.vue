@@ -623,36 +623,48 @@
               </div>
               <div class="mb-3">
                 <label class="form-label">Role</label>
-                <select v-model="personnelForm.role" class="form-select" required @change="personnelForm.job_title = ''">
+                <select
+                  v-model="personnelForm.role"
+                  class="form-select"
+                  required
+                  @change="clearPersonnelEditTitle"
+                >
                   <option value="" disabled>Select a user type</option>
-                  <option value="Teacher">Teacher</option>
+                  <option value="Teacher">Teaching Staff</option>
                   <option value="Non-Teaching Staff">Non-Teaching Staff</option>
                 </select>
               </div>
               <div class="mb-3">
-                <label class="form-label">Department</label>
-                <input
-                  v-model.trim="personnelForm.department"
-                  class="form-control"
-                  @blur="personnelForm.department = normalizeDepartment(personnelForm.department)"
-                >
-              </div>
-              <div class="mb-3">
                 <label class="form-label">Job Title</label>
-                <select v-model="personnelForm.job_title" class="form-select" required :disabled="!personnelForm.role">
-                  <option value="" disabled>Select a job title</option>
-                  <option v-if="personnelForm.job_title && !positionsForRole(personnelForm.role).includes(personnelForm.job_title)" :value="personnelForm.job_title">{{ personnelForm.job_title }}</option>
-                  <option v-for="position in positionsForRole(personnelForm.role)" :key="position" :value="position">{{ position }}</option>
-                </select>
+                <SearchableSelect
+                  input-id="editPersonnelJobTitle"
+                  v-model="personnelForm.job_title"
+                  :options="editPersonnelTitleOptions"
+                  placeholder="Search or select a job title"
+                  required
+                  :disabled="!personnelForm.role"
+                />
               </div>
               <div class="mb-3">
                 <label class="form-label">Office</label>
-                <select v-model="personnelForm.office_id" class="form-select">
-                  <option value="">No Office</option>
-                  <option v-for="office in offices" :key="office.id" :value="office.id">
-                    {{ office.office_name }}
-                  </option>
-                </select>
+                <SearchableSelect
+                  input-id="editPersonnelOffice"
+                  v-model="personnelForm.office_id"
+                  :options="editPersonnelOfficeOptions"
+                  placeholder="Search or select an office"
+                  required
+                  @update:model-value="updatePersonnelEditDepartment"
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Department</label>
+                <input
+                  :value="personnelForm.department"
+                  class="form-control"
+                  readonly
+                  placeholder="Automatically set from the selected office"
+                >
+                <div class="form-text">Department follows the selected office.</div>
               </div>
             </div>
             <div class="modal-footer">
@@ -770,6 +782,36 @@ export default {
         ...titles.map(title => ({ value: title, label: title })),
         { value: '__other__', label: 'Others' }
       ]
+    },
+
+    editPersonnelOfficeOptions() {
+      return [...this.offices]
+        .filter(office => office?.id && office.office_name)
+        .sort((first, second) =>
+          first.office_name.localeCompare(second.office_name, undefined, {
+            sensitivity: 'base'
+          })
+        )
+        .map(office => ({ value: office.id, label: office.office_name }))
+    },
+
+    editPersonnelTitleOptions() {
+      if (!this.personnelForm.role) return []
+
+      const savedTitles = this.personnel
+        .filter(person => person.role === this.personnelForm.role)
+        .map(person => String(person.job_title || '').trim())
+        .filter(Boolean)
+
+      const titles = [...new Set([
+        ...positionsForRole(this.personnelForm.role),
+        ...savedTitles,
+        String(this.personnelForm.job_title || '').trim()
+      ])].filter(Boolean).sort((first, second) =>
+        first.localeCompare(second, undefined, { sensitivity: 'base' })
+      )
+
+      return titles.map(title => ({ value: title, label: title }))
     },
 
     roles() {
@@ -1121,12 +1163,15 @@ export default {
     editSelectedPersonnel() {
       const person = this.selectedPersonnel
       if (!person?.id) return
+      const matchingOffice = this.offices.find(office =>
+        String(office.id) === String(person.office_id)
+      )
       this.personnelForm = {
         full_name: person.full_name || '',
         email: person.email || '',
         role: person.role || '',
         employee_id: person.employee_id || '',
-        department: person.department || '',
+        department: matchingOffice?.office_name || person.department || '',
         job_title: person.job_title || '',
         office_id: person.office_id || ''
       }
@@ -1136,9 +1181,32 @@ export default {
       ).show()
     },
 
+    clearPersonnelEditTitle() {
+      this.personnelForm.job_title = ''
+    },
+
+    updatePersonnelEditDepartment(officeId) {
+      const selectedOffice = this.offices.find(
+        office => String(office.id) === String(officeId)
+      )
+      this.personnelForm.department = selectedOffice
+        ? selectedOffice.office_name
+        : ''
+    },
+
     async savePersonnelEdit() {
       const personId = this.selectedPersonnel?.id
       if (!personId) return
+      const selectedOffice = this.offices.find(
+        office => String(office.id) === String(this.personnelForm.office_id)
+      )
+      if (!selectedOffice) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Select an office before saving personnel.'
+        }))
+        return
+      }
+      this.personnelForm.department = selectedOffice.office_name
       this.personnelSaving = true
 
       try {
