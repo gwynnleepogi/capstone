@@ -111,152 +111,79 @@
 
         <form class="add-dialog-form" @submit.prevent="addItem">
           <div class="card-body add-dialog-body">
-            <div class="row g-3">
+            <div class="row g-4">
               <div class="col-12">
-                <label class="form-label">
-                  Property Number <span class="text-danger">*</span>
-                </label>
-                <input
-                  v-model="newItem.property_number"
-                  type="text"
-                  class="form-control"
-                  required
-                />
+                <h6 class="border-bottom pb-2 mb-1">1. Property Information</h6>
               </div>
 
               <div class="col-12 col-md-6">
-                <label class="form-label">
-                  Model Number <span class="text-danger">*</span>
-                </label>
-                <input
-                  v-model="newItem.model_number"
-                  type="text"
-                  class="form-control"
-                  required
-                />
+                <label class="form-label">Property Number <span class="text-danger">*</span></label>
+                <input v-model.trim="newItem.property_number" type="text" class="form-control" required />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Article <span class="text-danger">*</span></label>
+                <input v-model.trim="newItem.article" type="text" class="form-control" placeholder="e.g. BAG" required />
+              </div>
+
+              <div class="col-12">
+                <label class="form-label">Description <span class="text-danger">*</span></label>
+                <input v-model.trim="newItem.description" type="text" class="form-control" required />
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Model Number</label>
+                <input v-model.trim="newItem.model_number" type="text" class="form-control" placeholder="Optional" />
               </div>
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Serial Number</label>
-                <input
-                  v-model.trim="newItem.serial_number"
-                  type="text"
-                  class="form-control"
-                  placeholder="Optional"
-                />
+                <input v-model.trim="newItem.serial_number" type="text" class="form-control" placeholder="Optional" />
+              </div>
+
+              <div class="col-12 mt-4">
+                <h6 class="border-bottom pb-2 mb-1">2. Acquisition Information</h6>
               </div>
 
               <div class="col-12 col-md-6">
-                <label class="form-label">
-                  Article <span class="text-danger">*</span>
-                </label>
-                <input
-                  v-model.trim="newItem.article"
-                  type="text"
-                  class="form-control"
-                  placeholder="e.g. BAG"
-                  required
-                />
-              </div>
-
-              <div class="col-12">
-                <label class="form-label">
-                  Description <span class="text-danger">*</span>
-                </label>
-                <input
-                  v-model="newItem.description"
-                  type="text"
-                  class="form-control"
-                  required
-                />
-              </div>
-
-              <div class="col-12 col-md-8">
-                <label class="form-label">
-                  Cost <span class="text-danger">*</span>
-                </label>
+                <label class="form-label">Cost <span class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text">₱</span>
-                  <input
-                    v-model="newItem.cost"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    class="form-control"
-                    required
-                  />
+                  <input v-model="newItem.cost" type="number" min="0" step="0.01" class="form-control" required />
                 </div>
               </div>
 
-              <div class="col-12 col-md-4">
-                <label class="form-label">
-                  Acquisition Date <span class="text-danger">*</span>
-                </label>
-                <input
-                  v-model="newItem.acquisition_date"
-                  type="date"
-                  class="form-control"
-                  required
-                />
+              <div class="col-12 col-md-6">
+                <label class="form-label">Acquisition Date <span class="text-danger">*</span></label>
+                <input v-model="newItem.acquisition_date" type="date" class="form-control" required />
               </div>
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Unit of Measure</label>
-                <input
-                  v-model.trim="newItem.unit"
-                  type="text"
-                  class="form-control"
-                  list="unit-options"
-                  placeholder="e.g. PC"
-                  required
-                />
+                <input v-model.trim="newItem.unit" type="text" class="form-control" list="unit-options" placeholder="e.g. PC" />
               </div>
 
               <div class="col-12 col-md-6">
                 <label class="form-label">DR/CI/SI Number</label>
-                <input
-                  v-model.trim="newItem.dr_ci_si_number"
-                  type="text"
-                  class="form-control"
-                  placeholder="e.g. DR 000051"
-                />
+                <input v-model.trim="newItem.dr_ci_si_number" type="text" class="form-control" placeholder="Optional" />
               </div>
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Property Order No.</label>
-                <input
-                  v-model.trim="newItem.po_number"
-                  type="text"
-                  class="form-control"
-                />
+                <input v-model.trim="newItem.po_number" type="text" class="form-control" placeholder="Optional" />
               </div>
 
               <div class="col-12 col-md-6">
-                <label class="form-label">
-                  Supplier <span class="text-danger">*</span>
-                </label>
-                <input
-                  v-model.trim="newItem.supplier"
-                  type="text"
-                  class="form-control"
-                  list="supplier-options"
-                  required
-                />
+                <label class="form-label">Supplier <span class="text-danger">*</span></label>
+                <input v-model.trim="newItem.supplier" type="text" class="form-control" list="supplier-options" required />
+              </div>
+
+              <div class="col-12 mt-4">
+                <h6 class="border-bottom pb-2 mb-1">3. Assignment Information</h6>
               </div>
 
               <div class="col-12 col-md-6">
-                <label class="form-label">Remarks</label>
-                <input
-                  v-model.trim="newItem.remarks"
-                  type="text"
-                  class="form-control"
-                />
-              </div>
-
-              <div class="col-12 col-md-6">
-                <label class="form-label">
-                  Accountable Employee <span class="text-danger">*</span>
-                </label>
+                <label class="form-label">Accountable Employee <span class="text-danger">*</span></label>
                 <SearchableSelect
                   v-model="newItem.accountable_employee"
                   :options="accountableEmployeeOptions"
@@ -264,11 +191,7 @@
                   required
                   @update:modelValue="selectAccountableEmployee(newItem, $event)"
                 />
-                <button
-                  type="button"
-                  class="btn btn-outline-success btn-sm mt-2"
-                  @click="showAddEmployeeForm = true"
-                >
+                <button type="button" class="btn btn-outline-success btn-sm mt-2" @click="showAddEmployeeForm = true">
                   <i class="bi bi-person-plus me-1"></i>
                   Add Employee Account
                 </button>
@@ -278,27 +201,23 @@
                 <label class="form-label">Office <span class="text-danger">*</span></label>
                 <SearchableSelect v-model="newItem.office_name" :options="officeSelectOptions" placeholder="Search or select an office" required />
               </div>
+
               <div class="col-12 col-md-6">
                 <label class="form-label">Responsibility Center <span class="text-danger">*</span></label>
                 <input v-model.trim="newItem.responsibility_center" type="text" class="form-control" placeholder="Enter responsibility center" required />
               </div>
 
               <div class="col-12 col-md-6">
-                <label class="form-label">
-                  Fund Cluster <span class="text-danger">*</span>
-                </label>
-                <SearchableSelect
-                  v-model="newItem.fund_cluster"
-                  :options="fundClusterOptions"
-                  placeholder="Search fund cluster"
-                  required
-                />
+                <label class="form-label">Fund Cluster <span class="text-danger">*</span></label>
+                <SearchableSelect v-model="newItem.fund_cluster" :options="fundClusterOptions" placeholder="Search fund cluster" required />
+              </div>
+
+              <div class="col-12 mt-4">
+                <h6 class="border-bottom pb-2 mb-1">4. Property Classification and Condition</h6>
               </div>
 
               <div class="col-12 col-md-4">
-                <label class="form-label">
-                  Classification <span class="text-danger">*</span>
-                </label>
+                <label class="form-label">Classification <span class="text-danger">*</span></label>
                 <input
                   type="text"
                   class="form-control"
@@ -307,28 +226,28 @@
                   aria-describedby="new-property-classification-help"
                 />
                 <small id="new-property-classification-help" class="form-text text-muted">
-                  Automatically determined by the property cost.
+                  Automatically determined based on the property cost.
                 </small>
               </div>
 
               <div class="col-12 col-md-4">
-                <label class="form-label">
-                  Condition <span class="text-danger">*</span>
-                </label>
-                <SearchableSelect
-                  v-model="newItem.condition"
-                  :options="conditionOptions"
-                  placeholder="Select condition"
-                  required
-                />
+                <label class="form-label">Condition <span class="text-danger">*</span></label>
+                <SearchableSelect v-model="newItem.condition" :options="conditionOptions" placeholder="Select condition" required />
               </div>
 
               <div class="col-12 col-md-4">
                 <label class="form-label">Status</label>
                 <input type="text" class="form-control" value="Issued" readonly />
-                <small class="form-text text-muted">
-                  Automatically set to Issued because an accountable employee is required.
-                </small>
+                <small class="form-text text-muted">Automatically set to Issued.</small>
+              </div>
+
+              <div class="col-12 mt-4">
+                <h6 class="border-bottom pb-2 mb-1">5. Additional Information</h6>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label">Remarks</label>
+                <textarea v-model.trim="newItem.remarks" class="form-control" rows="2" placeholder="Optional remarks"></textarea>
               </div>
             </div>
           </div>
