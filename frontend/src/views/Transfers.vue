@@ -459,8 +459,20 @@
             <p class="text-muted small">Complete the approval and signatory details before printing the Request for Property Transfer form.</p>
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="form-label">From Responsibility Center</label>
-                <input class="form-control" v-model.trim="requestPrintDetails.responsibilityCenter" placeholder="Defaults to the property record">
+                <label class="form-label">From Accountable Employee <span class="text-muted">(optional)</span></label>
+                <input class="form-control" v-model.trim="requestPrintDetails.fromAccountableEmployee" placeholder="Enter accountable employee">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">From Responsibility Center <span class="text-muted">(optional)</span></label>
+                <input class="form-control" v-model.trim="requestPrintDetails.fromResponsibilityCenter" placeholder="Enter responsibility center">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">To Accountable Employee <span class="text-muted">(optional)</span></label>
+                <input class="form-control" v-model.trim="requestPrintDetails.toAccountableEmployee" placeholder="Enter receiving accountable employee">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">To Responsibility Center <span class="text-muted">(optional)</span></label>
+                <input class="form-control" v-model.trim="requestPrintDetails.toResponsibilityCenter" placeholder="Enter responsibility center">
               </div>
               <div class="col-md-6 position-relative">
                 <label class="form-label">Requested by - Printed Name</label>
@@ -825,7 +837,10 @@ export default {
     emptyRequestPrintDetails() {
       return {
         rptNumber: '',
-        responsibilityCenter: '',
+        fromAccountableEmployee: '',
+        fromResponsibilityCenter: '',
+        toAccountableEmployee: '',
+        toResponsibilityCenter: '',
         paperSize: 'long',
         requestedBy: { name: '', designation: '', date: '' },
         approvedBy: { name: '', designation: '', date: '' },
@@ -1188,7 +1203,8 @@ export default {
       this.selectedRequestTransfer = transfer
       this.requestPrintDetails = this.emptyRequestPrintDetails()
       this.requestPrintDetails.rptNumber = transfer.rpt_number || transfer.rpt_no || this.getAutomaticRPTNumber(transfer)
-      this.requestPrintDetails.responsibilityCenter = transfer.items?.responsibility_center || ''
+      this.requestPrintDetails.fromAccountableEmployee = transfer.from_user?.full_name || transfer.items?.accountable_employee || ''
+      this.requestPrintDetails.toAccountableEmployee = transfer.to_user?.full_name || ''
       this.requestPrintDetails.requestedBy.name = transfer.from_user?.full_name || ''
       this.requestPrintDetails.requestedBy.designation = transfer.from_user?.job_title || ''
       this.requestPrintDetails.requestedBy.date = String(transfer.transfer_date || '').slice(0, 10)
@@ -1233,10 +1249,10 @@ export default {
       const esc = this.escapePrint
       const item = transfer.items || {}
       const receipt = transfer.property_receipts || {}
-      const fromName = transfer.from_user?.full_name || item.accountable_employee || '-'
-      const toName = transfer.to_user?.full_name || '-'
-      const fromCenter = details.responsibilityCenter || item.responsibility_center || '-'
-      const toCenter = transfer.offices?.office_name || transfer.to_user?.office_name || '-'
+      const fromName = details.fromAccountableEmployee || ''
+      const toName = details.toAccountableEmployee || ''
+      const fromCenter = details.fromResponsibilityCenter || ''
+      const toCenter = details.toResponsibilityCenter || ''
       const quantity = Number(receipt.quantity || 1)
       const amount = Number(item.cost || 0) * quantity
       const condition = transfer.condition_after_transfer || item.condition || '-'
