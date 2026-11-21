@@ -483,6 +483,7 @@ export default {
       currentPage: 1,
       pageSize: 10,
       items: [],
+      offices: [],
       personnel: [],
 
       fundClusterOptions: [
@@ -637,8 +638,8 @@ export default {
 
     risOfficeOptions() {
       const officeNames = [...new Set(
-        (this.items || [])
-          .map(item => String(item.office_name || '').trim())
+        (this.offices || [])
+          .map(office => String(office.office_name || '').trim())
           .filter(Boolean)
       )]
       return officeNames
@@ -688,6 +689,7 @@ export default {
   mounted() {
     this.getReceipts()
     this.getItems()
+    this.getOffices()
     this.getPersonnel()
   },
 
@@ -867,6 +869,17 @@ export default {
         this.items = Array.isArray(data) ? data : data.items || []
       } catch (error) {
         console.log(error)
+      }
+    },
+
+    async getOffices() {
+      try {
+        const response = await fetch('/api/offices')
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Failed to load offices')
+        this.offices = Array.isArray(data) ? data : data.offices || []
+      } catch (error) {
+        console.error('Failed to load offices:', error)
       }
     },
 
