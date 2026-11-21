@@ -61,7 +61,7 @@
                 <th>Date</th>
                 <th>Condition</th>
                 <th>Property Status</th>
-                <th>Reason</th>
+                <th>Remarks</th>
                 <th class="text-center">Action</th>
               </tr>
             </thead>
@@ -113,7 +113,7 @@
                   </span>
                 </td>
 
-                <td>{{ transfer.reason || '-' }}</td>
+                <td>{{ transfer.remarks || '-' }}</td>
                 <td class="text-center">
                   <button type="button" class="btn btn-sm btn-outline-secondary" @click="openTransferDetails(transfer)">
                     <i class="bi bi-eye me-1"></i>Details
