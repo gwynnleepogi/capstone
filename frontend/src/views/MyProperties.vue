@@ -79,8 +79,6 @@
           <button
             type="button"
             class="property-summary"
-            :aria-expanded="expandedReceiptId === receipt.id"
-            :aria-controls="`property-details-${receipt.id}`"
             @click="toggleDetails(receipt.id)"
           >
             <span class="property-tile-top">
@@ -88,11 +86,7 @@
                 <i class="bi bi-box-seam me-1"></i>
                 {{ receipt.items?.property_number || receipt.items?.id || 'No property number' }}
               </span>
-              <i
-                class="bi tile-chevron"
-                :class="expandedReceiptId === receipt.id ? 'bi-chevron-up' : 'bi-chevron-down'"
-                aria-hidden="true"
-              ></i>
+              <i class="bi bi-arrow-up-right tile-chevron" aria-hidden="true"></i>
             </span>
             <span class="property-article">Article: {{ receipt.items?.article || '-' }}</span>
             <span class="property-name">{{ receipt.items?.description || 'Unnamed property' }}</span>
@@ -103,11 +97,29 @@
             <span class="property-tile-hint">View property details <i class="bi bi-arrow-right ms-1"></i></span>
           </button>
 
+
           <div
             v-if="expandedReceiptId === receipt.id"
-            :id="`property-details-${receipt.id}`"
-            class="card-body border-top"
+            class="property-modal-backdrop"
+            role="presentation"
+            @click.self="toggleDetails(receipt.id)"
           >
+            <section
+              class="property-modal"
+              role="dialog"
+              aria-modal="true"
+              :aria-label="`Details for ${receipt.items?.property_number || 'property'}`"
+            >
+              <div class="property-modal-header">
+                <div>
+                  <div class="text-muted small">Property No. {{ receipt.items?.property_number || '-' }}</div>
+                  <h2 class="h5 mb-0">{{ receipt.items?.description || 'Unnamed property' }}</h2>
+                    </div>
+            </section>
+          </div>
+                <button type="button" class="btn-close" aria-label="Close" @click="toggleDetails(receipt.id)"></button>
+              </div>
+              <div class="property-modal-body">
             <div class="row g-3 align-items-center">
               <div class="col-12 col-md">
                 <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
@@ -397,6 +409,44 @@ export default {
   color: #47734e;
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+
+.property-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(18, 28, 20, 0.55);
+}
+
+.property-modal {
+  width: min(900px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.22);
+}
+
+.property-modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-bottom: 1px solid #e9ecef;
+  background: #fff;
+}
+
+.property-modal-body {
+  padding: 1.25rem;
 }
 
 .property-details dt,
