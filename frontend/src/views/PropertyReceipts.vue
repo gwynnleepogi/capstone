@@ -220,7 +220,7 @@
                   </select>
                 </div>
                 <div class="col-md-6"><label class="form-label">Purpose</label><input class="form-control" v-model.trim="receiptPrintForm.purpose"></div>
-                <div class="col-md-6"><label class="form-label">Responsibility Center / Unit / Office</label><input class="form-control" v-model.trim="receiptPrintForm.unitOffice" placeholder="Defaults to the property record"></div>
+                <div class="col-md-6"><label class="form-label">Unit / Office</label><input class="form-control" v-model.trim="receiptPrintForm.unitOffice" placeholder="Defaults to the property record"></div>
                 <div class="col-md-6"><label class="form-label">PO No.</label><input class="form-control" v-model.trim="receiptPrintForm.poNumber"></div>
                 <div class="col-md-6"><label class="form-label">UACS</label><input class="form-control" v-model.trim="receiptPrintForm.uacs"></div>
                 <div class="col-md-6"><label class="form-label">BUR No.</label><input class="form-control" v-model.trim="receiptPrintForm.burNumber"></div>
