@@ -656,16 +656,6 @@
                   @update:model-value="updatePersonnelEditDepartment"
                 />
               </div>
-              <div class="mb-3">
-                <label class="form-label">Department</label>
-                <input
-                  :value="personnelForm.department"
-                  class="form-control"
-                  readonly
-                  placeholder="Automatically set from the selected office"
-                >
-                <div class="form-text">Department follows the selected office.</div>
-              </div>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
