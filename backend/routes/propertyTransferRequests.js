@@ -43,6 +43,7 @@ router.get('/mine', async (req, res) => {
 })
 
 router.get('/', async (req, res) => {
+  if (req.role !== 'Administrator') return res.status(403).json({ error: 'Only administrators can review transfer requests.' })
   try {
     const { data, error } = await supabase.from('property_transfer_requests').select('*').order('created_at', { ascending: false })
     if (error) return res.status(500).json({ error: error.message })
@@ -99,6 +100,7 @@ router.post('/', async (req, res) => {
 })
 
 router.patch('/:id/reject', async (req, res) => {
+  if (req.role !== 'Administrator') return res.status(403).json({ error: 'Only administrators can review transfer requests.' })
   try {
     const reason = String(req.body.review_remarks || '').trim()
     if (!reason) return res.status(400).json({ error: 'A reason is required when disapproving a request.' })
@@ -114,6 +116,7 @@ router.patch('/:id/reject', async (req, res) => {
 })
 
 router.patch('/:id/approve', async (req, res) => {
+  if (req.role !== 'Administrator') return res.status(403).json({ error: 'Only administrators can approve transfer requests.' })
   const requestId = req.params.id
   try {
     const recipientId = req.body.to_user_id
