@@ -433,6 +433,7 @@ router.patch('/:id/reissue', async (req, res) => {
       .insert([{
         item_id: item.id,
         receipt_type: receiptType,
+        transaction_type: 'Reissuance',
         receipt_number: receiptNumber,
         issued_to: employee.id,
         quantity: Number(oldReceipt.quantity) || 1,
