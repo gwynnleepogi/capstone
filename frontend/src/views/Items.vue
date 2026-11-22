@@ -1302,6 +1302,12 @@ export default {
       const printableResponsibilityCenter =
         this.printResponsibilityCenter || item.responsibility_center || ''
 
+      const accountableEmployee = this.personnel.find(person =>
+        String(person.full_name || '').trim().toLowerCase() ===
+        String(item.accountable_employee || '').trim().toLowerCase(),
+      )
+      const accountableEmployeeTitle = accountableEmployee?.job_title || ''
+
       const cost = Number(item.cost)
       const formattedCost = Number.isFinite(cost)
         ? cost.toLocaleString('en-PH', {
@@ -1849,9 +1855,10 @@ export default {
       this.showQrModal = false
       this.qrCodeError = ''
       this.qrGenerating = false
+      this.generateItemQrCode(false)
     },
 
-    async generateItemQrCode() {
+    async generateItemQrCode(showModal = true) {
       const item = this.detailItem
 
       if (!item || this.qrGenerating) {
@@ -1909,7 +1916,7 @@ export default {
 
         if (this.detailItem?.id === item.id) {
           this.detailQrCode = qrCode
-          this.showQrModal = true
+          this.showQrModal = showModal
         }
       } catch (error) {
         console.error('Failed to generate property QR code:', error)
