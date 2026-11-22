@@ -63,13 +63,7 @@ router.get('/', async (req, res) => {
           cost, acquisition_date, quantity, condition, status,
           accountable_employee, responsibility_center, fund_cluster, unit
         ),
-        users (id, full_name),
-        item_requests (
-          id, request_number, item_description, quantity, purpose, status,
-          requested_by, office_id,
-          users (id, full_name, office_id),
-          offices (id, office_name)
-        )
+        users (id, full_name)
       `)
       .order('created_at', { ascending: false })
 
@@ -98,13 +92,7 @@ router.get('/:id', async (req, res) => {
           cost, acquisition_date, quantity, condition, status,
           accountable_employee, responsibility_center, fund_cluster, unit
         ),
-        users (id, full_name, office_id),
-        item_requests (
-          id, request_number, item_description, quantity, purpose, status,
-          requested_by, office_id,
-          users (id, full_name),
-          offices (id, office_name)
-        )
+        users (id, full_name, office_id)
       `)
       .eq('id', req.params.id)
       .single()
@@ -126,7 +114,6 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const {
-      item_request_id,
       item_id,
       transaction_type = 'Acquisition',
       return_id,
@@ -139,7 +126,6 @@ router.post('/', async (req, res) => {
     } = req.body
 
     if (
-      item_request_id ||
       (transaction_type === 'Acquisition' && !item_id) ||
       (transaction_type === 'Reissuance' && item_id)
     ) {
@@ -450,237 +436,6 @@ router.post('/', async (req, res) => {
       })
     }
 
-    // ==========================================
-    // RECEIPT FOR APPROVED ITEM REQUEST
-    // ==========================================
-    const { data: request, error: requestError } = await supabase
-      .from('item_requests')
-      .select('*, users (id, full_name)')
-      .eq('id', item_request_id)
-      .single()
-
-    if (requestError || !request) {
-      return res.status(404).json({
-        error: 'Item request not found'
-      })
-    }
-
-    if (
-      String(request.status || '').trim().toLowerCase() !== 'approved'
-    ) {
-      return res.status(400).json({
-        error: 'Only approved requests can be issued'
-      })
-    }
-
-    if (!request.item_id || !request.requested_by) {
-      return res.status(400).json({
-        error: 'The request must have an assigned item and recipient'
-      })
-    }
-
-    if (Number(request.quantity) !== 1) {
-      return res.status(400).json({
-        error: 'Each item request must have a quantity of 1. Please update the request first.'
-      })
-    }
-
-    const {
-      data: existingReceipt,
-      error: existingError
-    } = await supabase
-      .from('property_receipts')
-      .select('id')
-      .eq('item_request_id', item_request_id)
-      .maybeSingle()
-
-    if (existingError) {
-      return res.status(500).json({
-        error: existingError.message
-      })
-    }
-
-    if (existingReceipt) {
-      return res.status(409).json({
-        error: 'This item request already has a receipt'
-      })
-    }
-
-    const { data: item, error: itemError } = await supabase
-      .from('items')
-      .select(`
-        id, description, property_number, status, condition,
-        accountable_employee, quantity
-      `)
-      .eq('id', request.item_id)
-      .single()
-
-    if (itemError || !item) {
-      return res.status(404).json({
-        error: 'Item not found'
-      })
-    }
-
-    const availableQuantity = Number(item.quantity)
-
-    if (
-      !Number.isInteger(availableQuantity) ||
-      availableQuantity < 0
-    ) {
-      return res.status(400).json({
-        error: 'Item stock quantity is invalid'
-      })
-    }
-
-    if (availableQuantity < 1) {
-      return res.status(400).json({
-        error: 'This item is out of stock'
-      })
-    }
-
-    if (item.condition !== 'Serviceable') {
-      return res.status(400).json({
-        error: 'This item is Unserviceable and cannot be issued'
-      })
-    }
-
-    if (item.status !== 'Assigned') {
-      return res.status(400).json({
-        error: `This item cannot be issued. Current status: ${item.status}`
-      })
-    }
-
-    const { data: recipient, error: recipientError } = await supabase
-      .from('users')
-      .select('id, full_name')
-      .eq('id', request.requested_by)
-      .single()
-
-    if (recipientError || !recipient) {
-      return res.status(404).json({
-        error: 'Recipient not found'
-      })
-    }
-
-    const quantityToIssue = 1
-    const remainingQuantity = availableQuantity - quantityToIssue
-
-    const newStatus = remainingQuantity > 0
-      ? 'Assigned'
-      : 'Issued'
-
-    const newAccountableEmployee = remainingQuantity === 0
-      ? recipient.full_name
-      : null
-
-    const { data: receipt, error: receiptError } = await supabase
-      .from('property_receipts')
-      .insert([{
-        item_id: request.item_id,
-        item_request_id,
-        receipt_type,
-        receipt_number: String(finalReceiptNumber).trim(),
-        issued_to: request.requested_by,
-        quantity: 1,
-        date_issued: date_issued ||
-          new Date().toISOString().split('T')[0],
-        remarks: remarks || null,
-        status: 'Issued'
-      }])
-      .select()
-      .single()
-
-    if (receiptError) {
-      return res.status(500).json({
-        error: receiptError.message
-      })
-    }
-
-    const { data: updatedItem, error: updateItemError } = await supabase
-      .from('items')
-      .update({
-        quantity: remainingQuantity,
-        status: newStatus,
-        accountable_employee: newAccountableEmployee
-      })
-      .eq('id', request.item_id)
-      .select()
-      .single()
-
-    if (updateItemError) {
-      await supabase
-        .from('property_receipts')
-        .delete()
-        .eq('id', receipt.id)
-
-      return res.status(500).json({
-        error: updateItemError.message
-      })
-    }
-
-    const { error: requestUpdateError } = await supabase
-      .from('item_requests')
-      .update({ status: 'Delivered' })
-      .eq('id', item_request_id)
-
-    if (requestUpdateError) {
-      await supabase
-        .from('items')
-        .update({
-          quantity: availableQuantity,
-          status: item.status,
-          accountable_employee: item.accountable_employee
-        })
-        .eq('id', request.item_id)
-
-      await supabase
-        .from('property_receipts')
-        .delete()
-        .eq('id', receipt.id)
-
-      return res.status(500).json({
-        error: requestUpdateError.message
-      })
-    }
-
-    try {
-      await createAuditLog(
-        'Issued',
-        request.item_id,
-        JSON.stringify({
-          description: item.description,
-          property_number: item.property_number,
-          status: item.status,
-          quantity: availableQuantity,
-          accountable_employee: item.accountable_employee,
-          request_status: request.status
-        }),
-        JSON.stringify({
-          description: item.description,
-          property_number: item.property_number,
-          receipt_number: receipt.receipt_number,
-          receipt_type,
-          accountable_employee: recipient.full_name,
-          from_employee: 'Property Office',
-          to_employee: recipient.full_name,
-          quantity: 1,
-          old_quantity: availableQuantity,
-          new_quantity: remainingQuantity,
-          status: newStatus,
-          request_status: 'Delivered'
-        }),
-        `Created ${receipt_type} receipt ${receipt.receipt_number} for ${item.description}`,
-        req.profile?.id
-      )
-    } catch (auditError) {
-      console.log('Audit log error:', auditError)
-    }
-
-    res.status(201).json({
-      message: 'Receipt created successfully',
-      receipt,
-      item: updatedItem
-    })
   } catch (error) {
     console.log(error)
     res.status(500).json({
@@ -852,46 +607,20 @@ router.delete('/:id', async (req, res) => {
 
     let item = null
 
-    if (receipt.item_id && receipt.item_request_id) {
+    if (receipt.item_id) {
       const { data, error } = await supabase
         .from('items')
         .select('id, description, property_number, quantity, status, accountable_employee')
         .eq('id', receipt.item_id)
-        .single()
+        .maybeSingle()
 
-      if (error || !data) {
-        return res.status(409).json({
-          error: 'The linked item was not found. Receipt was not deleted.'
-        })
-      }
-
-      item = data
-
-      const restoreQuantity = Number(receipt.quantity)
-
-      if (
-        !Number.isInteger(restoreQuantity) ||
-        restoreQuantity < 1
-      ) {
-        return res.status(400).json({
-          error: 'Receipt quantity is invalid. Receipt was not deleted.'
-        })
-      }
-
-      const { error: restoreError } = await supabase
-        .from('items')
-        .update({
-          quantity: Number(item.quantity || 0) + restoreQuantity,
-          status: 'Returned',
-          accountable_employee: null
-        })
-        .eq('id', receipt.item_id)
-
-      if (restoreError) {
+      if (error) {
         return res.status(500).json({
-          error: 'Failed to restore item stock. Receipt was not deleted.'
+          error: 'Could not load the property linked to this receipt.'
         })
       }
+
+      item = data || null
     }
 
     const { error: deleteError } = await supabase
@@ -900,34 +629,12 @@ router.delete('/:id', async (req, res) => {
       .eq('id', req.params.id)
 
     if (deleteError) {
-      if (item) {
-        await supabase
-          .from('items')
-          .update({
-            quantity: Number(item.quantity || 0),
-            status: item.status,
-            accountable_employee: item.accountable_employee
-          })
-          .eq('id', item.id)
-      }
-
       console.error('Receipt deletion failed:', deleteError)
       return res.status(500).json({
         error: 'The receipt could not be deleted. Inventory changes were rolled back where possible.',
         details: deleteError.message,
         code: deleteError.code
       })
-    }
-
-    if (receipt.item_request_id) {
-      const { error } = await supabase
-        .from('item_requests')
-        .update({ status: 'Approved' })
-        .eq('id', receipt.item_request_id)
-
-      if (error) {
-        console.log('Request restore error:', error.message)
-      }
     }
 
     try {
@@ -945,7 +652,6 @@ router.delete('/:id', async (req, res) => {
           inventory_quantity: item?.quantity,
           inventory_status: item?.status,
           accountable_employee: item?.accountable_employee,
-          request_status: receipt.item_request_id ? 'Delivered' : null
         }),
         JSON.stringify({
           description: item?.description,
@@ -955,7 +661,6 @@ router.delete('/:id', async (req, res) => {
             : null,
           inventory_status: item ? 'Returned' : null,
           accountable_employee: item ? null : undefined,
-          request_status: receipt.item_request_id ? 'Approved' : null
         }),
         `Deleted receipt ${receipt.receipt_number}`,
         req.profile?.id
