@@ -479,6 +479,11 @@
                 {{ selectedReturn.property_receipts?.receipt_number || '-' }}
               </dd>
 
+              <dt class="col-sm-4">Reissued Receipt</dt>
+              <dd class="col-sm-8">
+                {{ selectedReturn.reissued_receipt?.receipt_number || 'Not reissued' }}
+              </dd>
+
               <dt class="col-sm-4">Quantity Restored to Stock</dt>
               <dd class="col-sm-8">
                 {{ selectedReturn.property_receipts?.quantity ?? '-' }}
@@ -535,18 +540,11 @@
               Close
             </button>
 
-            <button
-              v-if="selectedReturn && selectedReturn.return_purpose === 'Repair' && !selectedReturn.reissued_receipt_id"
-              type="button"
-              class="btn btn-success"
-              :disabled="reissuingReturnId === selectedReturn.id"
-              @click="reissueReturnedProperty(selectedReturn)"
-            >
-              <i class="bi bi-arrow-repeat me-1"></i>
-              {{ reissuingReturnId === selectedReturn.id ? 'Reissuing...' : 'Mark Repaired & Reissue to Same Employee' }}
-            </button>
-            <span v-else-if="selectedReturn && selectedReturn.return_purpose === 'Repair' && selectedReturn.reissued_receipt_id" class="badge bg-success">
-              Reissued after repair
+            <div v-if="selectedReturn && !selectedReturn.reissued_receipt_id && selectedReturn.return_purpose !== 'Disposal'" class="small text-muted">
+              To issue this returned property again, open Acquisitions and Issuance and select Reissuance.
+            </div>
+            <span v-else-if="selectedReturn && selectedReturn.reissued_receipt_id" class="badge bg-success">
+              Reissued — {{ selectedReturn.reissued_receipt?.receipt_number || 'New receipt created' }}
             </span>
             <button type="button" class="btn btn-outline-success" @click="openReturnedAcknowledgementModal">
               <i class="bi bi-printer me-1"></i>Print Acknowledgement for Returned Property
@@ -768,7 +766,6 @@ export default {
       editing: false,
       saving: false,
       deletingReturnId: null,
-      reissuingReturnId: null,
       returnedReceiptPaperSize: 'a4',
       returnedAcknowledgementSignatory: {
         printedName: '',
@@ -1071,45 +1068,6 @@ export default {
     nextPage() {
       if (this.currentPage < this.totalPages) {
         this.currentPage++
-      }
-    },
-
-    async reissueReturnedProperty(itemReturn) {
-      if (!itemReturn || itemReturn.return_purpose !== 'Repair' || itemReturn.reissued_receipt_id) return
-
-      const employeeName =
-        itemReturn.personnel?.full_name ||
-        itemReturn.users?.full_name ||
-        'the original employee'
-
-      if (!window.confirm(
-        'Mark this property as repaired and reissue it to ' + employeeName + '? A new PAR/ICS receipt will be created.'
-      )) return
-
-      this.reissuingReturnId = itemReturn.id
-
-      try {
-        const response = await fetch('/api/returns/' + itemReturn.id + '/reissue', {
-          method: 'PATCH'
-        })
-        const data = await response.json().catch(() => ({}))
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Could not reissue the repaired property.')
-        }
-
-        window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: data.message || 'Repaired property reissued successfully.'
-        }))
-
-        await Promise.all([this.getReturns(), this.getReceipts()])
-
-        const refreshed = this.returns.find(row => String(row.id) === String(itemReturn.id))
-        if (refreshed) this.selectedReturn = refreshed
-      } catch (error) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: error.message }))
-      } finally {
-        this.reissuingReturnId = null
       }
     },
 
