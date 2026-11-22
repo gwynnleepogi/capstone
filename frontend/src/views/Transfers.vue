@@ -1,18 +1,28 @@
 
 <template>
   <div>
-    <PropertyTransferRequests @updated="refreshTransferData" />
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2>Transfers</h2>
         <p class="text-muted mb-0">Transfer issued property to another employee</p>
       </div>
 
-      <button type="button" class="btn btn-warning" @click="openAddModal">
-        <i class="bi bi-arrow-left-right me-1"></i>
-        Add Transfer
-      </button>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button type="button" class="btn btn-outline-primary" @click="showTransferRequests = !showTransferRequests">
+          <i class="bi bi-inbox me-1"></i>
+          {{ showTransferRequests ? 'Hide Transfer Requests' : 'Property Transfer Requests' }}
+        </button>
+        <button type="button" class="btn btn-warning" @click="openAddModal">
+          <i class="bi bi-arrow-left-right me-1"></i>
+          Add Transfer
+        </button>
+      </div>
     </div>
+
+    <PropertyTransferRequests
+      v-if="showTransferRequests"
+      @updated="refreshTransferData"
+    />
 
     <div class="card mb-4">
       <div class="card-body">
@@ -643,6 +653,7 @@ export default {
 
   data() {
     return {
+      showTransferRequests: false,
       transfers: [],
       receipts: [],
       personnel: [],
