@@ -125,10 +125,14 @@ router.post('/', async (req, res) => {
 
 router.patch('/:id/reject', async (req, res) => {
   if (req.role !== 'Administrator') return res.status(403).json({ error: 'Only administrators can review transfer requests.' })
+  const userSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
+    global: { headers: { Authorization: req.headers.authorization } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  })
   try {
     const reason = String(req.body.review_remarks || '').trim()
     if (!reason) return res.status(400).json({ error: 'A reason is required when disapproving a request.' })
-    const { data, error } = await supabase.from('property_transfer_requests').update({
+    const { data, error } = await userSupabase.from('property_transfer_requests').update({
       status: 'Disapproved', reviewed_by: req.profile.id, reviewed_at: new Date().toISOString(), review_remarks: reason
     }).eq('id', req.params.id).eq('status', 'Pending').select().maybeSingle()
     if (error) return res.status(500).json({ error: error.message })
@@ -142,16 +146,20 @@ router.patch('/:id/reject', async (req, res) => {
 router.patch('/:id/approve', async (req, res) => {
   if (req.role !== 'Administrator') return res.status(403).json({ error: 'Only administrators can approve transfer requests.' })
   const requestId = req.params.id
+  const userSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
+    global: { headers: { Authorization: req.headers.authorization } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  })
   try {
     const recipientId = req.body.to_user_id
     if (!recipientId) return res.status(400).json({ error: 'Select the receiving employee.' })
 
-    const { data: request, error: requestError } = await supabase.from('property_transfer_requests')
+    const { data: request, error: requestError } = await userSupabase.from('property_transfer_requests')
       .select('*').eq('id', requestId).eq('status', 'Pending').maybeSingle()
     if (requestError) return res.status(500).json({ error: requestError.message })
     if (!request) return res.status(404).json({ error: 'Pending transfer request not found.' })
 
-    const { data: claimed, error: claimError } = await supabase.from('property_transfer_requests').update({
+    const { data: claimed, error: claimError } = await userSupabase.from('property_transfer_requests').update({
       status: 'Processing', reviewed_by: req.profile.id, reviewed_at: new Date().toISOString(),
       to_user_id: recipientId, transfer_date: req.body.transfer_date || new Date().toISOString().slice(0, 10)
     }).eq('id', requestId).eq('status', 'Pending').select().maybeSingle()
@@ -159,7 +167,7 @@ router.patch('/:id/approve', async (req, res) => {
     if (!claimed) return res.status(409).json({ error: 'This request has already been reviewed.' })
 
     const revert = async message => {
-      await supabase.from('property_transfer_requests').update({
+      await userSupabase.from('property_transfer_requests').update({
         status: 'Pending', reviewed_by: null, reviewed_at: null, to_user_id: null, transfer_date: null
       }).eq('id', requestId)
       return res.status(400).json({ error: message })
@@ -221,11 +229,11 @@ router.patch('/:id/approve', async (req, res) => {
       for (const receipt of changedReceipts) await supabase.from('property_receipts').update({ issued_to: request.requested_by }).eq('id', receipt.id)
       for (const item of changedItems) await supabase.from('items').update({ accountable_employee: item.accountable_employee, status: item.status, office_name: item.office_name, responsibility_center: item.responsibility_center }).eq('id', item.id)
       await supabase.from('item_transfers').delete().eq('transfer_group_id', groupId)
-      await supabase.from('property_transfer_requests').update({ status: 'Pending', reviewed_by: null, reviewed_at: null, to_user_id: null, transfer_date: null }).eq('id', requestId)
+      await userSupabase.from('property_transfer_requests').update({ status: 'Pending', reviewed_by: null, reviewed_at: null, to_user_id: null, transfer_date: null }).eq('id', requestId)
       return res.status(500).json({ error: 'Transfer failed. No transfer was completed: ' + updateError.message })
     }
 
-    const { data: finished, error: finishError } = await supabase.from('property_transfer_requests').update({
+    const { data: finished, error: finishError } = await userSupabase.from('property_transfer_requests').update({
       status: 'Approved', processed_transfer_group_id: groupId
     }).eq('id', requestId).eq('status', 'Processing').select().single()
     if (finishError) return res.status(500).json({ error: 'Properties were transferred, but the request status needs attention: ' + finishError.message })
@@ -238,7 +246,7 @@ router.patch('/:id/approve', async (req, res) => {
     const [result] = await details([finished])
     res.json({ ...result, transfers: transferRows })
   } catch (error) {
-    await supabase.from('property_transfer_requests').update({
+    await userSupabase.from('property_transfer_requests').update({
       status: 'Pending', reviewed_by: null, reviewed_at: null, to_user_id: null, transfer_date: null
     }).eq('id', requestId).eq('status', 'Processing')
     res.status(500).json({ error: error.message })
