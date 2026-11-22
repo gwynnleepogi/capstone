@@ -444,6 +444,20 @@ router.patch('/:id/accept', staffOnly, async (req, res) => {
       return res.status(returnError.code === '23505' ? 409 : 500).json({ error: await revert(message) })
     }
 
+    const { data: closedReceipt, error: closeReceiptError } = await supabase
+      .from('property_receipts')
+      .update({ status: 'Returned' })
+      .eq('id', receipt.id)
+      .eq('status', 'Issued')
+      .select('id')
+      .maybeSingle()
+
+    if (closeReceiptError || !closedReceipt) {
+      await supabase.from('item_returns').delete().eq('id', newReturn.id)
+      const message = closeReceiptError?.message || 'The receipt status changed before the return could be completed.'
+      return res.status(closeReceiptError ? 500 : 409).json({ error: await revert(message) })
+    }
+
     let itemUpdate = supabase
       .from('items')
       .update({
@@ -465,6 +479,7 @@ router.patch('/:id/accept', staffOnly, async (req, res) => {
 
     if (itemUpdateError || !updatedItem) {
       await supabase.from('item_returns').delete().eq('id', newReturn.id)
+      await supabase.from('property_receipts').update({ status: 'Issued' }).eq('id', receipt.id)
 
       const message = itemUpdateError
         ? `The item could not be updated: ${itemUpdateError.message}`
