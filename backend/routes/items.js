@@ -241,7 +241,9 @@ router.post('/', async (req, res) => {
         description: description || null,
         model_number: model_number || null,
         serial_number: i === 0 ? (serial_number || null) : null,
+        // Keep the legacy price column synchronized with cost.
         cost: itemCost,
+        price: itemCost,
         quantity: 1,
         unit: cleanText(unit) || 'PC',
         article: cleanText(article) || null,
@@ -317,6 +319,7 @@ router.put('/:id', async (req, res) => {
       classification,
       condition,
       accountable_employee,
+      office_name,
       responsibility_center,
       fund_cluster,
       unit,
@@ -394,7 +397,9 @@ router.put('/:id', async (req, res) => {
         description: description || null,
         model_number: model_number || null,
         serial_number: serial_number || null,
-        cost: cost || 0,
+        // Keep the legacy price column synchronized with cost.
+        cost: Number(cost ?? 0),
+        price: Number(cost ?? 0),
         quantity: itemQuantity,
         acquisition_date: acquisition_date || null,
         classification: classification || 'PAR',
