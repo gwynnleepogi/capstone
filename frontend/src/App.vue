@@ -351,8 +351,8 @@ export default {
     })
     this.updateResponsiveTableLabels()
 
-    this.refreshPendingRequestCount()
-    this.requestCountTimer = setInterval(this.refreshPendingRequestCount, 30000)
+    this.refreshPendingCounts()
+    this.requestCountTimer = setInterval(this.refreshPendingCounts, 30000)
   },
 
   beforeUnmount() {
@@ -362,7 +362,7 @@ export default {
     window.removeEventListener('focus', this.recoverFromPrintPreview)
     document.removeEventListener('visibilitychange', this.handleVisibilityChange)
     window.removeEventListener('receipts-updated', this.refreshPendingIssuanceCount)
-    window.removeEventListener('return-requests-updated', this.refreshPendingRequestCount)
+    window.removeEventListener('return-requests-updated', this.refreshPendingCounts)
     window.removeEventListener('account-requests-updated', this.refreshPendingAccountRequestCount)
     window.removeEventListener('password-reset-requests-updated', this.refreshPendingPasswordResetCount)
     window.removeEventListener('open-qr-scanner', this.openQrScanner)
@@ -375,14 +375,14 @@ export default {
 
   watch: {
     '$route.fullPath'() {
-      this.refreshPendingRequestCount()
+      this.refreshPendingCounts()
     }
   },
 
   methods: {
     handleUserUpdated(event) {
       this.currentUser = event.detail
-      this.refreshPendingRequestCount()
+      this.refreshPendingCounts()
 
       this.showToast('Login successful.')
 
@@ -418,7 +418,7 @@ export default {
     handleStorageChange(event) {
       if (event.key === 'user') {
         this.currentUser = JSON.parse(event.newValue || 'null')
-        this.refreshPendingRequestCount()
+        this.refreshPendingCounts()
       }
     },
 
@@ -444,7 +444,7 @@ export default {
       }, 500)
     },
 
-    async refreshPendingRequestCount() {
+    async refreshPendingCounts() {
       if (
         !this.canAccess(['Administrator']) ||
         !localStorage.getItem('accessToken')
@@ -611,7 +611,6 @@ export default {
 
     logout() {
       this.currentUser = null
-      this.pendingRequestCount = 0
       this.pendingAccountRequestCount = 0
       this.pendingPasswordResetCount = 0
       this.menuOpen = false
