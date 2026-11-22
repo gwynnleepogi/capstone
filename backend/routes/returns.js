@@ -241,6 +241,27 @@ router.post('/', async (req, res) => {
       })
     }
 
+    const { data: closedReceipt, error: closeReceiptError } = await supabase
+      .from('property_receipts')
+      .update({ status: 'Returned' })
+      .eq('id', receipt.id)
+      .eq('status', 'Issued')
+      .select('id')
+      .maybeSingle()
+
+    if (closeReceiptError || !closedReceipt) {
+      await supabase.from('items').update({
+        condition: item.condition,
+        status: item.status,
+        accountable_employee: item.accountable_employee,
+        quantity: currentQuantity
+      }).eq('id', item.id)
+      await supabase.from('item_returns').delete().eq('id', newReturn.id)
+      return res.status(closeReceiptError ? 500 : 409).json({
+        error: closeReceiptError?.message || 'The receipt status changed before the return could be completed.'
+      })
+    }
+
     await createAuditLog(
       'Returned',
       newReturn.item_id,
