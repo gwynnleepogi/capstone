@@ -293,8 +293,7 @@ router.post('/account-requests/:id/approve', requireAuth, requireRole('Administr
     const { data: newOffice, error: officeCreateError } = await supabaseAdmin
       .from('offices')
       .insert({
-        office_name: request.department,
-        office_code: ''
+        office_name: request.department
       })
       .select('id, office_name')
       .single()
