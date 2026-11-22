@@ -1722,7 +1722,6 @@ export default {
               fundCluster:
                 item.fund_cluster ||
                 receipt.fund_cluster ||
-                request.fund_cluster ||
                 ''
             };
           });
