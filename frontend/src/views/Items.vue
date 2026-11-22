@@ -384,8 +384,8 @@
                 </button>
               </th>
               <th>
-                <button type="button" class="sort-header" @click="sortBy('serial_number')">
-                  Serial No. <i :class="sortIcon('serial_number')"></i>
+                <button type="button" class="sort-header" @click="sortBy('accountable_employee')">
+                  Accountable Employee <i :class="sortIcon('accountable_employee')"></i>
                 </button>
               </th>
               <th class="cost-column">
@@ -432,7 +432,7 @@
               <td>{{ item.property_number || '-' }}</td>
               <td>{{ item.article || '-' }}</td>
               <td>{{ item.description || '-' }}</td>
-              <td>{{ item.serial_number || '-' }}</td>
+              <td>{{ item.accountable_employee || '-' }}</td>
               <td class="cost-column">₱{{ item.cost || 0 }}</td>
               <td>
                 <span class="badge" :class="getClassificationClass(item.classification)">
