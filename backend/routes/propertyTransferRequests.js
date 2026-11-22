@@ -23,7 +23,7 @@ async function generateReceiptNumbers(count) {
 
   let highestNumber = -1
   for (const receipt of existingReceipts || []) {
-    const match = String(receipt.receipt_number || '').match(/^(\\d{5})-(\\d{4})$/)
+    const match = String(receipt.receipt_number || '').match(/^(\d{5})-(\d{4})$/)
     if (match) {
       const numericValue = Number(match[1]) * 10000 + Number(match[2])
       if (numericValue > highestNumber) highestNumber = numericValue
@@ -308,13 +308,11 @@ router.patch('/:id/approve', async (req, res) => {
     const { data: closedReceipts, error: closeReceiptError } = await supabase
       .from('property_receipts').update({ status: 'Transferred' })
       .in('id', receiptIds).eq('status', 'Issued').select('id')
+    oldReceiptIds = (closedReceipts || []).map(row => row.id)
     if (closeReceiptError || !closedReceipts || closedReceipts.length !== receipts.length) {
-      await supabase.from('property_receipts').delete().in('id', newReceipts.map(row => row.id))
-      newReceipts = []
-      await resetRequest()
+      await rollbackTransfer()
       return res.status(500).json({ error: closeReceiptError?.message || 'Could not close the previous employee receipts. No transfer was completed.' })
     }
-    oldReceiptIds = closedReceipts.map(row => row.id)
 
     groupId = require('crypto').randomUUID()
     const inserts = receipts.map((receipt, index) => ({
