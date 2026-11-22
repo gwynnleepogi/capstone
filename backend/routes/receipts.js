@@ -138,9 +138,13 @@ router.post('/', async (req, res) => {
       remarks
     } = req.body
 
-    if (item_request_id || !item_id) {
+    if (
+      item_request_id ||
+      (transaction_type === 'Acquisition' && !item_id) ||
+      (transaction_type === 'Reissuance' && item_id)
+    ) {
       return res.status(400).json({
-        error: 'Select an assigned property. Item requests are not a receipt source.'
+        error: 'Select the correct property source for the chosen transaction type.'
       })
     }
 
