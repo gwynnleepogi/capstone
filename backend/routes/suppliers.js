@@ -158,7 +158,7 @@ router.delete('/:id', async (req, res) => {
   const { data: usedItems, error: itemsError } = await supabase
     .from('items')
     .select('id')
-    .eq('supplier_id', req.params.id)
+    .eq('supplier', oldData.supplier_name)
 
   if (itemsError) {
 
