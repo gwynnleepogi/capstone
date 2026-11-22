@@ -1,7 +1,7 @@
 
 <template>
   <div>
-    <PropertyTransferRequests @updated="getTransfers" />
+    <PropertyTransferRequests @updated="refreshTransferData" />
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2>Transfers</h2>
@@ -900,6 +900,10 @@ export default {
       } catch (error) {
         this.toast(error.message)
       }
+    },
+
+    async refreshTransferData() {
+      await Promise.all([this.getTransfers(), this.getReceipts()])
     },
 
     async getReceipts() {
