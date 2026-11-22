@@ -1662,10 +1662,7 @@ export default {
           .filter(receipt => this.getIssuanceDate(receipt))
           .map(receipt => {
             const item = this.getRelatedRecord(receipt.items);
-            const request = this.getRelatedRecord(receipt.item_requests);
             const receiptUser = this.getRelatedRecord(receipt.users);
-            const requestUser = this.getRelatedRecord(request.users);
-            const office = this.getRelatedRecord(request.offices);
 
             return {
               id: 'receipt-' + (receipt.id || receipt.receipt_id),
@@ -1677,7 +1674,6 @@ export default {
                 '',
               description:
                 item.description ||
-                request.item_description ||
                 receipt.description ||
                 receipt.item_name ||
                 '',
@@ -1693,8 +1689,6 @@ export default {
                 receipt.recipient ||
                 receipt.received_by ||
                 receiptUser.full_name ||
-                requestUser.full_name ||
-                office.office_name ||
                 '',
               name:
                 receipt.issued_to ||
@@ -1708,9 +1702,6 @@ export default {
                 receipt.destination_office ||
                 receipt.issued_to_office ||
                 receipt.office ||
-                request.destination ||
-                request.destination_office ||
-                office.office_name ||
                 '',
               rcCode: item.responsibility_center || '',
               unit: this.cleanUnit(item.unit || item.unit_of_measure),
