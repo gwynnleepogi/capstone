@@ -8,9 +8,9 @@
       </div>
 
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        <button type="button" class="btn btn-outline-primary" @click="showTransferRequests = !showTransferRequests">
+        <button type="button" class="btn btn-outline-primary" @click="openPropertyTransferRequests">
           <i class="bi bi-inbox me-1"></i>
-          {{ showTransferRequests ? 'Hide Transfer Requests' : 'Property Transfer Requests' }}
+          Property Transfer Requests
         </button>
         <button type="button" class="btn btn-warning" @click="openAddModal">
           <i class="bi bi-arrow-left-right me-1"></i>
@@ -19,10 +19,22 @@
       </div>
     </div>
 
-    <PropertyTransferRequests
-      v-if="showTransferRequests"
-      @updated="refreshTransferData"
-    />
+    <div class="modal fade" id="propertyTransferRequestsListModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Property Transfer Requests</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <PropertyTransferRequests
+              v-if="showTransferRequests"
+              @updated="refreshTransferData"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="card mb-4">
       <div class="card-body">
@@ -992,6 +1004,15 @@ export default {
       } catch (error) {
         console.log(error)
       }
+    },
+
+    openPropertyTransferRequests() {
+      this.showTransferRequests = true
+      this.$nextTick(() => {
+        Modal.getOrCreateInstance(
+          document.getElementById('propertyTransferRequestsListModal')
+        ).show()
+      })
     },
 
     openAddModal() {
