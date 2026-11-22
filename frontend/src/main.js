@@ -7,7 +7,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\\/+$/, '')
 
 const originalFetch = window.fetch.bind(window)
 
@@ -27,7 +27,7 @@ window.fetch = (url, options = {}) => {
 
   if (
     typeof url === 'string' &&
-    (url.startsWith('/api/') || url.startsWith('/signatures/')) &&
+    url.startsWith('/api/') &&
     API_BASE_URL
   ) {
     requestUrl = API_BASE_URL + url
