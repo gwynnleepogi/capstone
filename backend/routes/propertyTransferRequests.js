@@ -286,6 +286,7 @@ router.patch('/:id/approve', async (req, res) => {
       const receiptType = receipt.receipt_type || (Number(item.cost || 0) >= 50000 ? 'PAR' : 'ICS')
       return {
         item_id: receipt.item_id,
+        transaction_type: 'Transfer',
         receipt_type: receiptType,
         receipt_number: receiptNumbers[index],
         issued_to: recipient.id,
