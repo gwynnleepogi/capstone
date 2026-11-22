@@ -176,6 +176,7 @@ export default {
         this.toast('Request approved and properties assigned successfully.')
         this.closeReview()
         await this.loadRequests()
+        this.$emit('updated')
       } catch (error) { this.toast(error.message) }
       finally { this.saving = false }
     },
