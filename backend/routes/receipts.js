@@ -63,11 +63,11 @@ router.get('/', async (req, res) => {
           cost, acquisition_date, quantity, condition, status,
           accountable_employee, responsibility_center, fund_cluster, unit
         ),
-        users (id, full_name, signature_path),
+        users (id, full_name),
         item_requests (
           id, request_number, item_description, quantity, purpose, status,
           requested_by, office_id,
-          users (id, full_name, signature_path, office_id),
+          users (id, full_name, office_id),
           offices (id, office_name)
         )
       `)
@@ -98,11 +98,11 @@ router.get('/:id', async (req, res) => {
           cost, acquisition_date, quantity, condition, status,
           accountable_employee, responsibility_center, fund_cluster, unit
         ),
-        users (id, full_name, signature_path, office_id),
+        users (id, full_name, office_id),
         item_requests (
           id, request_number, item_description, quantity, purpose, status,
           requested_by, office_id,
-          users (id, full_name, signature_path),
+          users (id, full_name),
           offices (id, office_name)
         )
       `)
