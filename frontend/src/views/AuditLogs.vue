@@ -710,8 +710,7 @@ export default {
         'auth_user_id',
         'created_at',
         'updated_at',
-        'reviewed_by',
-        'signature_path'
+        'reviewed_by'
       ])
 
       return records.flatMap((record, index) => {
