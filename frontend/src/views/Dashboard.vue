@@ -78,6 +78,72 @@
           </section>
         </div>
       </div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-12 col-xl-6">
+          <section class="card pending-card property-pending-card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="pending-icon"><i class="bi bi-box-arrow-in-down"></i></span>
+                <div>
+                  <strong>Property Return Requests</strong>
+                  <div class="small text-secondary">Waiting for review</div>
+                </div>
+                <span class="pending-count">{{ pendingReturnRequests.length }}</span>
+              </div>
+              <router-link class="btn btn-sm btn-success" to="/returns">Review <i class="bi bi-arrow-right ms-1"></i></router-link>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Requested By</th><th>Property</th><th>Reason</th><th>Date Requested</th></tr></thead>
+                <tbody>
+                  <tr v-if="requestsLoading"><td colspan="4" class="text-center text-secondary py-4">Loading return requests...</td></tr>
+                  <tr v-else-if="requestsError"><td colspan="4" class="text-center text-danger py-4">{{ requestsError }}</td></tr>
+                  <tr v-else-if="pendingReturnRequests.length === 0"><td colspan="4" class="text-center text-secondary py-4">No pending return requests.</td></tr>
+                  <tr v-for="request in pendingReturnRequests.slice(0, 5)" :key="request.id">
+                    <td>{{ request.requester?.full_name || '-' }}</td>
+                    <td>{{ request.items?.description || '-' }}</td>
+                    <td>{{ request.return_reason || '-' }}</td>
+                    <td>{{ formatDate(request.created_at) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-12 col-xl-6">
+          <section class="card pending-card property-pending-card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="pending-icon"><i class="bi bi-arrow-left-right"></i></span>
+                <div>
+                  <strong>Property Transfer Requests</strong>
+                  <div class="small text-secondary">Waiting for review</div>
+                </div>
+                <span class="pending-count">{{ pendingTransferRequests.length }}</span>
+              </div>
+              <router-link class="btn btn-sm btn-success" to="/transfers">Review <i class="bi bi-arrow-right ms-1"></i></router-link>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Requested By</th><th>Properties</th><th>Reason</th><th>Date Requested</th></tr></thead>
+                <tbody>
+                  <tr v-if="requestsLoading"><td colspan="4" class="text-center text-secondary py-4">Loading transfer requests...</td></tr>
+                  <tr v-else-if="requestsError"><td colspan="4" class="text-center text-danger py-4">{{ requestsError }}</td></tr>
+                  <tr v-else-if="pendingTransferRequests.length === 0"><td colspan="4" class="text-center text-secondary py-4">No pending transfer requests.</td></tr>
+                  <tr v-for="request in pendingTransferRequests.slice(0, 5)" :key="request.id">
+                    <td>{{ request.requester?.full_name || '-' }}</td>
+                    <td>{{ (request.properties || []).length }} {{ (request.properties || []).length === 1 ? 'property' : 'properties' }}</td>
+                    <td>{{ request.reason || '-' }}</td>
+                    <td>{{ formatDate(request.created_at) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
     </section>
 
     <!-- Summary Cards -->
@@ -365,7 +431,10 @@ export default {
 
 
       pendingAccountRequests: [],
-
+      pendingReturnRequests: [],
+      pendingTransferRequests: [],
+      requestsLoading: true,
+      requestsError: '',
 
       pendingAccountsLoading: true,
 
@@ -410,7 +479,8 @@ export default {
 
     await Promise.all([
       this.getItems(),
-      this.getPendingAccountRequests()
+      this.getPendingAccountRequests(),
+      this.getPendingPropertyRequests()
     ])
 
   },
@@ -525,6 +595,32 @@ export default {
         this.pendingAccountsError = error.message || 'Failed to load pending account signups'
       } finally {
         this.pendingAccountsLoading = false
+      }
+    },
+
+    async getPendingPropertyRequests() {
+      this.requestsLoading = true
+      this.requestsError = ''
+      try {
+        const token = localStorage.getItem('accessToken')
+        const headers = { Authorization: `Bearer ${token}` }
+        const [returnsResponse, transfersResponse] = await Promise.all([
+          fetch('/api/return-requests', { headers }),
+          fetch('/api/property-transfer-requests', { headers })
+        ])
+        const [returnsData, transfersData] = await Promise.all([
+          returnsResponse.json(),
+          transfersResponse.json()
+        ])
+        if (!returnsResponse.ok) throw new Error(returnsData.error || 'Failed to load return requests')
+        if (!transfersResponse.ok) throw new Error(transfersData.error || 'Failed to load transfer requests')
+        this.pendingReturnRequests = (Array.isArray(returnsData) ? returnsData : []).filter(request => request.status === 'Pending')
+        this.pendingTransferRequests = (Array.isArray(transfersData) ? transfersData : []).filter(request => request.status === 'Pending')
+      } catch (error) {
+        console.error('Pending property requests error:', error)
+        this.requestsError = error.message || 'Failed to load property requests'
+      } finally {
+        this.requestsLoading = false
       }
     },
 
