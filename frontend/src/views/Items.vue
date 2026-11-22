@@ -175,7 +175,7 @@
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Supplier <span class="text-danger">*</span></label>
-                <input v-model.trim="newItem.supplier" type="text" class="form-control" list="supplier-options" required />
+                <input v-model.trim="newItem.supplier" type="text" class="form-control" placeholder="Enter supplier name" required />
               </div>
 
               <div class="col-12 mt-4">
@@ -804,7 +804,6 @@
                 v-model.trim="editForm.supplier"
                 type="text"
                 class="form-control"
-                list="supplier-options"
               />
             </div>
 
@@ -894,10 +893,6 @@
 
     <datalist id="unit-options">
       <option v-for="u in unitOptions" :key="u" :value="u"></option>
-    </datalist>
-
-    <datalist id="supplier-options">
-      <option v-for="name in supplierOptions" :key="name" :value="name"></option>
     </datalist>
 
   </div>
@@ -991,7 +986,6 @@ export default {
       itemsLoaded: false,
       offices: [],
       personnel: [],
-      suppliers: [],
 
       unitOptions: [
         'PC', 'PCS', 'PAX', 'BOX', 'PACK', 'SET',
@@ -1204,12 +1198,6 @@ export default {
         }))
     },
 
-    supplierOptions() {
-      return this.suppliers
-        .map(supplier => supplier && supplier.supplier_name)
-        .filter(Boolean)
-    },
-
     employeeJobTitleOptions() {
       return [...new Set(
         this.personnel
@@ -1230,7 +1218,7 @@ export default {
 
   mounted() {
     this.getItems()
-    this.getOfficesAndSuppliers()
+    this.getOfficesAndPersonnel()
   },
 
   watch: {
@@ -1506,10 +1494,9 @@ export default {
       return response.json()
     },
 
-    async getOfficesAndSuppliers() {
+    async getOfficesAndPersonnel() {
       const results = await Promise.allSettled([
         this.fetchJson('/api/offices'),
-        this.fetchJson('/api/suppliers'),
         this.fetchJson('/api/personnel'),
       ])
 
@@ -1518,16 +1505,12 @@ export default {
       }
 
       if (results[1].status === 'fulfilled') {
-        this.suppliers = Array.isArray(results[1].value) ? results[1].value : []
-      }
-
-      if (results[2].status === 'fulfilled') {
-        this.personnel = Array.isArray(results[2].value) ? results[2].value : []
+        this.personnel = Array.isArray(results[1].value) ? results[1].value : []
       }
 
       if (results.some(result => result.status === 'rejected')) {
         window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: 'Failed to load office or supplier options',
+          detail: 'Failed to load office or personnel options',
         }))
       }
     },
