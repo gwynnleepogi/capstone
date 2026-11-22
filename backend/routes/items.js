@@ -13,12 +13,6 @@ function getItemReferenceError(error, operation) {
     return null
   }
 
-  if (error.message.includes('item_requests_item_id_fkey')) {
-    return operation === 'deleted'
-      ? 'This item is linked to existing requests. Update the request references before deleting it.'
-      : 'This item identifier cannot be changed while requests refer to it.'
-  }
-
   return `This item cannot be ${operation} because it is referenced by existing records.`
 }
 
@@ -524,24 +518,6 @@ router.delete('/:id', async (req, res) => {
       })
     }
 
-    const {
-      data: detachedRequests,
-      error: requestError
-    } = await supabase
-      .from('item_requests')
-      .update({ item_id: null })
-      .eq('item_id', req.params.id)
-      .select('id, request_number')
-
-    if (requestError) {
-      console.log(requestError)
-
-      return res.status(500).json({
-        error: 'Could not preserve item request history.',
-        details: requestError.message
-      })
-    }
-
     const { error: deleteError } = await supabase
       .from('items')
       .delete()
@@ -568,13 +544,7 @@ router.delete('/:id', async (req, res) => {
         'Deleted',
         req.params.id,
         JSON.stringify(oldData),
-        JSON.stringify({
-          detached_request_count: detachedRequests?.length || 0,
-          detached_requests: (detachedRequests || []).map(request => ({
-            request_number: request.request_number,
-            item_id: null
-          }))
-        }),
+        JSON.stringify({ deleted: true }),
         'Deleted item: ' + oldData.description,
         req.profile ? req.profile.id : null
       )
