@@ -1737,7 +1737,6 @@ export default {
         },
         body: JSON.stringify({
           office_name: trimmedName,
-          office_code: '',
         }),
       })
 
