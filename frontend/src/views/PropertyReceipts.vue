@@ -1037,7 +1037,7 @@ export default {
     },
 
     getReceiptTypeForItem(item) {
-      const cost = Number(item?.cost ?? item?.unit_cost ?? item?.price ?? item?.acquisition_cost ?? item?.unit_price ?? 0)
+      const cost = Number(item?.cost ?? item?.unit_cost ?? item?.acquisition_cost ?? item?.unit_price ?? 0)
       return cost >= 50000 ? 'PAR' : 'ICS'
     },
 
