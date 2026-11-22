@@ -313,7 +313,6 @@ export default {
       logo,
       menuOpen: false,
       currentUser: JSON.parse(localStorage.getItem('user') || 'null'),
-      pendingRequestCount: 0,
       pendingIssuanceCount: 0,
       pendingAccountRequestCount: 0,
       pendingPasswordResetCount: 0,
@@ -336,9 +335,8 @@ export default {
     window.addEventListener('storage', this.handleStorageChange)
     window.addEventListener('focus', this.recoverFromPrintPreview)
     document.addEventListener('visibilitychange', this.handleVisibilityChange)
-    window.addEventListener('item-requests-updated', this.refreshPendingRequestCount)
     window.addEventListener('receipts-updated', this.refreshPendingIssuanceCount)
-    window.addEventListener('return-requests-updated', this.refreshPendingRequestCount)
+    window.addEventListener('return-requests-updated', this.refreshPendingCounts)
     window.addEventListener('account-requests-updated', this.refreshPendingAccountRequestCount)
     window.addEventListener('password-reset-requests-updated', this.refreshPendingPasswordResetCount)
     window.addEventListener('open-qr-scanner', this.openQrScanner)
@@ -363,7 +361,6 @@ export default {
     window.removeEventListener('storage', this.handleStorageChange)
     window.removeEventListener('focus', this.recoverFromPrintPreview)
     document.removeEventListener('visibilitychange', this.handleVisibilityChange)
-    window.removeEventListener('item-requests-updated', this.refreshPendingRequestCount)
     window.removeEventListener('receipts-updated', this.refreshPendingIssuanceCount)
     window.removeEventListener('return-requests-updated', this.refreshPendingRequestCount)
     window.removeEventListener('account-requests-updated', this.refreshPendingAccountRequestCount)
@@ -452,7 +449,6 @@ export default {
         !this.canAccess(['Administrator']) ||
         !localStorage.getItem('accessToken')
       ) {
-        this.pendingRequestCount = 0
         this.pendingIssuanceCount = 0
         this.pendingAccountRequestCount = 0
         this.pendingReturnCount = 0
@@ -464,24 +460,7 @@ export default {
       this.refreshPendingIssuanceCount()
       this.refreshPendingPasswordResetCount()
 
-      try {
-        const response = await fetch('/api/item-requests')
-        const data = await response.json()
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to load pending request count')
-        }
-
-        if (!Array.isArray(data)) {
-          throw new Error('The requests response was not a list')
-        }
-
-        this.pendingRequestCount = data.filter(
-          request => request.status === 'Pending'
-        ).length
-      } catch (error) {
-        console.error('Pending request count error:', error)
-      }
     },
 
     async refreshPendingReturnCount() {
