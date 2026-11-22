@@ -98,7 +98,7 @@ router.get('/options', async (req, res) => {
 
     const { data: offices, error: officesError } = await supabase
       .from('offices')
-      .select('id, office_name, office_code')
+      .select('id, office_name')
       .order('office_name', { ascending: true })
 
     if (officesError) {
