@@ -4,7 +4,6 @@ import Login from '@/views/Login.vue'
 import Dashboard from '@/views/Dashboard.vue'
 import Items from '@/views/Items.vue'
 import Offices from '@/views/Offices.vue'
-import Suppliers from '@/views/Suppliers.vue'
 import Personnel from '@/views/Personnel.vue'
 import PropertyReceipts from '@/views/PropertyReceipts.vue'
 import Returns from '@/views/Returns.vue'
@@ -58,12 +57,6 @@ const router = createRouter({
       path: '/inventory-movement',
       name: 'InventoryMovementHistory',
       component: InventoryMovementHistory,
-      meta: { roles: ['Administrator'] }
-    },
-    {
-      path: '/suppliers',
-      name: 'Suppliers',
-      component: Suppliers,
       meta: { roles: ['Administrator'] }
     },
     {
