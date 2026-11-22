@@ -11,6 +11,7 @@ const createAuditLog = require('../middleware/auditLog')
 // ==========================================
 router.get('/pending-issuance-count', async (req, res) => {
   try {
+    // Newly assigned properties that still need their first receipt.
     const { data: items, error: itemError } = await supabase
       .from('items')
       .select('id')
@@ -38,14 +39,33 @@ router.get('/pending-issuance-count', async (req, res) => {
         .map(receipt => String(receipt.item_id))
     )
 
-    const pendingCount = (items || []).filter(item =>
+    const pendingAcquisitionCount = (items || []).filter(item =>
       !receiptedItemIds.has(String(item.id))
     ).length
 
-    res.json({ count: pendingCount })
+    // Returned properties marked for reissuance also need an action
+    // from the Administrator until a new receipt is created.
+    const { data: returnedProperties, error: returnError } = await supabase
+      .from('item_returns')
+      .select('id')
+      .eq('return_purpose', 'Property Utilization/Re-issuance')
+      .is('reissued_receipt_id', null)
+
+    if (returnError) {
+      console.error('Pending reissuance lookup failed:', returnError)
+      return res.status(500).json({ error: returnError.message })
+    }
+
+    const pendingReissuanceCount = (returnedProperties || []).length
+
+    res.json({
+      count: pendingAcquisitionCount + pendingReissuanceCount,
+      acquisition_count: pendingAcquisitionCount,
+      reissuance_count: pendingReissuanceCount
+    })
   } catch (error) {
-    console.error('Pending acquisition count failed:', error)
-    res.status(500).json({ error: 'Failed to load pending acquisition count' })
+    console.error('Pending issuance count failed:', error)
+    res.status(500).json({ error: 'Failed to load pending issuance count' })
   }
 })
 
