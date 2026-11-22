@@ -242,7 +242,7 @@ router.delete('/:id', async (req, res) => {
         const receipt = receipts[transfer.property_receipt_id]
         const item = items[transfer.item_id]
         const previous = users[transfer.from_user_id]
-        const receiptUpdate = await supabase.from('property_receipts').update({ issued_to: transfer.from_user_id }).eq('id', receipt.id)
+        const receiptUpdate = await supabase.from('property_receipts').update({ issued_to: transfer.from_user_id, status: 'Issued' }).eq('id', receipt.id)
         if (receiptUpdate.error) throw new Error(receiptUpdate.error.message)
         changedReceipts.push(receipt)
         const itemUpdate = await supabase.from('items').update({ accountable_employee: previous.full_name, status: 'Issued' }).eq('id', item.id)
