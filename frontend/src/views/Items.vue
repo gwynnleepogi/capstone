@@ -837,7 +837,7 @@
               <label class="form-label">Status</label>
               <input type="text" class="form-control" :value="editForm.status" readonly />
               <small v-if="isReturnedProperty(editingItem)" class="form-text text-muted">
-                This property will remain Returned until it is issued through the request process.
+                This property will remain Returned until it is issued through Acquisitions and Issuance.
               </small>
             </div>
 
