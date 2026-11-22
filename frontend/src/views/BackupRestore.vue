@@ -97,7 +97,7 @@
         <ul class="small text-secondary mb-0">
           <li>Only an Administrator can open this page and use these actions.</li>
           <li>Keep backup files in a safe place. They may contain staff and system records.</li>
-          <li>This backup includes properties, offices, returns, and transfers. It does not include users, requests, receipts, incidents, audit logs, Supabase Auth passwords or uploaded Storage files.</li>
+          <li>This backup includes properties, offices, returns, and transfers. It does not include users, requests, receipts, audit logs, Supabase Auth passwords or uploaded Storage files.</li>
           <li>Restoring this file only adds or updates the four included record types. It does not delete records missing from the backup.</li>
           <li>For a full database backup, also use a PostgreSQL backup from a trusted administrator environment.</li>
         </ul>
