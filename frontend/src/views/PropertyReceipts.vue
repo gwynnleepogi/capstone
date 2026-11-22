@@ -340,7 +340,7 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              <p class="text-muted small">Existing request and item details will be filled in automatically. Complete the required fields before printing.</p>
+              <p class="text-muted small">Property and employee details will be filled in automatically. Complete the required fields before printing.</p>
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">Fund Cluster <span class="text-danger">*</span></label>
@@ -1521,22 +1521,22 @@ export default {
       }
 
       const receiptNumber = escape(receipt.receipt_number)
-      const officeName = escape(details.officeName || office.office_name || request.office_name || receipt.office_name)
-      const division = escape(details.division || request.division || receipt.division)
-      const responsibilityCenter = escape(details.responsibilityCenter || request.responsibility_center || receipt.responsibility_center || item.responsibility_center || '-')
-      const fundCluster = escape(details.fundCluster || request.fund_cluster || receipt.fund_cluster)
-      const description = escape(item.description || request.item_description)
+      const officeName = escape(details.officeName || office.office_name || receipt.office_name)
+      const division = escape(details.division || receipt.division)
+      const responsibilityCenter = escape(details.responsibilityCenter || receipt.responsibility_center || item.responsibility_center || '-')
+      const fundCluster = escape(details.fundCluster || receipt.fund_cluster)
+      const description = escape(item.description || receipt.description)
       const stockNumber = escape(item.stock_number || item.property_number || item.stock_no)
-      const quantityRequested = escape(request.quantity ?? request.quantity_requested ?? receipt.quantity_requested ?? receipt.quantity)
-      const quantityIssued = escape(this.getQuantityIssued(receipt) || request.quantity_issued || request.quantity || '-')
+      const quantityRequested = escape(receipt.quantity_requested ?? receipt.quantity)
+      const quantityIssued = escape(this.getQuantityIssued(receipt) || receipt.quantity_issued || '-')
       
-      const requestedQuantity = Number(request.quantity ?? request.quantity_requested ?? receipt.quantity_requested ?? this.getQuantityIssued(receipt))
+      const requestedQuantity = Number(receipt.quantity_requested ?? this.getQuantityIssued(receipt))
       const availableQuantity = Number(item.quantity_available ?? item.quantity ?? item.stock_balance)
-      const stockWasAvailableWhenIssued = ['Issued', 'Delivered'].includes(receipt.status) || request.status === 'Delivered'
+      const stockWasAvailableWhenIssued = receipt.status === 'Issued'
       const stockIsAvailable = stockWasAvailableWhenIssued || (item.status === 'Available' && Number.isFinite(availableQuantity) && Number.isFinite(requestedQuantity) && availableQuantity >= requestedQuantity)
       
       const purpose = escape(details.purpose || receipt.purpose || receipt.remarks)
-      const remarks = escape(receipt.remarks || request.remarks)
+      const remarks = escape(receipt.remarks)
 
       printWindow.document.write(`
         <!DOCTYPE html>
