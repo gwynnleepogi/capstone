@@ -14,6 +14,30 @@ async function lookup(table, ids, columns) {
   return Object.fromEntries((data || []).map(row => [String(row.id), row]))
 }
 
+async function generateReceiptNumbers(count) {
+  const { data: existingReceipts, error } = await supabase
+    .from('property_receipts')
+    .select('receipt_number')
+
+  if (error) throw new Error('Unable to generate new receipt numbers: ' + error.message)
+
+  let highestNumber = -1
+  for (const receipt of existingReceipts || []) {
+    const match = String(receipt.receipt_number || '').match(/^(\\d{5})-(\\d{4})$/)
+    if (match) {
+      const numericValue = Number(match[1]) * 10000 + Number(match[2])
+      if (numericValue > highestNumber) highestNumber = numericValue
+    }
+  }
+
+  return Array.from({ length: count }, (_, index) => {
+    const nextNumber = highestNumber + index + 1
+    if (nextNumber > 999999999) throw new Error('Receipt number limit has been reached')
+    return String(Math.floor(nextNumber / 10000)).padStart(5, '0') + '-' +
+      String(nextNumber % 10000).padStart(4, '0')
+  })
+}
+
 async function details(rows) {
   const requests = rows || []
   const receiptIds = requests.flatMap(row => row.property_receipt_ids || [])
@@ -145,11 +169,49 @@ router.patch('/:id/reject', async (req, res) => {
 
 router.patch('/:id/approve', async (req, res) => {
   if (req.role !== 'Administrator') return res.status(403).json({ error: 'Only administrators can approve transfer requests.' })
+
   const requestId = req.params.id
   const userSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
     global: { headers: { Authorization: req.headers.authorization } },
     auth: { persistSession: false, autoRefreshToken: false }
   })
+
+  let groupId = null
+  let newReceipts = []
+  let oldReceiptIds = []
+  let changedItems = []
+
+  const resetRequest = async () => {
+    await userSupabase.from('property_transfer_requests').update({
+      status: 'Pending',
+      reviewed_by: null,
+      reviewed_at: null,
+      to_user_id: null,
+      transfer_date: null
+    }).eq('id', requestId).eq('status', 'Processing')
+  }
+
+  const rollbackTransfer = async () => {
+    if (groupId) {
+      await supabase.from('item_transfers').delete().eq('transfer_group_id', groupId)
+    }
+    if (oldReceiptIds.length) {
+      await supabase.from('property_receipts').update({ status: 'Issued' }).in('id', oldReceiptIds)
+    }
+    if (newReceipts.length) {
+      await supabase.from('property_receipts').delete().in('id', newReceipts.map(row => row.id))
+    }
+    for (const item of changedItems) {
+      await supabase.from('items').update({
+        accountable_employee: item.accountable_employee,
+        status: item.status,
+        office_name: item.office_name,
+        responsibility_center: item.responsibility_center
+      }).eq('id', item.id)
+    }
+    await resetRequest()
+  }
+
   try {
     const recipientId = req.body.to_user_id
     if (!recipientId) return res.status(400).json({ error: 'Select the receiving employee.' })
@@ -160,95 +222,168 @@ router.patch('/:id/approve', async (req, res) => {
     if (!request) return res.status(404).json({ error: 'Pending transfer request not found.' })
 
     const { data: claimed, error: claimError } = await userSupabase.from('property_transfer_requests').update({
-      status: 'Processing', reviewed_by: req.profile.id, reviewed_at: new Date().toISOString(),
-      to_user_id: recipientId, transfer_date: req.body.transfer_date || new Date().toISOString().slice(0, 10)
+      status: 'Processing',
+      reviewed_by: req.profile.id,
+      reviewed_at: new Date().toISOString(),
+      to_user_id: recipientId,
+      transfer_date: req.body.transfer_date || new Date().toISOString().slice(0, 10)
     }).eq('id', requestId).eq('status', 'Pending').select().maybeSingle()
     if (claimError) return res.status(500).json({ error: claimError.message })
     if (!claimed) return res.status(409).json({ error: 'This request has already been reviewed.' })
 
-    const revert = async message => {
-      await userSupabase.from('property_transfer_requests').update({
-        status: 'Pending', reviewed_by: null, reviewed_at: null, to_user_id: null, transfer_date: null
-      }).eq('id', requestId)
-      return res.status(400).json({ error: message })
-    }
-
     const { data: recipient, error: recipientError } = await supabase.from('users')
       .select('id, full_name, office_id').eq('id', recipientId).single()
-    if (recipientError || !recipient) return revert('The receiving employee could not be found.')
-    if (String(recipient.id) === String(request.requested_by)) return revert('The receiving employee must be different from the requesting employee.')
+    if (recipientError || !recipient) {
+      await resetRequest()
+      return res.status(400).json({ error: 'The receiving employee could not be found.' })
+    }
+    if (String(recipient.id) === String(request.requested_by)) {
+      await resetRequest()
+      return res.status(400).json({ error: 'The receiving employee must be different from the requesting employee.' })
+    }
 
     const { data: office, error: officeError } = recipient.office_id
       ? await supabase.from('offices').select('id, office_name').eq('id', recipient.office_id).maybeSingle()
       : { data: null, error: null }
-    if (officeError) return revert(officeError.message)
-    if (!office) return revert('The selected receiving employee does not have an assigned office. Update the employee profile before approving this transfer.')
+    if (officeError || !office) {
+      await resetRequest()
+      return res.status(400).json({ error: officeError?.message || 'The selected receiving employee does not have an assigned office. Update the employee profile before approving this transfer.' })
+    }
 
     const receiptIds = request.property_receipt_ids || []
     const { data: receipts, error: receiptsError } = await supabase.from('property_receipts')
-      .select('id, item_id, issued_to, status, quantity').in('id', receiptIds)
-    if (receiptsError || !receipts || receipts.length !== receiptIds.length) return revert('One or more requested properties could not be found.')
-    const itemMap = await lookup('items', receipts.map(row => row.item_id), 'id, description, property_number, condition, status, accountable_employee, responsibility_center, office_name, cost, acquisition_date')
-    for (const receipt of receipts) {
-      const item = itemMap[String(receipt.item_id)]
-      if (String(receipt.issued_to) !== String(request.requested_by) || receipt.status !== 'Issued') return revert('A requested property is no longer issued to the requesting employee.')
-      if (!item || item.condition !== 'Serviceable') return revert('A requested property is missing or is no longer serviceable.')
+      .select('id, item_id, receipt_type, receipt_number, issued_to, status, quantity, remarks')
+      .in('id', receiptIds)
+    if (receiptsError || !receipts || receipts.length !== receiptIds.length) {
+      await resetRequest()
+      return res.status(400).json({ error: receiptsError?.message || 'One or more requested properties could not be found.' })
     }
 
-    const groupId = require('crypto').randomUUID()
-    const transferDate = claimed.transfer_date
-    const inserts = receipts.map(receipt => ({
-      item_id: receipt.item_id, property_receipt_id: receipt.id, transfer_group_id: groupId,
-      transfer_type: 'To Employee', from_user_id: request.requested_by, to_user_id: recipient.id,
-      office_id: recipient.office_id || null, transfer_date: transferDate,
-      condition_after_transfer: itemMap[String(receipt.item_id)].condition, resulting_status: 'Issued',
-      reason: request.reason, remarks: request.remarks, transferred_by: req.profile.id
-    }))
-    const { data: transferRows, error: insertError } = await supabase.from('item_transfers').insert(inserts).select()
-    if (insertError) return revert(insertError.message)
+    const itemMap = await lookup(
+      'items',
+      receipts.map(row => row.item_id),
+      'id, description, property_number, condition, status, accountable_employee, responsibility_center, office_name, cost, acquisition_date'
+    )
+    const requesterMap = await lookup('users', [request.requested_by], 'id, full_name')
+    const previousEmployee = requesterMap[String(request.requested_by)]?.full_name || 'Previous employee'
 
-    const changedReceipts = []
-    const changedItems = []
+    for (const receipt of receipts) {
+      const item = itemMap[String(receipt.item_id)]
+      if (String(receipt.issued_to) !== String(request.requested_by) || receipt.status !== 'Issued') {
+        await resetRequest()
+        return res.status(400).json({ error: 'A requested property is no longer issued to the requesting employee.' })
+      }
+      if (!item || item.condition !== 'Serviceable') {
+        await resetRequest()
+        return res.status(400).json({ error: 'A requested property is missing or is no longer serviceable.' })
+      }
+    }
+
+    const transferDate = claimed.transfer_date
+    const receiptNumbers = await generateReceiptNumbers(receipts.length)
+    const newReceiptInserts = receipts.map((receipt, index) => {
+      const item = itemMap[String(receipt.item_id)]
+      const receiptType = receipt.receipt_type || (Number(item.cost || 0) >= 50000 ? 'PAR' : 'ICS')
+      return {
+        item_id: receipt.item_id,
+        receipt_type: receiptType,
+        receipt_number: receiptNumbers[index],
+        issued_to: recipient.id,
+        quantity: Number(receipt.quantity || 1),
+        date_issued: transferDate,
+        remarks: 'Reissued after property transfer from ' + previousEmployee +
+          '. Reason: ' + request.reason + (request.remarks ? '. ' + request.remarks : ''),
+        status: 'Issued'
+      }
+    })
+
+    const { data: createdReceipts, error: createReceiptError } = await supabase
+      .from('property_receipts').insert(newReceiptInserts).select()
+    if (createReceiptError || !createdReceipts || createdReceipts.length !== receipts.length) {
+      await resetRequest()
+      return res.status(500).json({ error: createReceiptError?.message || 'Could not create the new receipts for the receiving employee.' })
+    }
+    newReceipts = createdReceipts
+
+    const { data: closedReceipts, error: closeReceiptError } = await supabase
+      .from('property_receipts').update({ status: 'Transferred' })
+      .in('id', receiptIds).eq('status', 'Issued').select('id')
+    if (closeReceiptError || !closedReceipts || closedReceipts.length !== receipts.length) {
+      await supabase.from('property_receipts').delete().in('id', newReceipts.map(row => row.id))
+      newReceipts = []
+      await resetRequest()
+      return res.status(500).json({ error: closeReceiptError?.message || 'Could not close the previous employee receipts. No transfer was completed.' })
+    }
+    oldReceiptIds = closedReceipts.map(row => row.id)
+
+    groupId = require('crypto').randomUUID()
+    const inserts = receipts.map((receipt, index) => ({
+      item_id: receipt.item_id,
+      property_receipt_id: newReceipts[index].id,
+      transfer_group_id: groupId,
+      transfer_type: 'To Employee',
+      from_user_id: request.requested_by,
+      to_user_id: recipient.id,
+      office_id: recipient.office_id,
+      transfer_date: transferDate,
+      condition_after_transfer: itemMap[String(receipt.item_id)].condition,
+      resulting_status: 'Issued',
+      reason: request.reason,
+      remarks: request.remarks,
+      transferred_by: req.profile.id
+    }))
+
+    const { data: transferRows, error: insertError } = await supabase.from('item_transfers').insert(inserts).select()
+    if (insertError) {
+      await rollbackTransfer()
+      return res.status(500).json({ error: insertError.message })
+    }
+
     try {
       for (const receipt of receipts) {
         const item = itemMap[String(receipt.item_id)]
-        const receiptUpdate = await supabase.from('property_receipts').update({ issued_to: recipient.id })
-          .eq('id', receipt.id).eq('issued_to', request.requested_by).select('id').maybeSingle()
-        if (receiptUpdate.error) throw new Error(receiptUpdate.error.message)
-        if (!receiptUpdate.data) throw new Error('A requested property changed while the transfer was being processed.')
-        changedReceipts.push(receipt)
         const itemUpdate = await supabase.from('items').update({
-          accountable_employee: recipient.full_name, status: 'Issued',
-          office_name: office?.office_name || item.office_name,
-          responsibility_center: office?.office_name || item.responsibility_center
+          accountable_employee: recipient.full_name,
+          status: 'Issued',
+          office_name: office.office_name,
+          responsibility_center: office.office_name
         }).eq('id', item.id)
         if (itemUpdate.error) throw new Error(itemUpdate.error.message)
         changedItems.push(item)
       }
     } catch (updateError) {
-      for (const receipt of changedReceipts) await supabase.from('property_receipts').update({ issued_to: request.requested_by }).eq('id', receipt.id)
-      for (const item of changedItems) await supabase.from('items').update({ accountable_employee: item.accountable_employee, status: item.status, office_name: item.office_name, responsibility_center: item.responsibility_center }).eq('id', item.id)
-      await supabase.from('item_transfers').delete().eq('transfer_group_id', groupId)
-      await userSupabase.from('property_transfer_requests').update({ status: 'Pending', reviewed_by: null, reviewed_at: null, to_user_id: null, transfer_date: null }).eq('id', requestId)
+      await rollbackTransfer()
       return res.status(500).json({ error: 'Transfer failed. No transfer was completed: ' + updateError.message })
     }
 
     const { data: finished, error: finishError } = await userSupabase.from('property_transfer_requests').update({
-      status: 'Approved', processed_transfer_group_id: groupId
+      status: 'Approved',
+      processed_transfer_group_id: groupId
     }).eq('id', requestId).eq('status', 'Processing').select().single()
-    if (finishError) return res.status(500).json({ error: 'Properties were transferred, but the request status needs attention: ' + finishError.message })
 
-    await createAuditLog('Transferred', null, null, JSON.stringify({
-      request_id: requestId, transfer_group_id: groupId, from_user_id: request.requested_by,
-      to_user_id: recipient.id, property_receipt_ids: receiptIds
-    }), 'Approved and processed property transfer request to ' + recipient.full_name, req.profile.id)
+    if (finishError || !finished) {
+      await rollbackTransfer()
+      return res.status(500).json({ error: 'The transfer could not be finalized: ' + (finishError?.message || 'Request status was not updated.') })
+    }
+
+    try {
+      await createAuditLog('Transferred', null, null, JSON.stringify({
+        request_id: requestId,
+        transfer_group_id: groupId,
+        from_user_id: request.requested_by,
+        to_user_id: recipient.id,
+        previous_receipt_ids: receiptIds,
+        new_receipt_ids: newReceipts.map(row => row.id),
+        new_receipt_numbers: newReceipts.map(row => row.receipt_number)
+      }), 'Approved property transfer and created new receipts for ' + recipient.full_name, req.profile.id)
+    } catch (auditError) {
+      console.log('Property transfer audit log error:', auditError)
+    }
 
     const [result] = await details([finished])
-    res.json({ ...result, transfers: transferRows })
+    res.json({ ...result, transfers: transferRows, new_receipts: newReceipts })
   } catch (error) {
-    await userSupabase.from('property_transfer_requests').update({
-      status: 'Pending', reviewed_by: null, reviewed_at: null, to_user_id: null, transfer_date: null
-    }).eq('id', requestId).eq('status', 'Processing')
+    await rollbackTransfer()
     res.status(500).json({ error: error.message })
   }
 })
