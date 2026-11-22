@@ -128,6 +128,10 @@ router.post('/', async (req, res) => {
     const {
       item_request_id,
       item_id,
+      transaction_type = 'Acquisition',
+      return_id,
+      issued_to,
+      condition_after_reissue,
       receipt_type,
       receipt_number,
       date_issued,
@@ -138,6 +142,10 @@ router.post('/', async (req, res) => {
       return res.status(400).json({
         error: 'Select an assigned property. Item requests are not a receipt source.'
       })
+    }
+
+    if (!['Acquisition', 'Reissuance'].includes(transaction_type)) {
+      return res.status(400).json({ error: 'Transaction type must be Acquisition or Reissuance. Transfers are created from approved transfer requests.' })
     }
 
     if (!['PAR', 'ICS'].includes(receipt_type)) {
@@ -179,6 +187,133 @@ router.post('/', async (req, res) => {
         String(Math.floor(nextNumber / 10000)).padStart(5, '0') +
         '-' +
         String(nextNumber % 10000).padStart(4, '0')
+    }
+
+    // ==========================================
+    // REISSUANCE AFTER A PROPERTY RETURN
+    // ==========================================
+    if (transaction_type === 'Reissuance') {
+      if (!return_id || !issued_to) return res.status(400).json({ error: 'Select the returned property and its new accountable employee.' })
+      if (condition_after_reissue !== 'Serviceable') return res.status(400).json({ error: 'Only inspected Serviceable properties can be reissued.' })
+
+      const { data: returnRecord, error: returnError } = await supabase
+        .from('item_returns')
+        .select('id, item_id, property_receipt_id, reissued_receipt_id, return_purpose')
+        .eq('id', return_id)
+        .maybeSingle()
+
+      if (returnError) return res.status(500).json({ error: returnError.message })
+      if (!returnRecord) return res.status(404).json({ error: 'Return record not found.' })
+      if (returnRecord.reissued_receipt_id) return res.status(409).json({ error: 'This returned property has already been reissued.' })
+      if (returnRecord.return_purpose === 'Disposal') return res.status(400).json({ error: 'A property marked for disposal cannot be reissued.' })
+
+      const { data: item, error: itemError } = await supabase
+        .from('items')
+        .select('id, description, property_number, cost, condition, status, accountable_employee, office_name, responsibility_center')
+        .eq('id', returnRecord.item_id)
+        .single()
+
+      if (itemError || !item) return res.status(404).json({ error: 'Returned property not found.' })
+      if (item.status !== 'Returned') return res.status(409).json({ error: 'This property is no longer available for reissuance.' })
+
+      const { data: oldReceipt, error: oldReceiptError } = await supabase
+        .from('property_receipts')
+        .select('id, quantity')
+        .eq('id', returnRecord.property_receipt_id)
+        .single()
+
+      if (oldReceiptError || !oldReceipt) return res.status(404).json({ error: 'The previous PAR/ICS receipt could not be found.' })
+
+      const { data: employee, error: employeeError } = await supabase
+        .from('users')
+        .select('id, full_name, office_id')
+        .eq('id', issued_to)
+        .single()
+
+      if (employeeError || !employee) return res.status(404).json({ error: 'The selected employee could not be found.' })
+
+      const { data: office, error: officeError } = employee.office_id
+        ? await supabase.from('offices').select('office_name').eq('id', employee.office_id).maybeSingle()
+        : { data: null, error: null }
+      if (officeError) return res.status(500).json({ error: officeError.message })
+
+      const reissueReceiptType = Number(item.cost || 0) >= 50000 ? 'PAR' : 'ICS'
+      const { data: newReceipt, error: createError } = await supabase
+        .from('property_receipts')
+        .insert([{
+          item_id: item.id,
+          receipt_type: reissueReceiptType,
+          transaction_type: 'Reissuance',
+          receipt_number: String(finalReceiptNumber).trim(),
+          issued_to: employee.id,
+          quantity: Number(oldReceipt.quantity) || 1,
+          date_issued: date_issued || new Date().toISOString().split('T')[0],
+          remarks: remarks || 'Reissued after return to GSU.',
+          status: 'Issued'
+        }])
+        .select()
+        .single()
+
+      if (createError) return res.status(500).json({ error: createError.message })
+
+      const { data: updatedItem, error: updateItemError } = await supabase
+        .from('items')
+        .update({
+          condition: 'Serviceable',
+          status: 'Issued',
+          accountable_employee: employee.full_name,
+          office_name: office?.office_name || item.office_name,
+          responsibility_center: office?.office_name || item.responsibility_center
+        })
+        .eq('id', item.id)
+        .eq('status', 'Returned')
+        .select()
+        .maybeSingle()
+
+      if (updateItemError || !updatedItem) {
+        await supabase.from('property_receipts').delete().eq('id', newReceipt.id)
+        return res.status(updateItemError ? 500 : 409).json({
+          error: updateItemError?.message || 'The property status changed before reissuance could be completed.'
+        })
+      }
+
+      const { data: linkedReturn, error: linkError } = await supabase
+        .from('item_returns')
+        .update({ reissued_receipt_id: newReceipt.id })
+        .eq('id', returnRecord.id)
+        .is('reissued_receipt_id', null)
+        .select()
+        .maybeSingle()
+
+      if (linkError || !linkedReturn) {
+        await supabase.from('items').update({
+          condition: item.condition,
+          status: item.status,
+          accountable_employee: item.accountable_employee,
+          office_name: item.office_name,
+          responsibility_center: item.responsibility_center
+        }).eq('id', item.id)
+        await supabase.from('property_receipts').delete().eq('id', newReceipt.id)
+        return res.status(linkError ? 500 : 409).json({
+          error: linkError?.message || 'This return record was already reissued.'
+        })
+      }
+
+      await createAuditLog(
+        'Reissued',
+        item.id,
+        JSON.stringify({ status: item.status, condition: item.condition, accountable_employee: item.accountable_employee }),
+        JSON.stringify({ status: 'Issued', condition: 'Serviceable', accountable_employee: employee.full_name, receipt_number: newReceipt.receipt_number, transaction_type: 'Reissuance' }),
+        'Reissued returned property to ' + employee.full_name,
+        req.profile?.id
+      )
+
+      return res.status(201).json({
+        message: 'Returned property reissued successfully.',
+        receipt: newReceipt,
+        item: updatedItem,
+        return_record: linkedReturn
+      })
     }
 
     // ==========================================
@@ -255,6 +390,7 @@ router.post('/', async (req, res) => {
         .from('property_receipts')
         .insert([{
           item_id,
+          transaction_type: 'Acquisition',
           receipt_type,
           receipt_number: String(finalReceiptNumber).trim(),
           issued_to: recipient.id,
