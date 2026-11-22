@@ -1816,13 +1816,27 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px so
 .return-ack-empty{padding:9px;color:var(--bs-secondary-color);font-size:12px}
 
 .return-requests-modal-dialog {
-  width: 1500px !important;
-  max-width: calc(100vw - 2rem) !important;
+  width: min(1600px, calc(100vw - 2rem)) !important;
+  max-width: none !important;
   margin: .5rem auto !important;
 }
 
 .return-requests-modal-dialog .modal-content {
   width: 100%;
+  min-width: 0;
+}
+
+.return-requests-modal-dialog .modal-body {
+  overflow-x: auto;
+}
+
+.return-requests-modal-dialog .return-requests-card {
+  width: 100%;
+  min-width: 0;
+}
+
+.return-requests-modal-dialog .table {
+  min-width: 1150px;
 }
 
 .sortable {
