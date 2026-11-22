@@ -1100,8 +1100,7 @@ export default {
 
     getReceiptRemarks(receipt, fallback = '-') {
       if (!receipt) return fallback
-      const request = Array.isArray(receipt.item_requests) ? receipt.item_requests[0] : receipt.item_requests
-      const values = [receipt.remarks, request?.remarks, request?.purpose, receipt.purpose]
+      const values = [receipt.remarks, receipt.purpose]
 
       for (const value of values) {
         if (value !== null && value !== undefined && String(value).trim() !== '') {
@@ -1113,7 +1112,7 @@ export default {
 
     getQuantityIssued(receipt) {
       if (!receipt) return 0
-      const quantities = [receipt.quantity, receipt.quantity_issued, receipt.item_requests?.quantity, receipt.quantity_requested]
+      const quantities = [receipt.quantity, receipt.quantity_issued]
       for (const quantity of quantities) {
         const value = Number(quantity)
         if (Number.isFinite(value) && value > 0) return value
@@ -1125,7 +1124,6 @@ export default {
       if (!receipt) return {}
       if (receipt.items) return Array.isArray(receipt.items) ? receipt.items[0] || {} : receipt.items
       if (receipt.item) return receipt.item
-      if (receipt.item_requests?.items) return Array.isArray(receipt.item_requests.items) ? receipt.item_requests.items[0] || {} : receipt.item_requests.items
       if (receipt.item_id) return this.items.find(item => item.id === receipt.item_id) || {}
       return {}
     },
@@ -1142,7 +1140,6 @@ export default {
     getIssuedToName(receipt) {
       if (!receipt) return '-'
       if (receipt.users?.full_name) return receipt.users.full_name
-      if (receipt.item_requests?.users?.full_name) return receipt.item_requests.users.full_name
       if (receipt.issued_to) {
         const person = this.personnel.find(person => person.id === receipt.issued_to)
         return person?.full_name || '-'
@@ -1232,21 +1229,20 @@ export default {
       this.signatureImages = { receivedBy: '', receivedFrom: '', requestedBy: '', approvedBy: '', issuedBy: '', receivedByRIS: '' }
       this.signatureDates = { receivedBy: '', receivedFrom: '', requestedBy: '', approvedBy: '', issuedBy: '', receivedByRIS: '' }
 
-      const request = receipt.item_requests || {}
       const item = this.getReceiptItem(receipt)
       const assignedPerson = item.accountable_employee || ''
-      const requestedBy = assignedPerson || request.requested_by_name || request.users?.full_name || ''
+      const requestedBy = assignedPerson || receipt.requested_by_name || ''
       const receivedBy = assignedPerson || requestedBy
-      const requestedDesignation = this.getPersonnelTitle(requestedBy) || request.requested_by_designation || ''
+      const requestedDesignation = this.getPersonnelTitle(requestedBy) || receipt.requested_by_designation || ''
       const receivedDesignation = this.getPersonnelTitle(receivedBy) || requestedDesignation
       this.selectedRISReceipt = receipt
 
       this.risForm = {
         fundCluster: item.fund_cluster || '',
-        division: request.division || receipt.division || '',
-        officeName: item.offices?.office_name || item.office_name || request.offices?.office_name || receipt.offices?.office_name || request.office_name || receipt.office_name || '',
-        responsibilityCenter: this.getReceiptItem(receipt).responsibility_center || request.responsibility_center || receipt.responsibility_center || '',
-        purpose: request.purpose || receipt.purpose || request.remarks || '',
+        division: receipt.division || '',
+        officeName: item.offices?.office_name || item.office_name || receipt.offices?.office_name || receipt.office_name || '',
+        responsibilityCenter: this.getReceiptItem(receipt).responsibility_center || receipt.responsibility_center || '',
+        purpose: receipt.purpose || receipt.remarks || '',
         requestedBy,
         requestedDesignation,
         approvedBy: receipt.approved_by_name || '',
@@ -1501,8 +1497,7 @@ export default {
       const pageSize = this.getPrintPageSize(details)
       if (!pageSize) return
       const item = this.getReceiptItem(receipt)
-      const request = receipt.item_requests || {}
-      const office = request.offices || receipt.offices || {}
+      const office = receipt.offices || {}
       const escape = value => this.escapeHtml(value === null || value === undefined || value === '' ? '-' : value)
       const formatSignatureDate = value => {
         if (!value) return '-'
@@ -1540,7 +1535,7 @@ export default {
       const stockWasAvailableWhenIssued = ['Issued', 'Delivered'].includes(receipt.status) || request.status === 'Delivered'
       const stockIsAvailable = stockWasAvailableWhenIssued || (item.status === 'Available' && Number.isFinite(availableQuantity) && Number.isFinite(requestedQuantity) && availableQuantity >= requestedQuantity)
       
-      const purpose = escape(details.purpose || request.purpose || receipt.purpose || request.remarks)
+      const purpose = escape(details.purpose || receipt.purpose || receipt.remarks)
       const remarks = escape(receipt.remarks || request.remarks)
 
       printWindow.document.write(`
