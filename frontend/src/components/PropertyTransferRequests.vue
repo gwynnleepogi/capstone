@@ -6,12 +6,12 @@
     </div>
     <div class="card-body">
       <div v-if="loading" class="text-muted">Loading transfer requests...</div>
-      <div v-else-if="!requests.length" class="text-muted">No transfer requests have been submitted.</div>
+      <div v-else-if="!pendingRequests.length" class="text-muted">No transfer requests have been submitted.</div>
       <div v-else class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead><tr><th>Request No.</th><th>Requested By</th><th>Properties</th><th>Date Requested</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
           <tbody>
-            <tr v-for="request in requests" :key="request.id">
+            <tr v-for="request in pendingRequests" :key="request.id">
               <td class="text-nowrap">{{ requestNumber(request) }}</td>
               <td>{{ request.requester?.full_name || 'Unknown employee' }}<div class="small text-muted">{{ request.from_responsibility_center || '' }}</div></td>
               <td>{{ (request.properties || []).length }}</td>
@@ -103,6 +103,9 @@ export default {
     }
   },
   computed: {
+    pendingRequests() {
+      return this.requests.filter(request => request.status === 'Pending')
+    },
     eligiblePersonnel() {
       return this.personnel.filter(person => String(person.id) !== String(this.selected?.requested_by))
     },
