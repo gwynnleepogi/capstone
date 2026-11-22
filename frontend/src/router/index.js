@@ -9,7 +9,6 @@ import Personnel from '@/views/Personnel.vue'
 import PropertyReceipts from '@/views/PropertyReceipts.vue'
 import Returns from '@/views/Returns.vue'
 import Transfers from '@/views/Transfers.vue'
-import Incidents from '@/views/Incidents.vue'
 import ReturnProperty from '@/views/ReturnProperty.vue'
 import MyProperties from '@/views/MyProperties.vue'
 import ItemDetails from '@/views/ItemDetails.vue'
@@ -125,12 +124,6 @@ const router = createRouter({
       path: '/transfers',
       name: 'Transfers',
       component: Transfers,
-      meta: { roles: ['Administrator'] }
-    },
-    {
-      path: '/incidents',
-      name: 'Incidents',
-      component: Incidents,
       meta: { roles: ['Administrator'] }
     },
     {
