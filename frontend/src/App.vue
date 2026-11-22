@@ -82,7 +82,7 @@
           <span
             v-if="pendingIssuanceCount > 0"
             class="request-count-badge"
-            :aria-label="`${pendingIssuanceCount} approved requests awaiting issuance`"
+            :aria-label="`${pendingIssuanceCount} properties awaiting acquisition receipt or reissuance`"
           >
             {{ pendingIssuanceCount > 99 ? '99+' : pendingIssuanceCount }}
           </span>
