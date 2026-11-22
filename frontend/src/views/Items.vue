@@ -399,18 +399,8 @@
                 </button>
               </th>
               <th>
-                <button type="button" class="sort-header" @click="sortBy('fund_cluster')">
-                  Fund Cluster <i :class="sortIcon('fund_cluster')"></i>
-                </button>
-              </th>
-              <th>
                 <button type="button" class="sort-header" @click="sortBy('condition')">
                   Condition <i :class="sortIcon('condition')"></i>
-                </button>
-              </th>
-              <th>
-                <button type="button" class="sort-header" @click="sortBy('status')">
-                  Status <i :class="sortIcon('status')"></i>
                 </button>
               </th>
               <th class="actions-column">Actions</th>
