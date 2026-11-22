@@ -259,7 +259,6 @@ export default {
           'alert-success'
         )
 
-        window.dispatchEvent(new Event('item-requests-updated'))
         window.dispatchEvent(new Event('receipts-updated'))
         window.dispatchEvent(new Event('return-requests-updated'))
       } catch (error) {
