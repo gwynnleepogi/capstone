@@ -394,16 +394,6 @@
                 </button>
               </th>
               <th>
-                <button type="button" class="sort-header" @click="sortBy('acquisition_date')">
-                  Acquisition Date <i :class="sortIcon('acquisition_date')"></i>
-                </button>
-              </th>
-              <th>
-                <button type="button" class="sort-header" @click="sortBy('created_at')">
-                  Date Inputted <i :class="sortIcon('created_at')"></i>
-                </button>
-              </th>
-              <th>
                 <button type="button" class="sort-header" @click="sortBy('classification')">
                   Classification <i :class="sortIcon('classification')"></i>
                 </button>
@@ -423,29 +413,19 @@
                   Status <i :class="sortIcon('status')"></i>
                 </button>
               </th>
-              <th>
-                <button type="button" class="sort-header" @click="sortBy('accountable_employee')">
-                  Accountable Employee <i :class="sortIcon('accountable_employee')"></i>
-                </button>
-              </th>
-              <th>
-                <button type="button" class="sort-header" @click="sortBy('office_name')">
-                  Office <i :class="sortIcon('office_name')"></i>
-                </button>
-              </th>
               <th class="actions-column">Actions</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="loading">
-              <td colspan="15" class="text-center py-5">Loading properties...</td>
+              <td colspan="9" class="text-center py-5">Loading properties...</td>
             </tr>
             <tr v-else-if="error">
-              <td colspan="15" class="text-center text-danger py-5">{{ error }}</td>
+              <td colspan="9" class="text-center text-danger py-5">{{ error }}</td>
             </tr>
             <tr v-else-if="filteredItems.length === 0">
-              <td colspan="15" class="text-center text-secondary py-5">
+              <td colspan="9" class="text-center text-secondary py-5">
                 No properties found.
               </td>
             </tr>
@@ -464,26 +444,16 @@
               <td>{{ item.description || '-' }}</td>
               <td>{{ item.serial_number || '-' }}</td>
               <td class="cost-column">₱{{ item.cost || 0 }}</td>
-              <td>{{ item.acquisition_date || '-' }}</td>
-              <td>{{ item.created_at ? item.created_at.slice(0, 10) : '-' }}</td>
               <td>
                 <span class="badge" :class="getClassificationClass(item.classification)">
                   {{ displayClassification(item.classification) }}
                 </span>
               </td>
-              <td>{{ item.fund_cluster || '-' }}</td>
               <td>
                 <span class="badge" :class="getConditionClass(item.condition)">
                   {{ item.condition || '-' }}
                 </span>
               </td>
-              <td>
-                <span class="badge" :class="getStatusClass(item.status)">
-                  {{ item.status || '-' }}
-                </span>
-              </td>
-              <td>{{ item.accountable_employee || '-' }}</td>
-              <td>{{ item.office_name || '-' }}</td>
               <td>
                 <button
                   type="button"
