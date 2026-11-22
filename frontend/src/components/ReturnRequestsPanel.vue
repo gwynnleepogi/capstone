@@ -120,17 +120,9 @@
               <div v-if="request.reviewer" class="small text-muted">by {{ request.reviewer.full_name }}</div>
             </td>
             <td class="text-end text-nowrap">
-              <template v-if="request.status === 'Pending'">
-                <button
-                  type="button"
-                  class="btn btn-sm btn-primary"
-                  :disabled="saving"
-                  @click="viewRequest(request)"
-                >
-                  <i class="bi bi-eye me-1"></i>
-                  View
-                </button>
-              </template>
+              <button type="button" class="btn btn-sm btn-primary" @click="viewRequest(request)">
+                <i class="bi bi-eye me-1"></i> View
+              </button>
             </td>
           </tr>
         </tbody>
@@ -139,9 +131,57 @@
 
 
   </div>
+
+    <!-- Return Request Details Modal -->
+    <div class="modal fade" id="returnRequestDetailsModal" tabindex="-1" aria-labelledby="returnRequestDetailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h5 id="returnRequestDetailsModalLabel" class="modal-title">Return Request Details</h5>
+              <div class="small text-muted">Review the submitted information before accepting the return.</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div v-if="selectedRequest" class="modal-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="text-muted small">Request Status</span>
+              <span class="badge" :class="statusClass(selectedRequest.status)">{{ selectedRequest.status }}</span>
+            </div>
+            <div class="row g-3">
+              <div class="col-md-6"><div class="detail-label">Requested Date</div><div>{{ formatDate(selectedRequest.created_at) }}</div></div>
+              <div class="col-md-6"><div class="detail-label">Requested By</div><div>{{ selectedRequest.requester?.full_name || '-' }}</div></div>
+              <div class="col-12"><div class="detail-label">Property</div><div class="fw-semibold">{{ selectedRequest.items?.description || '-' }}</div><div class="small text-muted">Property No.: {{ selectedRequest.items?.property_number || '-' }}</div></div>
+              <div class="col-md-6"><div class="detail-label">Receipt Number</div><div>{{ selectedRequest.property_receipts?.receipt_number || '-' }}</div></div>
+              <div class="col-md-6"><div class="detail-label">Quantity</div><div>{{ selectedRequest.property_receipts?.quantity ?? '-' }}</div></div>
+              <div class="col-md-6"><div class="detail-label">Office</div><div>{{ selectedRequest.offices?.office_name || '-' }}</div></div>
+              <div class="col-md-6"><div class="detail-label">Return Date</div><div>{{ formatDate(selectedRequest.return_date) }}</div></div>
+              <div class="col-md-6"><div class="detail-label">Declared Condition</div><div>{{ selectedRequest.condition_declared || '-' }}</div></div>
+              <div class="col-md-6"><div class="detail-label">Return Purpose</div><div>{{ selectedRequest.return_purpose || '-' }}</div></div>
+              <div class="col-12"><div class="detail-label">Reason</div><div>{{ selectedRequest.return_reason || '-' }}</div></div>
+              <div class="col-12"><div class="detail-label">Remarks</div><div>{{ selectedRequest.remarks || '-' }}</div></div>
+              <div v-if="selectedRequest.review_remarks" class="col-12"><div class="detail-label">Review Remarks</div><div>{{ selectedRequest.review_remarks }}</div></div>
+            </div>
+            <div v-if="selectedRequest.status === 'Pending'" class="alert alert-info mt-4 mb-0">
+              Accepting this request will record the return, update the property status, and add the record to Returns.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button v-if="selectedRequest && selectedRequest.status === 'Pending'" type="button" class="btn btn-success" :disabled="saving" @click="acceptSelectedRequest">
+              <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
+              <i v-else class="bi bi-check-lg me-1"></i>
+              {{ saving ? 'Accepting...' : 'Accept Return' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 </template>
 
 <script>
+import { Modal } from 'bootstrap'
+
 export default {
   name: 'ReturnRequestsPanel',
 
@@ -150,6 +190,7 @@ export default {
   data() {
     return {
       requests: [],
+      selectedRequest: null,
       loading: true,
       saving: false,
       filter: 'All',
@@ -231,29 +272,31 @@ export default {
       }
     },
 
-    async viewRequest(request) {
-      if (this.saving || request.status !== 'Pending') return
+    viewRequest(request) {
+      this.selectedRequest = request
+      const element = document.getElementById('returnRequestDetailsModal')
+      if (element) Modal.getOrCreateInstance(element).show()
+    },
+
+    async acceptSelectedRequest() {
+      const request = this.selectedRequest
+      if (!request || this.saving || request.status !== 'Pending') return
 
       this.saving = true
-
       try {
         const response = await fetch(`/api/return-requests/${request.id}/accept`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            condition_after_return: 'Unserviceable',
-            review_remarks: null
-          })
+          body: JSON.stringify({ condition_after_return: 'Unserviceable', review_remarks: null })
         })
         const data = await response.json().catch(() => ({}))
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Could not record the property return')
-        }
+        if (!response.ok) throw new Error(data.error || 'Could not record the property return')
 
         this.toast('Return recorded and added to Returns.')
+        const element = document.getElementById('returnRequestDetailsModal')
+        if (element) Modal.getOrCreateInstance(element).hide()
+        this.selectedRequest = null
         await this.loadRequests()
-
         window.dispatchEvent(new CustomEvent('return-requests-updated'))
         this.$emit('changed')
       } catch (error) {
@@ -284,6 +327,8 @@ export default {
 </script>
 
 <style scoped>
+.detail-label { font-size: .78rem; color: var(--bs-secondary-color); margin-bottom: .2rem; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
+
 .rr-overlay {
   position: fixed;
   inset: 0;
