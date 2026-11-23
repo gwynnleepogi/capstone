@@ -504,13 +504,13 @@ export default {
           )]),
         ], [10900])
 
-        const signatureWidths = [1962, 4578, 3052, 1308]
+        const signatureWidths = [2250, 4900, 1700, 2050]
         const signatureTable = makeTable([
           row([
             cell('Returned by:', 1962, { bold: true, size: 13, pad: 55 }),
             cell('(Please indicate name and affix signature)', 4578, { bold: true, italic: true, size: 14, align: AlignmentType.CENTER, pad: 100 }),
             cell('Received by:', 3052, { bold: true, size: 16, pad: 100 }),
-            cell('Action Taken\n(To be filled by the\nProperty Officer)', 2600, { bold: true, size: 13, align: AlignmentType.CENTER, pad: 65 }),
+            cell('Action Taken\n(To be filled by the\nProperty Officer)', 2050, { bold: true, size: 13, align: AlignmentType.CENTER, pad: 65 }),
           ]),
           ...[
             ['Signature:', '', ''],
