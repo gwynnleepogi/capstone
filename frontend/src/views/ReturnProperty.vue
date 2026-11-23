@@ -471,8 +471,16 @@ export default {
         const header = makeTable([
           row([
             logoCell,
-            cell('Republic of the Philippines\\nNUEVA VIZCAYA STATE UNIVERSITY\\nBambang, Nueva Vizcaya', 9400, {
-              bold: true, size: 18, align: AlignmentType.CENTER, pad: 35,
+            new TableCell({
+              width: { size: 9400, type: WidthType.DXA },
+              borders: border,
+              margins: { top: 35, bottom: 35, left: 65, right: 65 },
+              verticalAlign: VerticalAlign.CENTER,
+              children: [
+                para('Republic of the Philippines', { bold: true, size: 16, align: AlignmentType.CENTER }),
+                para('NUEVA VIZCAYA STATE UNIVERSITY', { bold: true, size: 18, align: AlignmentType.CENTER }),
+                para('Bambang, Nueva Vizcaya', { bold: true, size: 16, align: AlignmentType.CENTER }),
+              ],
             }),
           ]),
           row([
