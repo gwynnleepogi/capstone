@@ -1,24 +1,57 @@
 <template>
   <section class="card mb-4">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-      <div><strong>Property Transfer Requests</strong><div class="small text-muted">Review employee requests before changing property accountability.</div></div>
-      <button class="btn btn-sm btn-outline-secondary" @click="loadRequests" :disabled="loading">Refresh</button>
+    <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-3 py-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <strong class="fs-6">Property Transfer Requests</strong>
+          <span class="badge bg-warning text-dark">{{ pendingRequests.length }} pending</span>
+        </div>
+        <div class="small text-muted mt-1">Review employee requests before changing property accountability.</div>
+      </div>
+      <button class="btn btn-sm btn-outline-secondary" @click="loadRequests" :disabled="loading">
+        <i class="bi bi-arrow-clockwise me-1"></i>{{ loading ? 'Refreshing...' : 'Refresh' }}
+      </button>
     </div>
     <div class="card-body">
       <div v-if="loading" class="text-muted">Loading transfer requests...</div>
       <div v-else-if="!pendingRequests.length" class="text-muted">No transfer requests have been submitted.</div>
       <div v-else class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead><tr><th>Request No.</th><th>Requested By</th><th>Properties</th><th>Date Requested</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+        <table class="table table-hover align-middle mb-0 transfer-requests-table">
+          <thead class="table-light">
+            <tr>
+              <th>Request No.</th>
+              <th>Requested By</th>
+              <th>Properties</th>
+              <th>Date Requested</th>
+              <th>Reason</th>
+              <th>Status</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
           <tbody>
             <tr v-for="request in pendingRequests" :key="request.id">
-              <td class="text-nowrap">{{ requestNumber(request) }}</td>
-              <td>{{ request.requester?.full_name || 'Unknown employee' }}<div class="small text-muted">{{ request.from_responsibility_center || '' }}</div></td>
-              <td>{{ (request.properties || []).length }}</td>
-              <td>{{ formatDate(request.created_at) }}</td>
-              <td>{{ request.reason }}</td>
-              <td><span class="badge" :class="statusClass(request.status)">{{ request.status }}</span></td>
-              <td><button class="btn btn-sm btn-outline-primary" @click="openReview(request)">Review</button></td>
+              <td class="text-nowrap fw-semibold">{{ requestNumber(request) }}</td>
+              <td>
+                <div class="fw-semibold">{{ request.requester?.full_name || 'Unknown employee' }}</div>
+                <div class="small text-muted">{{ request.from_responsibility_center || '' }}</div>
+              </td>
+              <td class="transfer-properties-cell">
+                <div v-for="property in (request.properties || []).slice(0, 2)" :key="property.id" class="small">
+                  {{ property.items?.description || property.items?.property_number || 'Property' }}
+                </div>
+                <div v-if="(request.properties || []).length > 2" class="small text-muted">
+                  +{{ request.properties.length - 2 }} more
+                </div>
+                <span v-if="!(request.properties || []).length" class="text-muted">-</span>
+              </td>
+              <td class="text-nowrap">{{ formatDate(request.created_at) }}</td>
+              <td class="transfer-reason-cell">{{ request.reason || '-' }}</td>
+              <td><span class="badge rounded-pill" :class="statusClass(request.status)">{{ request.status }}</span></td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-primary text-nowrap" @click="openReview(request)">
+                  <i class="bi bi-eye me-1"></i>Review Details
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -188,6 +221,11 @@ export default {
 </script>
 
 <style scoped>
+.transfer-requests-table th{font-size:.78rem;font-weight:600;color:var(--bs-secondary-color);text-transform:uppercase;white-space:nowrap}
+.transfer-requests-table td{padding-top:.9rem;padding-bottom:.9rem}
+.transfer-properties-cell{min-width:150px;max-width:240px}
+.transfer-reason-cell{min-width:150px;max-width:240px;white-space:normal;overflow-wrap:anywhere}
 .transfer-review-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;display:flex;align-items:center;justify-content:center;padding:1rem}
-.transfer-review-modal{background:#fff;width:min(900px,100%);max-height:90vh;overflow:auto;border-radius:.5rem;box-shadow:0 1rem 3rem rgba(0,0,0,.2)}
+.transfer-review-modal{background:#fff;width:min(1100px,100%);max-height:92vh;overflow:auto;border-radius:.75rem;box-shadow:0 1rem 3rem rgba(0,0,0,.2)}
+@media(max-width:767.98px){.transfer-review-backdrop{padding:.5rem}.transfer-review-modal{max-height:95vh}.transfer-requests-table td{padding:.7rem}}
 </style>
