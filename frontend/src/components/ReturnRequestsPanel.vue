@@ -120,29 +120,7 @@
               </div>
             </td>
             <td class="text-end">
-              <div v-if="request.status === 'Pending'" class="d-flex justify-content-end flex-wrap gap-1">
-                <button type="button" class="btn btn-sm btn-outline-primary" @click="viewRequest(request)">
-                  <i class="bi bi-eye me-1"></i> View
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-success"
-                  :disabled="saving"
-                  @click="acceptRequest(request)"
-                >
-                  <i class="bi bi-check-lg me-1"></i> Accept
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-danger"
-                  :disabled="saving"
-                  @click="openRejectModal(request)"
-                >
-                  <i class="bi bi-x-lg me-1"></i> Reject
-                </button>
-              </div>
               <button
-                v-else
                 type="button"
                 class="btn btn-sm btn-outline-primary"
                 @click="viewRequest(request)"
@@ -164,7 +142,7 @@
     aria-labelledby="returnRequestDetailsModalLabel"
     aria-hidden="true"
   >
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
           <div>
