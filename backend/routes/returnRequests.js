@@ -222,8 +222,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Please explain why the property is unserviceable.' })
     }
 
-    if (!['Property Utilization/Re-issuance', 'Repair', 'Disposal'].includes(return_purpose)) {
-      return res.status(400).json({ error: 'Please select what the returned property is for.' })
+    if (return_purpose && !['Property Utilization/Re-issuance', 'Repair', 'Disposal'].includes(return_purpose)) {
+      return res.status(400).json({ error: 'Please select a valid property purpose.' })
     }
 
     const { data: receipt, error: receiptError } = await supabase
@@ -268,7 +268,7 @@ router.post('/', async (req, res) => {
         requested_by: req.profile.id,
         office_id: req.profile.office_id || null,
         return_date: return_date || new Date().toISOString().split('T')[0],
-        return_purpose,
+        return_purpose: return_purpose || null,
         condition_declared,
         return_reason: String(return_reason).trim(),
         remarks: String(remarks || '').trim() || null,
