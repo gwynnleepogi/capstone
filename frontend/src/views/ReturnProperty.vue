@@ -4,17 +4,13 @@
       <div>
         <h2>Return Property</h2>
         <p class="text-muted mb-0">
-          Request to return property issued to you. The property office will accept or reject it.
+          Submit unserviceable properties for return and monitor the status of your submitted return requests.
         </p>
       </div>
       <div class="d-flex gap-2 flex-wrap">
       <button type="button" class="btn btn-warning d-flex align-items-center gap-2" @click="openPropertySelectionModal">
         <i class="bi bi-arrow-return-left"></i>
         Request to Return Property
-      </button>
-      <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2" @click="openReturnRequestsModal">
-        <i class="bi bi-inbox"></i>
-        Return Requests
       </button>
       </div>
     </div>
@@ -90,21 +86,14 @@
       </section>
     </div>
 
-    <!-- My Return Requests Modal -->
-    <div class="modal fade" id="myReturnRequestsModal" tabindex="-1" aria-labelledby="myReturnRequestsModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-scrollable modal-xl modal-wide-return-requests">
-        <div class="modal-content">
-          <div class="modal-header">
-            <div>
-              <h5 id="myReturnRequestsModalLabel" class="modal-title">My Return Requests</h5>
-              <p class="text-muted small mb-0">View the status and details of your submitted return requests.</p>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="card">
-      <div class="card-header bg-white">
-        <strong>My return requests</strong>
+    <!-- My Return Requests -->
+    <div class="card mb-4">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <strong>My Return Requests</strong>
+          <div class="small text-muted">Returns you have submitted for unserviceable properties.</div>
+        </div>
+        <span class="badge bg-secondary">{{ requests.length }} request(s)</span>
       </div>
 
       <div class="table-responsive">
@@ -121,14 +110,15 @@
               <th class="text-end">Action</th>
             </tr>
           </thead>
-
           <tbody>
-            <tr v-if="!loading && !requests.length">
-              <td colspan="7" class="text-center text-muted py-4">
-                You have not requested any returns yet.
+            <tr v-if="loading">
+              <td colspan="8" class="text-center text-muted py-4">Loading return requests...</td>
+            </tr>
+            <tr v-else-if="!requests.length">
+              <td colspan="8" class="text-center text-muted py-4">
+                You have not submitted any return requests yet.
               </td>
             </tr>
-
             <tr v-for="request in requests" :key="request.id">
               <td class="text-nowrap">{{ formatDate(request.created_at) }}</td>
               <td>
@@ -154,10 +144,6 @@
             </tr>
           </tbody>
         </table>
-      </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
