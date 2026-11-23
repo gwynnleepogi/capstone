@@ -221,11 +221,23 @@ export default {
 </script>
 
 <style scoped>
-.transfer-requests-table th{font-size:.78rem;font-weight:600;color:var(--bs-secondary-color);text-transform:uppercase;white-space:nowrap}
-.transfer-requests-table td{padding-top:.9rem;padding-bottom:.9rem}
-.transfer-properties-cell{min-width:150px;max-width:240px}
-.transfer-reason-cell{min-width:150px;max-width:240px;white-space:normal;overflow-wrap:anywhere}
+section.card{width:100%;max-width:none}
+.card-body{width:100%;min-width:0}
+.card-body>.table-responsive{width:100%;max-width:100%}
+.transfer-requests-table{width:100%;min-width:1200px;table-layout:auto}
+.transfer-requests-table th{font-size:.78rem;font-weight:600;color:var(--bs-secondary-color);text-transform:uppercase;white-space:nowrap;padding:.85rem 1rem}
+.transfer-requests-table td{padding:1rem;vertical-align:middle}
+.transfer-requests-table th:nth-child(1),.transfer-requests-table td:nth-child(1){min-width:155px}
+.transfer-requests-table th:nth-child(2),.transfer-requests-table td:nth-child(2){min-width:190px}
+.transfer-requests-table th:nth-child(3),.transfer-requests-table td:nth-child(3){min-width:240px}
+.transfer-requests-table th:nth-child(4),.transfer-requests-table td:nth-child(4){min-width:155px}
+.transfer-requests-table th:nth-child(5),.transfer-requests-table td:nth-child(5){min-width:220px}
+.transfer-requests-table th:nth-child(6),.transfer-requests-table td:nth-child(6){min-width:115px}
+.transfer-requests-table th:nth-child(7),.transfer-requests-table td:nth-child(7){min-width:155px}
+.transfer-properties-cell{min-width:240px;max-width:320px;white-space:normal;overflow-wrap:normal}
+.transfer-properties-cell>div{white-space:normal;overflow-wrap:anywhere}
+.transfer-reason-cell{min-width:220px;max-width:300px;white-space:normal;overflow-wrap:anywhere}
 .transfer-review-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;display:flex;align-items:center;justify-content:center;padding:1rem}
 .transfer-review-modal{background:#fff;width:min(1100px,100%);max-height:92vh;overflow:auto;border-radius:.75rem;box-shadow:0 1rem 3rem rgba(0,0,0,.2)}
-@media(max-width:767.98px){.transfer-review-backdrop{padding:.5rem}.transfer-review-modal{max-height:95vh}.transfer-requests-table td{padding:.7rem}}
+@media(max-width:767.98px){.transfer-review-backdrop{padding:.5rem}.transfer-review-modal{max-height:95vh}.transfer-requests-table{min-width:1100px}.transfer-requests-table td{padding:.8rem}}
 </style>
