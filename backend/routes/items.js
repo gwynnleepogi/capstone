@@ -52,13 +52,14 @@ router.get('/', async (req, res) => {
 router.get('/:id/history', async (req, res) => {
   try {
     const itemId = req.params.id
-    const [receiptResult, transferResult, returnResult] = await Promise.all([
+    const [receiptResult, transferResult, returnResult, requestResult] = await Promise.all([
       supabase.from('property_receipts').select('*').eq('item_id', itemId),
       supabase.from('item_transfers').select('*').eq('item_id', itemId),
-      supabase.from('item_returns').select('*').eq('item_id', itemId)
+      supabase.from('item_returns').select('*').eq('item_id', itemId),
+      supabase.from('return_requests').select('*').eq('item_id', itemId)
     ])
 
-    const lookupError = receiptResult.error || transferResult.error || returnResult.error
+    const lookupError = receiptResult.error || transferResult.error || returnResult.error || requestResult.error
     if (lookupError) {
       return res.status(500).json({ error: lookupError.message })
     }
@@ -66,10 +67,12 @@ router.get('/:id/history', async (req, res) => {
     const receipts = receiptResult.data || []
     const transfers = transferResult.data || []
     const returns = returnResult.data || []
+    const returnRequests = requestResult.data || []
     const userIds = [...new Set([
       ...receipts.map(row => row.issued_to),
       ...transfers.flatMap(row => [row.from_user_id, row.to_user_id, row.transferred_by]),
-      ...returns.map(row => row.returned_by)
+      ...returns.map(row => row.returned_by),
+      ...returnRequests.map(row => row.requested_by)
     ].filter(Boolean))]
 
     let usersById = {}
@@ -110,6 +113,15 @@ router.get('/:id/history', async (req, res) => {
         details: row.condition_after_return || 'Returned',
         employee: usersById[String(row.returned_by)]?.full_name || '-',
         remarks: [row.return_reason, row.remarks].filter(Boolean).join(' — ')
+      })),
+      ...returnRequests.map(row => ({
+        id: 'return-request-' + row.id,
+        type: 'Return Request',
+        date: row.created_at || row.return_date,
+        reference: row.property_receipt_id || row.id,
+        details: row.status || 'Requested',
+        employee: usersById[String(row.requested_by)]?.full_name || '-',
+        remarks: [row.return_reason, row.remarks, row.rejection_reason].filter(Boolean).join(' — ')
       }))
     ].sort((first, second) => new Date(second.date || 0) - new Date(first.date || 0))
 
