@@ -585,22 +585,60 @@
             <p class="text-muted small">Enter the details that will appear in the returned property acknowledgement form before printing.</p>
             <div class="mb-3">
               <label class="form-label">Returned By</label>
-              <input type="text" class="form-control" v-model.trim="returnedAcknowledgementSignatory.printedName" placeholder="Search or enter returned person's name" list="returnedAcknowledgementPersonnelList">
-              <datalist id="returnedAcknowledgementPersonnelList">
-                <option v-for="person in personnel" :key="person.id" :value="person.full_name">
-                  {{ person.job_title || '' }}
-                </option>
-              </datalist>
+              <div class="position-relative">
+                <input
+                  type="text"
+                  class="form-control"
+                  v-model.trim="returnedAcknowledgementSignatory.printedName"
+                  placeholder="Search or enter returned person's name"
+                  autocomplete="off"
+                  @focus="returnedAcknowledgementSignatoryOptions.returnedBy = true"
+                  @input="updateReturnedAcknowledgementSearch('returnedBy')"
+                  @blur="closeReturnedAcknowledgementOptions('returnedBy')"
+                >
+                <div v-if="returnedAcknowledgementSignatoryOptions.returnedBy" class="list-group position-absolute w-100 shadow" style="max-height:200px;overflow-y:auto;z-index:1060">
+                  <button
+                    v-for="person in filteredReturnedAcknowledgementPersonnel('returnedBy')"
+                    :key="person.id"
+                    type="button"
+                    class="list-group-item list-group-item-action"
+                    @mousedown.prevent="selectReturnedAcknowledgementPerson('returnedBy', person)"
+                  >
+                    <div>{{ person.full_name }}</div>
+                    <small class="text-muted">{{ person.job_title || person.designation || 'No designation listed' }}</small>
+                  </button>
+                  <div v-if="filteredReturnedAcknowledgementPersonnel('returnedBy').length === 0" class="list-group-item text-muted">No personnel found. You can enter a name manually.</div>
+                </div>
+              </div>
               <div class="form-text">Select a name from the suggestions or type a name manually.</div>
             </div>
             <div class="mb-3">
               <label class="form-label">Received By</label>
-              <input type="text" class="form-control" v-model.trim="returnedAcknowledgementSignatory.receivedByName" placeholder="Search or enter receiving person's name" list="receivedAcknowledgementPersonnelList">
-              <datalist id="receivedAcknowledgementPersonnelList">
-                <option v-for="person in personnel" :key="person.id" :value="person.full_name">
-                  {{ person.job_title || '' }}
-                </option>
-              </datalist>
+              <div class="position-relative">
+                <input
+                  type="text"
+                  class="form-control"
+                  v-model.trim="returnedAcknowledgementSignatory.receivedByName"
+                  placeholder="Search or enter receiving person's name"
+                  autocomplete="off"
+                  @focus="returnedAcknowledgementSignatoryOptions.receivedBy = true"
+                  @input="updateReturnedAcknowledgementSearch('receivedBy')"
+                  @blur="closeReturnedAcknowledgementOptions('receivedBy')"
+                >
+                <div v-if="returnedAcknowledgementSignatoryOptions.receivedBy" class="list-group position-absolute w-100 shadow" style="max-height:200px;overflow-y:auto;z-index:1060">
+                  <button
+                    v-for="person in filteredReturnedAcknowledgementPersonnel('receivedBy')"
+                    :key="person.id"
+                    type="button"
+                    class="list-group-item list-group-item-action"
+                    @mousedown.prevent="selectReturnedAcknowledgementPerson('receivedBy', person)"
+                  >
+                    <div>{{ person.full_name }}</div>
+                    <small class="text-muted">{{ person.job_title || person.designation || 'No designation listed' }}</small>
+                  </button>
+                  <div v-if="filteredReturnedAcknowledgementPersonnel('receivedBy').length === 0" class="list-group-item text-muted">No personnel found. You can enter a name manually.</div>
+                </div>
+              </div>
               <div class="form-text">Select a name from the suggestions or type a name manually.</div>
             </div>
             <div class="mb-3">
@@ -773,6 +811,10 @@ export default {
         receivedByDesignation: '',
         designation: '',
         date: ''
+      },
+      returnedAcknowledgementSignatoryOptions: {
+        returnedBy: false,
+        receivedBy: false
       },
       returnedReceiptSignatories: {
         responsibilityCenter: '',
@@ -1548,10 +1590,57 @@ window.onload=function(){
         designation: record.personnel?.job_title || record.users?.job_title || record.personnel?.designation || record.users?.designation || '',
         date: record.return_date || new Date().toISOString().slice(0, 10)
       }
+      this.returnedAcknowledgementSignatoryOptions = { returnedBy: false, receivedBy: false }
       this.returnedReceiptSignatories.responsibilityCenter =
         record.items?.responsibility_center || ''
       const modalElement = document.getElementById("returnedAcknowledgementInputModal")
       if (modalElement) Modal.getOrCreateInstance(modalElement).show()
+    },
+
+    filteredReturnedAcknowledgementPersonnel(section) {
+      const nameKey = section === 'returnedBy' ? 'printedName' : 'receivedByName'
+      const query = String(this.returnedAcknowledgementSignatory[nameKey] || '').toLowerCase().trim()
+
+      if (!query) return this.personnel.slice(0, 10)
+
+      return this.personnel.filter(person =>
+        String(person.full_name || '').toLowerCase().includes(query) ||
+        String(person.job_title || person.designation || '').toLowerCase().includes(query)
+      ).slice(0, 10)
+    },
+
+    selectReturnedAcknowledgementPerson(section, person) {
+      if (section === 'returnedBy') {
+        this.returnedAcknowledgementSignatory.printedName = person.full_name || ''
+        this.returnedAcknowledgementSignatory.designation = person.job_title || person.designation || ''
+      } else {
+        this.returnedAcknowledgementSignatory.receivedByName = person.full_name || ''
+        this.returnedAcknowledgementSignatory.receivedByDesignation = person.job_title || person.designation || ''
+      }
+
+      this.returnedAcknowledgementSignatoryOptions[section] = false
+    },
+
+    updateReturnedAcknowledgementSearch(section) {
+      const nameKey = section === 'returnedBy' ? 'printedName' : 'receivedByName'
+      const titleKey = section === 'returnedBy' ? 'designation' : 'receivedByDesignation'
+      const typedName = String(this.returnedAcknowledgementSignatory[nameKey] || '').trim()
+
+      const match = this.personnel.find(person =>
+        String(person.full_name || '').toLowerCase() === typedName.toLowerCase()
+      )
+
+      if (match) {
+        this.returnedAcknowledgementSignatory[titleKey] = match.job_title || match.designation || ''
+      }
+
+      this.returnedAcknowledgementSignatoryOptions[section] = true
+    },
+
+    closeReturnedAcknowledgementOptions(section) {
+      setTimeout(() => {
+        this.returnedAcknowledgementSignatoryOptions[section] = false
+      }, 150)
     },
 
     confirmPrintAcknowledgementForReturnedProperty() {
