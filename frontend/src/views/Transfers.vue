@@ -222,10 +222,42 @@
             <div class="modal-body">
               <div class="mb-3">
                 <label class="form-label">From Accountable Employee</label>
-                <select class="form-select" v-model="form.from_user_id" required>
-                  <option value="">Select current accountable employee</option>
-                  <option v-for="person in sourceEmployees" :key="person.id" :value="person.id">{{ person.full_name }}</option>
-                </select>
+                <div class="position-relative">
+                  <input
+                    type="text"
+                    class="form-control"
+                    v-model="sourceEmployeeSearch"
+                    placeholder="Search current accountable employee..."
+                    autocomplete="off"
+                    required
+                    @focus="showSourceEmployeeOptions = true"
+                    @input="onSourceEmployeeSearch"
+                  >
+
+                  <div
+                    v-if="showSourceEmployeeOptions"
+                    class="list-group position-absolute w-100 shadow"
+                    style="max-height: 200px; overflow-y: auto; z-index: 1056;"
+                  >
+                    <button
+                      v-for="person in filteredSourceEmployees"
+                      :key="person.id"
+                      type="button"
+                      class="list-group-item list-group-item-action"
+                      :class="{ active: form.from_user_id === person.id }"
+                      @click="selectSourceEmployee(person)"
+                    >
+                      {{ person.full_name }}
+                    </button>
+
+                    <div
+                      v-if="filteredSourceEmployees.length === 0"
+                      class="list-group-item text-muted"
+                    >
+                      No employee found.
+                    </div>
+                  </div>
+                </div>
                 <div v-if="sourceEmployees.length === 0" class="form-text text-warning">No issued properties are currently available for transfer.</div>
               </div>
 
@@ -694,6 +726,10 @@ export default {
       personnelSearch: { receivedBy: '', issuedBy: '' },
       showPersonnelOptions: { receivedBy: false, issuedBy: false },
 
+      // Accountable employee search
+      sourceEmployeeSearch: '',
+      showSourceEmployeeOptions: false,
+
       // Receiving employee search
       employeeSearch: '',
       showEmployeeOptions: false,
@@ -709,6 +745,14 @@ export default {
         if (receipt.issued_to && receipt.users?.full_name) unique.set(receipt.issued_to, { id: receipt.issued_to, full_name: receipt.users.full_name })
       })
       return [...unique.values()].sort((a, b) => a.full_name.localeCompare(b.full_name, undefined, { sensitivity: 'base' }))
+    },
+
+    filteredSourceEmployees() {
+      const search = this.sourceEmployeeSearch.toLowerCase().trim()
+
+      return this.sourceEmployees.filter(person =>
+        (person.full_name || '').toLowerCase().includes(search)
+      )
     },
 
     sourceReceipts() {
@@ -1019,12 +1063,28 @@ export default {
 
     openAddModal() {
       this.form = this.emptyForm()
+      this.sourceEmployeeSearch = ''
+      this.showSourceEmployeeOptions = false
       this.employeeSearch = ''
       this.showEmployeeOptions = false
 
       Modal.getOrCreateInstance(
         document.getElementById('transferModal')
       ).show()
+    },
+
+    onSourceEmployeeSearch() {
+      const selected = this.selectedSourceEmployee
+      if (selected && this.sourceEmployeeSearch.trim().toLowerCase() !== selected.full_name.toLowerCase()) {
+        this.form.from_user_id = ''
+      }
+      this.showSourceEmployeeOptions = true
+    },
+
+    selectSourceEmployee(person) {
+      this.form.from_user_id = person.id
+      this.sourceEmployeeSearch = person.full_name
+      this.showSourceEmployeeOptions = false
     },
 
     toggleAllProperties() {
@@ -1041,8 +1101,11 @@ export default {
     },
 
     resetEmployeeSearch() {
+      this.sourceEmployeeSearch = ''
+      this.showSourceEmployeeOptions = false
       this.employeeSearch = ''
       this.showEmployeeOptions = false
+      this.form.from_user_id = ''
       this.form.to_user_id = ''
     },
 
