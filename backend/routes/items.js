@@ -47,7 +47,81 @@ router.get('/', async (req, res) => {
 })
 
 // ==========================================
-// 2. DOCUMENT LINK
+// 2. PROPERTY HISTORY
+// ==========================================
+router.get('/:id/history', async (req, res) => {
+  try {
+    const itemId = req.params.id
+    const [receiptResult, transferResult, returnResult] = await Promise.all([
+      supabase.from('property_receipts').select('*').eq('item_id', itemId),
+      supabase.from('item_transfers').select('*').eq('item_id', itemId),
+      supabase.from('item_returns').select('*').eq('item_id', itemId)
+    ])
+
+    const lookupError = receiptResult.error || transferResult.error || returnResult.error
+    if (lookupError) {
+      return res.status(500).json({ error: lookupError.message })
+    }
+
+    const receipts = receiptResult.data || []
+    const transfers = transferResult.data || []
+    const returns = returnResult.data || []
+    const userIds = [...new Set([
+      ...receipts.map(row => row.issued_to),
+      ...transfers.flatMap(row => [row.from_user_id, row.to_user_id, row.transferred_by]),
+      ...returns.map(row => row.returned_by)
+    ].filter(Boolean))]
+
+    let usersById = {}
+    if (userIds.length) {
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, full_name')
+        .in('id', userIds)
+
+      if (usersError) return res.status(500).json({ error: usersError.message })
+      usersById = Object.fromEntries((users || []).map(user => [String(user.id), user]))
+    }
+
+    const history = [
+      ...receipts.map(row => ({
+        id: 'receipt-' + row.id,
+        type: row.transaction_type || 'Acquisition / Issuance',
+        date: row.date_issued || row.created_at,
+        reference: row.receipt_number || '-',
+        details: [row.receipt_type, row.status, row.quantity ? 'Quantity: ' + row.quantity : ''].filter(Boolean).join(' • '),
+        employee: usersById[String(row.issued_to)]?.full_name || '-',
+        remarks: row.remarks || ''
+      })),
+      ...transfers.map(row => ({
+        id: 'transfer-' + row.id,
+        type: 'Property Transfer',
+        date: row.transfer_date || row.created_at,
+        reference: row.transfer_group_id || row.id,
+        details: [row.transfer_type, row.condition_after_transfer, row.resulting_status].filter(Boolean).join(' • '),
+        employee: (usersById[String(row.from_user_id)]?.full_name || 'Unknown') + ' → ' + (usersById[String(row.to_user_id)]?.full_name || 'Unknown'),
+        remarks: [row.reason, row.remarks].filter(Boolean).join(' — ')
+      })),
+      ...returns.map(row => ({
+        id: 'return-' + row.id,
+        type: 'Property Return',
+        date: row.return_date || row.created_at,
+        reference: row.property_receipt_id || row.id,
+        details: row.condition_after_return || 'Returned',
+        employee: usersById[String(row.returned_by)]?.full_name || '-',
+        remarks: [row.return_reason, row.remarks].filter(Boolean).join(' — ')
+      }))
+    ].sort((first, second) => new Date(second.date || 0) - new Date(first.date || 0))
+
+    res.json(history)
+  } catch (error) {
+    console.error('Failed to load property history:', error)
+    res.status(500).json({ error: 'Failed to load property history.' })
+  }
+})
+
+// ==========================================
+// 3. DOCUMENT LINK
 // ==========================================
 router.post('/:id/document-link', async (req, res) => {
   try {
@@ -468,6 +542,46 @@ router.delete('/:id', async (req, res) => {
     if (oldError || !oldData) {
       return res.status(404).json({
         error: 'Item not found'
+      })
+    }
+
+    // Keep the permanent property record whenever a transfer or return request
+    // is linked to it. This preserves the complete transaction trail.
+    const { data: linkedTransfers, error: transferLookupError } = await supabase
+      .from('item_transfers')
+      .select('id')
+      .eq('item_id', req.params.id)
+      .limit(1)
+
+    if (transferLookupError) {
+      return res.status(500).json({
+        error: 'Could not verify whether this property has transfer history.',
+        details: transferLookupError.message
+      })
+    }
+
+    if (linkedTransfers?.length) {
+      return res.status(409).json({
+        error: 'This property cannot be deleted because it has a transfer record. Keep it to preserve its property history.'
+      })
+    }
+
+    const { data: linkedReturnRequests, error: requestLookupError } = await supabase
+      .from('return_requests')
+      .select('id')
+      .eq('item_id', req.params.id)
+      .limit(1)
+
+    if (requestLookupError) {
+      return res.status(500).json({
+        error: 'Could not verify whether this property has return request history.',
+        details: requestLookupError.message
+      })
+    }
+
+    if (linkedReturnRequests?.length) {
+      return res.status(409).json({
+        error: 'This property cannot be deleted because it has a return request record. Keep it to preserve its request history.'
       })
     }
 
