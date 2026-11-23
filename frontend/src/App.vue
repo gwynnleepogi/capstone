@@ -168,6 +168,13 @@
         >
           <i class="bi bi-arrow-left-right"></i>
           Transfers
+          <span
+            v-if="pendingTransferRequestCount > 0"
+            class="request-count-badge"
+            :aria-label="`${pendingTransferRequestCount} pending property transfer requests`"
+          >
+            {{ pendingTransferRequestCount > 99 ? '99+' : pendingTransferRequestCount }}
+          </span>
         </router-link>
 
         <div v-if="canAccess(['Administrator', 'Teacher', 'Non-Teaching Staff'])" class="nav-section-label">
@@ -318,6 +325,7 @@ export default {
       pendingPasswordResetCount: 0,
       showQrScanner: false,
       pendingReturnCount: 0,
+      pendingTransferRequestCount: 0,
       requestCountTimer: null,
       printPreviewRecoveryTimer: null,
       toast: {
@@ -452,10 +460,12 @@ export default {
         this.pendingIssuanceCount = 0
         this.pendingAccountRequestCount = 0
         this.pendingReturnCount = 0
+        this.pendingTransferRequestCount = 0
         return
       }
 
       this.refreshPendingReturnCount()
+      this.refreshPendingTransferRequestCount()
       this.refreshPendingAccountRequestCount()
       this.refreshPendingIssuanceCount()
       this.refreshPendingPasswordResetCount()
@@ -473,6 +483,29 @@ export default {
         }
       } catch (error) {
         console.error('Pending return count error:', error)
+      }
+    },
+
+    async refreshPendingTransferRequestCount() {
+      if (
+        !this.canAccess(['Administrator']) ||
+        !localStorage.getItem('accessToken')
+      ) {
+        this.pendingTransferRequestCount = 0
+        return
+      }
+
+      try {
+        const response = await fetch('/api/property-transfer-requests/pending-count')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load pending transfer request count')
+        }
+
+        this.pendingTransferRequestCount = Number(data.count) || 0
+      } catch (error) {
+        console.error('Pending transfer request count error:', error)
       }
     },
 
@@ -613,6 +646,7 @@ export default {
       this.currentUser = null
       this.pendingAccountRequestCount = 0
       this.pendingPasswordResetCount = 0
+      this.pendingTransferRequestCount = 0
       this.menuOpen = false
 
       localStorage.removeItem('accessToken')
