@@ -417,73 +417,94 @@ export default {
       const rows = Array.from({ length: 15 }, (_, index) => {
         const first = index === 0
         return '<tr>' +
-          '<td style="width:6%;height:7mm;text-align:center">' + (index + 1) + '</td>' +
-          '<td style="width:8%;text-align:center">' + (first ? safe(receipt.quantity || '') : '') + '</td>' +
-          '<td style="width:7%;text-align:center">' + (first ? safe(item.unit || '') : '') + '</td>' +
-          '<td style="width:34%">' + (first ? safe(item.description || '') : '') + '</td>' +
-          '<td style="width:11%;text-align:center">' + (first ? safe(item.code || item.account_code || '') : '') + '</td>' +
-          '<td style="width:17%;text-align:center">' + (first ? safe(requester) : '') + '</td>' +
-          '<td style="width:17%">' + (first ? safe(request.return_reason || '') : '') + '</td>' +
+          '<td style="height:7mm;text-align:center">' + (index + 1) + '</td>' +
+          '<td style="text-align:center">' + (first ? safe(receipt.quantity || '') : '') + '</td>' +
+          '<td style="text-align:center">' + (first ? safe(item.unit || '') : '') + '</td>' +
+          '<td>' + (first ? safe(item.description || '') : '') + '</td>' +
+          '<td style="text-align:center">' + (first ? safe(item.code || item.account_code || '') : '') + '</td>' +
+          '<td style="text-align:center">' + (first ? safe(requester) : '') + '</td>' +
+          '<td>' + (first ? safe(request.return_reason || '') : '') + '</td>' +
           '</tr>'
       }).join('')
 
-      const cell = 'border:1px solid #555;padding:5px;vertical-align:middle;'
-      const labelCell = cell + 'font-weight:bold;'
-      const signatureRow = (label, leftValue, rightValue, lastValue) =>
-        '<tr><td style="' + labelCell + 'width:18%">' + label + '</td>' +
-        '<td style="' + cell + 'width:42%;text-align:center">' + (leftValue || '') + '</td>' +
-        '<td style="' + cell + 'width:28%">' + (rightValue || '') + '</td>' +
-        '<td style="' + cell + 'width:12%">' + (lastValue || '') + '</td></tr>'
+      const border = 'border:1px solid #555;'
+      const cell = border + 'padding:4px;vertical-align:middle;'
+      const label = cell + 'font-weight:bold;'
+      const signatureRow = (name, receivedText) =>
+        '<tr>' +
+        '<td style="' + label + 'width:20%">' + name + '</td>' +
+        '<td style="' + cell + 'width:41%"></td>' +
+        '<td style="' + cell + 'width:19%;' + (receivedText ? 'text-align:center;' : '') + '">' + (receivedText || '') + '</td>' +
+        '<td style="' + cell + 'width:20%"></td>' +
+        '</tr>'
 
       const documentContent = '<!doctype html><html><head><meta charset="UTF-8"><title>ARRP</title>' +
-        '<style>@page{size:A4 portrait;margin:8mm}body{font-family:Arial,sans-serif;font-size:10px;color:#111;margin:0}' +
-        'table{width:100%;border-collapse:collapse;table-layout:fixed}td,th{border:1px solid #555;padding:4px}th{font-size:9px;text-align:center;height:28px}' +
-        '.sheet{border:1px solid #555;padding:12px}.instructions{font-size:9px;line-height:1.25}.instructions li{padding:3px 0;text-align:justify}' +
-        '.center{text-align:center}.school{font-size:12px;font-weight:bold;line-height:1.25;text-align:center}.formtitle{font-size:13px;font-weight:bold;text-align:center}' +
+        '<style>' +
+        '@page{size:A4 portrait;margin:8mm}' +
+        'html,body{margin:0;padding:0;color:#111;font-family:Arial,sans-serif}' +
+        'body{font-size:9px}.sheet{width:100%;border:1px solid #555;padding:4mm;}' +
+        'table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0}' +
+        'td,th{border:1px solid #555;padding:3px;vertical-align:middle}' +
+        'th{font-size:8px;line-height:1.1;text-align:center;height:9mm}' +
+        '.school{font-size:12px;font-weight:bold;line-height:1.2;text-align:center}' +
+        '.formtitle{font-size:12px;font-weight:bold;text-align:center;white-space:nowrap}' +
+        '.small{font-size:8px}.instructions{font-size:8.5px;line-height:1.2}' +
+        '.instructions li{padding:2px 0;text-align:justify}' +
+        '.center{text-align:center}.itemsfor{font-weight:bold;text-align:center;height:7mm;white-space:nowrap}' +
+        '.itemrow td{height:7mm}.signature-heading td{height:11mm;font-weight:bold}' +
+        '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{break-inside:avoid}}' +
         '</style></head><body><div class="sheet">' +
 
-        '<table><tr>' +
-        '<td rowspan="2" style="' + cell + 'width:18%;text-align:center;height:58px">' +
-        (logo ? '<img src="' + logo + '" style="width:75px;height:65px;object-fit:contain" alt="NVSU Logo">' : '') +
-        '</td><td class="school" style="' + cell + 'height:30px">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</td></tr>' +
-        '<tr><td class="formtitle" style="' + cell + 'height:28px">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</td></tr></table>' +
-
-        '<table style="border:0"><tr><td style="border:0;text-align:right;font-weight:bold;padding:7px 4px 12px">ARRP No.: __________________________</td></tr></table>' +
-
-        '<table><tr><td style="' + labelCell + 'width:55%;height:28px">Unit/Division/College: ' + safe(office) +
-        '</td><td style="' + labelCell + 'width:45%">Date: ' + date(request.return_date) + '</td></tr>' +
-        '<tr><td style="' + labelCell + 'height:28px">Place of Storage</td><td style="' + labelCell + '">Tag No.: __________________</td></tr></table>' +
-
-        '<table><tr><td colspan="4" class="center" style="' + labelCell + 'height:27px">Items for &nbsp;&nbsp; ' +
-        (purpose === 'Property Utilization/Re-issuance' ? '☑' : '____') + ' Property Utilization/Re-issuance &nbsp;&nbsp;&nbsp; ' +
-        (purpose === 'Repair' ? '☑' : '____') + ' Repair &nbsp;&nbsp;&nbsp; ' +
-        (purpose === 'Disposal' ? '☑' : '____') + ' Disposal</td></tr></table>' +
-
-        '<table><thead><tr>' +
-        '<th style="width:6%">Item<br>No.</th><th style="width:8%">Qty</th><th style="width:7%">UOM</th>' +
-        '<th style="width:34%">DESCRIPTION</th><th style="width:11%">CODE</th>' +
-        '<th style="width:17%">ACCOUNTABLE<br>EMPLOYEE</th><th style="width:17%">REMARKS</th>' +
-        '</tr></thead><tbody>' + rows + '</tbody></table>' +
-
-        '<table><tr>' +
-        '<td style="' + labelCell + 'width:18%">Returned by:</td>' +
-        '<td style="' + labelCell + 'width:42%;text-align:center;font-style:italic">(Please indicate name and affix signature)</td>' +
-        '<td style="' + labelCell + 'width:28%">Received by:</td>' +
-        '<td style="' + labelCell + 'width:12%;text-align:center">Action Taken<br><small>(To be filled by the Property Officer)</small></td>' +
-        '</tr>' +
-        signatureRow('Signature:', '', '', '') +
-        signatureRow('Printed Name:', '<b>' + safe(requester).toLocaleUpperCase() + '</b>', '', '') +
-        signatureRow('Designation:', '', '', '') +
-        signatureRow('Date:', date(request.return_date), '', '') +
+        '<table><colgroup><col style="width:14%"><col style="width:86%"></colgroup>' +
+        '<tr><td rowspan="2" style="height:13mm;text-align:center;padding:2px">' +
+        (logo ? '<img src="' + logo + '" alt="NVSU Logo" style="width:24mm;height:19mm;object-fit:contain">' : '') +
+        '</td><td class="school" style="height:13mm">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</td></tr>' +
+        '<tr><td class="formtitle" style="height:8mm">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</td></tr>' +
         '</table>' +
 
-        '<div class="instructions"><h3 style="text-align:center;text-decoration:underline;margin:12px 0 8px">INSTRUCTIONS</h3>' +
-        '<ol type="A">' +
+        '<table style="border:0"><tr><td style="border:0;text-align:right;font-weight:bold;padding:5px 2px 8px">ARRP No.: __________________________</td></tr></table>' +
+
+        '<table><colgroup><col style="width:68%"><col style="width:32%"></colgroup>' +
+        '<tr><td style="' + label + 'height:7mm">Unit/Division/College: ' + safe(office) + '</td>' +
+        '<td style="' + label + '">Date: ' + date(request.return_date) + '</td></tr>' +
+        '<tr><td style="' + label + 'height:7mm">Place of Storage</td>' +
+        '<td style="' + label + '">Tag No.: </td></tr></table>' +
+
+        '<table><tr><td class="itemsfor" style="' + cell + '">' +
+        'Items for &nbsp;&nbsp;&nbsp; ' + (purpose === 'Property Utilization/Re-issuance' ? '☑' : '____') +
+        'Property Utilization/Re-issuance &nbsp;&nbsp;&nbsp; ' +
+        (purpose === 'Repair' ? '☑' : '____') + 'Repair &nbsp;&nbsp;&nbsp; ' +
+        (purpose === 'Disposal' ? '☑' : '____') + 'Disposal</td></tr></table>' +
+
+        '<table><colgroup>' +
+        '<col style="width:6.5%"><col style="width:7.5%"><col style="width:6.5%"><col style="width:35%">' +
+        '<col style="width:12%"><col style="width:14%"><col style="width:18.5%">' +
+        '</colgroup><thead><tr>' +
+        '<th>Item<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th>' +
+        '<th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th>' +
+        '</tr></thead><tbody class="itemrow">' + rows + '</tbody></table>' +
+
+        '<table><colgroup><col style="width:20%"><col style="width:41%"><col style="width:19%"><col style="width:20%"></colgroup>' +
+        '<tr class="signature-heading">' +
+        '<td style="' + label + '">Returned by:</td>' +
+        '<td style="' + label + 'text-align:center;font-style:italic;font-size:8px">(Please indicate name and affix signature)</td>' +
+        '<td style="' + label + '">Received by:</td>' +
+        '<td style="' + label + 'text-align:center">Action Taken<br><span class="small">(To be filled by the<br>Property Officer)</span></td>' +
+        '</tr>' +
+        signatureRow('Signature:', '') +
+        signatureRow('Printed Name:', 'NIMFA S. SALINAS') +
+        signatureRow('Designation:', 'PROPERTY CUSTODIAN') +
+        signatureRow('Date:', '') +
+        '</table>' +
+
+        '<div class="instructions" style="padding:3mm 3mm 1mm">' +
+        '<h3 style="text-align:center;text-decoration:underline;font-size:10px;margin:2mm 0 3mm">INSTRUCTIONS</h3>' +
+        '<ol type="A" style="margin:0;padding-left:8mm">' +
         '<li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li>' +
         '<li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li>' +
         '<li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li>' +
         '<li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li>' +
-        '<li>This form shall be prepared in two(2) copies distributed as follows:<p style="text-align:center;margin:8px 0">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</p></li>' +
+        '<li>This form shall be prepared in two (2) copies distributed as follows:<p style="text-align:center;margin:5px 0">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</p></li>' +
         '</ol></div></div></body></html>'
 
       const blob = new Blob(['\ufeff', documentContent], { type: 'application/msword;charset=utf-8' })
