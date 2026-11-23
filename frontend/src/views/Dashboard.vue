@@ -91,7 +91,7 @@
                 </div>
                 <span class="pending-count">{{ pendingReturnRequests.length }}</span>
               </div>
-              <router-link class="btn btn-sm btn-success" to="/returns">Review <i class="bi bi-arrow-right ms-1"></i></router-link>
+              <router-link class="btn btn-sm btn-success request-review-button" to="/returns">Review <span v-if="pendingReturnRequests.length > 0" class="request-notification-dot" aria-label="Pending return requests"></span><i class="bi bi-arrow-right ms-1"></i></router-link>
             </div>
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
@@ -123,7 +123,7 @@
                 </div>
                 <span class="pending-count">{{ pendingTransferRequests.length }}</span>
               </div>
-              <router-link class="btn btn-sm btn-success" to="/transfers">Review <i class="bi bi-arrow-right ms-1"></i></router-link>
+              <router-link class="btn btn-sm btn-success request-review-button" to="/transfers">Review <span v-if="pendingTransferRequests.length > 0" class="request-notification-dot" aria-label="Pending transfer requests"></span><i class="bi bi-arrow-right ms-1"></i></router-link>
             </div>
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
@@ -476,6 +476,8 @@ export default {
   async mounted() {
 
     window.addEventListener('account-requests-updated', this.getPendingAccountRequests)
+    window.addEventListener('return-requests-updated', this.getPendingPropertyRequests)
+    window.addEventListener('transfer-requests-updated', this.getPendingPropertyRequests)
 
     await Promise.all([
       this.getItems(),
@@ -487,6 +489,8 @@ export default {
 
   beforeUnmount() {
     window.removeEventListener('account-requests-updated', this.getPendingAccountRequests)
+    window.removeEventListener('return-requests-updated', this.getPendingPropertyRequests)
+    window.removeEventListener('transfer-requests-updated', this.getPendingPropertyRequests)
   },
 
   methods: {
@@ -824,6 +828,22 @@ h1 {
 .account-pending-card .pending-icon {
   background: #fff6d9;
   color: #8a6c0b;
+}
+
+.request-review-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.request-notification-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border-radius: 50%;
+  background: #f80c0c;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .9);
 }
 
 .pending-count {
