@@ -504,12 +504,12 @@ export default {
           )]),
         ], [10900])
 
-        const signatureWidths = [2000, 4500, 2100, 2600]
+        const signatureWidths = [1962, 4578, 3052, 1308]
         const signatureTable = makeTable([
           row([
-            cell('Returned by:', 2000, { bold: true, size: 16, pad: 100 }),
-            cell('(Please indicate name and affix signature)', 4500, { bold: true, italic: true, size: 14, align: AlignmentType.CENTER, pad: 100 }),
-            cell('Received by:', 2100, { bold: true, size: 16, pad: 100 }),
+            cell('Returned by:', 1962, { bold: true, size: 16, pad: 100 }),
+            cell('(Please indicate name and affix signature)', 4578, { bold: true, italic: true, size: 14, align: AlignmentType.CENTER, pad: 100 }),
+            cell('Received by:', 3052, { bold: true, size: 16, pad: 100 }),
             cell('Action Taken\n(To be filled by the\nProperty Officer)', 2600, { bold: true, size: 13, align: AlignmentType.CENTER, pad: 65 }),
           ]),
           ...[
@@ -518,10 +518,10 @@ export default {
             ['Designation:', '', 'PROPERTY CUSTODIAN'],
             ['Date:', '', ''],
           ].map(fields => row([
-            cell(fields[0], 2000, { bold: true, size: 16, pad: 110 }),
-            cell('', 4500),
-            cell(fields[2], 2100, { bold: fields[0] === 'Designation:', size: 15, align: AlignmentType.CENTER, pad: 110 }),
-            cell('', 2600),
+            cell(fields[0], 1962, { bold: true, size: 16, pad: 110 }),
+            cell('', 4578),
+            cell(fields[2], 3052, { bold: fields[0] === 'Designation:', size: 15, align: AlignmentType.CENTER, pad: 110 }),
+            cell('', 1308),
           ])),
         ], signatureWidths)
 
