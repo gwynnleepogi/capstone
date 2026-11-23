@@ -93,10 +93,30 @@
             <hr>
             <h6>Assign Receiving Employee</h6>
             <label class="form-label">Receiving Employee <span class="text-danger">*</span></label>
-            <select v-model="toUserId" class="form-select mb-2">
-              <option value="">Select receiving employee</option>
-              <option v-for="person in eligiblePersonnel" :key="person.id" :value="person.id">{{ person.full_name }} — {{ person.job_title || person.role }}{{ person.office_name ? ' · '+person.office_name : '' }}</option>
-            </select>
+            <div class="recipient-search-wrap mb-2">
+              <input
+                type="text"
+                v-model="recipientSearch"
+                class="form-control"
+                placeholder="Search employee by name, title, or office..."
+                autocomplete="off"
+                @focus="showRecipientResults = true"
+                @input="toUserId = ''; showRecipientResults = true"
+              >
+              <div v-if="showRecipientResults" class="recipient-search-results">
+                <button
+                  v-for="person in filteredPersonnel"
+                  :key="person.id"
+                  type="button"
+                  class="recipient-search-option"
+                  @mousedown.prevent="selectRecipient(person)"
+                >
+                  <strong>{{ person.full_name }}</strong>
+                  <small>{{ person.job_title || person.role }}{{ person.office_name ? ' · ' + person.office_name : '' }}</small>
+                </button>
+                <div v-if="!filteredPersonnel.length" class="recipient-search-empty">No matching employee found.</div>
+              </div>
+            </div>
             <div v-if="selectedRecipient" class="alert alert-light border small mb-3">
               <strong>Title:</strong> {{ selectedRecipient.job_title || selectedRecipient.role || '-' }}<br>
               <strong>Receiving Office:</strong> {{ selectedRecipient.office_name || 'Not assigned' }}
@@ -132,6 +152,8 @@ export default {
       saving: false,
       selected: null,
       toUserId: '',
+      recipientSearch: '',
+      showRecipientResults: false,
       transferDate: new Date().toISOString().slice(0, 10),
     }
   },
@@ -144,6 +166,18 @@ export default {
     },
     selectedRecipient() {
       return this.personnel.find(person => String(person.id) === String(this.toUserId)) || null
+    },
+    filteredPersonnel() {
+      const search = this.recipientSearch.trim().toLowerCase()
+      return this.eligiblePersonnel.filter(person => {
+        const searchable = [
+          person.full_name,
+          person.job_title,
+          person.role,
+          person.office_name
+        ].join(' ').toLowerCase()
+        return !search || searchable.includes(search)
+      })
     }
   },
   mounted() {
@@ -194,9 +228,16 @@ export default {
     openReview(request) {
       this.selected = request
       this.toUserId = ''
+      this.recipientSearch = ''
+      this.showRecipientResults = false
       this.transferDate = new Date().toISOString().slice(0, 10)
     },
     closeReview() { this.selected = null },
+    selectRecipient(person) {
+      this.toUserId = person.id
+      this.recipientSearch = person.full_name
+      this.showRecipientResults = false
+    },
     toast(message) { window.dispatchEvent(new CustomEvent('show-toast', { detail: message })) },
     async approve() {
       if (!this.toUserId) return this.toast('Select the receiving employee.')
@@ -237,6 +278,13 @@ section.card{width:100%;max-width:none}
 .transfer-properties-cell{min-width:240px;max-width:320px;white-space:normal;overflow-wrap:normal}
 .transfer-properties-cell>div{white-space:normal;overflow-wrap:anywhere}
 .transfer-reason-cell{min-width:220px;max-width:300px;white-space:normal;overflow-wrap:anywhere}
+.recipient-search-wrap{position:relative}
+.recipient-search-results{position:absolute;top:100%;left:0;right:0;z-index:20;max-height:240px;overflow-y:auto;background:#fff;border:1px solid #ced4da;border-radius:.375rem;box-shadow:0 .5rem 1rem rgba(0,0,0,.12)}
+.recipient-search-option{display:flex;flex-direction:column;align-items:flex-start;width:100%;padding:.65rem .8rem;border:0;border-bottom:1px solid #eee;background:#fff;text-align:left}
+.recipient-search-option:last-child{border-bottom:0}
+.recipient-search-option:hover{background:#f3f6f9}
+.recipient-search-option small{color:#6c757d}
+.recipient-search-empty{padding:.75rem;color:#6c757d;font-size:.9rem}
 .transfer-review-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;display:flex;align-items:center;justify-content:center;padding:1rem}
 .transfer-review-modal{background:#fff;width:min(1100px,100%);max-height:92vh;overflow:auto;border-radius:.75rem;box-shadow:0 1rem 3rem rgba(0,0,0,.2)}
 @media(max-width:767.98px){.transfer-review-backdrop{padding:.5rem}.transfer-review-modal{max-height:95vh}.transfer-requests-table{min-width:1100px}.transfer-requests-table td{padding:.8rem}}
