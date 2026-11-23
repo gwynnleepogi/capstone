@@ -381,6 +381,7 @@ export default {
         await this.loadAll()
       } catch (error) {
         if (submittedCount > 0) {
+          window.dispatchEvent(new CustomEvent('return-requests-updated'))
           this.toast(`${submittedCount} of ${this.selectedReceipts.length} return requests were sent. The remaining items were not submitted: ${error.message}`)
           this.closeForm()
           this.selectedReceiptIds = []
