@@ -587,6 +587,9 @@
                     <div v-if="event.remarks" class="small text-muted mt-1">Remarks: {{ event.remarks }}</div>
                   </div>
                 </div>
+                <div v-if="propertyHistory.length > 0" class="alert alert-info small mt-3 mb-0">
+                  This property has transaction history. It cannot be deleted; keep this record for future monitoring and reference.
+                </div>
               </section>
             </div>
           </div>
@@ -639,7 +642,7 @@
           <button
             type="button"
             class="btn btn-outline-danger"
-            :disabled="deletingItemId === detailItem.id || propertyHistoryLoading || propertyHistory.length > 0"
+            :disabled="deletingItemId === detailItem.id || propertyHistoryLoading || propertyHistoryError || propertyHistory.length > 0"
             @click="deleteItem(detailItem)"
           >
             <i class="bi bi-trash me-1"></i>
