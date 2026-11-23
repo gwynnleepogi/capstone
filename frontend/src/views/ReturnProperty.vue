@@ -386,32 +386,72 @@ export default {
     },
 
     downloadReturnPaperwork(request) {
-      const safe = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      const safe = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
       const item = request.items || {}
       const receipt = request.property_receipts || {}
       const requester = request.requester?.full_name || ''
       const office = request.offices?.office_name || ''
-      const date = value => value ? new Date(value + 'T00:00:00').toLocaleDateString('en-PH') : ''
-      const rows = Array.from({ length: 15 }, (_, i) => i === 0
-        ? `<tr><td>1</td><td>${safe(receipt.quantity || '')}</td><td></td><td>${safe(item.description)}</td><td></td><td>${safe(requester)}</td><td>${safe(request.return_reason)}</td></tr>`
-        : `<tr><td>${i + 1}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')
+      const date = value => {
+        if (!value) return ''
+        const parsed = new Date(value + 'T00:00:00')
+        return Number.isNaN(parsed.getTime()) ? safe(value) : parsed.toLocaleDateString('en-PH')
+      }
+      const purpose = request.return_purpose || ''
+      const rows = Array.from({ length: 15 }, (_, index) => {
+        const first = index === 0
+        return '<tr><td>' + (index + 1) + '</td><td>' + (first ? safe(receipt.quantity || '') : '') +
+          '</td><td>' + (first ? safe(item.unit || '') : '') + '</td><td class="description">' +
+          (first ? safe(item.description || '') : '') + '</td><td>' +
+          (first ? safe(item.code || item.account_code || '') : '') + '</td><td>' +
+          (first ? safe(requester) : '') + '</td><td class="remarks">' +
+          (first ? safe(request.return_reason || '') : '') + '</td></tr>'
+      }).join('')
       const logo = new URL('../assets/LOGO.png', import.meta.url).href
-      const documentContent = `<!doctype html><html><head><title>Acknowledgement Receipt for Returned Property</title><style>
-      @page{size:A4 portrait;margin:8mm}*{box-sizing:border-box}body{font:9px Arial;margin:0;color:#111}.sheet{border:1px solid #555;padding:5mm;min-height:281mm}
-      .head{display:grid;grid-template-columns:24mm 1fr;border:1px solid #555;text-align:center;font-weight:bold}.logo{grid-row:span 2;border-right:1px solid #555;height:25mm;display:flex;align-items:center;justify-content:center}.logo img{width:19mm;height:19mm;object-fit:contain}.school{font-size:12px;padding:2mm;line-height:1.25}.title{border-top:1px solid #555;padding:2mm;font-size:12px}
-      .arrp{text-align:right;font-weight:bold;margin:2mm}.line{display:inline-block;border-bottom:1px solid #222;min-width:40mm;height:4mm}.meta{display:grid;grid-template-columns:1.2fr .8fr;border:1px solid #555}.meta div{padding:2mm;border-bottom:1px solid #555;min-height:8mm}.meta div:nth-child(odd){border-right:1px solid #555}
-      .items{text-align:center;border:1px solid #555;padding:2mm;font-weight:bold}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #555;text-align:center;padding:1mm}th{height:10mm;font-size:8px}td{height:7.5mm;font-size:8px}
-      .row{display:grid;grid-template-columns:18% 42% 28% 12%;border:1px solid #555;border-top:0}.row div{padding:2mm;border-right:1px solid #555;min-height:8mm}.row div:last-child{border:0}.row.headrow{font-weight:bold}.row.headrow div{min-height:12mm}.sign-center{text-align:center}.sign-name{text-align:center;text-transform:uppercase;font-weight:bold}
-      .instructions{font-size:8.5px;line-height:1.25;margin-top:3mm}.instructions h3{text-align:center;text-decoration:underline;margin:2mm}.instructions ol{padding-left:7mm;margin:0}.instructions li{padding:1mm 0}.copy{text-align:center}
-      @media print{.sheet{break-inside:avoid}}</style></head><body><div class="sheet">
-      <div class="head"><div class="logo"><img src="${logo}"></div><div class="school">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</div><div class="title">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</div></div>
-      <div class="arrp">ARRP No.: <span class="line"></span></div>
-      <div class="meta"><div><b>Unit/Division/College:</b> ${safe(office)}</div><div><b>Date:</b> ${date(request.return_date)}</div><div><b>Place of Storage:</b> <span class="line"></span></div><div><b>Tag No.:</b> <span class="line"></span></div></div>
-      <div class="items">Properties for &nbsp; ${request.return_purpose === 'Property Utilization/Re-issuance' ? '☑' : '☐'} Property Utilization/Re-issuance &nbsp; ${request.return_purpose === 'Repair' ? '☑' : '☐'} Repair &nbsp; ${request.return_purpose === 'Disposal' ? '☑' : '☐'} Disposal</div>
-      <table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Property<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
-      <div class="row headrow"><div>Returned by:</div><div><i>(Please indicate name and affix signature)</i></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
-      <div class="row"><div>Signature:</div><div></div><div></div><div></div></div><div class="row"><div>Printed Name:</div><div class="sign-name">${safe(requester).toLocaleUpperCase()}</div><div class="sign-center"></div><div></div></div><div class="row"><div>Designation:</div><div class="sign-center"></div><div class="sign-center"></div><div></div></div><div class="row"><div>Date:</div><div class="sign-center">${date(request.return_date)}</div><div class="sign-center"></div><div></div></div>
-      <div class="instructions"><h3>INSTRUCTIONS</h3><ol type="A"><li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li><li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li><li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li><li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 71); and</li><li>This form shall be prepared in two(2) copies distributed as follows:<div class="copy">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</div></li></ol></div></div></body></html>`
+      const documentContent = '<!doctype html><html><head><meta charset="UTF-8">' +
+        '<title>Acknowledgement Receipt for Returned Property</title><style>' +
+        '@page{size:A4 portrait;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0;color:#111;font-family:Arial,sans-serif}' +
+        'body{font-size:9px}.sheet{width:100%;min-height:280mm;border:1px solid #555;padding:5mm;display:flex;flex-direction:column}' +
+        '.header{display:grid;grid-template-columns:24mm 1fr;grid-template-rows:13mm 11mm;border:1px solid #555;text-align:center;font-weight:bold}' +
+        '.logo-cell{grid-column:1;grid-row:1/3;border-right:1px solid #555;display:flex;align-items:center;justify-content:center}' +
+        '.logo{width:19mm;height:19mm;object-fit:contain}.school{grid-column:2;grid-row:1;display:flex;flex-direction:column;justify-content:center;font-size:12px;line-height:1.2;padding:1mm}' +
+        '.form-title{grid-column:2;grid-row:2;border-top:1px solid #555;display:flex;justify-content:center;align-items:center;font-size:12px;white-space:nowrap}' +
+        '.arrp-number{text-align:right;font-weight:bold;font-size:11px;margin:1mm 2mm 4mm}.blank-line{display:inline-block;border-bottom:1px solid #222;min-width:48mm;height:4mm;vertical-align:bottom}' +
+        '.metadata{display:grid;grid-template-columns:1.2fr .8fr;border:1px solid #555}.metadata div{min-height:8mm;padding:2mm;border-bottom:1px solid #555;display:flex;align-items:center;gap:1mm}' +
+        '.metadata div:nth-child(odd){border-right:1px solid #555}.metadata div:nth-last-child(-n+2){border-bottom:0}.metadata .blank-line{flex:1;min-width:15mm}' +
+        '.items-for{border:1px solid #555;border-top:0;min-height:8mm;display:flex;justify-content:center;align-items:center;gap:5mm;font-weight:bold;font-size:10px;white-space:nowrap}' +
+        'table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #555;text-align:center;vertical-align:middle;padding:1mm}' +
+        'th{height:10mm;font-size:8px;line-height:1.1}td{height:7.5mm;font-size:8px}td.description,td.remarks{text-align:left;overflow-wrap:anywhere}' +
+        '.return-signatures{display:grid;grid-template-columns:18% 42% 28% 12%;border:1px solid #555;border-top:0}.return-signatures>div{min-height:8mm;padding:2mm;border-right:1px solid #555}' +
+        '.return-signatures>div:last-child{border-right:0}.return-signatures.heading>div{min-height:12mm;font-weight:bold}.return-signatures .instruction{font-style:italic;text-align:center;font-weight:bold}' +
+        '.return-signatures .printed-name{text-align:center;font-weight:bold;text-transform:uppercase}.return-signatures .center{text-align:center}' +
+        '.instructions{margin-top:2mm;padding:2mm 3mm;font-size:8.5px;line-height:1.25}.instructions h3{margin:1mm 0 3mm;text-align:center;text-decoration:underline;font-size:10px}' +
+        '.instructions ol{margin:0;padding-left:7mm}.instructions li{padding:1mm 0;text-align:justify}.copies{text-align:center;margin-top:2mm}' +
+        '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{break-inside:avoid}}' +
+        '</style></head><body><div class="sheet">' +
+        '<div class="header"><div class="logo-cell"><img class="logo" src="' + logo + '" alt="NVSU Logo"></div>' +
+        '<div class="school"><span>Republic of the Philippines</span><span>NUEVA VIZCAYA STATE UNIVERSITY</span><span>Bayombong, Nueva Vizcaya</span></div>' +
+        '<div class="form-title">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</div></div>' +
+        '<div class="arrp-number">ARRP No.: <span class="blank-line"></span></div>' +
+        '<div class="metadata"><div><strong>Unit/Division/College:</strong> ' + safe(office) + '</div><div><strong>Date:</strong> ' + date(request.return_date) + '</div>' +
+        '<div><strong>Place of Storage</strong><span class="blank-line"></span></div><div><strong>Tag No.:</strong><span class="blank-line"></span></div></div>' +
+        '<div class="items-for"><span>Items for</span><span>' + (purpose === 'Property Utilization/Re-issuance' ? '☑' : '____') +
+        'Property Utilization/Re-issuance</span><span>' + (purpose === 'Repair' ? '☑' : '____') + 'Repair</span><span>' +
+        (purpose === 'Disposal' ? '☑' : '____') + 'Disposal</span></div>' +
+        '<table><colgroup><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:13%"></colgroup>' +
+        '<thead><tr><th>Item<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<div class="return-signatures heading"><div>Returned by:</div><div class="instruction">(Please indicate name and affix signature)</div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>' +
+        '<div class="return-signatures"><div>Signature:</div><div></div><div></div><div></div></div>' +
+        '<div class="return-signatures"><div>Printed Name:</div><div class="printed-name">' + safe(requester) + '</div><div></div><div></div></div>' +
+        '<div class="return-signatures"><div>Designation:</div><div></div><div></div><div></div></div>' +
+        '<div class="return-signatures"><div>Date:</div><div class="center">' + date(request.return_date) + '</div><div></div><div></div></div>' +
+        '<div class="instructions"><h3>INSTRUCTIONS</h3><ol type="A">' +
+        '<li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li>' +
+        '<li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li>' +
+        '<li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li>' +
+        '<li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li>' +
+        '<li>This form shall be prepared in two(2) copies distributed as follows:<div class="copies">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</div></li>' +
+        '</ol></div></div></body></html>'
+
       const blob = new Blob(['\ufeff', documentContent], { type: 'application/msword;charset=utf-8' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
