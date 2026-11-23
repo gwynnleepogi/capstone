@@ -437,7 +437,7 @@ export default {
         'Item\nNo.', 'Qty', 'UOM', 'DESCRIPTION', 'CODE',
         'ACCOUNTABLE\nEMPLOYEE', 'REMARKS',
       ].map((heading, index) => cell(heading, widths[index], {
-        bold: true, size: 15, align: AlignmentType.CENTER, pad: 70,
+        bold: true, size: 13, align: AlignmentType.CENTER, pad: 40,
       }))]
       for (let index = 0; index < 15; index++) {
         const first = index === 0
@@ -451,7 +451,7 @@ export default {
           first ? value(request.return_reason) : '',
         ]
         rows.push(row(fields.map((field, col) => cell(field, widths[col], {
-          size: 15, pad: 90,
+          size: 13, pad: 45,
           align: [0, 1, 2, 4, 5].includes(col) ? AlignmentType.CENTER : AlignmentType.LEFT,
         }))))
       }
@@ -464,27 +464,27 @@ export default {
           verticalAlign: VerticalAlign.CENTER,
           children: [new Paragraph({
             alignment: AlignmentType.CENTER,
-            children: [new ImageRun({ data: logoBytes, transformation: { width: 72, height: 72 } })],
+            children: [new ImageRun({ data: logoBytes, transformation: { width: 30, height: 30 } })],
           })],
         })
         const header = makeTable([
           row([
             logoCell,
             cell('Republic of the Philippines\nNUEVA VIZCAYA STATE UNIVERSITY\nBayombong, Nueva Vizcaya', 9400, {
-              bold: true, size: 21, align: AlignmentType.CENTER, pad: 70,
+              bold: true, size: 18, align: AlignmentType.CENTER, pad: 35,
             }),
           ]),
           row([
             cell('', 1500),
             cell('ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY', 9400, {
-              bold: true, size: 22, align: AlignmentType.CENTER, pad: 85,
+              bold: true, size: 18, align: AlignmentType.CENTER, pad: 40,
             }),
           ]),
         ], [1500, 9400])
 
         const details = makeTable([
           row([
-            cell('Unit/Division/College: ' + office, 7300, { bold: true, size: 17, pad: 100 }),
+            cell('Unit/Division/College: ' + office, 7300, { bold: true, size: 14, pad: 55 }),
             cell('Date: ' + formatDate(request.return_date), 3600, { bold: true, size: 17, pad: 100 }),
           ]),
           row([
@@ -507,7 +507,7 @@ export default {
         const signatureWidths = [1962, 4578, 3052, 1308]
         const signatureTable = makeTable([
           row([
-            cell('Returned by:', 1962, { bold: true, size: 16, pad: 100 }),
+            cell('Returned by:', 1962, { bold: true, size: 13, pad: 55 }),
             cell('(Please indicate name and affix signature)', 4578, { bold: true, italic: true, size: 14, align: AlignmentType.CENTER, pad: 100 }),
             cell('Received by:', 3052, { bold: true, size: 16, pad: 100 }),
             cell('Action Taken\n(To be filled by the\nProperty Officer)', 2600, { bold: true, size: 13, align: AlignmentType.CENTER, pad: 65 }),
@@ -518,7 +518,7 @@ export default {
             ['Designation:', '', 'PROPERTY CUSTODIAN'],
             ['Date:', '', ''],
           ].map(fields => row([
-            cell(fields[0], 1962, { bold: true, size: 16, pad: 110 }),
+            cell(fields[0], 1962, { bold: true, size: 13, pad: 55 }),
             cell('', 4578),
             cell(fields[2], 3052, { bold: fields[0] === 'Designation:', size: 15, align: AlignmentType.CENTER, pad: 110 }),
             cell('', 1308),
@@ -536,7 +536,7 @@ export default {
           indent: { left: 260, hanging: 220 },
           spacing: { before: 0, after: index === 4 ? 10 : 35, line: 210 },
           children: [
-            new TextRun({ text: String.fromCharCode(65 + index) + '.  ', bold: true, size: 14, font: 'Arial' }),
+            new TextRun({ text: String.fromCharCode(65 + index) + '.  ', bold: true, size: 12, font: 'Arial' }),
             new TextRun({ text, italics: index === 0, size: 14, font: 'Arial' }),
           ],
         }))
