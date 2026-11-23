@@ -228,7 +228,7 @@
 import {
   AlignmentType, BorderStyle, Document as DocxDocument, ImageRun,
   Packer, Paragraph, Table, TableCell, TableRow, TextRun,
-  VerticalAlign, WidthType,
+  VerticalAlign, VerticalMergeType, WidthType,
 } from 'docx'
 import logo from '@/assets/LOGO.png'
 
@@ -461,6 +461,7 @@ export default {
         const logoBytes = new Uint8Array(await logoResponse.arrayBuffer())
         const logoCell = new TableCell({
           width: { size: 1500, type: WidthType.DXA }, borders: border,
+          verticalMerge: VerticalMergeType.RESTART,
           verticalAlign: VerticalAlign.CENTER,
           children: [new Paragraph({
             alignment: AlignmentType.CENTER,
@@ -470,12 +471,17 @@ export default {
         const header = makeTable([
           row([
             logoCell,
-            cell('Republic of the Philippines\nNUEVA VIZCAYA STATE UNIVERSITY\nBayombong, Nueva Vizcaya', 9400, {
+            cell('Republic of the Philippines\\nNUEVA VIZCAYA STATE UNIVERSITY\\nBambang, Nueva Vizcaya', 9400, {
               bold: true, size: 18, align: AlignmentType.CENTER, pad: 35,
             }),
           ]),
           row([
-            cell('', 1500),
+            new TableCell({
+              width: { size: 1500, type: WidthType.DXA },
+              borders: border,
+              verticalMerge: VerticalMergeType.CONTINUE,
+              children: [new Paragraph({ children: [] })],
+            }),
             cell('ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY', 9400, {
               bold: true, size: 18, align: AlignmentType.CENTER, pad: 40,
             }),
