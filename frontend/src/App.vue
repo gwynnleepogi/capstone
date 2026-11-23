@@ -345,6 +345,7 @@ export default {
     document.addEventListener('visibilitychange', this.handleVisibilityChange)
     window.addEventListener('receipts-updated', this.refreshPendingIssuanceCount)
     window.addEventListener('return-requests-updated', this.refreshPendingCounts)
+    window.addEventListener('transfer-requests-updated', this.refreshPendingTransferRequestCount)
     window.addEventListener('account-requests-updated', this.refreshPendingAccountRequestCount)
     window.addEventListener('password-reset-requests-updated', this.refreshPendingPasswordResetCount)
     window.addEventListener('open-qr-scanner', this.openQrScanner)
