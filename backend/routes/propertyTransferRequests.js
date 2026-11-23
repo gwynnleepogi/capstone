@@ -91,6 +91,29 @@ router.get('/', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }) }
 })
 
+router.get('/pending-count', async (req, res) => {
+  if (req.role !== 'Administrator') {
+    return res.status(403).json({ error: 'Only administrators can view pending transfer requests.' })
+  }
+
+  try {
+    const userSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
+      global: { headers: { Authorization: req.headers.authorization } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    })
+
+    const { count, error } = await userSupabase
+      .from('property_transfer_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'Pending')
+
+    if (error) return res.status(500).json({ error: error.message })
+    res.json({ count: count || 0 })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 router.post('/', async (req, res) => {
   if (!['Teacher', 'Non-Teaching Staff'].includes(req.role)) return res.status(403).json({ error: 'Only employees can submit transfer requests.' })
   try {
