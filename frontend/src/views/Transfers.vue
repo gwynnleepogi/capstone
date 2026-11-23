@@ -1033,6 +1033,7 @@ export default {
 
     selectReceivingEmployee(person) {
       this.form.to_user_id = person.id
+      this.form.office_id = person.office_id || ''
       this.employeeSearch = person.full_name
       this.showEmployeeOptions = false
     },
