@@ -241,6 +241,7 @@ export default {
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Unable to submit transfer request.')
         this.toast('Transfer request submitted successfully.')
+        window.dispatchEvent(new CustomEvent('transfer-requests-updated'))
         this.form = { receiptIds: [], reason: '', otherReason: '', remarks: '' }
         this.showRequestForm = false
         await Promise.all([this.loadProperties(), this.loadRequests()])
