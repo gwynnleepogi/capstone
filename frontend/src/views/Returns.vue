@@ -1436,7 +1436,7 @@ export default {
       const responsibilityCenter = safe(
         this.returnedReceiptSignatories.responsibilityCenter || item.responsibility_center || record.offices?.office_name || '-'
       )
-      const remarks = safe(record.remarks || record.return_reason || '')
+      const remarks = safe(record.return_reason || '')
       const logo = new URL('../assets/LOGO.png', import.meta.url).href
       const paperSizes = {
         a4: '210mm 297mm',
@@ -1684,7 +1684,7 @@ window.onload=function(){
         return Number.isNaN(parsed.getTime()) ? safe(value) : parsed.toLocaleDateString('en-PH')
       }
       const rows = Array.from({ length: 15 }, (_, i) => i === 0
-        ? `<tr><td>1</td><td>${quantity}</td><td></td><td class="desc">${safe(item.description || 'Original property record deleted')}</td><td></td><td>${safe(returnedBy)}</td><td>${safe(record.remarks || record.return_reason || '')}</td></tr>`
+        ? `<tr><td>1</td><td>${quantity}</td><td></td><td class="desc">${safe(item.description || 'Original property record deleted')}</td><td></td><td>${safe(returnedBy)}</td><td>${safe(record.return_reason || '')}</td></tr>`
         : `<tr><td>${i + 1}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')
       const paperSizes = { a4: '210mm 297mm', short: '8.5in 11in', long: '8.5in 13in' }
       const selectedPaperSize = paperSizes[this.returnedReceiptPaperSize] || paperSizes.a4
