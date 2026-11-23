@@ -204,33 +204,11 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Condition <span class="text-danger">*</span></label>
-              <select v-model="form.condition_declared" class="form-select" required>
-                <option value="Serviceable">Serviceable</option>
-                <option value="Unserviceable">Unserviceable</option>
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Reason for Return <span class="text-danger">*</span></label>
-              <select v-model="form.return_reason" class="form-select" required>
-                <option value="">Select a reason</option>
-                <option value="End of Contract">End of Contract</option>
-                <option value="Transfer of Agency">Transfer of Agency</option>
-                <option value="Resignation">Resignation</option>
-                <option value="Change of Designation">Change of Designation</option>
-                <option value="Retirement">Retirement</option>
-                <option value="Others">Others</option>
-              </select>
-
-              <input
-                v-if="form.return_reason === 'Others'"
-                v-model.trim="form.otherReason"
-                type="text"
-                class="form-control mt-2"
-                placeholder="Enter reason"
-                required
-              />
+              <label class="form-label">Condition</label>
+              <div class="form-control bg-light" aria-readonly="true">
+                Unserviceable
+              </div>
+              <div class="form-text">All returned properties are recorded as unserviceable.</div>
             </div>
 
             <div>
@@ -239,7 +217,8 @@
                 v-model.trim="form.remarks"
                 class="form-control"
                 rows="2"
-                placeholder="Explain why this property is being returned as unserviceable."
+                maxlength="1000"
+                placeholder="Explain why this property is unserviceable."
                 required
               ></textarea>
             </div>
@@ -284,9 +263,7 @@ export default {
       form: {
         return_date: today(),
         return_purpose: '',
-        condition_declared: 'Serviceable',
-        return_reason: '',
-        otherReason: '',
+        condition_declared: 'Unserviceable',
         remarks: ''
       }
     }
@@ -375,9 +352,7 @@ export default {
       this.form = {
         return_date: today(),
         return_purpose: '',
-        condition_declared: 'Serviceable',
-        return_reason: '',
-        otherReason: '',
+        condition_declared: 'Unserviceable',
         remarks: ''
       }
       this.showForm = true
@@ -400,10 +375,6 @@ export default {
           return;
         }
 
-        const returnReason = this.form.return_reason === 'Others'
-          ? `Others: ${this.form.otherReason.trim()}`
-          : this.form.return_reason
-
         for (const receipt of this.selectedReceipts) {
           await this.request('/api/return-requests', {
             method: 'POST',
@@ -411,7 +382,8 @@ export default {
             body: JSON.stringify({
               property_receipt_id: receipt.id,
               ...this.form,
-              return_reason: returnReason
+              condition_declared: 'Unserviceable',
+              return_reason: this.form.remarks.trim()
             })
           })
           submittedCount += 1
