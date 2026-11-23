@@ -385,7 +385,7 @@ export default {
       }
     },
 
-    downloadReturnPaperwork(request) {
+    async downloadReturnPaperwork(request) {
       const safe = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
       const item = request.items || {}
       const receipt = request.property_receipts || {}
@@ -397,59 +397,93 @@ export default {
         return Number.isNaN(parsed.getTime()) ? safe(value) : parsed.toLocaleDateString('en-PH')
       }
       const purpose = request.return_purpose || ''
+      const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
+      let logo = ''
+      try {
+        const response = await fetch(logoUrl)
+        if (response.ok) {
+          const imageBlob = await response.blob()
+          logo = await new Promise(resolve => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result)
+            reader.onerror = () => resolve('')
+            reader.readAsDataURL(imageBlob)
+          })
+        }
+      } catch (error) {
+        console.warn('Could not embed NVSU logo in ARRP:', error)
+      }
+
       const rows = Array.from({ length: 15 }, (_, index) => {
         const first = index === 0
-        return '<tr><td>' + (index + 1) + '</td><td>' + (first ? safe(receipt.quantity || '') : '') +
-          '</td><td>' + (first ? safe(item.unit || '') : '') + '</td><td class="description">' +
-          (first ? safe(item.description || '') : '') + '</td><td>' +
-          (first ? safe(item.code || item.account_code || '') : '') + '</td><td>' +
-          (first ? safe(requester) : '') + '</td><td class="remarks">' +
-          (first ? safe(request.return_reason || '') : '') + '</td></tr>'
+        return '<tr>' +
+          '<td style="width:6%;height:7mm;text-align:center">' + (index + 1) + '</td>' +
+          '<td style="width:8%;text-align:center">' + (first ? safe(receipt.quantity || '') : '') + '</td>' +
+          '<td style="width:7%;text-align:center">' + (first ? safe(item.unit || '') : '') + '</td>' +
+          '<td style="width:34%">' + (first ? safe(item.description || '') : '') + '</td>' +
+          '<td style="width:11%;text-align:center">' + (first ? safe(item.code || item.account_code || '') : '') + '</td>' +
+          '<td style="width:17%;text-align:center">' + (first ? safe(requester) : '') + '</td>' +
+          '<td style="width:17%">' + (first ? safe(request.return_reason || '') : '') + '</td>' +
+          '</tr>'
       }).join('')
-      const logo = new URL('../assets/LOGO.png', import.meta.url).href
-      const documentContent = '<!doctype html><html><head><meta charset="UTF-8">' +
-        '<title>Acknowledgement Receipt for Returned Property</title><style>' +
-        '@page{size:A4 portrait;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0;color:#111;font-family:Arial,sans-serif}' +
-        'body{font-size:9px}.sheet{width:100%;min-height:280mm;border:1px solid #555;padding:5mm;display:flex;flex-direction:column}' +
-        '.header{display:grid;grid-template-columns:24mm 1fr;grid-template-rows:13mm 11mm;border:1px solid #555;text-align:center;font-weight:bold}' +
-        '.logo-cell{grid-column:1;grid-row:1/3;border-right:1px solid #555;display:flex;align-items:center;justify-content:center}' +
-        '.logo{width:19mm;height:19mm;object-fit:contain}.school{grid-column:2;grid-row:1;display:flex;flex-direction:column;justify-content:center;font-size:12px;line-height:1.2;padding:1mm}' +
-        '.form-title{grid-column:2;grid-row:2;border-top:1px solid #555;display:flex;justify-content:center;align-items:center;font-size:12px;white-space:nowrap}' +
-        '.arrp-number{text-align:right;font-weight:bold;font-size:11px;margin:1mm 2mm 4mm}.blank-line{display:inline-block;border-bottom:1px solid #222;min-width:48mm;height:4mm;vertical-align:bottom}' +
-        '.metadata{display:grid;grid-template-columns:1.2fr .8fr;border:1px solid #555}.metadata div{min-height:8mm;padding:2mm;border-bottom:1px solid #555;display:flex;align-items:center;gap:1mm}' +
-        '.metadata div:nth-child(odd){border-right:1px solid #555}.metadata div:nth-last-child(-n+2){border-bottom:0}.metadata .blank-line{flex:1;min-width:15mm}' +
-        '.items-for{border:1px solid #555;border-top:0;min-height:8mm;display:flex;justify-content:center;align-items:center;gap:5mm;font-weight:bold;font-size:10px;white-space:nowrap}' +
-        'table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #555;text-align:center;vertical-align:middle;padding:1mm}' +
-        'th{height:10mm;font-size:8px;line-height:1.1}td{height:7.5mm;font-size:8px}td.description,td.remarks{text-align:left;overflow-wrap:anywhere}' +
-        '.return-signatures{display:grid;grid-template-columns:18% 42% 28% 12%;border:1px solid #555;border-top:0}.return-signatures>div{min-height:8mm;padding:2mm;border-right:1px solid #555}' +
-        '.return-signatures>div:last-child{border-right:0}.return-signatures.heading>div{min-height:12mm;font-weight:bold}.return-signatures .instruction{font-style:italic;text-align:center;font-weight:bold}' +
-        '.return-signatures .printed-name{text-align:center;font-weight:bold;text-transform:uppercase}.return-signatures .center{text-align:center}' +
-        '.instructions{margin-top:2mm;padding:2mm 3mm;font-size:8.5px;line-height:1.25}.instructions h3{margin:1mm 0 3mm;text-align:center;text-decoration:underline;font-size:10px}' +
-        '.instructions ol{margin:0;padding-left:7mm}.instructions li{padding:1mm 0;text-align:justify}.copies{text-align:center;margin-top:2mm}' +
-        '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{break-inside:avoid}}' +
+
+      const cell = 'border:1px solid #555;padding:5px;vertical-align:middle;'
+      const labelCell = cell + 'font-weight:bold;'
+      const signatureRow = (label, leftValue, rightValue, lastValue) =>
+        '<tr><td style="' + labelCell + 'width:18%">' + label + '</td>' +
+        '<td style="' + cell + 'width:42%;text-align:center">' + (leftValue || '') + '</td>' +
+        '<td style="' + cell + 'width:28%">' + (rightValue || '') + '</td>' +
+        '<td style="' + cell + 'width:12%">' + (lastValue || '') + '</td></tr>'
+
+      const documentContent = '<!doctype html><html><head><meta charset="UTF-8"><title>ARRP</title>' +
+        '<style>@page{size:A4 portrait;margin:8mm}body{font-family:Arial,sans-serif;font-size:10px;color:#111;margin:0}' +
+        'table{width:100%;border-collapse:collapse;table-layout:fixed}td,th{border:1px solid #555;padding:4px}th{font-size:9px;text-align:center;height:28px}' +
+        '.sheet{border:1px solid #555;padding:12px}.instructions{font-size:9px;line-height:1.25}.instructions li{padding:3px 0;text-align:justify}' +
+        '.center{text-align:center}.school{font-size:12px;font-weight:bold;line-height:1.25;text-align:center}.formtitle{font-size:13px;font-weight:bold;text-align:center}' +
         '</style></head><body><div class="sheet">' +
-        '<div class="header"><div class="logo-cell"><img class="logo" src="' + logo + '" alt="NVSU Logo"></div>' +
-        '<div class="school"><span>Republic of the Philippines</span><span>NUEVA VIZCAYA STATE UNIVERSITY</span><span>Bayombong, Nueva Vizcaya</span></div>' +
-        '<div class="form-title">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</div></div>' +
-        '<div class="arrp-number">ARRP No.: <span class="blank-line"></span></div>' +
-        '<div class="metadata"><div><strong>Unit/Division/College:</strong> ' + safe(office) + '</div><div><strong>Date:</strong> ' + date(request.return_date) + '</div>' +
-        '<div><strong>Place of Storage</strong><span class="blank-line"></span></div><div><strong>Tag No.:</strong><span class="blank-line"></span></div></div>' +
-        '<div class="items-for"><span>Items for</span><span>' + (purpose === 'Property Utilization/Re-issuance' ? '☑' : '____') +
-        'Property Utilization/Re-issuance</span><span>' + (purpose === 'Repair' ? '☑' : '____') + 'Repair</span><span>' +
-        (purpose === 'Disposal' ? '☑' : '____') + 'Disposal</span></div>' +
-        '<table><colgroup><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:13%"></colgroup>' +
-        '<thead><tr><th>Item<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-        '<div class="return-signatures heading"><div>Returned by:</div><div class="instruction">(Please indicate name and affix signature)</div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>' +
-        '<div class="return-signatures"><div>Signature:</div><div></div><div></div><div></div></div>' +
-        '<div class="return-signatures"><div>Printed Name:</div><div class="printed-name">' + safe(requester) + '</div><div></div><div></div></div>' +
-        '<div class="return-signatures"><div>Designation:</div><div></div><div></div><div></div></div>' +
-        '<div class="return-signatures"><div>Date:</div><div class="center">' + date(request.return_date) + '</div><div></div><div></div></div>' +
-        '<div class="instructions"><h3>INSTRUCTIONS</h3><ol type="A">' +
+
+        '<table><tr>' +
+        '<td rowspan="2" style="' + cell + 'width:18%;text-align:center;height:58px">' +
+        (logo ? '<img src="' + logo + '" style="width:75px;height:65px;object-fit:contain" alt="NVSU Logo">' : '') +
+        '</td><td class="school" style="' + cell + 'height:30px">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</td></tr>' +
+        '<tr><td class="formtitle" style="' + cell + 'height:28px">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</td></tr></table>' +
+
+        '<table style="border:0"><tr><td style="border:0;text-align:right;font-weight:bold;padding:7px 4px 12px">ARRP No.: __________________________</td></tr></table>' +
+
+        '<table><tr><td style="' + labelCell + 'width:55%;height:28px">Unit/Division/College: ' + safe(office) +
+        '</td><td style="' + labelCell + 'width:45%">Date: ' + date(request.return_date) + '</td></tr>' +
+        '<tr><td style="' + labelCell + 'height:28px">Place of Storage</td><td style="' + labelCell + '">Tag No.: __________________</td></tr></table>' +
+
+        '<table><tr><td colspan="4" class="center" style="' + labelCell + 'height:27px">Items for &nbsp;&nbsp; ' +
+        (purpose === 'Property Utilization/Re-issuance' ? '☑' : '____') + ' Property Utilization/Re-issuance &nbsp;&nbsp;&nbsp; ' +
+        (purpose === 'Repair' ? '☑' : '____') + ' Repair &nbsp;&nbsp;&nbsp; ' +
+        (purpose === 'Disposal' ? '☑' : '____') + ' Disposal</td></tr></table>' +
+
+        '<table><thead><tr>' +
+        '<th style="width:6%">Item<br>No.</th><th style="width:8%">Qty</th><th style="width:7%">UOM</th>' +
+        '<th style="width:34%">DESCRIPTION</th><th style="width:11%">CODE</th>' +
+        '<th style="width:17%">ACCOUNTABLE<br>EMPLOYEE</th><th style="width:17%">REMARKS</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table>' +
+
+        '<table><tr>' +
+        '<td style="' + labelCell + 'width:18%">Returned by:</td>' +
+        '<td style="' + labelCell + 'width:42%;text-align:center;font-style:italic">(Please indicate name and affix signature)</td>' +
+        '<td style="' + labelCell + 'width:28%">Received by:</td>' +
+        '<td style="' + labelCell + 'width:12%;text-align:center">Action Taken<br><small>(To be filled by the Property Officer)</small></td>' +
+        '</tr>' +
+        signatureRow('Signature:', '', '', '') +
+        signatureRow('Printed Name:', '<b>' + safe(requester).toLocaleUpperCase() + '</b>', '', '') +
+        signatureRow('Designation:', '', '', '') +
+        signatureRow('Date:', date(request.return_date), '', '') +
+        '</table>' +
+
+        '<div class="instructions"><h3 style="text-align:center;text-decoration:underline;margin:12px 0 8px">INSTRUCTIONS</h3>' +
+        '<ol type="A">' +
         '<li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li>' +
         '<li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li>' +
         '<li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li>' +
         '<li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li>' +
-        '<li>This form shall be prepared in two(2) copies distributed as follows:<div class="copies">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</div></li>' +
+        '<li>This form shall be prepared in two(2) copies distributed as follows:<p style="text-align:center;margin:8px 0">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</p></li>' +
         '</ol></div></div></body></html>'
 
       const blob = new Blob(['\ufeff', documentContent], { type: 'application/msword;charset=utf-8' })
@@ -460,7 +494,7 @@ export default {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      URL.revokeObjectURL(url)
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
       this.toast('Acknowledgement Receipt for Returned Property downloaded.')
     },
 
