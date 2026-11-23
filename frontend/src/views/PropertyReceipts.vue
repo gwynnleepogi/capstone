@@ -151,14 +151,14 @@
               </div>
               <div v-if="!editing && form.transaction_type === 'Acquisition'" class="mb-3">
                 <label class="form-label">Assigned Property</label>
-                <select class="form-select" v-model="form.item_id" @change="updateReceiptTypeForSelectedProperty" required>
-                  <option value="">
-                    {{ assignedReceiptItems.length ? 'Select Assigned Property' : 'No eligible assigned properties' }}
-                  </option>
-                  <option v-for="item in assignedReceiptItems" :key="item.id" :value="item.id">
-                    {{ item.property_number || item.description }} - {{ item.description }} ({{ item.accountable_employee }})
-                  </option>
-                </select>
+                <SearchableSelect
+                  v-model="form.item_id"
+                  :options="assignedReceiptItemOptions"
+                  :placeholder="assignedReceiptItems.length ? 'Search property number, item, or employee' : 'No eligible assigned properties'"
+                  :disabled="assignedReceiptItems.length === 0"
+                  required
+                  input-id="assignedReceiptSearch"
+                />
                 <small class="text-muted">
                   Properties added with an accountable employee are automatically eligible for an acquisition receipt.
                   <button type="button" class="btn btn-link btn-sm p-0 ms-1" @click="getItems">Refresh list</button>
@@ -717,6 +717,13 @@ export default {
         record.return_purpose !== 'Disposal' &&
         record.items?.status === 'Returned'
       )
+    },
+
+    assignedReceiptItemOptions() {
+      return this.assignedReceiptItems.map(item => ({
+        value: String(item.id),
+        label: `${item.property_number || 'No property number'} - ${item.description || 'Unnamed property'} (${item.accountable_employee || 'No accountable employee'})`
+      }))
     },
 
     selectedReissuanceReturn() {
