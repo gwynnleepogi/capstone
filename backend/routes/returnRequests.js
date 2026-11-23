@@ -210,22 +210,20 @@ router.get('/', staffOnly, async (req, res) => {
 // ---------------------------------------------------------------------------
 router.post('/', async (req, res) => {
   try {
-    const { property_receipt_id, return_date, return_purpose, condition_declared, return_reason, remarks } = req.body
+    const { property_receipt_id, return_date, return_purpose, remarks } = req.body
+    const condition_declared = 'Unserviceable'
+    const return_reason = String(remarks || '').trim()
 
     if (!property_receipt_id) {
       return res.status(400).json({ error: 'Please select the property you want to return.' })
     }
 
-    if (!CONDITIONS.includes(condition_declared)) {
-      return res.status(400).json({ error: 'Condition must be Serviceable or Unserviceable.' })
+    if (!return_reason) {
+      return res.status(400).json({ error: 'Please explain why the property is unserviceable.' })
     }
 
     if (!['Property Utilization/Re-issuance', 'Repair', 'Disposal'].includes(return_purpose)) {
       return res.status(400).json({ error: 'Please select what the returned property is for.' })
-    }
-
-    if (!String(return_reason || '').trim()) {
-      return res.status(400).json({ error: 'Please give a reason for the return.' })
     }
 
     const { data: receipt, error: receiptError } = await supabase
