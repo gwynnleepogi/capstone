@@ -598,6 +598,7 @@
               <div class="col-md-6"><label class="form-label">RPT No.</label><input class="form-control" v-model.trim="printDetails.rptNumber" placeholder="Enter RPT number"></div>
               <div class="col-md-6"><label class="form-label">Responsibility Center</label><input class="form-control" v-model.trim="printDetails.responsibilityCenter" placeholder="Defaults to the property record"></div>
               <div class="col-md-6"><label class="form-label">Paper Size</label><select class="form-select" v-model="printDetails.paperSize"><option value="long">Long (8.5 × 13 inches)</option><option value="legal">Legal (8.5 × 14 inches)</option><option value="letter">Letter (8.5 × 11 inches)</option><option value="a4">A4 (210 × 297 mm)</option></select></div>
+              <div class="col-12"><label class="form-label">Remarks <span class="text-muted">(optional)</span></label><textarea class="form-control" rows="2" v-model.trim="printDetails.remarks" placeholder="Enter remarks to appear on the printed transfer receipt"></textarea></div>
             </div>
             <div class="mb-3">
               <label class="form-label d-block">Acknowledgement Classification</label>
@@ -876,6 +877,7 @@ export default {
         rptNumber: '',
         responsibilityCenter: '',
         paperSize: 'long',
+        remarks: '',
         classifications: ['TRANSFER'],
         receivedBy: { name: '', title: '', date: today },
         issuedBy: { name: '', title: '', date: today }
@@ -1521,7 +1523,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 <thead><tr><th>Qty</th><th>Unit</th><th>Article and Description</th><th>Property<br>Number</th><th>Date<br>Acquired</th><th>Unit<br>Value</th><th>Total<br>Value</th></tr></thead>
 <tbody>${rows}<tr class="total"><td colspan="5"></td><td class="number">Total</td><td class="number">${amount(total)}</td></tr></tbody></table>
 <div class="nothing">NOTHING FOLLOWS</div>
-<div class="remarks"><strong>Remarks:</strong> ${esc(data.notes || '')}</div>
+<div class="remarks"><strong>Remarks:</strong> ${esc(details.remarks || '')}</div>
 <div class="bottom-block">
 <div class="page-number">Page 1 of 1</div>
 <div class="classification"><div class="classification-title">ACKNOWLEDGEMENT CLASSIFICATION</div><div class="classification-list">${classifications}</div></div>
