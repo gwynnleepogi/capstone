@@ -1029,7 +1029,7 @@ export default {
       propertyHistory: [],
       propertyHistoryLoading: false,
       propertyHistoryError: '',
-      printResponsibilityCenter: ''
+      printResponsibilityCenter: '',
       detailQrCode: '',
       showQrModal: false,
       qrCodeError: '',
