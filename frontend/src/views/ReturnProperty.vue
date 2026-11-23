@@ -438,7 +438,7 @@ export default {
         'ACCOUNTABLE\nEMPLOYEE', 'REMARKS',
       ].map((heading, index) => cell(heading, widths[index], {
         bold: true, size: 13, align: AlignmentType.CENTER, pad: 40,
-      }))]
+      })))]
       for (let index = 0; index < 15; index++) {
         const first = index === 0
         const fields = [
