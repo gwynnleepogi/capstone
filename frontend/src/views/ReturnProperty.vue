@@ -225,6 +225,13 @@
 </template>
 
 <script>
+import {
+  AlignmentType, BorderStyle, Document as DocxDocument, ImageRun,
+  Packer, Paragraph, Table, TableCell, TableRow, TextRun,
+  VerticalAlign, WidthType,
+} from 'docx'
+import logo from '@/assets/LOGO.png'
+
 function today() {
   return new Date().toISOString().split('T')[0]
 }
@@ -386,137 +393,188 @@ export default {
     },
 
     async downloadReturnPaperwork(request) {
-      const safe = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+      const value = text => String(text ?? '').trim()
       const item = request.items || {}
       const receipt = request.property_receipts || {}
-      const requester = request.requester?.full_name || ''
-      const office = request.offices?.office_name || ''
-      const date = value => {
-        if (!value) return ''
-        const parsed = new Date(value + 'T00:00:00')
-        return Number.isNaN(parsed.getTime()) ? safe(value) : parsed.toLocaleDateString('en-PH')
+      const employee = value(request.requester?.full_name)
+      const office = value(request.offices?.office_name)
+      const formatDate = text => {
+        if (!text) return ''
+        const parsed = new Date(text + 'T00:00:00')
+        return Number.isNaN(parsed.getTime()) ? value(text) : parsed.toLocaleDateString('en-PH')
       }
-      const purpose = request.return_purpose || ''
-      const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
-      let logo = ''
-      try {
-        const response = await fetch(logoUrl)
-        if (response.ok) {
-          const imageBlob = await response.blob()
-          logo = await new Promise(resolve => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result)
-            reader.onerror = () => resolve('')
-            reader.readAsDataURL(imageBlob)
-          })
-        }
-      } catch (error) {
-        console.warn('Could not embed NVSU logo in ARRP:', error)
+      const border = {
+        top: { style: BorderStyle.SINGLE, size: 4, color: '555555' },
+        bottom: { style: BorderStyle.SINGLE, size: 4, color: '555555' },
+        left: { style: BorderStyle.SINGLE, size: 4, color: '555555' },
+        right: { style: BorderStyle.SINGLE, size: 4, color: '555555' },
+        insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: '555555' },
+        insideVertical: { style: BorderStyle.SINGLE, size: 4, color: '555555' },
       }
-
-      const rows = Array.from({ length: 15 }, (_, index) => {
+      const para = (text, options = {}) => new Paragraph({
+        alignment: options.align || AlignmentType.LEFT,
+        spacing: { before: 0, after: 0, line: 210 },
+        children: [new TextRun({
+          text: String(text ?? ''), bold: !!options.bold,
+          italics: !!options.italic, underline: options.underline ? {} : undefined,
+          size: options.size || 16, font: 'Arial',
+        })],
+      })
+      const cell = (text, width, options = {}) => new TableCell({
+        width: { size: width, type: WidthType.DXA },
+        borders: border,
+        margins: { top: options.pad ?? 65, bottom: options.pad ?? 65, left: 65, right: 65 },
+        verticalAlign: VerticalAlign.CENTER,
+        children: [para(text, options)],
+      })
+      const row = cells => new TableRow({ children: cells })
+      const makeTable = (rows, widths) => new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        columnWidths: widths, borders: border, rows,
+      })
+      const widths = [700, 850, 700, 3700, 1200, 1700, 2050]
+      const rows = [row([
+        'Item\nNo.', 'Qty', 'UOM', 'DESCRIPTION', 'CODE',
+        'ACCOUNTABLE\nEMPLOYEE', 'REMARKS',
+      ].map((heading, index) => cell(heading, widths[index], {
+        bold: true, size: 15, align: AlignmentType.CENTER, pad: 70,
+      }))]
+      for (let index = 0; index < 15; index++) {
         const first = index === 0
-        return '<tr>' +
-          '<td style="height:7mm;text-align:center">' + (index + 1) + '</td>' +
-          '<td style="text-align:center">' + (first ? safe(receipt.quantity || '') : '') + '</td>' +
-          '<td style="text-align:center">' + (first ? safe(item.unit || '') : '') + '</td>' +
-          '<td>' + (first ? safe(item.description || '') : '') + '</td>' +
-          '<td style="text-align:center">' + (first ? safe(item.code || item.account_code || '') : '') + '</td>' +
-          '<td style="text-align:center">' + (first ? safe(requester) : '') + '</td>' +
-          '<td>' + (first ? safe(request.return_reason || '') : '') + '</td>' +
-          '</tr>'
-      }).join('')
+        const fields = [
+          String(index + 1),
+          first ? value(receipt.quantity) : '',
+          first ? value(item.unit) : '',
+          first ? value(item.description) : '',
+          first ? value(item.code || item.account_code) : '',
+          first ? employee : '',
+          first ? value(request.return_reason) : '',
+        ]
+        rows.push(row(fields.map((field, col) => cell(field, widths[col], {
+          size: 15, pad: 90,
+          align: [0, 1, 2, 4, 5].includes(col) ? AlignmentType.CENTER : AlignmentType.LEFT,
+        }))))
+      }
 
-      const border = 'border:1px solid #555;'
-      const cell = border + 'padding:4px;vertical-align:middle;'
-      const label = cell + 'font-weight:bold;'
-      const signatureRow = (name, receivedText) =>
-        '<tr>' +
-        '<td style="' + label + 'width:20%">' + name + '</td>' +
-        '<td style="' + cell + 'width:41%"></td>' +
-        '<td style="' + cell + 'width:19%;' + (receivedText ? 'text-align:center;' : '') + '">' + (receivedText || '') + '</td>' +
-        '<td style="' + cell + 'width:20%"></td>' +
-        '</tr>'
+      try {
+        const logoResponse = await fetch(logo)
+        const logoBytes = new Uint8Array(await logoResponse.arrayBuffer())
+        const logoCell = new TableCell({
+          width: { size: 1500, type: WidthType.DXA }, borders: border,
+          verticalAlign: VerticalAlign.CENTER,
+          children: [new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [new ImageRun({ data: logoBytes, transformation: { width: 72, height: 72 } })],
+          })],
+        })
+        const header = makeTable([
+          row([
+            logoCell,
+            cell('Republic of the Philippines\nNUEVA VIZCAYA STATE UNIVERSITY\nBayombong, Nueva Vizcaya', 9400, {
+              bold: true, size: 21, align: AlignmentType.CENTER, pad: 70,
+            }),
+          ]),
+          row([
+            cell('', 1500),
+            cell('ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY', 9400, {
+              bold: true, size: 22, align: AlignmentType.CENTER, pad: 85,
+            }),
+          ]),
+        ], [1500, 9400])
 
-      const documentContent = '<!doctype html><html><head><meta charset="UTF-8"><title>ARRP</title>' +
-        '<style>' +
-        '@page{size:A4 portrait;margin:8mm}' +
-        'html,body{margin:0;padding:0;color:#111;font-family:Arial,sans-serif}' +
-        'body{font-size:9px}.sheet{width:100%;border:1px solid #555;padding:4mm;}' +
-        'table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0}' +
-        'td,th{border:1px solid #555;padding:3px;vertical-align:middle}' +
-        'th{font-size:8px;line-height:1.1;text-align:center;height:9mm}' +
-        '.school{font-size:12px;font-weight:bold;line-height:1.2;text-align:center}' +
-        '.formtitle{font-size:12px;font-weight:bold;text-align:center;white-space:nowrap}' +
-        '.small{font-size:8px}.instructions{font-size:8.5px;line-height:1.2}' +
-        '.instructions li{padding:2px 0;text-align:justify}' +
-        '.center{text-align:center}.itemsfor{font-weight:bold;text-align:center;height:7mm;white-space:nowrap}' +
-        '.itemrow td{height:7mm}.signature-heading td{height:11mm;font-weight:bold}' +
-        '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{break-inside:avoid}}' +
-        '</style></head><body><div class="sheet">' +
+        const details = makeTable([
+          row([
+            cell('Unit/Division/College: ' + office, 7300, { bold: true, size: 17, pad: 100 }),
+            cell('Date: ' + formatDate(request.return_date), 3600, { bold: true, size: 17, pad: 100 }),
+          ]),
+          row([
+            cell('Place of Storage', 7300, { bold: true, size: 17, pad: 100 }),
+            cell('Tag No.:', 3600, { bold: true, size: 17, pad: 100 }),
+          ]),
+        ], [7300, 3600])
 
-        '<table><colgroup><col style="width:14%"><col style="width:86%"></colgroup>' +
-        '<tr><td rowspan="2" style="height:13mm;text-align:center;padding:2px">' +
-        (logo ? '<img src="' + logo + '" alt="NVSU Logo" style="width:24mm;height:19mm;object-fit:contain">' : '') +
-        '</td><td class="school" style="height:13mm">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</td></tr>' +
-        '<tr><td class="formtitle" style="height:8mm">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</td></tr>' +
-        '</table>' +
+        const purpose = value(request.return_purpose)
+        const check = label => purpose === label ? '☑' : '____'
+        const purposeTable = makeTable([
+          row([cell(
+            'Items for     ' + check('Property Utilization/Re-issuance') +
+            ' Property Utilization/Re-issuance     ' + check('Repair') +
+            ' Repair     ' + check('Disposal') + ' Disposal',
+            10900, { bold: true, size: 16, align: AlignmentType.CENTER, pad: 95 },
+          )]),
+        ], [10900])
 
-        '<table style="border:0"><tr><td style="border:0;text-align:right;font-weight:bold;padding:5px 2px 8px">ARRP No.: __________________________</td></tr></table>' +
+        const signatureWidths = [2000, 4500, 2100, 2600]
+        const signatureTable = makeTable([
+          row([
+            cell('Returned by:', 2000, { bold: true, size: 16, pad: 100 }),
+            cell('(Please indicate name and affix signature)', 4500, { bold: true, italic: true, size: 14, align: AlignmentType.CENTER, pad: 100 }),
+            cell('Received by:', 2100, { bold: true, size: 16, pad: 100 }),
+            cell('Action Taken\n(To be filled by the\nProperty Officer)', 2600, { bold: true, size: 13, align: AlignmentType.CENTER, pad: 65 }),
+          ]),
+          ...[
+            ['Signature:', '', ''],
+            ['Printed Name:', '', 'NIMFA S. SALINAS'],
+            ['Designation:', '', 'PROPERTY CUSTODIAN'],
+            ['Date:', '', ''],
+          ].map(fields => row([
+            cell(fields[0], 2000, { bold: true, size: 16, pad: 110 }),
+            cell('', 4500),
+            cell(fields[2], 2100, { bold: fields[0] === 'Designation:', size: 15, align: AlignmentType.CENTER, pad: 110 }),
+            cell('', 2600),
+          ])),
+        ], signatureWidths)
 
-        '<table><colgroup><col style="width:68%"><col style="width:32%"></colgroup>' +
-        '<tr><td style="' + label + 'height:7mm">Unit/Division/College: ' + safe(office) + '</td>' +
-        '<td style="' + label + '">Date: ' + date(request.return_date) + '</td></tr>' +
-        '<tr><td style="' + label + 'height:7mm">Place of Storage</td>' +
-        '<td style="' + label + '">Tag No.: </td></tr></table>' +
-
-        '<table><tr><td class="itemsfor" style="' + cell + '">' +
-        'Items for &nbsp;&nbsp;&nbsp; ' + (purpose === 'Property Utilization/Re-issuance' ? '☑' : '____') +
-        'Property Utilization/Re-issuance &nbsp;&nbsp;&nbsp; ' +
-        (purpose === 'Repair' ? '☑' : '____') + 'Repair &nbsp;&nbsp;&nbsp; ' +
-        (purpose === 'Disposal' ? '☑' : '____') + 'Disposal</td></tr></table>' +
-
-        '<table><colgroup>' +
-        '<col style="width:6.5%"><col style="width:7.5%"><col style="width:6.5%"><col style="width:35%">' +
-        '<col style="width:12%"><col style="width:14%"><col style="width:18.5%">' +
-        '</colgroup><thead><tr>' +
-        '<th>Item<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th>' +
-        '<th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th>' +
-        '</tr></thead><tbody class="itemrow">' + rows + '</tbody></table>' +
-
-        '<table><colgroup><col style="width:20%"><col style="width:41%"><col style="width:19%"><col style="width:20%"></colgroup>' +
-        '<tr class="signature-heading">' +
-        '<td style="' + label + '">Returned by:</td>' +
-        '<td style="' + label + 'text-align:center;font-style:italic;font-size:8px">(Please indicate name and affix signature)</td>' +
-        '<td style="' + label + '">Received by:</td>' +
-        '<td style="' + label + 'text-align:center">Action Taken<br><span class="small">(To be filled by the<br>Property Officer)</span></td>' +
-        '</tr>' +
-        signatureRow('Signature:', '') +
-        signatureRow('Printed Name:', 'NIMFA S. SALINAS') +
-        signatureRow('Designation:', 'PROPERTY CUSTODIAN') +
-        signatureRow('Date:', '') +
-        '</table>' +
-
-        '<div class="instructions" style="padding:3mm 3mm 1mm">' +
-        '<h3 style="text-align:center;text-decoration:underline;font-size:10px;margin:2mm 0 3mm">INSTRUCTIONS</h3>' +
-        '<ol type="A" style="margin:0;padding-left:8mm">' +
-        '<li>The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;</li>' +
-        '<li>Before receipt, the property shall be inspected and accomplish the Property Checklist;</li>' +
-        '<li>This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;</li>' +
-        '<li>The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and</li>' +
-        '<li>This form shall be prepared in two (2) copies distributed as follows:<p style="text-align:center;margin:5px 0">Original – Supply and/or Property Division/Unit’s file<br>Copy 2 – Accountable Employee</p></li>' +
-        '</ol></div></div></body></html>'
-
-      const blob = new Blob(['\ufeff', documentContent], { type: 'application/msword;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = 'ARRP-' + String(request.id || 'returned-property') + '.doc'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
-      this.toast('Acknowledgement Receipt for Returned Property downloaded.')
+        const instructionText = [
+          'The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;',
+          'Before receipt, the property shall be inspected and accomplish the Property Checklist;',
+          'This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;',
+          'The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and',
+          'This form shall be prepared in two(2) copies distributed as follows:',
+        ]
+        const instructions = instructionText.map((text, index) => new Paragraph({
+          indent: { left: 260, hanging: 220 },
+          spacing: { before: 0, after: index === 4 ? 10 : 35, line: 210 },
+          children: [
+            new TextRun({ text: String.fromCharCode(65 + index) + '.  ', bold: true, size: 14, font: 'Arial' }),
+            new TextRun({ text, italics: index === 0, size: 14, font: 'Arial' }),
+          ],
+        }))
+        const doc = new DocxDocument({
+          sections: [{
+            properties: {
+              page: {
+                size: { width: 11906, height: 16838 },
+                margin: { top: 400, right: 400, bottom: 400, left: 400 },
+              },
+            },
+            children: [
+              header,
+              new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { before: 70, after: 100 }, children: [new TextRun({ text: 'ARRP No.: __________________________', bold: true, size: 17, font: 'Arial' })] }),
+              details,
+              purposeTable,
+              makeTable(rows, widths),
+              signatureTable,
+              new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 100, after: 70 }, children: [new TextRun({ text: 'INSTRUCTIONS', bold: true, underline: {}, size: 17, font: 'Arial' })] }),
+              ...instructions,
+              new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 15, after: 0 }, children: [new TextRun({ text: 'Original – Supply and/or Property Division/Unit’s file\nCopy 2 – Accountable Employee', size: 14, font: 'Arial' })] }),
+            ],
+          }],
+        })
+        const blob = await Packer.toBlob(doc)
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = 'ARRP-' + String(request.id || 'returned-property') + '.docx'
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+        this.toast('ARRP Word document downloaded.')
+      } catch (error) {
+        console.error('Failed to generate ARRP DOCX:', error)
+        this.toast('Failed to generate the ARRP document.')
+      }
     },
 
     async cancelRequest(request) {
