@@ -7,7 +7,7 @@
           {{ pendingCount }} pending
         </span>
         <div class="small text-muted">
-          Teachers and Non-Teaching Staff submit property return requests here. View a request to record the return and add it to Returns.
+          Teachers and Non-Teaching Staff submit property return requests here. Review requests to accept or reject them.
         </div>
       </div>
 
@@ -83,11 +83,9 @@
 
           <tr v-else-if="!visibleRequests.length">
             <td colspan="9" class="text-center text-muted py-4">
-              {{
-                search || conditionFilter || dateFrom || dateTo || filter !== 'Pending'
-                  ? 'No matching return requests.'
-                  : 'No pending return requests.'
-              }}
+              {{ search || conditionFilter || dateFrom || dateTo || filter !== 'Pending'
+                ? 'No matching return requests.'
+                : 'No pending return requests.' }}
             </td>
           </tr>
 
@@ -106,7 +104,7 @@
             <td>
               {{ request.status === 'Accepted' && request.condition_after_return
                 ? request.condition_after_return
-                : request.condition_declared }}
+                : request.condition_declared || '-' }}
             </td>
             <td>
               {{ request.return_reason || '-' }}
@@ -117,66 +115,195 @@
             </td>
             <td>
               <span class="badge" :class="statusClass(request.status)">{{ request.status }}</span>
-              <div v-if="request.reviewer" class="small text-muted">by {{ request.reviewer.full_name }}</div>
+              <div v-if="request.reviewer" class="small text-muted">
+                by {{ request.reviewer.full_name }}
+              </div>
             </td>
-            <td class="text-end text-nowrap">
-              <button type="button" class="btn btn-sm btn-primary" @click="viewRequest(request)">
-                <i class="bi bi-eye me-1"></i> View
+            <td class="text-end">
+              <div v-if="request.status === 'Pending'" class="d-flex justify-content-end flex-wrap gap-1">
+                <button type="button" class="btn btn-sm btn-outline-primary" @click="viewRequest(request)">
+                  <i class="bi bi-eye me-1"></i> View
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-success"
+                  :disabled="saving"
+                  @click="acceptRequest(request)"
+                >
+                  <i class="bi bi-check-lg me-1"></i> Accept
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-danger"
+                  :disabled="saving"
+                  @click="openRejectModal(request)"
+                >
+                  <i class="bi bi-x-lg me-1"></i> Reject
+                </button>
+              </div>
+              <button
+                v-else
+                type="button"
+                class="btn btn-sm btn-outline-primary"
+                @click="viewRequest(request)"
+              >
+                <i class="bi bi-eye me-1"></i> View Details
               </button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-
-
   </div>
 
-    <!-- Return Request Details Modal -->
-    <div class="modal fade" id="returnRequestDetailsModal" tabindex="-1" aria-labelledby="returnRequestDetailsModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-          <div class="modal-header">
-            <div>
-              <h5 id="returnRequestDetailsModalLabel" class="modal-title">Return Request Details</h5>
-              <div class="small text-muted">Review the submitted information before accepting the return.</div>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  <!-- Return Request Details Modal -->
+  <div
+    class="modal fade"
+    id="returnRequestDetailsModal"
+    tabindex="-1"
+    aria-labelledby="returnRequestDetailsModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 id="returnRequestDetailsModalLabel" class="modal-title">Return Request Details</h5>
+            <div class="small text-muted">Review the submitted information before processing the request.</div>
           </div>
-          <div v-if="selectedRequest" class="modal-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <span class="text-muted small">Request Status</span>
-              <span class="badge" :class="statusClass(selectedRequest.status)">{{ selectedRequest.status }}</span>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div v-if="selectedRequest" class="modal-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted small">Request Status</span>
+            <span class="badge" :class="statusClass(selectedRequest.status)">
+              {{ selectedRequest.status }}
+            </span>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="detail-label">Requested Date</div>
+              <div>{{ formatDate(selectedRequest.created_at) }}</div>
             </div>
-            <div class="row g-3">
-              <div class="col-md-6"><div class="detail-label">Requested Date</div><div>{{ formatDate(selectedRequest.created_at) }}</div></div>
-              <div class="col-md-6"><div class="detail-label">Requested By</div><div>{{ selectedRequest.requester?.full_name || '-' }}</div></div>
-              <div class="col-12"><div class="detail-label">Property</div><div class="fw-semibold">{{ selectedRequest.items?.description || '-' }}</div><div class="small text-muted">Property No.: {{ selectedRequest.items?.property_number || '-' }}</div></div>
-              <div class="col-md-6"><div class="detail-label">Receipt Number</div><div>{{ selectedRequest.property_receipts?.receipt_number || '-' }}</div></div>
-              <div class="col-md-6"><div class="detail-label">Quantity</div><div>{{ selectedRequest.property_receipts?.quantity ?? '-' }}</div></div>
-              <div class="col-md-6"><div class="detail-label">Office</div><div>{{ selectedRequest.offices?.office_name || '-' }}</div></div>
-              <div class="col-md-6"><div class="detail-label">Return Date</div><div>{{ formatDate(selectedRequest.return_date) }}</div></div>
-              <div class="col-md-6"><div class="detail-label">Declared Condition</div><div>{{ selectedRequest.condition_declared || '-' }}</div></div>
-              <div class="col-md-6"><div class="detail-label">Return Purpose</div><div>{{ selectedRequest.return_purpose || '-' }}</div></div>
-              <div class="col-12"><div class="detail-label">Reason</div><div>{{ selectedRequest.return_reason || '-' }}</div></div>
-              <div class="col-12"><div class="detail-label">Remarks</div><div>{{ selectedRequest.remarks || '-' }}</div></div>
-              <div v-if="selectedRequest.review_remarks" class="col-12"><div class="detail-label">Review Remarks</div><div>{{ selectedRequest.review_remarks }}</div></div>
+            <div class="col-md-6">
+              <div class="detail-label">Requested By</div>
+              <div>{{ selectedRequest.requester?.full_name || '-' }}</div>
             </div>
-            <div v-if="selectedRequest.status === 'Pending'" class="alert alert-info mt-4 mb-0">
-              Accepting this request will record the return, update the property status, and add the record to Returns.
+            <div class="col-12">
+              <div class="detail-label">Property</div>
+              <div class="fw-semibold">{{ selectedRequest.items?.description || '-' }}</div>
+              <div class="small text-muted">
+                Property No.: {{ selectedRequest.items?.property_number || '-' }}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-label">Receipt Number</div>
+              <div>{{ selectedRequest.property_receipts?.receipt_number || '-' }}</div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-label">Quantity</div>
+              <div>{{ selectedRequest.property_receipts?.quantity ?? '-' }}</div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-label">Office</div>
+              <div>{{ selectedRequest.offices?.office_name || '-' }}</div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-label">Return Date</div>
+              <div>{{ formatDate(selectedRequest.return_date) }}</div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-label">Declared Condition</div>
+              <div>{{ selectedRequest.condition_declared || '-' }}</div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-label">Return Purpose</div>
+              <div>{{ selectedRequest.return_purpose || '-' }}</div>
+            </div>
+            <div class="col-12">
+              <div class="detail-label">Reason</div>
+              <div>{{ selectedRequest.return_reason || '-' }}</div>
+            </div>
+            <div class="col-12">
+              <div class="detail-label">Remarks</div>
+              <div>{{ selectedRequest.remarks || '-' }}</div>
+            </div>
+            <div v-if="selectedRequest.review_remarks" class="col-12">
+              <div class="detail-label">Review Remarks</div>
+              <div>{{ selectedRequest.review_remarks }}</div>
             </div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button v-if="selectedRequest && selectedRequest.status === 'Pending'" type="button" class="btn btn-success" :disabled="saving" @click="acceptSelectedRequest">
+
+          <div v-if="selectedRequest.status === 'Pending'" class="alert alert-info mt-4 mb-0">
+            Accepting this request records the return and adds it to Returns. Rejecting it requires a reason.
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <template v-if="selectedRequest && selectedRequest.status === 'Pending'">
+            <button type="button" class="btn btn-danger" :disabled="saving" @click="openRejectModal(selectedRequest)">
+              Reject
+            </button>
+            <button type="button" class="btn btn-success" :disabled="saving" @click="acceptRequest(selectedRequest)">
               <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
-              <i v-else class="bi bi-check-lg me-1"></i>
               {{ saving ? 'Accepting...' : 'Accept Return' }}
             </button>
-          </div>
+          </template>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Reject Return Request Modal -->
+  <div
+    class="modal fade"
+    id="rejectReturnRequestModal"
+    tabindex="-1"
+    aria-labelledby="rejectReturnRequestModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <form @submit.prevent="rejectRequest">
+          <div class="modal-header">
+            <h5 id="rejectReturnRequestModalLabel" class="modal-title">Reject Return Request</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-2">
+              You are rejecting the return request for
+              <strong>{{ selectedRequest?.items?.description || 'this property' }}</strong>.
+            </p>
+            <label for="returnRejectionReason" class="form-label">
+              Reason for Rejection <span class="text-danger">*</span>
+            </label>
+            <textarea
+              id="returnRejectionReason"
+              v-model.trim="rejectionReason"
+              class="form-control"
+              rows="4"
+              maxlength="1000"
+              placeholder="Enter the reason for rejecting this request"
+              required
+            ></textarea>
+            <div class="form-text">A reason is required only when rejecting a request.</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" :disabled="saving">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-danger" :disabled="saving || !rejectionReason.trim()">
+              <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
+              {{ saving ? 'Rejecting...' : 'Confirm Rejection' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -198,7 +325,8 @@ export default {
       conditionFilter: '',
       dateFrom: '',
       dateTo: '',
-      tabs: ['All', 'Pending', 'Accepted'],
+      rejectionReason: '',
+      tabs: ['All', 'Pending', 'Accepted', 'Rejected']
     }
   },
 
@@ -211,14 +339,11 @@ export default {
       const search = this.search.toLowerCase()
 
       return this.requests.filter(request => {
-        const statusMatches =
-          this.filter === 'All' || request.status === this.filter
-        const condition =
-          request.status === 'Accepted'
-            ? request.condition_after_return
-            : request.condition_declared
-        const conditionMatches =
-          !this.conditionFilter || condition === this.conditionFilter
+        const statusMatches = this.filter === 'All' || request.status === this.filter
+        const condition = request.status === 'Accepted'
+          ? request.condition_after_return
+          : request.condition_declared
+        const conditionMatches = !this.conditionFilter || condition === this.conditionFilter
         const requestDate = String(request.created_at || '').slice(0, 10)
         const fromDateMatches = !this.dateFrom || requestDate >= this.dateFrom
         const toDateMatches = !this.dateTo || requestDate <= this.dateTo
@@ -233,13 +358,11 @@ export default {
           request.offices?.office_name
         ].join(' ').toLowerCase()
 
-        return (
-          statusMatches &&
+        return statusMatches &&
           conditionMatches &&
           fromDateMatches &&
           toDateMatches &&
           (!search || searchableText.includes(search))
-        )
       })
     }
   },
@@ -278,24 +401,98 @@ export default {
       if (element) Modal.getOrCreateInstance(element).show()
     },
 
-    async acceptSelectedRequest() {
-      const request = this.selectedRequest
+    closeModal(id) {
+      const element = document.getElementById(id)
+      if (element) Modal.getOrCreateInstance(element).hide()
+    },
+
+    async acceptRequest(request) {
       if (!request || this.saving || request.status !== 'Pending') return
 
+      const confirmed = window.confirm(
+        'Accept this property return request? The return will be recorded and added to Returns.'
+      )
+      if (!confirmed) return
+
       this.saving = true
+
       try {
         const response = await fetch(`/api/return-requests/${request.id}/accept`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ condition_after_return: 'Unserviceable', review_remarks: null })
+          body: JSON.stringify({ review_remarks: null })
         })
         const data = await response.json().catch(() => ({}))
-        if (!response.ok) throw new Error(data.error || 'Could not record the property return')
 
-        this.toast('Return recorded and added to Returns.')
-        const element = document.getElementById('returnRequestDetailsModal')
-        if (element) Modal.getOrCreateInstance(element).hide()
+        if (!response.ok) {
+          throw new Error(data.error || 'Could not record the property return')
+        }
+
+        this.toast('Return request accepted and added to Returns.')
+
+        this.closeModal('returnRequestDetailsModal')
         this.selectedRequest = null
+
+        await this.loadRequests()
+        window.dispatchEvent(new CustomEvent('return-requests-updated'))
+        this.$emit('changed')
+      } catch (error) {
+        this.toast(error.message)
+      } finally {
+        this.saving = false
+      }
+    },
+
+    openRejectModal(request) {
+      if (!request || request.status !== 'Pending' || this.saving) return
+
+      this.selectedRequest = request
+      this.rejectionReason = ''
+
+      const detailsModal = document.getElementById('returnRequestDetailsModal')
+      if (detailsModal) {
+        const instance = Modal.getOrCreateInstance(detailsModal)
+        detailsModal.addEventListener('hidden.bs.modal', () => {
+          const rejectModal = document.getElementById('rejectReturnRequestModal')
+          if (rejectModal) Modal.getOrCreateInstance(rejectModal).show()
+        }, { once: true })
+        instance.hide()
+      } else {
+        const rejectModal = document.getElementById('rejectReturnRequestModal')
+        if (rejectModal) Modal.getOrCreateInstance(rejectModal).show()
+      }
+    },
+
+    async rejectRequest() {
+      const request = this.selectedRequest
+      const reason = this.rejectionReason.trim()
+
+      if (!request || request.status !== 'Pending' || this.saving) return
+      if (!reason) {
+        this.toast('Please enter a reason for rejecting this request.')
+        return
+      }
+
+      this.saving = true
+
+      try {
+        const response = await fetch(`/api/return-requests/${request.id}/reject`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ review_remarks: reason })
+        })
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Could not reject the return request')
+        }
+
+        this.toast('Return request rejected.')
+
+        this.closeModal('rejectReturnRequestModal')
+        this.selectedRequest = null
+        this.rejectionReason = ''
+
         await this.loadRequests()
         window.dispatchEvent(new CustomEvent('return-requests-updated'))
         this.$emit('changed')
@@ -320,29 +517,23 @@ export default {
 
       return isNaN(date.getTime())
         ? value
-        : date.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
+        : date.toLocaleDateString('en-PH', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          })
     }
   }
 }
 </script>
 
 <style scoped>
-.detail-label { font-size: .78rem; color: var(--bs-secondary-color); margin-bottom: .2rem; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
-
-.rr-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1055;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background-color: rgba(0, 0, 0, 0.45);
-}
-
-.rr-dialog {
-  width: min(520px, 100%);
-  max-height: 100%;
-  overflow-y: auto;
+.detail-label {
+  font-size: .78rem;
+  color: var(--bs-secondary-color);
+  margin-bottom: .2rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .02em;
 }
 </style>
