@@ -193,11 +193,11 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Properties for <span class="text-danger">*</span></label>
+              <label class="form-label">Properties for <span class="text-muted">(Optional)</span></label>
               <div class="border rounded p-3 mb-3">
-                <div class="form-check mb-2"><input id="purpose-reissue" v-model="form.return_purpose" class="form-check-input" type="radio" value="Property Utilization/Re-issuance" required /><label class="form-check-label" for="purpose-reissue">Property Utilization / Re-issuance</label></div>
-                <div class="form-check mb-2"><input id="purpose-repair" v-model="form.return_purpose" class="form-check-input" type="radio" value="Repair" required /><label class="form-check-label" for="purpose-repair">Repair</label></div>
-                <div class="form-check"><input id="purpose-disposal" v-model="form.return_purpose" class="form-check-input" type="radio" value="Disposal" required /><label class="form-check-label" for="purpose-disposal">Disposal</label></div>
+                <div class="form-check mb-2"><input id="purpose-reissue" v-model="form.return_purpose" class="form-check-input" type="radio" value="Property Utilization/Re-issuance" /><label class="form-check-label" for="purpose-reissue">Property Utilization / Re-issuance</label></div>
+                <div class="form-check mb-2"><input id="purpose-repair" v-model="form.return_purpose" class="form-check-input" type="radio" value="Repair" /><label class="form-check-label" for="purpose-repair">Repair</label></div>
+                <div class="form-check"><input id="purpose-disposal" v-model="form.return_purpose" class="form-check-input" type="radio" value="Disposal" /><label class="form-check-label" for="purpose-disposal">Disposal</label></div>
               </div>
               <label class="form-label">Return Date <span class="text-danger">*</span></label>
               <input v-model="form.return_date" type="date" class="form-control" required />
@@ -370,11 +370,6 @@ export default {
       let submittedCount = 0
 
       try {
-        if (!this.form.return_purpose) {
-          this.toast('Please select what the returned property is for.');
-          return;
-        }
-
         for (const receipt of this.selectedReceipts) {
           await this.request('/api/return-requests', {
             method: 'POST',
