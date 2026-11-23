@@ -1184,6 +1184,14 @@ export default {
       this.printDetails = this.emptyPrintDetails()
       this.printDetails.rptNumber = transfer.rpt_number || transfer.rpt_no || this.getAutomaticRPTNumber(transfer)
       this.printDetails.responsibilityCenter = transfer.items.responsibility_center || ''
+
+      // Use the selected receiving employee as the default Received by signatory.
+      if (transfer.to_user) {
+        this.printDetails.receivedBy.name = transfer.to_user.full_name || ''
+        this.printDetails.receivedBy.title = transfer.to_user.job_title || transfer.to_user.designation || this.getSignatoryTitle(transfer.to_user.full_name || '')
+        this.personnelSearch.receivedBy = this.printDetails.receivedBy.name
+      }
+
       Modal.getOrCreateInstance(document.getElementById('transferPrintModal')).show()
     },
 
