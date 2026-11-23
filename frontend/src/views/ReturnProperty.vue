@@ -225,8 +225,6 @@
 </template>
 
 <script>
-import { Modal } from 'bootstrap'
-
 function today() {
   return new Date().toISOString().split('T')[0]
 }
@@ -306,11 +304,6 @@ export default {
       } finally {
         this.loading = false
       }
-    },
-
-    openReturnRequestsModal() {
-      const modalElement = document.getElementById('myReturnRequestsModal')
-      Modal.getOrCreateInstance(modalElement).show()
     },
 
     openPropertySelectionModal() {
