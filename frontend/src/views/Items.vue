@@ -551,6 +551,43 @@
                 <dt class="col-sm-5">Remarks</dt>
                 <dd class="col-sm-7">{{ detailItem.remarks || '-' }}</dd>
               </dl>
+
+              <section class="mt-4 border-top pt-3" aria-labelledby="property-history-title">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h3 id="property-history-title" class="h6 mb-0">Property History</h3>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    :disabled="propertyHistoryLoading"
+                    @click="loadPropertyHistory(detailItem.id)"
+                  >
+                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                  </button>
+                </div>
+                <div v-if="propertyHistoryLoading" class="text-muted small py-3">
+                  Loading property history...
+                </div>
+                <div v-else-if="propertyHistoryError" class="alert alert-warning small mb-0">
+                  {{ propertyHistoryError }}
+                </div>
+                <div v-else-if="propertyHistory.length === 0" class="text-muted small py-3">
+                  No acquisition, issuance, transfer, or return transactions were found.
+                </div>
+                <div v-else class="list-group list-group-flush">
+                  <div v-for="event in propertyHistory" :key="event.id" class="list-group-item px-0 py-3">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                      <strong>{{ event.type }}</strong>
+                      <small class="text-muted text-nowrap">
+                        {{ event.date ? new Date(event.date).toLocaleDateString() : '-' }}
+                      </small>
+                    </div>
+                    <div class="small mt-1">{{ event.details || '-' }}</div>
+                    <div class="small text-muted mt-1">Reference: {{ event.reference || '-' }}</div>
+                    <div class="small text-muted">Employee: {{ event.employee || '-' }}</div>
+                    <div v-if="event.remarks" class="small text-muted mt-1">Remarks: {{ event.remarks }}</div>
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         </div>
@@ -602,11 +639,11 @@
           <button
             type="button"
             class="btn btn-outline-danger"
-            :disabled="deletingItemId === detailItem.id"
+            :disabled="deletingItemId === detailItem.id || propertyHistoryLoading || propertyHistory.length > 0"
             @click="deleteItem(detailItem)"
           >
             <i class="bi bi-trash me-1"></i>
-            {{ deletingItemId === detailItem.id ? 'Deleting...' : 'Delete Property' }}
+            {{ deletingItemId === detailItem.id ? 'Deleting...' : (propertyHistory.length > 0 ? 'History Protected' : 'Delete Property') }}
           </button>
         </div>
       </section>
@@ -986,7 +1023,10 @@ export default {
       ],
 
       detailItem: null,
-      printResponsibilityCenter: '',
+      propertyHistory: [],
+      propertyHistoryLoading: false,
+      propertyHistoryError: '',
+      printResponsibilityCenter: ''
       detailQrCode: '',
       showQrModal: false,
       qrCodeError: '',
@@ -1798,7 +1838,34 @@ export default {
       this.showQrModal = false
       this.qrCodeError = ''
       this.qrGenerating = false
+      this.loadPropertyHistory(item.id)
       this.generateItemQrCode(false)
+    },
+
+    async loadPropertyHistory(itemId) {
+      if (!itemId) return
+
+      this.propertyHistoryLoading = true
+      this.propertyHistoryError = ''
+      this.propertyHistory = []
+
+      try {
+        const response = await fetch('/api/items/' + encodeURIComponent(itemId) + '/history')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load property history.')
+        }
+
+        if (this.detailItem && String(this.detailItem.id) === String(itemId)) {
+          this.propertyHistory = Array.isArray(data) ? data : []
+        }
+      } catch (error) {
+        console.error('Failed to load property history:', error)
+        this.propertyHistoryError = error.message || 'Failed to load property history.'
+      } finally {
+        this.propertyHistoryLoading = false
+      }
     },
 
     async generateItemQrCode(showModal = true) {
@@ -2007,6 +2074,8 @@ export default {
 
     closeItemDetails() {
       this.detailItem = null
+      this.propertyHistory = []
+      this.propertyHistoryError = ''
       this.detailQrCode = ''
       this.qrCodeError = ''
       this.qrGenerating = false
