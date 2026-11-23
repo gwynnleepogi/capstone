@@ -433,12 +433,13 @@ export default {
         columnWidths: widths, borders: border, rows,
       })
       const widths = [700, 850, 700, 3700, 1200, 1700, 2050]
-      const rows = [row([
+      const headerCells = [
         'Item\nNo.', 'Qty', 'UOM', 'DESCRIPTION', 'CODE',
         'ACCOUNTABLE\nEMPLOYEE', 'REMARKS',
       ].map((heading, index) => cell(heading, widths[index], {
         bold: true, size: 13, align: AlignmentType.CENTER, pad: 40,
-      })))]
+      }))
+      const rows = [row(headerCells)]
       for (let index = 0; index < 15; index++) {
         const first = index === 0
         const fields = [
