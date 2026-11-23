@@ -370,6 +370,7 @@ export default {
           submittedCount += 1
         }
 
+        window.dispatchEvent(new CustomEvent('return-requests-updated'))
         this.toast(
           submittedCount === 1
             ? 'Return request sent. Please wait for the property office to review it.'
