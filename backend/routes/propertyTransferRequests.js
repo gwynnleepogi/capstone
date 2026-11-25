@@ -170,6 +170,42 @@ router.post('/', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }) }
 })
 
+router.patch('/:id/cancel', async (req, res) => {
+  if (!['Teacher', 'Non-Teaching Staff'].includes(req.role)) {
+    return res.status(403).json({ error: 'Only employees can cancel their transfer requests.' })
+  }
+
+  const userSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
+    global: { headers: { Authorization: req.headers.authorization } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  })
+
+  try {
+    const { data, error } = await userSupabase
+      .from('property_transfer_requests')
+      .update({ status: 'Cancelled' })
+      .eq('id', req.params.id)
+      .eq('requested_by', req.profile.id)
+      .eq('status', 'Pending')
+      .select()
+      .maybeSingle()
+
+    if (error) return res.status(500).json({ error: error.message })
+    if (!data) return res.status(409).json({ error: 'Only your pending transfer requests can be cancelled.' })
+
+    await createAuditLog('Cancelled', null, null, JSON.stringify({
+      request_id: data.id,
+      property_receipt_ids: data.property_receipt_ids || [],
+      status: 'Cancelled'
+    }), 'Cancelled property transfer request', req.profile.id)
+
+    const [result] = await details([data])
+    res.json(result)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 router.patch('/:id/reject', async (req, res) => {
   if (req.role !== 'Administrator') return res.status(403).json({ error: 'Only administrators can review transfer requests.' })
   const userSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
