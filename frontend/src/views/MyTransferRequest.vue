@@ -96,7 +96,7 @@
         <div v-else-if="!requests.length" class="text-muted">You have not submitted any transfer requests.</div>
         <div v-else class="table-responsive">
           <table class="table table-hover align-middle mb-0">
-            <thead><tr><th>Date Submitted</th><th>Properties</th><th>Reason</th><th>Receiving Employee</th><th>Status</th><th>Remarks</th></tr></thead>
+            <thead><tr><th>Date Submitted</th><th>Properties</th><th>Reason</th><th>Receiving Employee</th><th>Status</th><th>Remarks</th><th>Action</th></tr></thead>
             <tbody>
               <tr v-for="request in requests" :key="request.id">
                 <td>{{ formatDate(request.created_at) }}</td>
@@ -105,6 +105,13 @@
                 <td>{{ request.recipient?.full_name || (request.status === 'Pending' ? 'To be assigned by Property Office' : '-') }}</td>
                 <td><span class="badge" :class="statusClass(request.status)">{{ request.status }}</span></td>
                 <td>{{ request.review_remarks || request.remarks || '-' }}</td>
+                <td>
+                  <button v-if="request.status === 'Pending'" type="button" class="btn btn-sm btn-outline-danger"
+                    :disabled="cancellingId === request.id" @click="cancelRequest(request)">
+                    {{ cancellingId === request.id ? 'Cancelling...' : 'Cancel' }}
+                  </button>
+                  <span v-else class="text-muted">-</span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -122,6 +129,7 @@ export default {
       loading: true,
       requestsLoading: true,
       saving: false,
+      cancellingId: null,
       showRequestForm: false,
       properties: [],
       requests: [],
@@ -221,6 +229,28 @@ export default {
         this.toast(error.message)
       } finally {
         this.requestsLoading = false
+      }
+    },
+    async cancelRequest(request) {
+      if (!request || request.status !== 'Pending') return
+      if (!window.confirm('Cancel this pending transfer request?')) return
+
+      this.cancellingId = request.id
+      try {
+        const response = await fetch('/api/property-transfer-requests/' + encodeURIComponent(request.id) + '/cancel', {
+          method: 'PATCH',
+          headers: this.authHeaders(true),
+          body: JSON.stringify({})
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Unable to cancel transfer request.')
+        this.toast('Transfer request cancelled.')
+        window.dispatchEvent(new CustomEvent('transfer-requests-updated'))
+        await this.loadRequests()
+      } catch (error) {
+        this.toast(error.message)
+      } finally {
+        this.cancellingId = null
       }
     },
     async submitRequest() {
