@@ -486,7 +486,6 @@ export default {
   data() {
     return {
       receipts: [],
-      returnRecords: [],
       receiptSearch: '',
       receiptTypeFilter: '',
       receiptStatusFilter: '',
@@ -716,7 +715,6 @@ export default {
   mounted() {
     this.getReceipts()
     this.getItems()
-    this.getReturns()
     this.getOffices()
     this.getPersonnel()
   },
@@ -877,18 +875,6 @@ export default {
       }
     },
 
-    async getReturns() {
-      try {
-        const response = await fetch('/api/returns')
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'Failed to load returned properties')
-        this.returnRecords = Array.isArray(data) ? data : []
-      } catch (error) {
-        console.log(error)
-        this.showToast(error.message)
-      }
-    },
-
     onTransactionTypeChange() {
       this.form.item_id = ''
     },
@@ -1016,7 +1002,6 @@ export default {
 
         await this.getReceipts()
         await this.getItems()
-        await this.getReturns()
 
         this.showToast(this.editing ? 'Receipt updated successfully' : 'Receipt created successfully')
       } catch (error) {
