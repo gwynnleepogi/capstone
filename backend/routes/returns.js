@@ -259,6 +259,17 @@ router.post('/', async (req, res) => {
       })
     }
 
+    const { error: relatedReceiptsError } = await supabase
+      .from('property_receipts')
+      .update({ status: 'Returned' })
+      .eq('item_id', receipt.item_id)
+
+    if (relatedReceiptsError) {
+      return res.status(500).json({
+        error: 'The item was returned, but related receipt statuses could not be synchronized: ' + relatedReceiptsError.message
+      })
+    }
+
     await createAuditLog(
       'Returned',
       newReturn.item_id,
