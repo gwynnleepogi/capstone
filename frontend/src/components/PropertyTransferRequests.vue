@@ -101,7 +101,7 @@
             </table>
           </div>
 
-          <template v-if="selected.status === 'Pending'">
+          <template v-if="selected.status === 'Pending' && !showRejectForm">
             <hr>
             <h6>Assign Receiving Employee</h6>
             <label class="form-label">Receiving Employee <span class="text-danger">*</span></label>
