@@ -115,7 +115,7 @@
                   <div class="text-muted small">Property No. {{ receipt.items?.property_number || '-' }}</div>
                   <h2 class="h5 mb-0">{{ receipt.items?.description || 'Unnamed property' }}</h2>
                 </div>
-                <button type="button" class="btn btn-outline-success btn-sm" @click="toggleDetails(receipt.id)"><i class="bi bi-arrow-left me-1"></i>Back</button>
+
               </header>
 
               <div class="property-modal-body">
@@ -165,6 +165,11 @@
                   </div>
                 </div>
               </div>
+              <footer class="property-modal-footer">
+                <button type="button" class="btn btn-outline-success" @click="toggleDetails(receipt.id)">
+                  <i class="bi bi-arrow-left me-1"></i>Back to My Properties
+                </button>
+              </footer>
             </section>
           </div>
 
@@ -411,6 +416,17 @@ export default {
   padding: 1.5rem 1.75rem;
 }
 
+.property-modal-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.85rem 1.75rem;
+  border-top: 1px solid #e9ecef;
+  background: #fff;
+}
+
 @media (max-width: 768px) {
   .property-modal-backdrop {
     padding: 0.5rem;
@@ -424,6 +440,10 @@ export default {
   .property-modal-header,
   .property-modal-body {
     padding: 1rem;
+  }
+
+  .property-modal-footer {
+    padding: 0.75rem 1rem;
   }
 }
 </style>
