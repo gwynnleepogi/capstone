@@ -9,7 +9,7 @@
       </p>
     </div>
 
-    <section v-if="pendingAccountRequests.length || pendingReturnRequests.length || pendingTransferRequests.length" class="action-center mb-4" aria-labelledby="action-center-title">
+    <section class="action-center mb-4" aria-labelledby="action-center-title">
       <div class="action-center-heading">
         <div>
           <span class="action-center-eyebrow">ACTION CENTER</span>
@@ -19,7 +19,7 @@
         <i class="bi bi-bell-fill action-center-bell" aria-hidden="true"></i>
       </div>
 
-      <div v-if="pendingAccountRequests.length > 0" class="row g-3">
+      <div class="row g-3">
         <div class="col-12">
           <section class="card pending-card account-pending-card h-100">
             <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
@@ -79,8 +79,8 @@
         </div>
       </div>
 
-      <div v-if="pendingReturnRequests.length > 0 || pendingTransferRequests.length > 0" class="row g-3 mt-1">
-        <div v-if="pendingReturnRequests.length > 0" class="col-12 col-xl-6">
+      <div class="row g-3 mt-1">
+        <div class="col-12 col-xl-6">
           <section class="card pending-card property-pending-card h-100">
             <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
               <div class="d-flex align-items-center gap-2">
@@ -91,7 +91,7 @@
                 </div>
                 <span class="pending-count">{{ pendingReturnRequests.length }}</span>
               </div>
-              <router-link class="btn btn-sm btn-success request-review-button" to="/returns">Review <span class="request-notification-badge">{{ pendingReturnRequests.length }}</span><i class="bi bi-arrow-right ms-1"></i></router-link>
+              <router-link class="btn btn-sm btn-success request-review-button" to="/returns">Review <span v-if="pendingReturnRequests.length > 0" class="request-notification-dot" aria-label="Pending return requests"></span><i class="bi bi-arrow-right ms-1"></i></router-link>
             </div>
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
@@ -112,7 +112,7 @@
           </section>
         </div>
 
-        <div v-if="pendingTransferRequests.length > 0" class="col-12 col-xl-6">
+        <div class="col-12 col-xl-6">
           <section class="card pending-card property-pending-card h-100">
             <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
               <div class="d-flex align-items-center gap-2">
@@ -123,7 +123,7 @@
                 </div>
                 <span class="pending-count">{{ pendingTransferRequests.length }}</span>
               </div>
-              <router-link class="btn btn-sm btn-success request-review-button" to="/transfers">Review <span class="request-notification-badge">{{ pendingTransferRequests.length }}</span><i class="bi bi-arrow-right ms-1"></i></router-link>
+              <router-link class="btn btn-sm btn-success request-review-button" to="/transfers">Review <span v-if="pendingTransferRequests.length > 0" class="request-notification-dot" aria-label="Pending transfer requests"></span><i class="bi bi-arrow-right ms-1"></i></router-link>
             </div>
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
@@ -836,18 +836,14 @@ h1 {
   gap: 7px;
 }
 
-.request-notification-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 7px;
-  border-radius: 999px;
-  background: #dc3545;
-  color: #fff;
-  font-size: .75rem;
-  font-weight: 700;
+.request-notification-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border-radius: 50%;
+  background: #f80c0c;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .9);
 }
 
 .pending-count {
