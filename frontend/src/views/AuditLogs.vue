@@ -70,18 +70,18 @@
 
                 <th
                   class="sortable text-start"
-                  @click="sortBy('action')"
-                >
-                  Action
-                  <i :class="getSortIcon('action')"></i>
-                </th>
-
-                <th
-                  class="sortable text-start"
                   @click="sortBy('item')"
                 >
                   Item
                   <i :class="getSortIcon('item')"></i>
+                </th>
+
+                <th
+                  class="sortable text-start"
+                  @click="sortBy('action')"
+                >
+                  Action
+                  <i :class="getSortIcon('action')"></i>
                 </th>
 
                 <th class="text-start">
@@ -100,6 +100,14 @@
                 </td>
 
                 <td>
+                  {{ getItemName(log) }}
+                </td>
+
+                <td class="audit-summary-cell">
+                  {{ log.description || 'Activity recorded' }}
+                </td>
+
+                <td>
                   <div class="audit-action-cell">
                     <span
                       class="action-badge"
@@ -115,14 +123,6 @@
                       Details
                     </button>
                   </div>
-                </td>
-
-                <td>
-                  {{ getItemName(log) }}
-                </td>
-
-                <td class="audit-summary-cell">
-                  {{ log.description || 'Activity recorded' }}
                 </td>
 
               </tr>
