@@ -875,10 +875,6 @@ export default {
       }
     },
 
-    onTransactionTypeChange() {
-      this.form.item_id = ''
-    },
-
     async getReceipts() {
       try {
         const response = await fetch('/api/receipts')
