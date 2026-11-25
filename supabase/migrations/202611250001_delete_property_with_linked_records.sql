@@ -8,6 +8,7 @@ SET search_path = public
 AS $$
 DECLARE
   v_receipt_ids uuid[];
+  v_request_ids uuid[];
 BEGIN
   -- Lock the property so another transaction cannot change its linked records
   -- while deletion is being processed.
@@ -28,6 +29,11 @@ BEGIN
   -- Remove only this property's receipt IDs from shared transfer requests.
   -- Requests with other properties remain available with those properties.
   IF cardinality(v_receipt_ids) > 0 THEN
+    SELECT COALESCE(array_agg(id), ARRAY[]::uuid[])
+    INTO v_request_ids
+    FROM public.property_transfer_requests
+    WHERE property_receipt_ids && v_receipt_ids;
+
     UPDATE public.property_transfer_requests
     SET property_receipt_ids = ARRAY(
       SELECT receipt_id
@@ -37,7 +43,8 @@ BEGIN
     WHERE property_receipt_ids && v_receipt_ids;
 
     DELETE FROM public.property_transfer_requests
-    WHERE cardinality(property_receipt_ids) = 0;
+    WHERE id = ANY(v_request_ids)
+      AND cardinality(property_receipt_ids) = 0;
   END IF;
 
   -- Delete child records before their linked receipts.
