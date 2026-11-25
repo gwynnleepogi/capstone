@@ -891,6 +891,69 @@
       </section>
     </div>
 
+    <!-- DELETE PROPERTY CONFIRMATION MODAL -->
+    <div
+      v-if="itemPendingDeletion"
+      class="modal d-block"
+      tabindex="-1"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="deletePropertyTitle"
+      style="background: rgba(0, 0, 0, 0.55); z-index: 2000;"
+    >
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header">
+            <h5 id="deletePropertyTitle" class="modal-title text-danger">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              Confirm Property Deletion
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              :disabled="deletingItemId !== null"
+              @click="cancelDeleteItem"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p>
+              Are you sure you want to permanently delete
+              <strong>{{ itemPendingDeletion.description || itemPendingDeletion.property_number || 'this property' }}</strong>?
+            </p>
+            <p class="mb-2">Deleting this property will also remove its related:</p>
+            <ul class="mb-3">
+              <li>Property receipts and assignment records</li>
+              <li>Return requests and return records</li>
+              <li>Transfer records and this property from shared transfer requests</li>
+            </ul>
+            <div class="alert alert-warning small mb-0">
+              Other properties in the same transfer request will remain. This action cannot be undone.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              :disabled="deletingItemId !== null"
+              @click="cancelDeleteItem"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-danger"
+              :disabled="deletingItemId !== null"
+              @click="confirmDeleteItem"
+            >
+              <span v-if="deletingItemId !== null" class="spinner-border spinner-border-sm me-1" role="status"></span>
+              {{ deletingItemId !== null ? 'Deleting...' : 'Yes, Delete Property' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <datalist id="unit-options">
       <option v-for="u in unitOptions" :key="u" :value="u"></option>
     </datalist>
@@ -1037,6 +1100,7 @@ export default {
       downloadingDocument: false,
       editingItem: null,
       deletingItemId: null,
+      itemPendingDeletion: null,
 
       newItem: {
         property_number: '',
@@ -2185,14 +2249,18 @@ export default {
       }
     },
 
-    async deleteItem(item) {
-      const confirmed = window.confirm(
-        'Are you sure you want to permanently delete "' +
-          (item.description || item.property_number || 'this property') +
-          '" and all linked receipts, property history, return records, and transfer requests? This cannot be undone.',
-      )
+    deleteItem(item) {
+      if (this.deletingItemId !== null) {
+        return
+      }
 
-      if (!confirmed || this.deletingItemId !== null) {
+      this.itemPendingDeletion = item
+    },
+
+    async confirmDeleteItem() {
+      const item = this.itemPendingDeletion
+
+      if (!item || this.deletingItemId !== null) {
         return
       }
 
@@ -2241,6 +2309,13 @@ export default {
         }))
       } finally {
         this.deletingItemId = null
+        this.itemPendingDeletion = null
+      }
+    },
+
+    cancelDeleteItem() {
+      if (this.deletingItemId === null) {
+        this.itemPendingDeletion = null
       }
     },
 
