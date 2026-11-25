@@ -29,7 +29,7 @@
                   <strong>Account Signups</strong>
                   <div class="small text-secondary">Waiting for verification</div>
                 </div>
-                <span class="pending-count">{{ pendingAccountRequests.length }}</span>
+                <span v-if="pendingAccountRequests.length > 0" class="pending-count">{{ pendingAccountRequests.length }}</span>
               </div>
               <router-link class="btn btn-sm btn-success" to="/account-requests">
                 Review <i class="bi bi-arrow-right ms-1"></i>
@@ -89,7 +89,7 @@
                   <strong>Property Return Requests</strong>
                   <div class="small text-secondary">Waiting for review</div>
                 </div>
-                <span class="pending-count">{{ pendingReturnRequests.length }}</span>
+                <span v-if="pendingReturnRequests.length > 0" class="pending-count">{{ pendingReturnRequests.length }}</span>
               </div>
               <router-link class="btn btn-sm btn-success request-review-button" to="/returns">Review <span v-if="pendingReturnRequests.length > 0" class="request-notification-dot" aria-label="Pending return requests"></span><i class="bi bi-arrow-right ms-1"></i></router-link>
             </div>
@@ -121,7 +121,7 @@
                   <strong>Property Transfer Requests</strong>
                   <div class="small text-secondary">Waiting for review</div>
                 </div>
-                <span class="pending-count">{{ pendingTransferRequests.length }}</span>
+                <span v-if="pendingTransferRequests.length > 0" class="pending-count">{{ pendingTransferRequests.length }}</span>
               </div>
               <router-link class="btn btn-sm btn-success request-review-button" to="/transfers">Review <span v-if="pendingTransferRequests.length > 0" class="request-notification-dot" aria-label="Pending transfer requests"></span><i class="bi bi-arrow-right ms-1"></i></router-link>
             </div>
