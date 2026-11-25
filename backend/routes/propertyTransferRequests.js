@@ -434,7 +434,7 @@ router.patch('/:id/approve', async (req, res) => {
     }
 
     try {
-      for (const receipt of receipts) {
+      for (const receipt of transferReceipts) {
         const item = itemMap[String(receipt.item_id)]
         const itemUpdate = await supabase.from('items').update({
           accountable_employee: recipient.full_name,
@@ -452,6 +452,9 @@ router.patch('/:id/approve', async (req, res) => {
 
     const { data: finished, error: finishError } = await userSupabase.from('property_transfer_requests').update({
       status: 'Approved',
+      review_remarks: excludedProperties.length
+        ? 'Excluded from this transfer: ' + excludedProperties.map(row => row.property + ' - ' + row.reason).join(' ')
+        : null,
       processed_transfer_group_id: groupId
     }).eq('id', requestId).eq('status', 'Processing').select().single()
 
