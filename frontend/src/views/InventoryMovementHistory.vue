@@ -2109,7 +2109,7 @@ th {
 
 .print-picker-backdrop {
   position: fixed;
-  z-index: 1100;
+  z-index: 2000;
   inset: 0;
   display: grid;
   place-items: center;
