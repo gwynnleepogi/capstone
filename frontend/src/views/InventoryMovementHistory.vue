@@ -288,24 +288,6 @@
             >
           </div>
 
-          <div v-if="reportToPrint === 'issuance'" class="certification-field">
-            <label>Responsibility Center Code for Each Property</label>
-            <div
-              v-for="item in reportRows"
-              :key="item.id"
-              class="mb-2"
-            >
-              <small class="d-block text-muted">{{ item.propertyNumber || item.description || 'Property' }}</small>
-              <input
-                v-model.trim="responsibilityCenterOverrides[item.id]"
-                type="text"
-                class="form-control"
-                placeholder="Defaults to the property record"
-              >
-            </div>
-            <small class="text-muted">Changes apply to this printed report only. Property records will not be changed.</small>
-          </div>
-
           <div class="certification-field">
             <label for="certification-date">Date <span>*</span></label>
             <input
@@ -365,8 +347,7 @@ export default {
       showCertificationModal: false,
       certificationCustodian: '',
       certificationAccountingStaff: '',
-      certificationDate: '',
-      responsibilityCenterOverrides: {}
+      certificationDate: ''
     };
   },
 
@@ -600,12 +581,6 @@ export default {
       }
 
       this.reportToPrint = reportType;
-      this.responsibilityCenterOverrides = {};
-      if (reportType === 'issuance') {
-        this.responsibilityCenterOverrides = Object.fromEntries(
-          this.reportRows.map(item => [item.id, item.rcCode || ''])
-        );
-      }
       this.showPrintModal = false;
       this.showCertificationModal = true;
     },
@@ -836,9 +811,7 @@ export default {
             ? [
                 item.date || '',
                 item.reference || '',
-                (Object.prototype.hasOwnProperty.call(this.responsibilityCenterOverrides, item.id)
-                  ? this.responsibilityCenterOverrides[item.id]
-                  : item.rcCode) || '',
+                item.rcCode || '',
                 index + 1,
                 item.propertyNumber || '',
                 item.description || '',
@@ -1425,7 +1398,7 @@ export default {
         <tr>
           <td class="center">${e(this.formatDate(item.date))}</td>
           <td class="center">${e(item.reference)}</td>
-          <td class="center">${e(Object.prototype.hasOwnProperty.call(this.responsibilityCenterOverrides, item.id) ? this.responsibilityCenterOverrides[item.id] : item.rcCode)}</td>
+          <td class="center">${e(item.rcCode || '')}</td>
           <td class="center">${index + 1}</td>
           <td>${e(item.propertyNumber)}</td>
           <td>${e(item.description + (item.specs ? ' / ' + item.specs : ''))}</td>
