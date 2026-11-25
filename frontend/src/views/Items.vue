@@ -642,12 +642,15 @@
           <button
             type="button"
             class="btn btn-outline-danger"
-             :disabled="deletingItemId === detailItem.id || propertyHistoryLoading || propertyHistoryError"
+            :disabled="deletingItemId === detailItem.id || !canDeleteProperty(detailItem)"
             @click="deleteItem(detailItem)"
           >
             <i class="bi bi-trash me-1"></i>
             {{ deletingItemId === detailItem.id ? 'Deleting...' : 'Delete Property' }}
           </button>
+          <small v-if="!canDeleteProperty(detailItem)" class="w-100 text-end text-muted">
+            Only returned properties can be deleted.
+          </small>
         </div>
       </section>
     </div>
@@ -2249,8 +2252,12 @@ export default {
       }
     },
 
+    canDeleteProperty(item) {
+      return String(item?.status || '').trim().toLowerCase() === 'returned'
+    },
+
     deleteItem(item) {
-      if (this.deletingItemId !== null) {
+      if (this.deletingItemId !== null || !this.canDeleteProperty(item)) {
         return
       }
 
@@ -2260,7 +2267,7 @@ export default {
     async confirmDeleteItem() {
       const item = this.itemPendingDeletion
 
-      if (!item || this.deletingItemId !== null) {
+      if (!item || this.deletingItemId !== null || !this.canDeleteProperty(item)) {
         return
       }
 
