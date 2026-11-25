@@ -28,9 +28,7 @@ async function syncReturnedItem(itemId, condition, quantity) {
 
 router.get('/', async (req, res) => {
   try {
-    // Do not embed property_receipts here. item_returns has two foreign keys
-    // to property_receipts (the original receipt and the reissued receipt),
-    // so PostgREST cannot safely infer which relationship to use.
+    // Load the original receipt separately to avoid ambiguous receipt relationships.
     const { data, error } = await supabase
       .from('item_returns')
       .select(`
@@ -65,7 +63,7 @@ router.get('/', async (req, res) => {
     }
 
     const receiptIds = [...new Set((data || [])
-      .flatMap(row => [row.property_receipt_id, row.reissued_receipt_id])
+      .map(row => row.property_receipt_id)
       .filter(Boolean))]
 
     let receiptsById = {}
@@ -84,8 +82,7 @@ router.get('/', async (req, res) => {
 
     const results = (data || []).map(row => ({
       ...row,
-      property_receipts: receiptsById[String(row.property_receipt_id)] || null,
-      reissued_receipt: receiptsById[String(row.reissued_receipt_id)] || null
+      property_receipts: receiptsById[String(row.property_receipt_id)] || null
     }))
 
     res.json(results)
