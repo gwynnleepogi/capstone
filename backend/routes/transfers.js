@@ -330,6 +330,15 @@ router.delete('/:id', async (req, res) => {
       const selectedIndex = history.findIndex(row => String(row.id) === String(selectedTransfer.id))
       if (selectedIndex < 0) return res.status(409).json({ error: 'The transfer history is incomplete. Nothing was changed.' })
 
+      // A transfer can only be deleted when it is the newest transfer for
+      // that property. Never cascade-delete later transfers to make an older
+      // transfer deletable; the user must handle the newest transaction first.
+      if (selectedIndex !== history.length - 1) {
+        return res.status(409).json({
+          error: 'This transfer cannot be deleted because a newer transfer exists for one of its properties. Delete the newer transfer first.'
+        })
+      }
+
       const laterRows = history.slice(selectedIndex)
       for (const row of laterRows) {
         if (!row.property_receipt_id) return res.status(409).json({ error: 'A later transfer is missing its receipt link. Nothing was changed.' })
