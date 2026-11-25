@@ -387,7 +387,7 @@ router.patch('/:id/approve', async (req, res) => {
         issued_to: recipient.id,
         quantity: Number(receipt.quantity || 1),
         date_issued: transferDate,
-        remarks: 'Reissued after property transfer from ' + previousEmployee +
+        remarks: 'Transferred from ' + previousEmployee +
           '. Reason: ' + request.reason + (request.remarks ? '. ' + request.remarks : ''),
         status: 'Issued'
       }
