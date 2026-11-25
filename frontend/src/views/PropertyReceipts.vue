@@ -73,7 +73,7 @@
                 <td>
                   <span class="badge bg-secondary">{{ receipt.receipt_type || '-' }}</span>
                 </td>
-                <td><span class="badge bg-info text-dark">{{ receipt.transaction_type || 'Acquisition' }}</span></td>
+                <td><span class="badge bg-success">{{ receipt.transaction_type || 'Acquisition' }}</span></td>
                 <td>{{ getReceiptItem(receipt).description || '-' }}</td>
                 <td>{{ getIssuedToName(receipt) }}</td>
                 <td>{{ receipt.date_issued || '-' }}</td>
