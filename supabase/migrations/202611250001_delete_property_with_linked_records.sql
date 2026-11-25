@@ -31,7 +31,7 @@ BEGIN
     UPDATE public.property_transfer_requests
     SET property_receipt_ids = ARRAY(
       SELECT receipt_id
-      FROM unnest(property_receipt_ids) AS receipt_id
+      FROM unnest(property_receipt_ids) AS ids(receipt_id)
       WHERE NOT (receipt_id = ANY(v_receipt_ids))
     )
     WHERE property_receipt_ids && v_receipt_ids;
