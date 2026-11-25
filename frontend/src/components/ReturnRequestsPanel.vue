@@ -486,13 +486,16 @@ export default {
       this.deletingRequestId = request.id
 
       try {
-        const response = await fetch(`/api/return-requests/${request.id}`, {
-          method: 'DELETE'
-        })
-        const data = await response.json().catch(() => ({}))
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to delete return request')
+        const batch = request.batch_requests || [request]
+        let data = {}
+        for (const entry of batch) {
+          const response = await fetch(`/api/return-requests/${entry.id}`, {
+            method: 'DELETE'
+          })
+          data = await response.json().catch(() => ({}))
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to delete every return request in this batch')
+          }
         }
 
         this.closeModal('deleteReturnRequestModal')
@@ -563,7 +566,7 @@ export default {
         bold: true, size: 13, align: AlignmentType.CENTER, pad: 40,
       }))
       const rows = [row(headerCells)]
-      for (let index = 0; index < 15; index++) {
+      for (let index = 0; index < Math.max(15, batchItems.length); index++) {
         const entry = batchItems[index]
         const item = entry?.item || {}
         const receipt = entry?.receipt || {}
