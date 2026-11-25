@@ -420,7 +420,7 @@
               </td>
             </tr>
 
-            <tr v-for="item in filteredItems" :key="item.id">
+            <tr v-for="item in paginatedItems" :key="item.id">
               <td>
                 {{
                   item.property_tag_identifier !== null &&
@@ -458,6 +458,24 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <div class="card-footer bg-white d-flex flex-column flex-sm-row align-items-center justify-content-between gap-2 property-pagination">
+        <span class="text-secondary small">
+          Showing {{ firstItemNumber }} to {{ lastItemNumber }} of {{ filteredItems.length }} properties
+        </span>
+        <nav aria-label="Properties pagination">
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" :class="{ disabled: currentPage === 1 }">
+              <button type="button" class="page-link" :disabled="currentPage === 1" @click="currentPage--">Previous</button>
+            </li>
+            <li class="page-item active" aria-current="page">
+              <span class="page-link">{{ currentPage }}</span>
+            </li>
+            <li class="page-item" :class="{ disabled: currentPage >= pageCount }">
+              <button type="button" class="page-link" :disabled="currentPage >= pageCount" @click="currentPage++">Next</button>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
 
@@ -1063,6 +1081,8 @@ export default {
       updating: false,
       error: '',
       search: '',
+      currentPage: 1,
+      itemsPerPage: 10,
       selectedClassification: '',
       selectedStatus: '',
       selectedFundCluster: '',
@@ -1244,7 +1264,24 @@ export default {
       })
     },
 
-    accountableEmployeeOptions() {
+    pageCount() {
+      return Math.max(1, Math.ceil(this.filteredItems.length / this.itemsPerPage))
+    },
+
+    paginatedItems() {
+      const start = (this.currentPage - 1) * this.itemsPerPage
+      return this.filteredItems.slice(start, start + this.itemsPerPage)
+    },
+
+    firstItemNumber() {
+      return this.filteredItems.length ? (this.currentPage - 1) * this.itemsPerPage + 1 : 0
+    },
+
+    lastItemNumber() {
+      return Math.min(this.currentPage * this.itemsPerPage, this.filteredItems.length)
+    },
+
+    accountableEmployeeOptions()
       return this.personnel
         .filter(person =>
           person &&
@@ -1292,6 +1329,14 @@ export default {
   },
 
   watch: {
+    search() { this.currentPage = 1 },
+    selectedClassification() { this.currentPage = 1 },
+    selectedStatus() { this.currentPage = 1 },
+    selectedFundCluster() { this.currentPage = 1 },
+    filteredItems(items) {
+      const lastPage = Math.max(1, Math.ceil(items.length / this.itemsPerPage))
+      if (this.currentPage > lastPage) this.currentPage = lastPage
+    },
     '$route.query.item'(itemId) {
       this.openItemFromRoute(itemId)
     },
