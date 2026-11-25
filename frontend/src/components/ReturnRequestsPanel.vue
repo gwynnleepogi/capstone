@@ -96,11 +96,17 @@
               <div class="small text-muted">{{ request.offices?.office_name || '' }}</div>
             </td>
             <td>
-              {{ request.items?.description || '-' }}
-              <div class="small text-muted">{{ request.items?.property_number || '' }}</div>
+              <div v-for="entry in request.batch_items" :key="entry.request.id">
+                {{ entry.item.description || '-' }}
+                <div class="small text-muted">{{ entry.item.property_number || '' }}</div>
+              </div>
             </td>
-            <td>{{ request.property_receipts?.receipt_number || '-' }}</td>
-            <td>{{ request.property_receipts?.quantity ?? '-' }}</td>
+            <td>
+              <div v-for="entry in request.batch_items" :key="entry.request.id">
+                {{ entry.receipt.receipt_number || '-' }}
+              </div>
+            </td>
+            <td>{{ request.batch_items.reduce((total, entry) => total + Number(entry.receipt.quantity || 0), 0) }}</td>
             <td>
               {{ request.status === 'Accepted' && request.condition_after_return
                 ? request.condition_after_return
@@ -190,19 +196,11 @@
               <div>{{ selectedRequest.requester?.full_name || '-' }}</div>
             </div>
             <div class="col-12">
-              <div class="detail-label">Property</div>
-              <div class="fw-semibold">{{ selectedRequest.items?.description || '-' }}</div>
-              <div class="small text-muted">
-                Property No.: {{ selectedRequest.items?.property_number || '-' }}
+              <div class="detail-label">Selected Properties ({{ selectedRequest.batch_items?.length || 1 }})</div>
+              <div v-for="entry in (selectedRequest.batch_items || [{ item: selectedRequest.items || {}, receipt: selectedRequest.property_receipts || {}, request: selectedRequest }])" :key="entry.request.id" class="border-bottom py-2">
+                <div class="fw-semibold">{{ entry.item.description || '-' }}</div>
+                <div class="small text-muted">Property No.: {{ entry.item.property_number || '-' }} · Receipt: {{ entry.receipt.receipt_number || '-' }} · Qty: {{ entry.receipt.quantity ?? '-' }}</div>
               </div>
-            </div>
-            <div class="col-md-6">
-              <div class="detail-label">Receipt Number</div>
-              <div>{{ selectedRequest.property_receipts?.receipt_number || '-' }}</div>
-            </div>
-            <div class="col-md-6">
-              <div class="detail-label">Quantity</div>
-              <div>{{ selectedRequest.property_receipts?.quantity ?? '-' }}</div>
             </div>
             <div class="col-md-6">
               <div class="detail-label">Office</div>
@@ -373,14 +371,44 @@ export default {
 
   computed: {
     pendingCount() {
-      return this.requests.filter(request => request.status === 'Pending').length
+      return this.groupedRequests.filter(request => request.status === 'Pending').length
+    },
+
+    groupedRequests() {
+      const groups = new Map()
+
+      this.requests.forEach(request => {
+        const key = String(request.requested_by) + '|' + String(request.created_at)
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key).push(request)
+      })
+
+      return Array.from(groups.values()).map(batch => {
+        const first = batch[0]
+        const batchItems = batch.map(request => ({
+          request,
+          item: request.items || {},
+          receipt: request.property_receipts || {}
+        }))
+        const statuses = [...new Set(batch.map(request => request.status))]
+        return {
+          ...first,
+          id: first.id,
+          batch_requests: batch,
+          batch_items: batchItems,
+          status: statuses.length === 1 ? statuses[0] : 'Pending',
+          status_list: statuses
+        }
+      })
     },
 
     visibleRequests() {
       const search = this.search.toLowerCase()
 
-      return this.requests.filter(request => {
-        const statusMatches = this.filter === 'All' || request.status === this.filter
+      return this.groupedRequests.filter(request => {
+        const statusMatches = this.filter === 'All' ||
+          request.status === this.filter ||
+          request.status_list.includes(this.filter)
         const condition = request.status === 'Accepted'
           ? request.condition_after_return
           : request.condition_declared
@@ -390,9 +418,11 @@ export default {
         const toDateMatches = !this.dateTo || requestDate <= this.dateTo
         const searchableText = [
           request.requester?.full_name,
-          request.items?.description,
-          request.items?.property_number,
-          request.property_receipts?.receipt_number,
+          ...request.batch_items.flatMap(entry => [
+            entry.item.description,
+            entry.item.property_number,
+            entry.receipt.receipt_number
+          ]),
           request.return_reason,
           request.remarks,
           request.review_remarks,
@@ -485,8 +515,10 @@ export default {
 
     async downloadReturnPaperwork(request) {
       const value = text => String(text ?? '').trim()
-      const item = request.items || {}
-      const receipt = request.property_receipts || {}
+      const batchItems = request.batch_items || [{
+        item: request.items || {},
+        receipt: request.property_receipts || {}
+      }]
       const employee = value(request.requester?.full_name)
       const office = value(request.offices?.office_name)
       const formatDate = text => {
@@ -532,15 +564,17 @@ export default {
       }))
       const rows = [row(headerCells)]
       for (let index = 0; index < 15; index++) {
-        const first = index === 0
+        const entry = batchItems[index]
+        const item = entry?.item || {}
+        const receipt = entry?.receipt || {}
         const fields = [
-          String(index + 1),
-          first ? value(receipt.quantity) : '',
-          first ? value(item.unit) : '',
-          first ? value(item.description) : '',
-          first ? value(item.code || item.account_code) : '',
-          first ? employee : '',
-          first ? value(request.return_reason) : '',
+          entry ? String(index + 1) : '',
+          entry ? value(receipt.quantity) : '',
+          entry ? value(item.unit) : '',
+          entry ? value(item.description) : '',
+          entry ? value(item.code || item.account_code) : '',
+          entry ? employee : '',
+          entry ? value(request.return_reason) : '',
         ]
         rows.push(row(fields.map((field, col) => cell(field, widths[col], {
           size: 13, pad: 45,
@@ -693,15 +727,17 @@ export default {
       this.saving = true
 
       try {
-        const response = await fetch(`/api/return-requests/${request.id}/accept`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ review_remarks: null })
-        })
-        const data = await response.json().catch(() => ({}))
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Could not record the property return')
+        const batch = request.batch_requests || [request]
+        for (const entry of batch) {
+          const response = await fetch(`/api/return-requests/${entry.id}/accept`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ review_remarks: null })
+          })
+          const data = await response.json().catch(() => ({}))
+          if (!response.ok) {
+            throw new Error(data.error || 'Could not record every property return in this request.')
+          }
         }
 
         this.toast('Return request accepted and added to Returns.')
@@ -752,15 +788,17 @@ export default {
       this.saving = true
 
       try {
-        const response = await fetch(`/api/return-requests/${request.id}/reject`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ review_remarks: reason })
-        })
-        const data = await response.json().catch(() => ({}))
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Could not reject the return request')
+        const batch = request.batch_requests || [request]
+        for (const entry of batch) {
+          const response = await fetch(`/api/return-requests/${entry.id}/reject`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ review_remarks: reason })
+          })
+          const data = await response.json().catch(() => ({}))
+          if (!response.ok) {
+            throw new Error(data.error || 'Could not reject every property in this request.')
+          }
         }
 
         this.toast('Return request rejected.')
