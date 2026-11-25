@@ -383,20 +383,6 @@ export default {
       }
     },
 
-    async downloadReturnPaperwork(request) {
-      const value = text => String(text ?? '').trim()
-      const item = request.items || {}
-      const receipt = request.property_receipts || {}
-      const employee = val method: 'PATCH' })
-        this.toast('Return request cancelled.')
-        await this.loadAll()
-      } catch (error) {
-        this.toast(error.message)
-      } finally {
-        this.busyId = null
-      }
-    },
-
     statusClass(status) {
       if (status === 'Accepted') return 'bg-success'
       if (status === 'Rejected') return 'bg-danger'
