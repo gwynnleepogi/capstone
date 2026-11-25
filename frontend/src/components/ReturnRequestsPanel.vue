@@ -131,7 +131,7 @@
                   v-if="request.status === 'Accepted'"
                   type="button"
                   class="btn btn-sm btn-outline-success"
-                  @click="downloadReturnPaperwork(request)"
+                  @click="openArrpModal(request)"
                   title="Download Acknowledgement Receipt for Returned Property"
                 >
                   <i class="bi bi-download"></i> Download ARRP
@@ -150,7 +150,7 @@
                   @click="openDeleteModal(request)"
                   title="Delete return request"
                 >
-                  <i class="bi bi-trash"></i>
+                  <i class="bi bi-trash me-1"></i> Delete
                 </button>
               </div>
             </td>
@@ -288,6 +288,52 @@
     </div>
   </div>
 
+
+  <!-- ARRP details modal -->
+  <div
+    class="modal fade"
+    id="returnArrpDetailsModal"
+    tabindex="-1"
+    aria-labelledby="returnArrpDetailsModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <form @submit.prevent="submitArrp">
+          <div class="modal-header">
+            <h5 id="returnArrpDetailsModalLabel" class="modal-title">ARRP Signatory Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small">Enter the names that will appear on the Acknowledgement Receipt for Returned Property. Both names are required before generating the document.</p>
+            <div class="mb-3">
+              <label for="arrpReturnedBy" class="form-label">Returned By — Printed Name <span class="text-danger">*</span></label>
+              <input id="arrpReturnedBy" v-model.trim="arrpForm.returnedByName" class="form-control" maxlength="150" required />
+            </div>
+            <div class="mb-3">
+              <label for="arrpReturnedDesignation" class="form-label">Returned By — Designation</label>
+              <input id="arrpReturnedDesignation" v-model.trim="arrpForm.returnedByDesignation" class="form-control" maxlength="150" />
+            </div>
+            <div class="mb-3">
+              <label for="arrpReceivedBy" class="form-label">Received By — Printed Name <span class="text-danger">*</span></label>
+              <input id="arrpReceivedBy" v-model.trim="arrpForm.receivedByName" class="form-control" maxlength="150" required />
+            </div>
+            <div>
+              <label for="arrpReceivedDesignation" class="form-label">Received By — Designation</label>
+              <input id="arrpReceivedDesignation" v-model.trim="arrpForm.receivedByDesignation" class="form-control" maxlength="150" />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-success" :disabled="!arrpForm.returnedByName.trim() || !arrpForm.receivedByName.trim()">
+              Generate ARRP
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Reject Return Request Modal -->
   <div
     class="modal fade"
@@ -356,6 +402,13 @@ export default {
       requests: [],
       selectedRequest: null,
       requestToDelete: null,
+      arrpRequest: null,
+      arrpForm: {
+        returnedByName: '',
+        returnedByDesignation: '',
+        receivedByName: 'NIMFA S. SALINAS',
+        receivedByDesignation: 'PROPERTY CUSTODIAN'
+      },
       deletingRequestId: null,
       loading: true,
       saving: false,
@@ -516,7 +569,35 @@ export default {
       if (element) Modal.getOrCreateInstance(element).hide()
     },
 
-    async downloadReturnPaperwork(request) {
+    openArrpModal(request) {
+      if (!request || request.status !== 'Accepted') return
+
+      this.arrpRequest = request
+      this.arrpForm = {
+        returnedByName: request.requester?.full_name || '',
+        returnedByDesignation: '',
+        receivedByName: 'NIMFA S. SALINAS',
+        receivedByDesignation: 'PROPERTY CUSTODIAN'
+      }
+
+      const element = document.getElementById('returnArrpDetailsModal')
+      if (element) Modal.getOrCreateInstance(element).show()
+    },
+
+    async submitArrp() {
+      if (!this.arrpRequest) return
+      if (!this.arrpForm.returnedByName.trim() || !this.arrpForm.receivedByName.trim()) {
+        this.toast('Please enter both required printed names before generating the ARRP.')
+        return
+      }
+
+      const request = this.arrpRequest
+      const signatories = { ...this.arrpForm }
+      this.closeModal('returnArrpDetailsModal')
+      await this.downloadReturnPaperwork(request, signatories)
+    },
+
+    async downloadReturnPaperwork(request, signatories) {
       const value = text => String(text ?? '').trim()
       const batchItems = request.batch_items || [{
         item: request.items || {},
@@ -555,7 +636,7 @@ export default {
       })
       const row = cells => new TableRow({ children: cells })
       const makeTable = (rows, widths) => new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
+        width: { size: widths.reduce((total, width) => total + width, 0), type: WidthType.DXA },
         columnWidths: widths, borders: border, rows,
       })
       const widths = [700, 850, 700, 3700, 1200, 1700, 2050]
@@ -656,13 +737,13 @@ export default {
           ]),
           ...[
             ['Signature:', '', ''],
-            ['Printed Name:', '', 'NIMFA S. SALINAS'],
-            ['Designation:', '', 'PROPERTY CUSTODIAN'],
+            ['Printed Name:', signatories.returnedByName, signatories.receivedByName],
+            ['Designation:', signatories.returnedByDesignation, signatories.receivedByDesignation],
             ['Date:', '', ''],
           ].map(fields => row([
             cell(fields[0], 2250, { bold: true, size: 13, pad: 55 }),
-            cell('', 4900),
-            cell(fields[2], 1700, { bold: fields[0] === 'Designation:', size: 15, align: AlignmentType.CENTER, pad: 110 }),
+            cell(fields[1], 4900, { size: 14, align: AlignmentType.CENTER, pad: 110 }),
+            cell(fields[2], 1700, { bold: fields[0] === 'Designation:', size: 13, align: AlignmentType.CENTER, pad: 110 }),
             cell('', 2050),
           ])),
         ], signatureWidths)
