@@ -3,7 +3,7 @@
     <header class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
       <div>
         <h1 class="h3 mb-1">My Properties</h1>
-        <p class="text-secondary mb-0">Select a property to view its full details and QR code.</p>
+        <p class="text-secondary mb-0">Select a property to view its full details.</p>
       </div>
       <button type="button" class="btn btn-outline-success" :disabled="loading" @click="loadProperties">
         <i class="bi bi-arrow-clockwise me-1"></i>
@@ -115,22 +115,17 @@
                   <div class="text-muted small">Property No. {{ receipt.items?.property_number || '-' }}</div>
                   <h2 class="h5 mb-0">{{ receipt.items?.description || 'Unnamed property' }}</h2>
                 </div>
-                <button
-                  type="button"
-                  class="btn-close"
-                  aria-label="Close property details"
-                  @click="toggleDetails(receipt.id)"
-                ></button>
+                <button type="button" class="btn btn-outline-success btn-sm" @click="toggleDetails(receipt.id)"><i class="bi bi-arrow-left me-1"></i>Back</button>
               </header>
 
               <div class="property-modal-body">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                   <span class="badge bg-primary">{{ receipt.status || 'Issued' }}</span>
-                  <span class="text-muted small">Property information and QR code</span>
+                  <span class="text-muted small">Property information</span>
                 </div>
 
                 <div class="row g-4 align-items-start">
-                  <div class="col-12 col-lg">
+                  <div class="col-12">
                     <dl class="row property-details mb-0">
                       <dt class="col-sm-4">Property ID</dt>
                       <dd class="col-sm-8">{{ receipt.items?.id || receipt.item_id || '-' }}</dd>
@@ -168,22 +163,7 @@
                       <dd class="col-sm-8">{{ receipt.items?.fund_cluster || '-' }}</dd>
                     </dl>
                   </div>
-
-                  <div class="col-12 col-lg-auto text-center qr-panel">
-                    <div class="qr-card">
-                      <img
-                        v-if="qrCodes[receipt.id]"
-                        :src="qrCodes[receipt.id]"
-                        :alt="`QR code for ${receipt.items?.property_number || receipt.items?.description || 'issued property'}`"
-                        class="property-qr"
-                      >
-                      <div v-else-if="qrErrors[receipt.id]" class="small text-danger">
-                        {{ qrErrors[receipt.id] }}
-                      </div>
-                      <div v-else class="small text-muted">Preparing QR code...</div>
-                      <div class="small text-muted mt-2">Scan for property details</div>
-                    </div>
-                  </div>
+                </div>
                 </div>
               </div>
             </section>
@@ -197,16 +177,12 @@
 </template>
 
 <script>
-import QRCode from 'qrcode'
-
 export default {
   name: 'MyProperties',
 
   data() {
     return {
       properties: [],
-      qrCodes: {},
-      qrErrors: {},
       expandedReceiptId: null,
       searchQuery: '',
       selectedClassification: '',
@@ -265,38 +241,11 @@ export default {
         }
 
         this.properties = data
-        this.qrCodes = {}
-        this.qrErrors = {}
-        await Promise.all(data.map(receipt => this.generateQrCode(receipt)))
       } catch (error) {
         console.error('Failed to load your issued properties:', error)
         this.error = error.message || 'Unable to load your issued properties.'
       } finally {
         this.loading = false
-      }
-    },
-
-    async generateQrCode(receipt) {
-      const itemId = receipt.items?.id
-
-      if (!itemId) {
-        this.qrErrors[receipt.id] = 'Item details are unavailable for this QR code.'
-        return
-      }
-
-      try {
-        const itemUrl = new URL(
-          `/items?item=${encodeURIComponent(itemId)}`,
-          window.location.origin
-        ).toString()
-        this.qrCodes[receipt.id] = await QRCode.toDataURL(itemUrl, {
-          errorCorrectionLevel: 'H',
-          margin: 2,
-          width: 240
-        })
-      } catch (error) {
-        console.error('Failed to generate property QR code:', error)
-        this.qrErrors[receipt.id] = 'Unable to generate this QR code.'
       }
     },
 
@@ -477,32 +426,5 @@ export default {
   .property-modal-body {
     padding: 1rem;
   }
-}
-
-.qr-card {
-  padding: 1rem;
-  border: 1px solid #e8ece8;
-  border-radius: 12px;
-  background: #fafcf9;
-}
-
-.property-details dt,
-.property-details dd {
-  margin-bottom: 0.4rem;
-}
-
-.property-qr {
-  display: block;
-  width: 210px;
-  height: 210px;
-  margin: 0 auto;
-  padding: 8px;
-  border: 1px solid #e4e2d8;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.qr-panel {
-  min-width: 210px;
 }
 </style>
