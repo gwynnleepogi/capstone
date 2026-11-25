@@ -2187,9 +2187,9 @@ export default {
 
     async deleteItem(item) {
       const confirmed = window.confirm(
-        'Are you sure you want to delete "' +
+        'Are you sure you want to permanently delete "' +
           (item.description || item.property_number || 'this property') +
-          '"? This action cannot be undone.',
+          '" and all linked receipts, property history, return records, and transfer requests? This cannot be undone.',
       )
 
       if (!confirmed || this.deletingItemId !== null) {
