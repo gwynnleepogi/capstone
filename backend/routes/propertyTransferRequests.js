@@ -395,7 +395,7 @@ router.patch('/:id/approve', async (req, res) => {
 
     const { data: createdReceipts, error: createReceiptError } = await supabase
       .from('property_receipts').insert(newReceiptInserts).select()
-    if (createReceiptError || !createdReceipts || createdReceipts.length !== receipts.length) {
+    if (createReceiptError || !createdReceipts || createdReceipts.length !== transferReceipts.length) {
       await resetRequest()
       return res.status(500).json({ error: createReceiptError?.message || 'Could not create the new receipts for the receiving employee.' })
     }
@@ -403,9 +403,9 @@ router.patch('/:id/approve', async (req, res) => {
 
     const { data: closedReceipts, error: closeReceiptError } = await supabase
       .from('property_receipts').update({ status: 'Transferred' })
-      .in('id', receiptIds).eq('status', 'Issued').select('id')
+      .in('id', transferReceipts.map(row => row.id)).eq('status', 'Issued').select('id')
     oldReceiptIds = (closedReceipts || []).map(row => row.id)
-    if (closeReceiptError || !closedReceipts || closedReceipts.length !== receipts.length) {
+    if (closeReceiptError || !closedReceipts || closedReceipts.length !== transferReceipts.length) {
       await rollbackTransfer()
       return res.status(500).json({ error: closeReceiptError?.message || 'Could not close the previous employee receipts. No transfer was completed.' })
     }
