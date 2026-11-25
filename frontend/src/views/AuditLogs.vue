@@ -64,7 +64,7 @@
                   class="sortable text-start"
                   @click="sortBy('created_at')"
                 >
-                  Date
+                  Date &amp; Time
                   <i :class="getSortIcon('created_at')"></i>
                 </th>
 
@@ -85,11 +85,7 @@
                 </th>
 
                 <th class="text-start">
-                  Details
-                </th>
-
-                <th class="text-start">
-                  Actions
+                  Description
                 </th>
               </tr>
             </thead>
@@ -104,12 +100,21 @@
                 </td>
 
                 <td>
-                  <span
-                    class="action-badge"
-                    :class="getActionClass(log.action)"
-                  >
-                    {{ formatAction(log.action) }}
-                  </span>
+                  <div class="audit-action-cell">
+                    <span
+                      class="action-badge"
+                      :class="getActionClass(log.action)"
+                    >
+                      {{ formatAction(log.action) }}
+                    </span>
+                    <button
+                      class="btn btn-sm btn-outline-primary"
+                      @click="viewLogDetails(log)"
+                    >
+                      <i class="bi bi-eye me-1"></i>
+                      Details
+                    </button>
+                  </div>
                 </td>
 
                 <td>
@@ -120,15 +125,6 @@
                   {{ log.description || 'Activity recorded' }}
                 </td>
 
-                <td>
-                  <button
-                    class="btn btn-sm btn-outline-primary"
-                    @click="viewLogDetails(log)"
-                  >
-                    <i class="bi bi-eye me-1"></i>
-                    Details
-                  </button>
-                </td>
               </tr>
             </tbody>
           </table>
@@ -939,6 +935,13 @@ export default {
 }
 
 .audit-summary-cell{min-width:180px;max-width:360px;white-space:normal;overflow-wrap:anywhere}
+
+.audit-action-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .details-dropdown {
   width: 100%;
   position: relative;
