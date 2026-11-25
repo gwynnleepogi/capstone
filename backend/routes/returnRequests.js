@@ -723,11 +723,17 @@ router.delete('/:id', staffOnly, async (req, res) => {
     if (requestError) return res.status(500).json({ error: requestError.message })
     if (!request) return res.status(404).json({ error: 'Return request not found.' })
 
+    // Accepted requests are part of the completed return history. Keep the
+    // request linked to its return record and ARRP; do not delete it.
+    if (request.status === 'Accepted' || request.item_return_id) {
+      return res.status(409).json({
+        error: 'This return request is linked to a completed return. Keep it to preserve the return history and ARRP.'
+      })
+    }
+
     const itemMap = await lookup('items', [request.item_id], 'id, description, property_number')
     const item = itemMap[request.item_id] || null
 
-    // Accepted requests have a separate item_returns record. Keep that record
-    // and its stock changes; only remove the request entry.
     const { error: deleteError } = await supabase
       .from('return_requests')
       .delete()
