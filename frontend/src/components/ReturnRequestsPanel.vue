@@ -122,6 +122,15 @@
             <td class="text-end">
               <div class="d-inline-flex gap-1">
                 <button
+                  v-if="request.status === 'Accepted'"
+                  type="button"
+                  class="btn btn-sm btn-outline-success"
+                  @click="downloadReturnPaperwork(request)"
+                  title="Download Acknowledgement Receipt for Returned Property"
+                >
+                  <i class="bi bi-download"></i> Download ARRP
+                </button>
+                <button
                   type="button"
                   class="btn btn-sm btn-outline-primary"
                   @click="viewRequest(request)"
@@ -332,6 +341,12 @@
 
 <script>
 import { Modal } from 'bootstrap'
+import {
+  AlignmentType, BorderStyle, Document as DocxDocument, ImageRun,
+  Packer, Paragraph, Table, TableCell, TableRow, TextRun,
+  VerticalAlign, VerticalMergeType, WidthType,
+} from 'docx'
+import logo from '@/assets/LOGO.png'
 
 export default {
   name: 'ReturnRequestsPanel',
@@ -466,6 +481,205 @@ export default {
     closeModal(id) {
       const element = document.getElementById(id)
       if (element) Modal.getOrCreateInstance(element).hide()
+    },
+
+    async downloadReturnPaperwork(request) {
+      const value = text => String(text ?? '').trim()
+      const item = request.items || {}
+      const receipt = request.property_receipts || {}
+      const employee = value(request.requester?.full_name)
+      const office = value(request.offices?.office_name)
+      const formatDate = text => {
+        if (!text) return ''
+        const parsed = new Date(text + 'T00:00:00')
+        return Number.isNaN(parsed.getTime()) ? value(text) : parsed.toLocaleDateString('en-PH')
+      }
+      const border = {
+        top: { style: BorderStyle.SINGLE, size: 4, color: '555555' },
+        bottom: { style: BorderStyle.SINGLE, size: 4, color: '555555' },
+        left: { style: BorderStyle.SINGLE, size: 4, color: '555555' },
+        right: { style: BorderStyle.SINGLE, size: 4, color: '555555' },
+        insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: '555555' },
+        insideVertical: { style: BorderStyle.SINGLE, size: 4, color: '555555' },
+      }
+      const para = (text, options = {}) => new Paragraph({
+        alignment: options.align || AlignmentType.LEFT,
+        spacing: { before: 0, after: 0, line: 210 },
+        children: [new TextRun({
+          text: String(text ?? ''), bold: !!options.bold,
+          italics: !!options.italic, underline: options.underline ? {} : undefined,
+          size: options.size || 16, font: 'Arial',
+        })],
+      })
+      const cell = (text, width, options = {}) => new TableCell({
+        width: { size: width, type: WidthType.DXA },
+        borders: border,
+        margins: { top: options.pad ?? 65, bottom: options.pad ?? 65, left: 65, right: 65 },
+        verticalAlign: VerticalAlign.CENTER,
+        children: [para(text, options)],
+      })
+      const row = cells => new TableRow({ children: cells })
+      const makeTable = (rows, widths) => new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        columnWidths: widths, borders: border, rows,
+      })
+      const widths = [700, 850, 700, 3700, 1200, 1700, 2050]
+      const headerCells = [
+        'Item\nNo.', 'Qty', 'UOM', 'DESCRIPTION', 'CODE',
+        'ACCOUNTABLE\nEMPLOYEE', 'REMARKS',
+      ].map((heading, index) => cell(heading, widths[index], {
+        bold: true, size: 13, align: AlignmentType.CENTER, pad: 40,
+      }))
+      const rows = [row(headerCells)]
+      for (let index = 0; index < 15; index++) {
+        const first = index === 0
+        const fields = [
+          String(index + 1),
+          first ? value(receipt.quantity) : '',
+          first ? value(item.unit) : '',
+          first ? value(item.description) : '',
+          first ? value(item.code || item.account_code) : '',
+          first ? employee : '',
+          first ? value(request.return_reason) : '',
+        ]
+        rows.push(row(fields.map((field, col) => cell(field, widths[col], {
+          size: 13, pad: 45,
+          align: [0, 1, 2, 4, 5].includes(col) ? AlignmentType.CENTER : AlignmentType.LEFT,
+        }))))
+      }
+
+      try {
+        const logoResponse = await fetch(logo)
+        const logoBytes = new Uint8Array(await logoResponse.arrayBuffer())
+        const logoCell = new TableCell({
+          width: { size: 1500, type: WidthType.DXA }, borders: border,
+          verticalMerge: VerticalMergeType.RESTART,
+          verticalAlign: VerticalAlign.CENTER,
+          children: [new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [new ImageRun({ data: logoBytes, transformation: { width: 30, height: 30 } })],
+          })],
+        })
+        const header = makeTable([
+          row([
+            logoCell,
+            new TableCell({
+              width: { size: 9400, type: WidthType.DXA },
+              borders: border,
+              margins: { top: 35, bottom: 35, left: 65, right: 65 },
+              verticalAlign: VerticalAlign.CENTER,
+              children: [
+                para('Republic of the Philippines', { bold: true, size: 16, align: AlignmentType.CENTER }),
+                para('NUEVA VIZCAYA STATE UNIVERSITY', { bold: true, size: 18, align: AlignmentType.CENTER }),
+                para('Bambang, Nueva Vizcaya', { bold: true, size: 16, align: AlignmentType.CENTER }),
+              ],
+            }),
+          ]),
+          row([
+            new TableCell({
+              width: { size: 1500, type: WidthType.DXA },
+              borders: border,
+              verticalMerge: VerticalMergeType.CONTINUE,
+              children: [new Paragraph({ children: [] })],
+            }),
+            cell('ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY', 9400, {
+              bold: true, size: 18, align: AlignmentType.CENTER, pad: 40,
+            }),
+          ]),
+        ], [1500, 9400])
+
+        const details = makeTable([
+          row([
+            cell('Unit/Division/College: ' + office, 7300, { bold: true, size: 14, pad: 55 }),
+            cell('Date: ' + formatDate(request.return_date), 3600, { bold: true, size: 17, pad: 100 }),
+          ]),
+          row([
+            cell('Place of Storage', 7300, { bold: true, size: 17, pad: 100 }),
+            cell('Tag No.:', 3600, { bold: true, size: 17, pad: 100 }),
+          ]),
+        ], [7300, 3600])
+
+        const purpose = value(request.return_purpose)
+        const check = label => purpose === label ? '☑' : '____'
+        const purposeTable = makeTable([
+          row([cell(
+            'Items for     ' + check('Repair') +
+            ' Repair     ' + check('Disposal') + ' Disposal',
+            10900, { bold: true, size: 16, align: AlignmentType.CENTER, pad: 95 },
+          )]),
+        ], [10900])
+
+        const signatureWidths = [2250, 4900, 1700, 2050]
+        const signatureTable = makeTable([
+          row([
+            cell('Returned by:', 2250, { bold: true, size: 13, pad: 55 }),
+            cell('(Please indicate name and affix signature)', 4900, { bold: true, italic: true, size: 14, align: AlignmentType.CENTER, pad: 100 }),
+            cell('Received by:', 1700, { bold: true, size: 16, pad: 100 }),
+            cell('Action Taken\n(To be filled by the\nProperty Officer)', 2050, { bold: true, size: 13, align: AlignmentType.CENTER, pad: 65 }),
+          ]),
+          ...[
+            ['Signature:', '', ''],
+            ['Printed Name:', '', 'NIMFA S. SALINAS'],
+            ['Designation:', '', 'PROPERTY CUSTODIAN'],
+            ['Date:', '', ''],
+          ].map(fields => row([
+            cell(fields[0], 2250, { bold: true, size: 13, pad: 55 }),
+            cell('', 4900),
+            cell(fields[2], 1700, { bold: fields[0] === 'Designation:', size: 15, align: AlignmentType.CENTER, pad: 110 }),
+            cell('', 2050),
+          ])),
+        ], signatureWidths)
+
+        const instructionText = [
+          'The ARFRP shall be used by the accountable employee to return property under his/her custody as presented in the issued Property Acknowledgement Receipt, by the Property Custodian for the acceptance and by the Property Officer for updating of data and records;',
+          'Before receipt, the property shall be inspected and accomplish the Property Checklist;',
+          'This form will be duly accomplished and be the reference in preparation of Property Transfer Report (Appendix 76) by the Property Officer;',
+          'The duly accomplished form will be the basis in the updating and issuance of Property Acknowledgement Receipt (Appendix 71), Inventory Tag and Property Card (Appendix 69); and',
+          'This form shall be prepared in two(2) copies distributed as follows:',
+        ]
+        const instructions = instructionText.map((text, index) => new Paragraph({
+          indent: { left: 260, hanging: 220 },
+          spacing: { before: 0, after: index === 4 ? 10 : 35, line: 210 },
+          children: [
+            new TextRun({ text: String.fromCharCode(65 + index) + '.  ', bold: true, size: 12, font: 'Arial' }),
+            new TextRun({ text, italics: index === 0, size: 14, font: 'Arial' }),
+          ],
+        }))
+        const doc = new DocxDocument({
+          sections: [{
+            properties: {
+              page: {
+                size: { width: 11906, height: 16838 },
+                margin: { top: 400, right: 400, bottom: 400, left: 400 },
+              },
+            },
+            children: [
+              header,
+              new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { before: 70, after: 100 }, children: [new TextRun({ text: 'ARRP No.: __________________________', bold: true, size: 17, font: 'Arial' })] }),
+              details,
+              purposeTable,
+              makeTable(rows, widths),
+              signatureTable,
+              new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 100, after: 70 }, children: [new TextRun({ text: 'INSTRUCTIONS', bold: true, underline: {}, size: 17, font: 'Arial' })] }),
+              ...instructions,
+              new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 15, after: 0 }, children: [new TextRun({ text: 'Original – Supply and/or Property Division/Unit’s file\nCopy 2 – Accountable Employee', size: 14, font: 'Arial' })] }),
+            ],
+          }],
+        })
+        const blob = await Packer.toBlob(doc)
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = 'ARRP-' + String(request.id || 'returned-property') + '.docx'
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+        this.toast('ARRP Word document downloaded.')
+      } catch (error) {
+        console.error('Failed to generate ARRP DOCX:', error)
+        this.toast('Failed to generate the ARRP document.')
+      }
     },
 
     async acceptRequest(request) {
