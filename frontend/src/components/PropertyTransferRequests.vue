@@ -84,12 +84,17 @@
                   <td>₱{{ amount(property.items?.cost) }}</td>
                   <td>{{ property.items?.condition || '-' }}</td>
                   <td>
-                    <span class="badge" :class="propertyEligibility(property).eligible ? 'bg-success' : 'bg-danger'">
-                      {{ propertyEligibility(property).eligible ? 'Eligible' : 'Excluded' }}
+                    <template v-if="selected.status === 'Pending'">
+                      <span class="badge" :class="propertyEligibility(property).eligible ? 'bg-success' : 'bg-danger'">
+                        {{ propertyEligibility(property).eligible ? 'Eligible' : 'Excluded' }}
+                      </span>
+                      <div v-if="!propertyEligibility(property).eligible" class="small text-danger mt-1">
+                        {{ propertyEligibility(property).reason }}
+                      </div>
+                    </template>
+                    <span v-else class="badge" :class="property.status === 'Transferred' ? 'bg-success' : 'bg-secondary'">
+                      {{ property.status === 'Transferred' ? 'Transferred' : 'Not transferred' }}
                     </span>
-                    <div v-if="!propertyEligibility(property).eligible" class="small text-danger mt-1">
-                      {{ propertyEligibility(property).reason }}
-                    </div>
                   </td>
                 </tr>
               </tbody>
