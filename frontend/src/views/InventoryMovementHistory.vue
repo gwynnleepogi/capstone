@@ -672,10 +672,10 @@ export default {
     },
 
     async exportAcquisitionExcel() {
-      if (this.invalidDateRange || !this.printRows.length) {
+      if (this.invalidPrintDateRange || !this.reportRows.length) {
         window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: this.invalidDateRange
-            ? this.dateRangeError
+          detail: this.invalidPrintDateRange
+            ? this.printDateRangeError
             : 'There are no records to export for the selected report.'
         }));
         return;
@@ -732,16 +732,16 @@ export default {
         worksheet.mergeCells('A5:' + lastColumn + '5');
         worksheet.getCell('A5').value =
           'For the period of ' +
-          this.formatLongDate(this.dateFrom) +
+          this.formatLongDate(this.printDateFrom) +
           ' - ' +
-          this.formatLongDate(this.dateTo);
+          this.formatLongDate(this.printDateTo);
 
         worksheet.mergeCells('A6:' + lastColumn + '6');
         worksheet.getCell('A6').value =
           'FUND CLUSTER: ' +
-          (this.selectedFundCluster === 'ALL'
+          (this.printFundCluster === 'ALL'
             ? '(ALL)'
-            : this.selectedFundCluster);
+            : this.printFundCluster);
 
         ['A1', 'A2', 'A3', 'A4', 'A5', 'A6'].forEach(address => {
           worksheet.getCell(address).alignment = {
@@ -825,7 +825,7 @@ export default {
 
         let grandTotal = 0;
 
-        this.printRows.forEach((item, index) => {
+        this.reportRows.forEach((item, index) => {
           const quantity = Number(item.quantity || 0);
           const unitCost = Number(item.unitCost || 0);
           const amount = quantity * unitCost;
@@ -836,7 +836,9 @@ export default {
             ? [
                 item.date || '',
                 item.reference || '',
-                item.rcCode || '',
+                (Object.prototype.hasOwnProperty.call(this.responsibilityCenterOverrides, item.id)
+                  ? this.responsibilityCenterOverrides[item.id]
+                  : item.rcCode) || '',
                 index + 1,
                 item.propertyNumber || '',
                 item.description || '',
@@ -986,7 +988,7 @@ export default {
           (isIssuance
             ? 'Properties_Issued_'
             : 'Office_Property_Acquisition_') +
-          this.dateFrom + '_to_' + this.dateTo + '.xlsx';
+          this.printDateFrom + '_to_' + this.printDateTo + '.xlsx';
 
         document.body.appendChild(link);
         link.click();
@@ -1017,7 +1019,7 @@ export default {
       }
 
       if (this.reportToPrint === 'issuance') {
-        this.printIssuanceReport();
+        this.exportAcquisitionExcel();
       } else {
         this.printAcquisitionReport();
       }
