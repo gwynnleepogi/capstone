@@ -1281,7 +1281,7 @@ export default {
       return Math.min(this.currentPage * this.itemsPerPage, this.filteredItems.length)
     },
 
-    accountableEmployeeOptions()
+    accountableEmployeeOptions() {
       return this.personnel
         .filter(person =>
           person &&
