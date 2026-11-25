@@ -181,19 +181,30 @@ router.patch('/:id/cancel', async (req, res) => {
   })
 
   try {
-    // Use the employee's authenticated client. The cancellation RLS policy
-    // permits employees to change only their own Pending request to Cancelled.
-    const { data, error } = await userSupabase
+    // Verify ownership and status first, then update through the server client.
+    // Cancellation must not depend on every referenced receipt still existing.
+    const { data: request, error: lookupError } = await supabase
+      .from('property_transfer_requests')
+      .select('id, requested_by, status, property_receipt_ids')
+      .eq('id', req.params.id)
+      .maybeSingle()
+
+    if (lookupError) return res.status(500).json({ error: lookupError.message })
+    if (!request || String(request.requested_by) !== String(req.profile.id) || request.status !== 'Pending') {
+      return res.status(409).json({ error: 'Only your pending transfer requests can be cancelled.' })
+    }
+
+    const { data, error } = await supabase
       .from('property_transfer_requests')
       .update({ status: 'Cancelled' })
-      .eq('id', req.params.id)
+      .eq('id', request.id)
       .eq('requested_by', req.profile.id)
       .eq('status', 'Pending')
       .select()
       .maybeSingle()
 
     if (error) return res.status(500).json({ error: error.message })
-    if (!data) return res.status(409).json({ error: 'Only your pending transfer requests can be cancelled.' })
+    if (!data) return res.status(409).json({ error: 'This request is no longer pending.' })
 
     await createAuditLog('Cancelled', null, null, JSON.stringify({
       request_id: data.id,
