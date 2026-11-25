@@ -93,7 +93,7 @@
           <strong>My Return Requests</strong>
           <div class="small text-muted">Returns you have submitted for unserviceable properties.</div>
         </div>
-        <span class="badge bg-secondary">{{ requests.length }} request(s)</span>
+        <span class="badge bg-secondary">{{ groupedRequests.length }} request(s)</span>
       </div>
 
       <div class="table-responsive">
@@ -119,11 +119,13 @@
                 You have not submitted any return requests yet.
               </td>
             </tr>
-            <tr v-for="request in requests" :key="request.id">
+            <tr v-for="request in groupedRequests" :key="request.id">
               <td class="text-nowrap">{{ formatDate(request.created_at) }}</td>
               <td>
-                {{ request.items?.description || '-' }}
-                <div class="small text-muted">{{ request.items?.property_number || '' }}</div>
+                <div v-for="entry in request.batch_items" :key="entry.id">
+                  {{ entry.items?.description || '-' }}
+                  <div class="small text-muted">{{ entry.items?.property_number || '' }}</div>
+                </div>
               </td>
               <td>{{ request.status === 'Accepted' && request.condition_after_return
                 ? request.condition_after_return
@@ -250,6 +252,27 @@ export default {
   },
 
   computed: {
+    groupedRequests() {
+      const groups = new Map()
+
+      this.requests.forEach(request => {
+        const key = String(request.requested_by) + '|' + String(request.created_at)
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key).push(request)
+      })
+
+      return Array.from(groups.values()).map(batch => {
+        const first = batch[0]
+        const statuses = [...new Set(batch.map(request => request.status))]
+        return {
+          ...first,
+          batch_requests: batch,
+          batch_items: batch,
+          status: statuses.length === 1 ? statuses[0] : 'Pending'
+        }
+      })
+    },
+
     selectedEligible() {
       return this.eligible.filter(receipt =>
         this.selectedReceiptIds.includes(String(receipt.id))
