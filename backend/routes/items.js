@@ -565,6 +565,12 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Item not found' })
     }
 
+    if (String(oldData.status || '').trim().toLowerCase() !== 'returned') {
+      return res.status(400).json({
+        error: 'This property cannot be deleted because it has not been returned yet.'
+      })
+    }
+
     // Get every receipt issued for this property.
     const { data: receipts, error: receiptError } = await supabaseAdmin
       .from('property_receipts')
