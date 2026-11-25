@@ -1679,6 +1679,14 @@ window.onload=function(){
     },
 
     confirmPrintAcknowledgementForReturnedProperty() {
+      if (!String(this.returnedAcknowledgementSignatory.printedName || '').trim() ||
+          !String(this.returnedAcknowledgementSignatory.receivedByName || '').trim()) {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: 'Please enter both Returned By and Received By names before printing the ARRP.'
+        }))
+        return
+      }
+
       Modal.getOrCreateInstance(document.getElementById("returnedAcknowledgementInputModal")).hide()
       this.printAcknowledgementForReturnedProperty()
     },
@@ -1695,16 +1703,18 @@ window.onload=function(){
       const office = record.offices?.office_name || ''
       const responsibilityCenter = this.returnedReceiptSignatories.responsibilityCenter ||
         item.responsibility_center || ''
-      const quantity = Number(record.property_receipts?.quantity || 1)
+      const batchReturns = record.batch_returns || [record]
       const safe = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
       const date = value => {
         if (!value) return ''
         const parsed = new Date(value + 'T00:00:00')
         return Number.isNaN(parsed.getTime()) ? safe(value) : parsed.toLocaleDateString('en-PH')
       }
-      const rows = Array.from({ length: 15 }, (_, i) => i === 0
-        ? `<tr><td>1</td><td>${quantity}</td><td></td><td class="desc">${safe(item.description || 'Original property record deleted')}</td><td></td><td>${safe(returnedBy)}</td><td>${safe(record.return_reason || '')}</td></tr>`
-        : `<tr><td>${i + 1}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')
+      const rows = Array.from({ length: Math.max(15, batchReturns.length) }, (_, i) => {
+        const entry = batchReturns[i]
+        if (!entry) return `<tr><td>${i + 1}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`
+        return `<tr><td>${i + 1}</td><td>${Number(entry.property_receipts?.quantity || 1)}</td><td>${safe(entry.items?.unit || '')}</td><td class="desc">${safe(entry.items?.description || 'Original property record deleted')}</td><td>${safe(entry.items?.property_number || '')}</td><td>${safe(returnedBy)}</td><td>${safe(entry.return_reason || '')}</td></tr>`
+      }).join('')
       const paperSizes = { a4: '210mm 297mm', short: '8.5in 11in', long: '8.5in 13in' }
       const selectedPaperSize = paperSizes[this.returnedReceiptPaperSize] || paperSizes.a4
       const logo = new URL('../assets/LOGO.png', import.meta.url).href
