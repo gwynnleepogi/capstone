@@ -602,14 +602,21 @@ router.delete('/:id', async (req, res) => {
             })
           }
         } else {
+          // Keep the request record for the employee's history, but cancel it
+          // because all of its properties were deleted.
           const { error } = await supabase
             .from('property_transfer_requests')
-            .delete()
+            .update({
+              property_receipt_ids: [],
+              status: 'Cancelled',
+              review_remarks: 'Automatically cancelled because all requested properties were deleted.'
+            })
             .eq('id', request.id)
+            .in('status', ['Pending', 'Processing'])
 
           if (error) {
             return res.status(500).json({
-              error: 'Could not delete the empty transfer request.',
+              error: 'Could not close the empty transfer request.',
               details: error.message
             })
           }
