@@ -479,11 +479,6 @@
                 {{ selectedReturn.property_receipts?.receipt_number || '-' }}
               </dd>
 
-              <dt class="col-sm-4">Reissued Receipt</dt>
-              <dd class="col-sm-8">
-                {{ selectedReturn.reissued_receipt?.receipt_number || 'Not reissued' }}
-              </dd>
-
               <dt class="col-sm-4">Quantity Restored to Stock</dt>
               <dd class="col-sm-8">
                 {{ selectedReturn.property_receipts?.quantity ?? '-' }}
@@ -540,12 +535,6 @@
               Close
             </button>
 
-            <div v-if="selectedReturn && !selectedReturn.reissued_receipt_id && selectedReturn.return_purpose !== 'Disposal'" class="small text-muted">
-              To issue this returned property again, open Acquisitions and Issuance and select Reissuance.
-            </div>
-            <span v-else-if="selectedReturn && selectedReturn.reissued_receipt_id" class="badge bg-success">
-              Reissued — {{ selectedReturn.reissued_receipt?.receipt_number || 'New receipt created' }}
-            </span>
             <button type="button" class="btn btn-outline-success" @click="openReturnedAcknowledgementModal">
               <i class="bi bi-printer me-1"></i>Print Acknowledgement for Returned Property
             </button>
@@ -1710,7 +1699,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px so
 <div class="header"><div class="logo-cell"><img class="logo" src="${logo}" alt="NVSU Logo"></div><div class="school">Republic of the Philippines<br>NUEVA VIZCAYA STATE UNIVERSITY<br>Bayombong, Nueva Vizcaya</div><div class="form-title">ACKNOWLEDGEMENT RECEIPT FOR RETURNED PROPERTY</div></div>
 <div class="arrp">ARRP No.: <span class="line"></span></div>
 <div class="meta"><div><strong>Unit/Division/College:</strong> ${safe(office)}</div><div><strong>Date:</strong> ${date(record.return_date)}</div><div class="storage-field"><strong>Place of Storage:</strong></div><div class="tag-field"><strong>Tag No.:</strong></div><div class="responsibility-center-field"><strong>Responsibility Center:</strong> ${safe(responsibilityCenter || '-')}</div></div>
-<div class="items-for">Properties for &nbsp; ____Property Utilization/Re-issuance &nbsp; ____Repair &nbsp; ____Disposal</div>
+<div class="items-for">Properties for &nbsp; ____Repair &nbsp; ____Disposal</div>
 <table><colgroup><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:35%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup><thead><tr><th>Property<br>No.</th><th>Qty</th><th>UOM</th><th>DESCRIPTION</th><th>CODE</th><th>ACCOUNTABLE<br>EMPLOYEE</th><th>REMARKS</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="returned-head"><div>Returned by:</div><div><em>(Please indicate name and affix signature)</em></div><div>Received by:</div><div>Action Taken<br><small>(To be filled by the Property Officer)</small></div></div>
 <div class="signature-grid"><div>Signature:</div><div></div><div></div><div></div></div>
