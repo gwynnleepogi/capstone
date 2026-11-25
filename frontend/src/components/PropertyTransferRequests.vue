@@ -136,7 +136,13 @@
             <label class="form-label">Transfer Date</label>
             <input type="date" v-model="transferDate" class="form-control mb-3">
           </template>
-          <div v-else class="alert alert-light border mb-0">
+          <div v-if="selected.status === 'Pending' && showRejectForm" class="alert alert-danger border mb-0">
+            <strong>Disapprove this request?</strong>
+            <p class="small mb-2">The request will be removed from the pending list. Its records will remain available in Audit Logs. No properties will be transferred.</p>
+            <label class="form-label">Reason for Disapproval <span class="text-danger">*</span></label>
+            <textarea v-model="rejectRemarks" class="form-control" rows="3" maxlength="1000" placeholder="Enter the reason for disapproving this request..."></textarea>
+          </div>
+          <div v-else-if="selected.status !== 'Pending'" class="alert alert-light border mb-0">
             <strong>Status:</strong> {{ selected.status }}
             <div v-if="selected.recipient"><strong>Receiving Employee:</strong> {{ selected.recipient.full_name }}</div>
             <div v-if="selected.review_remarks"><strong>Review Remarks:</strong> {{ selected.review_remarks }}</div>
@@ -144,8 +150,11 @@
         </div>
         <div class="border-top p-3 d-flex justify-content-between gap-2 flex-wrap">
           <button class="btn btn-outline-secondary" @click="closeReview">Close</button>
-          <div v-if="selected.status === 'Pending'" class="d-flex gap-2">
-            <button class="btn btn-success" @click="approve" :disabled="saving || !toUserId">{{ saving ? 'Processing...' : 'Approve and Assign Property' }}</button>
+          <div v-if="selected.status === 'Pending'" class="d-flex gap-2 flex-wrap">
+            <button v-if="!showRejectForm" class="btn btn-outline-danger" @click="showRejectForm = true" :disabled="saving">Disapprove Request</button>
+            <button v-if="showRejectForm" class="btn btn-outline-secondary" @click="showRejectForm = false; rejectRemarks = ''" :disabled="saving">Cancel</button>
+            <button v-if="showRejectForm" class="btn btn-danger" @click="reject" :disabled="saving || !rejectRemarks.trim()">{{ saving ? 'Processing...' : 'Confirm Disapproval' }}</button>
+            <button v-if="!showRejectForm" class="btn btn-success" @click="approve" :disabled="saving || !toUserId">{{ saving ? 'Processing...' : 'Approve and Assign Property' }}</button>
           </div>
         </div>
       </div>
@@ -257,6 +266,8 @@ export default {
       this.toUserId = ''
       this.recipientSearch = ''
       this.showRecipientResults = false
+      this.showRejectForm = false
+      this.rejectRemarks = ''
       this.transferDate = new Date().toISOString().slice(0, 10)
     },
     closeReview() { this.selected = null },
@@ -266,6 +277,25 @@ export default {
       this.showRecipientResults = false
     },
     toast(message) { window.dispatchEvent(new CustomEvent('show-toast', { detail: message })) },
+    async reject() {
+      const reason = this.rejectRemarks.trim()
+      if (!reason) return this.toast('Enter a reason for disapproval.')
+      this.saving = true
+      try {
+        const response = await fetch('/api/property-transfer-requests/' + this.selected.id + '/reject', {
+          method: 'PATCH',
+          headers: this.authHeaders(true),
+          body: JSON.stringify({ review_remarks: reason })
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Could not disapprove transfer request.')
+        this.toast('Request disapproved. It was removed from pending requests and recorded in Audit Logs.')
+        this.closeReview()
+        await this.loadRequests()
+        this.$emit('updated')
+      } catch (error) { this.toast(error.message) }
+      finally { this.saving = false }
+    },
     async approve() {
       if (!this.toUserId) return this.toast('Select the receiving employee.')
       this.saving = true
