@@ -456,6 +456,19 @@ router.patch('/:id/accept', staffOnly, async (req, res) => {
       return res.status(closeReceiptError ? 500 : 409).json({ error: await revert(message) })
     }
 
+    const { error: relatedReceiptsError } = await supabase
+      .from('property_receipts')
+      .update({ status: 'Returned' })
+      .eq('item_id', receipt.item_id)
+
+    if (relatedReceiptsError) {
+      await supabase.from('property_receipts').update({ status: 'Issued' }).eq('id', receipt.id)
+      await supabase.from('item_returns').delete().eq('id', newReturn.id)
+      return res.status(500).json({
+        error: await revert('Related receipt statuses could not be synchronized: ' + relatedReceiptsError.message)
+      })
+    }
+
     let itemUpdate = supabase
       .from('items')
       .update({
