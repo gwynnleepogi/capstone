@@ -1677,11 +1677,11 @@ h1 {
 }
 
 .modal {
-  z-index: 1055;
+  z-index: 2000;
 }
 
 .modal-backdrop {
-  z-index: 1050;
+  z-index: 2000;
 }
 
 .modal-content {
