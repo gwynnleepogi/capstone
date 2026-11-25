@@ -134,7 +134,7 @@
 
           <button
             class="print-button"
-            :disabled="loading || Boolean(errorMessage) || invalidDateRange || (!getReportRowCount('acquisition') && !getReportRowCount('issuance'))"
+            :disabled="loading || Boolean(errorMessage) || invalidDateRange"
             @click="openPrintModal"
           >
             <i class="bi bi-printer"></i>
