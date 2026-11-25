@@ -36,7 +36,7 @@ async function withDetails(rows) {
   const items = await lookup(
     'items',
     rows.map(r => r.item_id),
-    'id, description, property_number, serial_number, condition, status, quantity'
+    'id, description, property_number, serial_number, condition, status, quantity, unit, code, account_code'
   )
   const receipts = await lookup(
     'property_receipts',
