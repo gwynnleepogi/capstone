@@ -137,7 +137,15 @@
 
             <tbody>
               <tr v-for="itemReturn in paginatedReturns" :key="itemReturn.id">
-                <td>{{ itemReturn.items?.description || 'Original property record deleted' }}</td>
+                <td>
+                  <div v-for="entry in (itemReturn.batch_returns || [itemReturn])" :key="entry.id">
+                    {{ entry.items?.description || 'Original property record deleted' }}
+                    <div class="small text-muted">{{ entry.items?.property_number || '' }}</div>
+                  </div>
+                  <span v-if="itemReturn.batch_count > 1" class="badge bg-secondary mt-1">
+                    {{ itemReturn.batch_count }} properties · 1 ARRP
+                  </span>
+                </td>
 
                 <td>
                   {{
@@ -464,6 +472,19 @@
           </div>
 
           <div v-if="selectedReturn" class="modal-body">
+            <div v-if="selectedReturn.batch_returns?.length > 1" class="mb-3">
+              <div class="fw-semibold mb-2">Properties in this return ({{ selectedReturn.batch_returns.length }})</div>
+              <div class="list-group">
+                <div v-for="entry in selectedReturn.batch_returns" :key="entry.id" class="list-group-item">
+                  <div class="fw-semibold">{{ entry.items?.description || 'Original property record deleted' }}</div>
+                  <div class="small text-muted">
+                    Property No.: {{ entry.items?.property_number || '-' }} ·
+                    Receipt: {{ entry.property_receipts?.receipt_number || '-' }} ·
+                    Quantity: {{ entry.property_receipts?.quantity ?? '-' }}
+                  </div>
+                </div>
+              </div>
+            </div>
             <dl class="row mb-0">
               <dt class="col-sm-4">Property Number</dt>
               <dd class="col-sm-8">{{ selectedReturn.items?.property_number || 'Unavailable — original property record was deleted' }}</dd>
@@ -577,13 +598,13 @@
               <div class="col-12 col-md-6">
                 <h6 class="mb-3">Returned By</h6>
                 <div class="mb-3">
-                  <label class="form-label">Name</label>
+                  <label class="form-label">Name <span class="text-danger">*</span></label>
                   <div class="position-relative">
                     <input
                       type="text"
                       class="form-control"
                       v-model.trim="returnedAcknowledgementSignatory.printedName"
-                      placeholder="Search or enter returned person's name"
+                      placeholder="Search or enter returned person's name" required
                       autocomplete="off"
                       @focus="returnedAcknowledgementSignatoryOptions.returnedBy = true"
                       @input="updateReturnedAcknowledgementSearch('returnedBy')"
@@ -621,7 +642,7 @@
                       type="text"
                       class="form-control"
                       v-model.trim="returnedAcknowledgementSignatory.receivedByName"
-                      placeholder="Search or enter receiving person's name"
+                      placeholder="Search or enter receiving person's name" required
                       autocomplete="off"
                       @focus="returnedAcknowledgementSignatoryOptions.receivedBy = true"
                       @input="updateReturnedAcknowledgementSearch('receivedBy')"
@@ -881,37 +902,52 @@ export default {
       )
     },
 
+    groupedReturns() {
+      const groups = new Map()
+
+      this.returns.forEach(itemReturn => {
+        const batch = itemReturn.return_request_batch
+        const key = batch?.batch_key || ('single|' + itemReturn.id)
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key).push(itemReturn)
+      })
+
+      return Array.from(groups.values()).map(batch => ({
+        ...batch[0],
+        batch_returns: batch,
+        batch_count: batch.length
+      }))
+    },
+
     filteredReturns() {
       const searchText = this.search.toLowerCase().trim()
 
-      const filtered = this.returns.filter(itemReturn => {
-        const itemName = String(itemReturn.items?.description || '').toLowerCase()
+      const filtered = this.groupedReturns.filter(group => {
+        const entries = group.batch_returns || [group]
+        const matchesSearch = !searchText || entries.some(itemReturn => {
+          const itemName = String(itemReturn.items?.description || '').toLowerCase()
+          const propertyNumber = String(itemReturn.items?.property_number || '').toLowerCase()
+          const returnedBy = String(
+            itemReturn.personnel?.full_name ||
+            itemReturn.users?.full_name ||
+            ''
+          ).toLowerCase()
+          const officeName = String(itemReturn.offices?.office_name || '').toLowerCase()
+          const returnReason = String(itemReturn.return_reason || '').toLowerCase()
+          const condition = String(itemReturn.condition_after_return || '').toLowerCase()
 
-        const returnedBy = String(
-          itemReturn.personnel?.full_name ||
-          itemReturn.users?.full_name ||
-          ''
-        ).toLowerCase()
+          return itemName.includes(searchText) ||
+            propertyNumber.includes(searchText) ||
+            returnedBy.includes(searchText) ||
+            officeName.includes(searchText) ||
+            returnReason.includes(searchText) ||
+            condition.includes(searchText)
+        })
 
-        const officeName = String(itemReturn.offices?.office_name || '').toLowerCase()
-        const returnReason = String(itemReturn.return_reason || '').toLowerCase()
-        const condition = String(itemReturn.condition_after_return || '').toLowerCase()
-
-        const matchesSearch =
-          !searchText ||
-          itemName.includes(searchText) ||
-          returnedBy.includes(searchText) ||
-          officeName.includes(searchText) ||
-          returnReason.includes(searchText) ||
-          condition.includes(searchText)
-
-        const matchesCondition =
-          !this.conditionFilter ||
-          itemReturn.condition_after_return === this.conditionFilter
-
-        const matchesOffice =
-          !this.officeFilter ||
-          itemReturn.offices?.office_name === this.officeFilter
+        const matchesCondition = !this.conditionFilter ||
+          entries.some(itemReturn => itemReturn.condition_after_return === this.conditionFilter)
+        const matchesOffice = !this.officeFilter ||
+          entries.some(itemReturn => itemReturn.offices?.office_name === this.officeFilter)
 
         return matchesSearch && matchesCondition && matchesOffice
       })
@@ -920,14 +956,8 @@ export default {
         const firstValue = this.getSortValue(a, this.sortColumn)
         const secondValue = this.getSortValue(b, this.sortColumn)
 
-        if (firstValue < secondValue) {
-          return this.sortDirection === 'asc' ? -1 : 1
-        }
-
-        if (firstValue > secondValue) {
-          return this.sortDirection === 'asc' ? 1 : -1
-        }
-
+        if (firstValue < secondValue) return this.sortDirection === 'asc' ? -1 : 1
+        if (firstValue > secondValue) return this.sortDirection === 'asc' ? 1 : -1
         return 0
       })
     },
