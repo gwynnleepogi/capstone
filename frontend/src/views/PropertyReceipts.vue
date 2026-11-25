@@ -467,8 +467,9 @@
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             <button type="button" class="btn btn-outline-warning" @click="editSelectedReceipt"><i class="bi bi-pencil me-1"></i> Edit</button>
             <button type="button" class="btn btn-outline-danger" @click="deleteSelectedReceipt"><i class="bi bi-trash me-1"></i> Delete</button>
-            <button type="button" class="btn btn-outline-success" @click="printSelectedReceipt"><i class="bi bi-printer me-1"></i> {{ selectedDetailsReceipt?.receipt_type === 'ICS' ? 'Print Inventory Custodian Slip' : 'Print Property Acknowledgement Receipt' }}</button>
-            <button type="button" class="btn btn-outline-dark" @click="printSelectedRIS"><i class="bi bi-file-earmark-text me-1"></i> Print Issuance Receipt</button>
+            <button v-if="!isReturnedReceipt(selectedDetailsReceipt)" type="button" class="btn btn-outline-success" @click="printSelectedReceipt"><i class="bi bi-printer me-1"></i> {{ selectedDetailsReceipt?.receipt_type === 'ICS' ? 'Print Inventory Custodian Slip' : 'Print Property Acknowledgement Receipt' }}</button>
+            <button v-if="!isReturnedReceipt(selectedDetailsReceipt)" type="button" class="btn btn-outline-dark" @click="printSelectedRIS"><i class="bi bi-file-earmark-text me-1"></i> Print Issuance Receipt</button>
+            <span v-else class="text-muted small me-auto">Returned receipts cannot be printed.</span>
           </div>
         </div>
       </div>
@@ -799,6 +800,10 @@ export default {
       }, 150)
     },
 
+    isReturnedReceipt(receipt) {
+      return String(receipt?.status || '').trim().toLowerCase() === 'returned'
+    },
+
     viewReceiptDetails(receipt) {
       this.selectedDetailsReceipt = receipt
       Modal.getOrCreateInstance(document.getElementById('receiptDetailsModal')).show()
@@ -849,6 +854,10 @@ export default {
 
     printSelectedReceipt() {
       if (!this.selectedDetailsReceipt) return
+      if (this.isReturnedReceipt(this.selectedDetailsReceipt)) {
+        this.showToast('Returned receipts cannot be printed')
+        return
+      }
       const receipt = this.selectedDetailsReceipt
       const detailsModal = document.getElementById('receiptDetailsModal')
       const openPrintDetails = () => this.openReceiptPrintModal(receipt)
@@ -863,6 +872,10 @@ export default {
 
     printSelectedRIS() {
       if (!this.selectedDetailsReceipt) return
+      if (this.isReturnedReceipt(this.selectedDetailsReceipt)) {
+        this.showToast('Returned receipts cannot be printed')
+        return
+      }
       const receipt = this.selectedDetailsReceipt
       const detailsModal = document.getElementById('receiptDetailsModal')
       const openRISDetails = () => this.openRISModal(receipt)
