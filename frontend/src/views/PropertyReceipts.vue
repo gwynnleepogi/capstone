@@ -128,12 +128,9 @@
           <form @submit.prevent="saveReceipt">
             <div class="modal-body">
               <div v-if="!editing" class="mb-3">
-                <label class="form-label">Transaction Type <span class="text-danger">*</span></label>
-                <select class="form-select" v-model="form.transaction_type" @change="onTransactionTypeChange" required>
-                  <option value="Acquisition">Acquisition</option>
-                  <option value="Reissuance">Reissuance</option>
-                </select>
-                <small class="text-muted">Transfer receipts are generated from approved Property Transfer Requests. Choose Reissuance for a property already returned to GSU.</small>
+                <label class="form-label">Transaction Type</label>
+                <div class="form-control bg-light" aria-readonly="true">Acquisition</div>
+                <small class="text-muted">Transfer receipts are generated from approved Property Transfer Requests. Returned properties remain Unserviceable and cannot be reissued.</small>
               </div>
               <!-- RECEIPT TYPE -->
               <div class="mb-3">
@@ -164,32 +161,6 @@
                   Properties added with an accountable employee are automatically eligible for an acquisition receipt.
                   <button type="button" class="btn btn-link btn-sm p-0 ms-1" @click="getItems">Refresh list</button>
                 </small>
-              </div>
-
-              <div v-if="!editing && form.transaction_type === 'Reissuance'" class="mb-3">
-                <label class="form-label">Returned Property <span class="text-danger">*</span></label>
-                <select class="form-select" v-model="form.return_id" required>
-                  <option value="">Select a returned property</option>
-                  <option v-for="record in eligibleReissuanceReturns" :key="record.id" :value="String(record.id)">
-                    {{ record.items?.property_number || 'No property number' }} — {{ record.items?.description || 'Property' }}
-                    (Returned by {{ record.personnel?.full_name || record.users?.full_name || 'Unknown' }})
-                  </option>
-                </select>
-                <small v-if="!eligibleReissuanceReturns.length" class="form-text text-warning">No returned properties are available for reissuance.</small>
-              </div>
-              <div v-if="!editing && form.transaction_type === 'Reissuance' && selectedReissuanceReturn" class="mb-3">
-                <div class="alert alert-light border mb-2">
-                  <strong>{{ selectedReissuanceReturn.items?.description || 'Returned property' }}</strong>
-                  <div>Property No.: {{ selectedReissuanceReturn.items?.property_number || '-' }}</div>
-                  <div>Previous receipt: {{ selectedReissuanceReturn.property_receipts?.receipt_number || '-' }}</div>
-                </div>
-                <label class="form-label">New Accountable Employee <span class="text-danger">*</span></label>
-                <SearchableSelect v-model="form.issued_to" :options="personnelOptions" placeholder="Search receiving employee" />
-                <label class="form-label mt-3">Condition After Inspection <span class="text-danger">*</span></label>
-                <select class="form-select" v-model="form.condition_after_reissue" required>
-                  <option value="Serviceable">Serviceable</option>
-                </select>
-                <small class="form-text text-muted">The property must be inspected and marked Serviceable before it can be reissued.</small>
               </div>
 
               <!-- SELECTED ITEM DETAILS -->
@@ -597,10 +568,7 @@ export default {
       form: {
         id: null,
         item_id: '',
-        return_id: '',
-        issued_to: '',
         transaction_type: 'Acquisition',
-        condition_after_reissue: 'Serviceable',
         receipt_type: 'PAR',
         receipt_number: '',
         date_issued: '',
@@ -712,14 +680,6 @@ export default {
       )
     },
 
-    eligibleReissuanceReturns() {
-      return this.returnRecords.filter(record =>
-        !record.reissued_receipt_id &&
-        record.return_purpose !== 'Disposal' &&
-        record.items?.status === 'Returned'
-      )
-    },
-
     assignedReceiptItemOptions() {
       return this.assignedReceiptItems.map(item => ({
         value: String(item.id),
@@ -727,18 +687,12 @@ export default {
       }))
     },
 
-    selectedReissuanceReturn() {
-      return this.eligibleReissuanceReturns.find(record => String(record.id) === String(this.form.return_id)) || null
-    },
-
     selectedAssignedItem() {
       return this.assignedReceiptItems.find(item => String(item.id) === String(this.form.item_id)) || null
     },
 
     selectedReceiptItem() {
-      return this.form.transaction_type === 'Reissuance'
-        ? (this.selectedReissuanceReturn?.items || {})
-        : (this.selectedAssignedItem || {})
+      return this.selectedAssignedItem || {}
     },
 
     personnelOptions() {
@@ -937,9 +891,6 @@ export default {
 
     onTransactionTypeChange() {
       this.form.item_id = ''
-      this.form.return_id = ''
-      this.form.issued_to = ''
-      if (this.form.transaction_type === 'Reissuance') this.getReturns()
     },
 
     async getReceipts() {
@@ -992,10 +943,7 @@ export default {
       this.form = {
         id: null,
         item_id: '',
-        return_id: '',
-        issued_to: '',
         transaction_type: 'Acquisition',
-        condition_after_reissue: 'Serviceable',
         receipt_type: 'PAR',
         receipt_number: '',
         date_issued: new Date().toISOString().split('T')[0],
@@ -1048,17 +996,9 @@ export default {
           url = `/api/receipts/${this.form.id}`
           method = 'PUT'
         } else {
-          body.transaction_type = this.form.transaction_type
-          if (this.form.transaction_type === 'Reissuance') {
-            if (!this.form.return_id) throw new Error('Please select a returned property')
-            if (!this.form.issued_to) throw new Error('Please select the new accountable employee')
-            body.return_id = this.form.return_id
-            body.issued_to = this.form.issued_to
-            body.condition_after_reissue = this.form.condition_after_reissue
-          } else {
-            if (!this.form.item_id) throw new Error('Please select an assigned property')
-            body.item_id = this.form.item_id
-          }
+          body.transaction_type = 'Acquisition'
+          if (!this.form.item_id) throw new Error('Please select an assigned property')
+          body.item_id = this.form.item_id
         }
 
         const response = await fetch(url, {
@@ -1078,7 +1018,7 @@ export default {
         await this.getItems()
         await this.getReturns()
 
-        this.showToast(this.editing ? 'Receipt updated successfully' : (this.form.transaction_type === 'Reissuance' ? 'Property reissued successfully' : 'Receipt created successfully'))
+        this.showToast(this.editing ? 'Receipt updated successfully' : 'Receipt created successfully')
       } catch (error) {
         console.log(error)
         this.showToast(error.message)
