@@ -99,8 +99,8 @@
         aria-modal="true"
         aria-labelledby="add-item-title"
       >
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-          <strong id="add-item-title">Add New Property</strong>
+        <div class="card-header add-dialog-header bg-white d-flex justify-content-between align-items-center">
+          <h2 id="add-item-title" class="h5 mb-0">Add New Property</h2>
           <button
             type="button"
             class="btn-close"
@@ -2436,10 +2436,17 @@ h1 {
 
 .add-dialog {
   width: min(820px, 100%);
-  max-height: 100%;
+  max-height: min(90vh, 900px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.add-dialog-header {
+  flex: 0 0 auto;
+  min-height: 58px;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #dee2e6;
 }
 
 .add-dialog-form {
