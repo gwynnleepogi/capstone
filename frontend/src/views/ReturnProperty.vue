@@ -393,6 +393,49 @@ export default {
       }
     },
 
+    async cancelRequest(request) {
+      if (!request || request.status !== 'Pending' || this.busyId === request.id) return
+
+      const pendingRequests = (request.batch_requests || [request])
+        .filter(entry => entry.status === 'Pending')
+
+      if (!pendingRequests.length) {
+        this.toast('There are no pending properties to cancel.')
+        return
+      }
+
+      const propertyCount = pendingRequests.length
+      const confirmed = window.confirm(
+        propertyCount === 1
+          ? 'Are you sure you want to cancel this return request?'
+          : `Are you sure you want to cancel this return request for all ${propertyCount} selected properties?`
+      )
+
+      if (!confirmed) return
+
+      this.busyId = request.id
+      try {
+        for (const entry of pendingRequests) {
+          await this.request(`/api/return-requests/${entry.id}/cancel`, {
+            method: 'PATCH'
+          })
+        }
+
+        this.toast(
+          propertyCount === 1
+            ? 'Return request cancelled.'
+            : `Return request cancelled for all ${propertyCount} properties.`
+        )
+        window.dispatchEvent(new CustomEvent('return-requests-updated'))
+        await this.loadAll()
+      } catch (error) {
+        this.toast(error.message)
+        await this.loadAll()
+      } finally {
+        this.busyId = null
+      }
+    },
+
     statusClass(status) {
       if (status === 'Accepted') return 'bg-success'
       if (status === 'Rejected') return 'bg-danger'
