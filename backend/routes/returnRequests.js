@@ -222,7 +222,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Please explain why the property is unserviceable.' })
     }
 
-    if (return_purpose && !['Property Utilization/Re-issuance', 'Repair', 'Disposal'].includes(return_purpose)) {
+    if (return_purpose && !['Repair', 'Disposal'].includes(return_purpose)) {
       return res.status(400).json({ error: 'Please select a valid property purpose.' })
     }
 
