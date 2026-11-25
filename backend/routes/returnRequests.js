@@ -670,4 +670,60 @@ router.patch('/:id/cancel', async (req, res) => {
   }
 })
 
+
+/* Administrator: delete a return request without deleting an accepted return record. */
+router.delete('/:id', staffOnly, async (req, res) => {
+  try {
+    const { data: request, error: requestError } = await supabase
+      .from('return_requests')
+      .select('*')
+      .eq('id', req.params.id)
+      .maybeSingle()
+
+    if (requestError) return res.status(500).json({ error: requestError.message })
+    if (!request) return res.status(404).json({ error: 'Return request not found.' })
+
+    const itemMap = await lookup('items', [request.item_id], 'id, description, property_number')
+    const item = itemMap[request.item_id] || null
+
+    // Accepted requests have a separate item_returns record. Keep that record
+    // and its stock changes; only remove the request entry.
+    const { error: deleteError } = await supabase
+      .from('return_requests')
+      .delete()
+      .eq('id', request.id)
+
+    if (deleteError) return res.status(500).json({ error: deleteError.message })
+
+    try {
+      await createAuditLog(
+        'Deleted Return Request',
+        request.item_id,
+        JSON.stringify({
+          description: item?.description,
+          property_number: item?.property_number,
+          request_status: request.status,
+          return_reason: request.return_reason,
+          requested_by: request.requested_by
+        }),
+        null,
+        'Deleted ' + request.status + ' return request for ' + (item?.description || 'property') +
+          (request.status === 'Accepted' ? '. The recorded return was kept.' : '.'),
+        req.profile.id
+      )
+    } catch (auditError) {
+      console.log('Return request deletion audit log error:', auditError)
+    }
+
+    return res.json({
+      message: request.status === 'Accepted'
+        ? 'Return request deleted. The accepted return record and inventory changes were kept.'
+        : 'Return request deleted.',
+      kept_return_record: request.status === 'Accepted'
+    })
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+})
+
 module.exports = router
