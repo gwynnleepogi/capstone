@@ -2463,7 +2463,7 @@ h1 {
 .employee-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1080;
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2513,7 +2513,7 @@ h1 {
 .detail-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1040;
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2531,7 +2531,7 @@ h1 {
 .qr-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1050;
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2569,7 +2569,7 @@ h1 {
 .edit-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1055;
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
