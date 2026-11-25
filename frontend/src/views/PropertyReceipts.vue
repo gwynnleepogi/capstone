@@ -78,7 +78,7 @@
                 <td>{{ getIssuedToName(receipt) }}</td>
                 <td>{{ receipt.date_issued || '-' }}</td>
                 <td>
-                  <span class="badge" :class="receipt.status === 'Returned' ? 'bg-secondary' : receipt.status === 'Transferred' ? 'bg-info text-dark' : 'bg-success'">
+                  <span class="badge" :class="receipt.status === 'Returned' ? 'bg-secondary' : receipt.status === 'Transferred' ? 'bg-warning text-dark' : 'bg-success'">
                     {{ receipt.status || '-' }}
                   </span>
                 </td>
