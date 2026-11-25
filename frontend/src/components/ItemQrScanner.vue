@@ -177,7 +177,7 @@ export default {
 .scanner-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  z-index: 2000;
   display: grid;
   place-items: center;
   padding: 18px;
