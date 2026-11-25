@@ -342,42 +342,29 @@ export default {
       if (!this.selectedReceipts.length || this.saving) return
 
       this.saving = true
-      let submittedCount = 0
-
       try {
-        for (const receipt of this.selectedReceipts) {
-          await this.request('/api/return-requests', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              property_receipt_id: receipt.id,
-              ...this.form,
-              condition_declared: 'Unserviceable',
-              return_reason: this.form.remarks.trim()
-            })
+        await this.request('/api/return-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            property_receipt_ids: this.selectedReceipts.map(receipt => receipt.id),
+            ...this.form,
+            condition_declared: 'Unserviceable',
+            return_reason: this.form.remarks.trim()
           })
-          submittedCount += 1
-        }
+        })
 
         window.dispatchEvent(new CustomEvent('return-requests-updated'))
         this.toast(
-          submittedCount === 1
+          this.selectedReceipts.length === 1
             ? 'Return request sent. Please wait for the property office to review it.'
-            : `${submittedCount} return requests sent. Please wait for the property office to review them.`
+            : 'One return request for all selected properties was sent. Please wait for the property office to review it.'
         )
         this.closeForm()
         this.selectedReceiptIds = []
         await this.loadAll()
       } catch (error) {
-        if (submittedCount > 0) {
-          window.dispatchEvent(new CustomEvent('return-requests-updated'))
-          this.toast(`${submittedCount} of ${this.selectedReceipts.length} return requests were sent. The remaining items were not submitted: ${error.message}`)
-          this.closeForm()
-          this.selectedReceiptIds = []
-          await this.loadAll()
-        } else {
-          this.toast(error.message)
-        }
+        this.toast(error.message)
       } finally {
         this.saving = false
       }
