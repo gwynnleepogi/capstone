@@ -1710,17 +1710,20 @@ export default {
                 receipt.reference ||
                 '',
               person:
-                receipt.issued_to ||
+                receiptUser.full_name ||
+                item.accountable_employee ||
+                receipt.issued_to_name ||
+                receipt.recipient_name ||
                 receipt.recipient ||
                 receipt.received_by ||
-                receiptUser.full_name ||
                 '',
               name:
-                receipt.issued_to ||
+                receiptUser.full_name ||
+                item.accountable_employee ||
+                receipt.issued_to_name ||
+                receipt.recipient_name ||
                 receipt.recipient ||
                 receipt.received_by ||
-                receiptUser.full_name ||
-                requestUser.full_name ||
                 '',
               destination:
                 receipt.destination ||
