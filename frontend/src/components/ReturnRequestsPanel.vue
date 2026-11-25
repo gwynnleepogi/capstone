@@ -306,7 +306,7 @@
           <div class="modal-body">
             <p class="mb-2">
               You are rejecting the return request for
-              <strong>{{ selectedRequest?.items?.description || 'this property' }}</strong>.
+              <strong>{{ selectedRequest?.batch_items?.length > 1 ? (selectedRequest.batch_items.length + ' selected properties') : (selectedRequest?.items?.description || 'this property') }}</strong>.
             </p>
             <label for="returnRejectionReason" class="form-label">
               Reason for Rejection <span class="text-danger">*</span>
@@ -732,6 +732,7 @@ export default {
       try {
         const batch = request.batch_requests || [request]
         for (const entry of batch) {
+          if (entry.status !== 'Pending') continue
           const response = await fetch(`/api/return-requests/${entry.id}/accept`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -793,6 +794,7 @@ export default {
       try {
         const batch = request.batch_requests || [request]
         for (const entry of batch) {
+          if (entry.status !== 'Pending') continue
           const response = await fetch(`/api/return-requests/${entry.id}/reject`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
