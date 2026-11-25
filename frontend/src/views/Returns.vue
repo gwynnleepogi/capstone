@@ -1470,11 +1470,9 @@ export default {
         'UPDATING',
         'TRANSFER',
         'CLEARANCE-w/ Retain Accountability',
-        'RETURNED Unserviceable',
-        'RETURNED Serviceable',
-        'RETURNED for Repair'
+        'RETURNED'
       ].map(label => {
-        const checked = label === 'RETURNED Unserviceable'
+        const checked = label === 'RETURNED'
         return `<span class="classification-option">${checked ? '☑' : '☐'} ${safe(label)}</span>`
       }).join('')
 
