@@ -149,12 +149,12 @@
           </div>
         </div>
         <div class="border-top p-3 d-flex justify-content-between gap-2 flex-wrap">
-          <button class="btn btn-outline-secondary" @click="closeReview">Close</button>
+          <button type="button" class="btn btn-outline-secondary" @click="closeReview">Close</button>
           <div v-if="selected.status === 'Pending'" class="d-flex gap-2 flex-wrap">
-            <button v-if="!showRejectForm" class="btn btn-outline-danger" @click="showRejectForm = true" :disabled="saving">Disapprove Request</button>
-            <button v-if="showRejectForm" class="btn btn-outline-secondary" @click="showRejectForm = false; rejectRemarks = ''" :disabled="saving">Cancel</button>
-            <button v-if="showRejectForm" class="btn btn-danger" @click="reject" :disabled="saving || !rejectRemarks.trim()">{{ saving ? 'Processing...' : 'Confirm Disapproval' }}</button>
-            <button v-if="!showRejectForm" class="btn btn-success" @click="approve" :disabled="saving || !toUserId">{{ saving ? 'Processing...' : 'Approve and Assign Property' }}</button>
+            <button v-if="!showRejectForm" type="button" class="btn btn-outline-danger" @click="showRejectForm = true" :disabled="saving">Disapprove Request</button>
+            <button v-if="showRejectForm" type="button" class="btn btn-outline-secondary" @click="showRejectForm = false; rejectRemarks = ''" :disabled="saving">Cancel</button>
+            <button v-if="showRejectForm" type="button" class="btn btn-danger" @click="reject" :disabled="saving || !rejectRemarks.trim()">{{ saving ? 'Processing...' : 'Confirm Disapproval' }}</button>
+            <button v-if="!showRejectForm" type="button" class="btn btn-success" @click="approve" :disabled="saving || !toUserId">{{ saving ? 'Processing...' : 'Approve and Assign Property' }}</button>
           </div>
         </div>
       </div>
@@ -175,6 +175,8 @@ export default {
       toUserId: '',
       recipientSearch: '',
       showRecipientResults: false,
+      showRejectForm: false,
+      rejectRemarks: '',
       transferDate: new Date().toISOString().slice(0, 10),
     }
   },
