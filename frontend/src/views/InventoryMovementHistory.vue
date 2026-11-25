@@ -134,7 +134,7 @@
 
           <button
             class="print-button"
-            :disabled="loading || Boolean(errorMessage) || invalidDateRange"
+            :disabled="loading || Boolean(errorMessage)"
             @click="openPrintModal"
           >
             <i class="bi bi-printer"></i>
