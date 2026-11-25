@@ -64,7 +64,7 @@
           <div><h5 class="mb-0">Review Property Transfer Request</h5><small class="text-muted">{{ requestNumber(selected) }}</small></div>
           <button class="btn-close" @click="closeReview"></button>
         </div>
-        <div class="p-3">
+        <div class="p-3 transfer-review-body">
           <div class="row g-3 mb-3">
             <div class="col-md-6"><small class="text-muted d-block">Requesting Employee</small><strong>{{ selected.requester?.full_name || '-' }}</strong></div>
             <div class="col-md-6"><small class="text-muted d-block">From Responsibility Center</small><strong>{{ selected.from_responsibility_center || '-' }}</strong></div>
@@ -148,7 +148,7 @@
             <div v-if="selected.review_remarks"><strong>Review Remarks:</strong> {{ selected.review_remarks }}</div>
           </div>
         </div>
-        <div class="border-top p-3 d-flex justify-content-between gap-2 flex-wrap">
+        <div class="border-top p-3 d-flex justify-content-between gap-2 flex-wrap transfer-review-footer">
           <button type="button" class="btn btn-outline-secondary" @click="closeReview">Close</button>
           <div v-if="selected.status === 'Pending'" class="d-flex gap-2 flex-wrap">
             <button v-if="!showRejectForm" type="button" class="btn btn-outline-danger" @click="showRejectForm = true" :disabled="saving">Disapprove Request</button>
@@ -349,6 +349,9 @@ section.card{width:100%;max-width:none}
 .recipient-search-option small{color:#6c757d}
 .recipient-search-empty{padding:.75rem;color:#6c757d;font-size:.9rem}
 .transfer-review-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;display:flex;align-items:center;justify-content:center;padding:1rem}
-.transfer-review-modal{background:#fff;width:min(1100px,100%);max-height:92vh;overflow:auto;border-radius:.75rem;box-shadow:0 1rem 3rem rgba(0,0,0,.2)}
-@media(max-width:767.98px){.transfer-review-backdrop{padding:.5rem}.transfer-review-modal{max-height:95vh}.transfer-requests-table{min-width:1100px}.transfer-requests-table td{padding:.8rem}}
+.transfer-review-modal{background:#fff;width:min(1100px,100%);height:auto;max-height:calc(100dvh - 2rem);display:flex;flex-direction:column;overflow:hidden;border-radius:.75rem;box-shadow:0 1rem 3rem rgba(0,0,0,.2)}
+.transfer-review-modal>.border-bottom{flex:0 0 auto}
+.transfer-review-body{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.transfer-review-footer{flex:0 0 auto;background:#fff;position:relative;z-index:2}
+@media(max-width:767.98px){.transfer-review-backdrop{padding:.5rem;align-items:center}.transfer-review-modal{max-height:calc(100dvh - 1rem);border-radius:.5rem}.transfer-review-footer{padding:.75rem!important;gap:.5rem!important}.transfer-review-footer>.d-flex{width:100%;justify-content:flex-end}.transfer-requests-table{min-width:1100px}.transfer-requests-table td{padding:.8rem}}
 </style>
