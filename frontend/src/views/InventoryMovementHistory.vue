@@ -124,15 +124,6 @@
 
         <div class="footer-actions">
           <button
-            class="print-button excel-button"
-            :disabled="loading || Boolean(errorMessage) || !printRows.length || invalidDateRange"
-            @click="exportAcquisitionExcel"
-          >
-            <i class="bi bi-file-earmark-excel"></i>
-            Export Excel
-          </button>
-
-          <button
             class="print-button"
             :disabled="loading || Boolean(errorMessage)"
             @click="openPrintModal"
