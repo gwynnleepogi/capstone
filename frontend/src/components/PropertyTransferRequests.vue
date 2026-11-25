@@ -83,7 +83,14 @@
                   <td>{{ property.items?.description || '-' }}</td>
                   <td>₱{{ amount(property.items?.cost) }}</td>
                   <td>{{ property.items?.condition || '-' }}</td>
-                  <td><span class="badge" :class="property.items?.condition === 'Serviceable' && property.status === 'Issued' ? 'bg-success' : 'bg-danger'">{{ property.items?.condition === 'Serviceable' && property.status === 'Issued' ? 'Eligible' : 'Check required' }}</span></td>
+                  <td>
+                    <span class="badge" :class="propertyEligibility(property).eligible ? 'bg-success' : 'bg-danger'">
+                      {{ propertyEligibility(property).eligible ? 'Eligible' : 'Excluded' }}
+                    </span>
+                    <div v-if="!propertyEligibility(property).eligible" class="small text-danger mt-1">
+                      {{ propertyEligibility(property).reason }}
+                    </div>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -224,6 +231,21 @@ export default {
       if (status === 'Disapproved') return 'bg-danger'
       if (status === 'Processing') return 'bg-info text-dark'
       return 'bg-warning text-dark'
+    },
+    propertyEligibility(property) {
+      if (property.missing || !property.items) {
+        return { eligible: false, reason: 'The property record is missing.' }
+      }
+      if (String(property.issued_to) !== String(this.selected?.requested_by)) {
+        return { eligible: false, reason: 'No longer assigned to the requesting employee.' }
+      }
+      if (property.status !== 'Issued') {
+        return { eligible: false, reason: 'Receipt is not currently Issued.' }
+      }
+      if (property.items.condition !== 'Serviceable') {
+        return { eligible: false, reason: 'Property is ' + (property.items.condition || 'not marked Serviceable') + '.' }
+      }
+      return { eligible: true, reason: '' }
     },
     openReview(request) {
       this.selected = request
