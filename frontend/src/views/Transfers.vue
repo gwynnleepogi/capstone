@@ -634,14 +634,10 @@
             </div>
             <div class="mb-3">
               <label class="form-label d-block">Acknowledgement Classification</label>
-              <div class="row g-2">
-                <div class="col-md-6" v-for="classification in acknowledgementClassifications" :key="classification">
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox" v-model="printDetails.classifications" :value="classification">
-                    <span class="form-check-label">{{ classification }}</span>
-                  </label>
-                </div>
-              </div>
+              <label class="form-check">
+                <input class="form-check-input" type="checkbox" checked disabled>
+                <span class="form-check-label">TRANSFER</span>
+              </label>
             </div>
             <hr>
             <h6>Received by</h6>
@@ -717,11 +713,6 @@ export default {
       requestPrintDetails: this.emptyRequestPrintDetails(),
       requestPersonnelSearch: { requestedBy: '', approvedBy: '', concurredBy: '' },
       showRequestPersonnelOptions: { requestedBy: false, approvedBy: false, concurredBy: false },
-      acknowledgementClassifications: [
-        'NEW', 'RENEWAL', 'UPDATING', 'TRANSFER',
-        'CLEARANCE-w/ Retain Accountability',
-        'RETURNED Unserviceable', 'RETURNED Serviceable', 'RETURNED for Repair'
-      ],
       printDetails: this.emptyPrintDetails(),
       personnelSearch: { receivedBy: '', issuedBy: '' },
       showPersonnelOptions: { receivedBy: false, issuedBy: false },
@@ -1520,9 +1511,7 @@ body{font-size:9px}
         const parsed = new Date(value + 'T00:00:00')
         return Number.isNaN(parsed.getTime()) ? esc(value) : parsed.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
       }
-      const classifications = this.acknowledgementClassifications.map(label =>
-        `<span class="classification-option">${details.classifications.includes(label) ? '☑' : '☐'} ${esc(label)}</span>`
-      ).join('')
+      const classifications = '<span class="classification-option">☑ TRANSFER</span>'
       const rows = data.receipts.map(receipt => {
         const item = receipt.items || {}
         const qty = Number(receipt.quantity || 1)
