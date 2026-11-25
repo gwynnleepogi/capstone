@@ -4,6 +4,7 @@ const router = express.Router()
 
 const supabase = require('../supabase')
 const createAuditLog = require('../middleware/auditLog')
+const { getSupabaseAdmin } = require('../supabaseAdmin')
 
 // ==========================================
 // HELPER FUNCTIONS
@@ -558,7 +559,15 @@ router.delete('/:id', async (req, res) => {
 
     // The database function deletes the property and all linked records
     // in one transaction. If any step fails, the whole deletion is rolled back.
-    const { error: deleteError } = await supabase
+    const supabaseAdmin = getSupabaseAdmin()
+
+    if (!supabaseAdmin) {
+      return res.status(503).json({
+        error: 'Property deletion is unavailable. Configure SUPABASE_SERVICE_ROLE_KEY in the backend environment and restart the backend.'
+      })
+    }
+
+    const { error: deleteError } = await supabaseAdmin
       .rpc('delete_property_with_history', { p_item_id: itemId })
 
     if (deleteError) {
