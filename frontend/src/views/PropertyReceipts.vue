@@ -33,8 +33,9 @@
           <div class="col-6 col-md-3">
             <select v-model="receiptStatusFilter" class="form-select" aria-label="Filter by status">
               <option value="">All Statuses</option>
-              <option value="Delivered">Delivered</option>
-              <option value="Pending">Pending</option>
+              <option value="Issued">Issued</option>
+              <option value="Transferred">Transferred</option>
+              <option value="Returned">Returned</option>
             </select>
           </div>
         </div>
@@ -50,7 +51,7 @@
                 <th class="sortable" @click="sortReceiptsBy('receipt_type')">
                   Type <i :class="receiptSortIcon('receipt_type')"></i>
                 </th>
-                <th>Transaction</th>
+                <th>Transaction Type</th>
                 <th class="sortable" @click="sortReceiptsBy('item')">
                   Item <i :class="receiptSortIcon('item')"></i>
                 </th>
@@ -61,7 +62,7 @@
                   Date Issued <i :class="receiptSortIcon('date_issued')"></i>
                 </th>
                 <th class="sortable" @click="sortReceiptsBy('status')">
-                  Status <i :class="receiptSortIcon('status')"></i>
+                  Current Status <i :class="receiptSortIcon('status')"></i>
                 </th>
                 <th>Actions</th>
               </tr>
@@ -77,8 +78,8 @@
                 <td>{{ getIssuedToName(receipt) }}</td>
                 <td>{{ receipt.date_issued || '-' }}</td>
                 <td>
-                  <span class="badge" :class="receipt.status === 'Delivered' ? 'bg-success' : 'bg-warning text-dark'">
-                    {{ receipt.status || 'Delivered' }}
+                  <span class="badge" :class="receipt.status === 'Returned' ? 'bg-secondary' : receipt.status === 'Transferred' ? 'bg-info text-dark' : 'bg-success'">
+                    {{ receipt.status || '-' }}
                   </span>
                 </td>
                 <td>
@@ -632,7 +633,7 @@ export default {
       return this.receipts
         .filter(receipt => {
           const item = this.getReceiptItem(receipt)
-          const status = receipt.status || 'Delivered'
+          const status = receipt.status || '-'
           const matchesSearch = !search || [
             receipt.receipt_number,
             receipt.receipt_type,
