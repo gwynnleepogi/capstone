@@ -460,6 +460,7 @@ router.patch('/:id/accept', staffOnly, async (req, res) => {
       .from('property_receipts')
       .update({ status: 'Returned' })
       .eq('item_id', receipt.item_id)
+      .eq('transaction_type', 'Acquisition')
 
     if (relatedReceiptsError) {
       await supabase.from('property_receipts').update({ status: 'Issued' }).eq('id', receipt.id)
