@@ -656,7 +656,7 @@ export default {
           entry ? value(receipt.quantity) : '',
           entry ? value(item.unit) : '',
           entry ? value(item.description) : '',
-          entry ? value(item.code || item.account_code) : '',
+          entry ? value(item.property_number) : '',
           entry ? employee : '',
           entry ? value(request.return_reason) : '',
         ]
