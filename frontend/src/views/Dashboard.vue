@@ -123,7 +123,7 @@
                 </div>
                 <span v-if="pendingTransferRequests.length > 0" class="pending-count">{{ pendingTransferRequests.length }}</span>
               </div>
-              <router-link class="btn btn-sm btn-success request-review-button" to="/transfers">Review <span v-if="pendingTransferRequests.length > 0" class="request-notification-dot" aria-label="Pending transfer requests"></span><i class="bi bi-arrow-right ms-1"></i></router-link>
+              <router-link class="btn btn-sm btn-success request-review-button" to="/transfers">Review <i class="bi bi-arrow-right ms-1"></i></router-link>
             </div>
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
