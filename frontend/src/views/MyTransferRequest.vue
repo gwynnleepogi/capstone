@@ -292,7 +292,7 @@ export default {
 .transfer-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1055;
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
