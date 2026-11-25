@@ -293,162 +293,169 @@ router.post('/', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { data: selected, error } = await supabase
-      .from('item_transfers')
-      .select('*')
-      .eq('id', req.params.id)
-      .single()
-
+      .from('item_transfers').select('*').eq('id', req.params.id).single()
     if (error || !selected) return res.status(404).json({ error: 'Transfer record not found.' })
 
     let groupQuery = supabase.from('item_transfers').select('*')
     groupQuery = selected.transfer_group_id
       ? groupQuery.eq('transfer_group_id', selected.transfer_group_id)
       : groupQuery.eq('id', selected.id)
-
     const { data: selectedGroup, error: groupError } = await groupQuery
     if (groupError) return res.status(500).json({ error: groupError.message })
     if (!selectedGroup?.length) return res.status(404).json({ error: 'Transfer records not found.' })
 
-    const receiptIds = [...new Set(selectedGroup.map(row => row.property_receipt_id).filter(Boolean))]
-    if (receiptIds.length !== selectedGroup.length) {
-      return res.status(409).json({ error: 'This transfer cannot be deleted because a linked property receipt is missing.' })
+    const itemIds = [...new Set(selectedGroup.map(row => row.item_id).filter(Boolean))]
+    if (itemIds.length !== selectedGroup.length) {
+      return res.status(409).json({ error: 'A transfer is missing its property link. Nothing was changed.' })
     }
 
-    // Find the selected transfer and every later transfer for each property.
-    // Only those property rows are removed; other properties in shared transfer groups remain.
-    const { data: historyRows, error: historyError } = await supabase
-      .from('item_transfers')
-      .select('*')
-      .in('property_receipt_id', receiptIds)
-      .order('created_at', { ascending: true })
-
+    const { data: allTransfers, error: historyError } = await supabase
+      .from('item_transfers').select('*').in('item_id', itemIds).order('created_at', { ascending: true })
     if (historyError) return res.status(500).json({ error: historyError.message })
 
-    const deleteRows = []
-    const restoreByReceipt = {}
+    const { data: allReceipts, error: receiptsError } = await supabase
+      .from('property_receipts').select('*').in('item_id', itemIds).order('created_at', { ascending: true })
+    if (receiptsError) return res.status(500).json({ error: receiptsError.message })
+
+    const transferRowsToDelete = []
+    const receiptIdsToDelete = new Set()
+    const restoreByItem = {}
 
     for (const selectedTransfer of selectedGroup) {
-      if (!selectedTransfer.from_user_id) {
-        return res.status(409).json({ error: 'This transfer cannot be deleted because the previous accountable employee cannot be identified.' })
+      if (!selectedTransfer.from_user_id || !selectedTransfer.property_receipt_id) {
+        return res.status(409).json({ error: 'The previous employee or transfer receipt is missing. Nothing was changed.' })
       }
 
-      const propertyHistory = (historyRows || []).filter(row =>
-        row.property_receipt_id === selectedTransfer.property_receipt_id
-      )
-      const selectedIndex = propertyHistory.findIndex(row => row.id === selectedTransfer.id)
+      const history = (allTransfers || []).filter(row => String(row.item_id) === String(selectedTransfer.item_id))
+      const selectedIndex = history.findIndex(row => String(row.id) === String(selectedTransfer.id))
+      if (selectedIndex < 0) return res.status(409).json({ error: 'The transfer history is incomplete. Nothing was changed.' })
 
-      if (selectedIndex < 0) {
-        return res.status(409).json({ error: 'The transfer history is incomplete. Nothing was changed.' })
-      }
-
-      const laterRows = propertyHistory.slice(selectedIndex)
+      const laterRows = history.slice(selectedIndex)
       for (const row of laterRows) {
-        if (!row.from_user_id) {
-          return res.status(409).json({ error: 'A later transfer has no previous accountable employee. Nothing was changed.' })
-        }
-        deleteRows.push(row)
+        if (!row.property_receipt_id) return res.status(409).json({ error: 'A later transfer is missing its receipt link. Nothing was changed.' })
+        transferRowsToDelete.push(row)
+        receiptIdsToDelete.add(row.property_receipt_id)
       }
 
-      restoreByReceipt[selectedTransfer.property_receipt_id] = {
-        item_id: selectedTransfer.item_id,
+      const selectedReceipt = (allReceipts || []).find(row => String(row.id) === String(selectedTransfer.property_receipt_id))
+      if (!selectedReceipt) return res.status(409).json({ error: 'The receipt created by this transfer could not be found. Nothing was changed.' })
+
+      const previousReceipt = (allReceipts || [])
+        .filter(row =>
+          String(row.issued_to) === String(selectedTransfer.from_user_id) &&
+          String(row.id) !== String(selectedReceipt.id) &&
+          row.status === 'Transferred' &&
+          new Date(row.created_at || row.date_issued || 0) <= new Date(selectedReceipt.created_at || selectedReceipt.date_issued || 0)
+        )
+        .sort((a, b) => new Date(b.created_at || b.date_issued || 0) - new Date(a.created_at || a.date_issued || 0))[0]
+
+      if (!previousReceipt) {
+        return res.status(409).json({
+          error: 'The previous employee receipt could not be identified for ' + selectedTransfer.item_id + '. Nothing was changed.'
+        })
+      }
+
+      restoreByItem[selectedTransfer.item_id] = {
+        previous_receipt: previousReceipt,
         previous_user_id: selectedTransfer.from_user_id
       }
     }
 
-    const targetReceiptIds = Object.keys(restoreByReceipt)
-    const returned = await supabase
-      .from('item_returns')
-      .select('property_receipt_id')
-      .in('property_receipt_id', targetReceiptIds)
-      .limit(1)
-    if (returned.error) return res.status(500).json({ error: returned.error.message })
-
-    const requests = await supabase
-      .from('return_requests')
-      .select('property_receipt_id')
-      .in('property_receipt_id', targetReceiptIds)
-      .limit(1)
-    if (requests.error) return res.status(500).json({ error: requests.error.message })
-
-    if (returned.data?.length || requests.data?.length) {
-      return res.status(409).json({ error: 'This transfer cannot be deleted because one of its properties has return records or a return request.' })
+    const deleteReceiptIds = [...receiptIdsToDelete]
+    if (deleteReceiptIds.length) {
+      const [returnResult, requestResult] = await Promise.all([
+        supabase.from('item_returns').select('id').in('property_receipt_id', deleteReceiptIds).limit(1),
+        supabase.from('return_requests').select('id').in('property_receipt_id', deleteReceiptIds).limit(1)
+      ])
+      if (returnResult.error) return res.status(500).json({ error: returnResult.error.message })
+      if (requestResult.error) return res.status(500).json({ error: requestResult.error.message })
+      if (returnResult.data?.length || requestResult.data?.length) {
+        return res.status(409).json({ error: 'These transfers cannot be deleted because a later transfer has return records or a return request. Keep the records to preserve the return history.' })
+      }
     }
 
-    const receipts = await lookup('property_receipts', targetReceiptIds, 'id, item_id, issued_to, status')
-    const itemIds = Object.values(restoreByReceipt).map(row => row.item_id)
-    const items = await lookup('items', itemIds, 'id, accountable_employee, status')
-    const previousUserIds = Object.values(restoreByReceipt).map(row => row.previous_user_id)
-    const users = await lookup('users', previousUserIds, 'id, full_name')
+    const userIds = Object.values(restoreByItem).map(row => row.previous_user_id)
+    const users = await lookup('users', userIds, 'id, full_name, office_id')
+    const officeIds = Object.values(users).map(row => row.office_id).filter(Boolean)
+    const offices = await lookup('offices', officeIds, 'id, office_name')
+    const items = await lookup('items', itemIds, 'id, accountable_employee, status, office_name, responsibility_center')
 
     const changes = []
-    for (const receiptId of targetReceiptIds) {
-      const restore = restoreByReceipt[receiptId]
-      const receipt = receipts[receiptId]
-      const item = items[restore.item_id]
-      const previousUser = users[restore.previous_user_id]
-
-      if (!receipt || !item || !previousUser) {
-        return res.status(409).json({ error: 'A linked receipt, property, or previous employee could not be found. Nothing was changed.' })
-      }
-
+    for (const itemId of Object.keys(restoreByItem)) {
+      const restore = restoreByItem[itemId]
+      const previousUser = users[String(restore.previous_user_id)]
+      const item = items[String(itemId)]
+      if (!previousUser || !item) return res.status(409).json({ error: 'A previous employee or property record could not be found. Nothing was changed.' })
+      const previousOffice = offices[String(previousUser.office_id)] || null
       changes.push({
-        receipt,
+        item_id: itemId,
         item,
-        previous_user_id: restore.previous_user_id,
-        previous_employee_name: previousUser.full_name
+        previous_receipt: restore.previous_receipt,
+        previous_employee: previousUser.full_name,
+        previous_office: previousOffice?.office_name || item.office_name,
+        previous_user_id: restore.previous_user_id
       })
     }
 
     const changed = []
     try {
       for (const change of changes) {
-        const receiptUpdate = await supabase
-          .from('property_receipts')
-          .update({ issued_to: change.previous_user_id, status: 'Issued' })
-          .eq('id', change.receipt.id)
+        const receiptUpdate = await supabase.from('property_receipts')
+          .update({ status: 'Issued' }).eq('id', change.previous_receipt.id)
         if (receiptUpdate.error) throw new Error(receiptUpdate.error.message)
         changed.push(change)
 
-        const itemUpdate = await supabase
-          .from('items')
-          .update({ accountable_employee: change.previous_employee_name, status: 'Issued' })
-          .eq('id', change.item.id)
+        const itemUpdate = await supabase.from('items').update({
+          accountable_employee: change.previous_employee,
+          office_name: change.previous_office,
+          responsibility_center: change.previous_office,
+          status: 'Issued'
+        }).eq('id', change.item_id)
         if (itemUpdate.error) throw new Error(itemUpdate.error.message)
       }
     } catch (restoreError) {
       for (const change of changed) {
-        await supabase.from('property_receipts')
-          .update({ issued_to: change.receipt.issued_to, status: change.receipt.status })
-          .eq('id', change.receipt.id)
-        await supabase.from('items')
-          .update({ accountable_employee: change.item.accountable_employee, status: change.item.status })
-          .eq('id', change.item.id)
+        await supabase.from('property_receipts').update({ status: 'Transferred' }).eq('id', change.previous_receipt.id)
+        await supabase.from('items').update({
+          accountable_employee: change.item.accountable_employee,
+          office_name: change.item.office_name,
+          responsibility_center: change.item.responsibility_center,
+          status: change.item.status
+        }).eq('id', change.item_id)
       }
-      return res.status(500).json({ error: 'Could not restore every property. Original details were restored where possible: ' + restoreError.message })
+      return res.status(500).json({ error: 'Could not restore every property. No transfer history was deleted: ' + restoreError.message })
     }
 
-    const deleteIds = deleteRows.map(row => row.id)
-    const deleted = await supabase.from('item_transfers').delete().in('id', deleteIds)
-
-    if (deleted.error) {
+    const transferIds = [...new Set(transferRowsToDelete.map(row => row.id))]
+    const deletedTransfers = await supabase.from('item_transfers').delete().in('id', transferIds)
+    if (deletedTransfers.error) {
       for (const change of changed) {
-        await supabase.from('property_receipts')
-          .update({ issued_to: change.receipt.issued_to, status: change.receipt.status })
-          .eq('id', change.receipt.id)
-        await supabase.from('items')
-          .update({ accountable_employee: change.item.accountable_employee, status: change.item.status })
-          .eq('id', change.item.id)
+        await supabase.from('property_receipts').update({ status: 'Transferred' }).eq('id', change.previous_receipt.id)
+        await supabase.from('items').update({
+          accountable_employee: change.item.accountable_employee,
+          office_name: change.item.office_name,
+          responsibility_center: change.item.responsibility_center,
+          status: change.item.status
+        }).eq('id', change.item_id)
       }
-      return res.status(500).json({
-        error: 'Transfer history could not be deleted. Original property details were restored where possible.',
-        details: deleted.error.message
-      })
+      return res.status(500).json({ error: 'Transfer history could not be removed. Property details were restored where possible.', details: deletedTransfers.error.message })
+    }
+
+    if (deleteReceiptIds.length) {
+      const deletedReceipts = await supabase.from('property_receipts').delete().in('id', deleteReceiptIds)
+      if (deletedReceipts.error) {
+        return res.status(500).json({
+          error: 'Transfer rows were removed, but some generated receipts could not be deleted. Contact the administrator before making another transfer.',
+          details: deletedReceipts.error.message
+        })
+      }
     }
 
     return res.json({
-      message: 'The selected transfer and its later transfers for the affected properties were deleted. Other properties in shared transfer groups were kept, and the affected properties were restored to their previous accountable employees.',
-      deleted_count: deleteIds.length,
-      affected_properties: targetReceiptIds.length
+      message: 'The selected transfer and its later transfers were removed for the affected properties. Their previous receipts were restored. Other properties in shared transfer groups were preserved.',
+      deleted_transfer_count: transferIds.length,
+      deleted_receipt_count: deleteReceiptIds.length,
+      affected_properties: changes.length
     })
   } catch (error) {
     console.error('Transfer deletion failed:', error)
