@@ -573,35 +573,46 @@ router.delete('/:id', async (req, res) => {
     const receiptIds = (receipts || []).map(row => row.id)
 
     if (receiptIds.length) {
-      const requestIds = new Set()
+      const { data: linkedRequests, error: requestLookupError } = await supabase
+        .from('property_transfer_requests')
+        .select('id, property_receipt_ids')
+        .overlaps('property_receipt_ids', receiptIds)
 
-      for (const receiptId of receiptIds) {
-        const { data: requests, error: requestLookupError } = await supabase
-          .from('property_transfer_requests')
-          .select('id')
-          .contains('property_receipt_ids', [receiptId])
-
-        if (requestLookupError) {
-          return res.status(500).json({
-            error: 'Could not load linked transfer requests.',
-            details: requestLookupError.message
-          })
-        }
-
-        for (const request of requests || []) requestIds.add(request.id)
+      if (requestLookupError) {
+        return res.status(500).json({
+          error: 'Could not load linked transfer requests.',
+          details: requestLookupError.message
+        })
       }
 
-      if (requestIds.size) {
-        const { error } = await supabase
-          .from('property_transfer_requests')
-          .delete()
-          .in('id', [...requestIds])
+      for (const request of linkedRequests || []) {
+        const remainingReceiptIds = (request.property_receipt_ids || [])
+          .filter(receiptId => !receiptIds.includes(receiptId))
 
-        if (error) {
-          return res.status(500).json({
-            error: 'Could not delete linked transfer requests.',
-            details: error.message
-          })
+        if (remainingReceiptIds.length) {
+          const { error } = await supabase
+            .from('property_transfer_requests')
+            .update({ property_receipt_ids: remainingReceiptIds })
+            .eq('id', request.id)
+
+          if (error) {
+            return res.status(500).json({
+              error: 'Could not remove the deleted property from its transfer request.',
+              details: error.message
+            })
+          }
+        } else {
+          const { error } = await supabase
+            .from('property_transfer_requests')
+            .delete()
+            .eq('id', request.id)
+
+          if (error) {
+            return res.status(500).json({
+              error: 'Could not delete the empty transfer request.',
+              details: error.message
+            })
+          }
         }
       }
     }
