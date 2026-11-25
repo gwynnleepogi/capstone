@@ -340,14 +340,37 @@ router.delete('/:id', async (req, res) => {
       const selectedReceipt = (allReceipts || []).find(row => String(row.id) === String(selectedTransfer.property_receipt_id))
       if (!selectedReceipt) return res.status(409).json({ error: 'The receipt created by this transfer could not be found. Nothing was changed.' })
 
-      const previousReceipt = (allReceipts || [])
+      // Prefer the receipt created by the immediately preceding transfer to this employee.
+      // This is more reliable than matching receipt status/timestamps alone.
+      const previousTransfer = history
         .filter(row =>
-          String(row.issued_to) === String(selectedTransfer.from_user_id) &&
-          String(row.id) !== String(selectedReceipt.id) &&
-          row.status === 'Transferred' &&
-          new Date(row.created_at || row.date_issued || 0) <= new Date(selectedReceipt.created_at || selectedReceipt.date_issued || 0)
+          String(row.id) !== String(selectedTransfer.id) &&
+          String(row.to_user_id) === String(selectedTransfer.from_user_id) &&
+          row.property_receipt_id &&
+          new Date(row.created_at || row.transfer_date || 0) < new Date(selectedTransfer.created_at || selectedTransfer.transfer_date || 0)
         )
-        .sort((a, b) => new Date(b.created_at || b.date_issued || 0) - new Date(a.created_at || a.date_issued || 0))[0]
+        .sort((a, b) =>
+          new Date(b.created_at || b.transfer_date || 0) - new Date(a.created_at || a.transfer_date || 0)
+        )[0]
+
+      let previousReceipt = previousTransfer
+        ? (allReceipts || []).find(row => String(row.id) === String(previousTransfer.property_receipt_id))
+        : null
+
+      // Older transfers may not have a usable preceding-transfer link.
+      // Fall back to the latest transferred receipt for the previous employee,
+      // without relying on timestamps that may be equal or out of order.
+      if (!previousReceipt) {
+        previousReceipt = (allReceipts || [])
+          .filter(row =>
+            String(row.issued_to) === String(selectedTransfer.from_user_id) &&
+            String(row.id) !== String(selectedReceipt.id) &&
+            row.status === 'Transferred'
+          )
+          .sort((a, b) =>
+            new Date(b.created_at || b.date_issued || 0) - new Date(a.created_at || a.date_issued || 0)
+          )[0]
+      }
 
       if (!previousReceipt) {
         return res.status(409).json({
