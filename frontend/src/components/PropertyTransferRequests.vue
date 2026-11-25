@@ -277,7 +277,11 @@ export default {
         })
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Could not approve transfer request.')
-        this.toast('Request approved and properties assigned successfully.')
+        if (data.excluded_properties && data.excluded_properties.length) {
+          this.toast('Transfer completed for eligible properties. ' + data.excluded_properties.length + ' property/properties were excluded. Check the review remarks.')
+        } else {
+          this.toast('Request approved and properties assigned successfully.')
+        }
         this.closeReview()
         await this.loadRequests()
         this.$emit('updated')
