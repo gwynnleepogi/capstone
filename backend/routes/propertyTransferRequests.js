@@ -323,14 +323,15 @@ router.patch('/:id/approve', async (req, res) => {
     }
 
     const receiptIds = request.property_receipt_ids || []
-    const { data: receipts, error: receiptsError } = await supabase.from('property_receipts')
+    const { data: foundReceipts, error: receiptsError } = await supabase.from('property_receipts')
       .select('id, item_id, receipt_type, receipt_number, issued_to, status, quantity, remarks')
       .in('id', receiptIds)
-    if (receiptsError || !receipts || receipts.length !== receiptIds.length) {
+    if (receiptsError) {
       await resetRequest()
-      return res.status(400).json({ error: receiptsError?.message || 'One or more requested properties could not be found.' })
+      return res.status(500).json({ error: receiptsError.message })
     }
 
+    const receipts = foundReceipts || []
     const itemMap = await lookup(
       'items',
       receipts.map(row => row.item_id),
@@ -339,21 +340,43 @@ router.patch('/:id/approve', async (req, res) => {
     const requesterMap = await lookup('users', [request.requested_by], 'id, full_name')
     const previousEmployee = requesterMap[String(request.requested_by)]?.full_name || 'Previous employee'
 
-    for (const receipt of receipts) {
+    const eligibleReceipts = []
+    const excludedProperties = []
+    for (const receiptId of receiptIds) {
+      const receipt = receipts.find(row => String(row.id) === String(receiptId))
+      if (!receipt) {
+        excludedProperties.push({ receipt_id: receiptId, property: 'Missing property record', reason: 'The linked receipt no longer exists.' })
+        continue
+      }
       const item = itemMap[String(receipt.item_id)]
-      if (String(receipt.issued_to) !== String(request.requested_by) || receipt.status !== 'Issued') {
-        await resetRequest()
-        return res.status(400).json({ error: 'A requested property is no longer issued to the requesting employee.' })
+      const propertyName = item?.property_number || item?.description || receipt.receipt_number || 'Property'
+      let reason = ''
+      if (String(receipt.issued_to) !== String(request.requested_by)) {
+        reason = 'It is no longer assigned to the requesting employee.'
+      } else if (receipt.status !== 'Issued') {
+        reason = 'Its receipt is no longer marked as Issued.'
+      } else if (!item) {
+        reason = 'The inventory property record is missing.'
+      } else if (item.condition !== 'Serviceable') {
+        reason = 'The property is ' + String(item.condition || 'not marked Serviceable') + '.'
       }
-      if (!item || item.condition !== 'Serviceable') {
-        await resetRequest()
-        return res.status(400).json({ error: 'A requested property is missing or is no longer serviceable.' })
-      }
+
+      if (reason) excludedProperties.push({ receipt_id: receiptId, property: propertyName, reason })
+      else eligibleReceipts.push(receipt)
     }
 
+    if (!eligibleReceipts.length) {
+      await resetRequest()
+      return res.status(409).json({
+        error: 'None of the requested properties are eligible for transfer. No property was transferred.',
+        excluded_properties: excludedProperties
+      })
+    }
+
+    const transferReceipts = eligibleReceipts
     const transferDate = claimed.transfer_date
-    const receiptNumbers = await generateReceiptNumbers(receipts.length)
-    const newReceiptInserts = receipts.map((receipt, index) => {
+    const receiptNumbers = await generateReceiptNumbers(transferReceipts.length)
+    const newReceiptInserts = transferReceipts.map((receipt, index) => {
       const item = itemMap[String(receipt.item_id)]
       const receiptType = receipt.receipt_type || (Number(item.cost || 0) >= 50000 ? 'PAR' : 'ICS')
       return {
@@ -388,7 +411,7 @@ router.patch('/:id/approve', async (req, res) => {
     }
 
     groupId = require('crypto').randomUUID()
-    const inserts = receipts.map((receipt, index) => ({
+    const inserts = transferReceipts.map((receipt, index) => ({
       item_id: receipt.item_id,
       property_receipt_id: newReceipts[index].id,
       transfer_group_id: groupId,
@@ -446,13 +469,13 @@ router.patch('/:id/approve', async (req, res) => {
         previous_receipt_ids: receiptIds,
         new_receipt_ids: newReceipts.map(row => row.id),
         new_receipt_numbers: newReceipts.map(row => row.receipt_number)
-      }), 'Approved property transfer and created new receipts for ' + recipient.full_name, req.profile.id)
+      }), 'Approved property transfer for ' + recipient.full_name + (excludedProperties.length ? '; excluded ' + excludedProperties.length + ' ineligible property/properties' : ''), req.profile.id)
     } catch (auditError) {
       console.log('Property transfer audit log error:', auditError)
     }
 
     const [result] = await details([finished])
-    res.json({ ...result, transfers: transferRows, new_receipts: newReceipts })
+    res.json({ ...result, transfers: transferRows, new_receipts: newReceipts, excluded_properties: excludedProperties })
   } catch (error) {
     await rollbackTransfer()
     res.status(500).json({ error: error.message })
