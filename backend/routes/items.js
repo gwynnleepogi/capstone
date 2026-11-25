@@ -547,7 +547,15 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const itemId = req.params.id
-    const { data: oldData, error: oldError } = await supabase
+    const supabaseAdmin = getSupabaseAdmin()
+
+    if (!supabaseAdmin) {
+      return res.status(503).json({
+        error: 'Property deletion is unavailable. Configure SUPABASE_SERVICE_ROLE_KEY in the backend environment and restart the backend.'
+      })
+    }
+
+    const { data: oldData, error: oldError } = await supabaseAdmin
       .from('items')
       .select('*')
       .eq('id', itemId)
@@ -557,50 +565,168 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Item not found' })
     }
 
-    // The database function deletes the property and all linked records
-    // in one transaction. If any step fails, the whole deletion is rolled back.
-    const supabaseAdmin = getSupabaseAdmin()
+    // Get every receipt issued for this property.
+    const { data: receipts, error: receiptError } = await supabaseAdmin
+      .from('property_receipts')
+      .select('id')
+      .eq('item_id', itemId)
 
-    if (!supabaseAdmin) {
-      return res.status(503).json({
-        error: 'Property deletion is unavailable. Configure SUPABASE_SERVICE_ROLE_KEY in the backend environment and restart the backend.'
+    if (receiptError) {
+      return res.status(500).json({
+        error: 'Could not load this property\'s receipts.',
+        details: receiptError.message
       })
     }
 
+    const receiptIds = (receipts || []).map(row => row.id)
+
+    // Remove this property's receipt IDs from shared transfer requests.
+    // Keep the request and all other properties if any remain in it.
+    if (receiptIds.length) {
+      const { data: linkedRequests, error: requestError } = await supabaseAdmin
+        .from('property_transfer_requests')
+        .select('id, property_receipt_ids')
+        .overlaps('property_receipt_ids', receiptIds)
+
+      if (requestError) {
+        return res.status(500).json({
+          error: 'Could not load linked transfer requests.',
+          details: requestError.message
+        })
+      }
+
+      for (const request of linkedRequests || []) {
+        const remainingIds = (request.property_receipt_ids || [])
+          .filter(receiptId => !receiptIds.includes(receiptId))
+
+        let result
+        if (remainingIds.length) {
+          result = await supabaseAdmin
+            .from('property_transfer_requests')
+            .update({ property_receipt_ids: remainingIds })
+            .eq('id', request.id)
+        } else {
+          result = await supabaseAdmin
+            .from('property_transfer_requests')
+            .delete()
+            .eq('id', request.id)
+        }
+
+        if (result.error) {
+          return res.status(500).json({
+            error: 'Could not update a linked transfer request.',
+            details: result.error.message
+          })
+        }
+      }
+    }
+
+    // Remove transfer, return-request, and return-history rows by both
+    // item ID and receipt ID. Older rows may only have the receipt link.
+    const linkedDeletes = [
+      { table: 'item_transfers', column: 'item_id' },
+      { table: 'return_requests', column: 'item_id' },
+      { table: 'item_returns', column: 'item_id' }
+    ]
+
+    for (const record of linkedDeletes) {
+      const { error } = await supabaseAdmin
+        .from(record.table)
+        .delete()
+        .eq(record.column, itemId)
+
+      if (error) {
+        return res.status(500).json({
+          error: 'Could not delete linked ' + record.table + '.',
+          details: error.message
+        })
+      }
+    }
+
+    if (receiptIds.length) {
+      const receiptLinkedDeletes = [
+        { table: 'item_transfers', column: 'property_receipt_id' },
+        { table: 'return_requests', column: 'property_receipt_id' },
+        { table: 'item_returns', column: 'property_receipt_id' },
+        { table: 'item_returns', column: 'reissued_receipt_id' }
+      ]
+
+      for (const record of receiptLinkedDeletes) {
+        const { error } = await supabaseAdmin
+          .from(record.table)
+          .delete()
+          .in(record.column, receiptIds)
+
+        if (error) {
+          return res.status(500).json({
+            error: 'Could not delete receipt-linked records from ' + record.table + '.',
+            details: error.message
+          })
+        }
+      }
+    }
+
+    // Preserve audit entries but detach them from the deleted property.
+    const { error: auditError } = await supabaseAdmin
+      .from('audit_logs')
+      .update({ item_id: null })
+      .eq('item_id', itemId)
+
+    if (auditError) {
+      return res.status(500).json({
+        error: 'Could not preserve the audit trail for this property deletion.',
+        details: auditError.message
+      })
+    }
+
+    // Delete receipts only after their dependent history rows are removed.
+    if (receiptIds.length) {
+      const { error } = await supabaseAdmin
+        .from('property_receipts')
+        .delete()
+        .in('id', receiptIds)
+
+      if (error) {
+        return res.status(500).json({
+          error: 'Could not delete this property\'s receipts.',
+          details: error.message
+        })
+      }
+    }
+
     const { error: deleteError } = await supabaseAdmin
-      .rpc('delete_property_with_history', { p_item_id: itemId })
+      .from('items')
+      .delete()
+      .eq('id', itemId)
 
     if (deleteError) {
       console.error('PROPERTY DELETION ERROR:', deleteError)
-      return res.status(500).json({
-        error: 'The property and its linked records could not be deleted. No records were removed.',
+      return res.status(409).json({
+        error: 'The property is still referenced by another record and could not be deleted.',
         details: deleteError.message,
         code: deleteError.code || null
       })
     }
 
-    // Keep the system audit trail, but detach old audit entries from the
-    // deleted property. The deletion event itself is also recorded below.
-    try {
-      await createAuditLog(
-        'Deleted',
-        null,
-        JSON.stringify(oldData),
-        JSON.stringify({ deleted: true, linked_history_deleted: true }),
-        'Deleted property and all linked records: ' + oldData.description +
-          (oldData.property_number ? ' (' + oldData.property_number + ')' : ''),
-        req.profile ? req.profile.id : null
-      )
-    } catch (auditError) {
-      console.log('Audit log error:', auditError)
-    }
+    await createAuditLog(
+      'Deleted',
+      null,
+      JSON.stringify(oldData),
+      JSON.stringify({ deleted: true, linked_history_deleted: true }),
+      'Deleted property and its linked history: ' + oldData.description +
+        (oldData.property_number ? ' (' + oldData.property_number + ')' : ''),
+      req.profile ? req.profile.id : null
+    )
 
-    res.json({
-      message: 'Property and all its linked receipts, return records, return requests, and transfer history were permanently deleted. Other properties in shared transfer requests were preserved.'
+    return res.json({
+      message: 'Property and its linked receipts, return records, return requests, and transfer history were deleted. Other properties in shared transfer requests were preserved.'
     })
   } catch (error) {
-    console.log('PROPERTY DELETION ERROR:', error)
-    res.status(500).json({ error: 'Failed to delete property and its linked records.' })
+    console.error('PROPERTY DELETION ERROR:', error)
+    return res.status(500).json({
+      error: 'Failed to delete property and its linked records.',
+      details: error.message
+    })
   }
 })
 module.exports = router
