@@ -120,13 +120,24 @@
               </div>
             </td>
             <td class="text-end">
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-primary"
-                @click="viewRequest(request)"
-              >
-                <i class="bi bi-eye me-1"></i> View Details
-              </button>
+              <div class="d-inline-flex gap-1">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  @click="viewRequest(request)"
+                >
+                  <i class="bi bi-eye me-1"></i> View Details
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-danger"
+                  :disabled="deletingRequestId === request.id"
+                  @click="openDeleteModal(request)"
+                  title="Delete return request"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -235,6 +246,41 @@
     </div>
   </div>
 
+  <!-- Confirm Delete Return Request Modal -->
+  <div
+    class="modal fade"
+    id="deleteReturnRequestModal"
+    tabindex="-1"
+    aria-labelledby="deleteReturnRequestModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="deleteReturnRequestModalLabel" class="modal-title">Delete Return Request</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" :disabled="deletingRequestId !== null"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">Are you sure you want to delete this return request?</p>
+          <div v-if="requestToDelete" class="small text-muted">
+            {{ requestToDelete.items?.description || 'Property' }} —
+            {{ requestToDelete.status }} request
+          </div>
+          <div v-if="requestToDelete?.status === 'Accepted'" class="alert alert-info mt-3 mb-0">
+            The accepted return record and inventory changes will be kept. Only the request entry will be deleted.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" :disabled="deletingRequestId !== null">Cancel</button>
+          <button type="button" class="btn btn-danger" :disabled="deletingRequestId !== null" @click="deleteRequest">
+            <span v-if="deletingRequestId !== null" class="spinner-border spinner-border-sm me-1"></span>
+            {{ deletingRequestId !== null ? 'Deleting...' : 'Delete Request' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Reject Return Request Modal -->
   <div
     class="modal fade"
@@ -296,6 +342,8 @@ export default {
     return {
       requests: [],
       selectedRequest: null,
+      requestToDelete: null,
+      deletingRequestId: null,
       loading: true,
       saving: false,
       filter: 'All',
@@ -377,6 +425,42 @@ export default {
       this.selectedRequest = request
       const element = document.getElementById('returnRequestDetailsModal')
       if (element) Modal.getOrCreateInstance(element).show()
+    },
+
+    openDeleteModal(request) {
+      if (!request || this.deletingRequestId !== null) return
+      this.requestToDelete = request
+      const element = document.getElementById('deleteReturnRequestModal')
+      if (element) Modal.getOrCreateInstance(element).show()
+    },
+
+    async deleteRequest() {
+      const request = this.requestToDelete
+      if (!request || this.deletingRequestId !== null) return
+
+      this.deletingRequestId = request.id
+
+      try {
+        const response = await fetch(`/api/return-requests/${request.id}`, {
+          method: 'DELETE'
+        })
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to delete return request')
+        }
+
+        this.closeModal('deleteReturnRequestModal')
+        this.requestToDelete = null
+        this.toast(data.message || 'Return request deleted.')
+        await this.loadRequests()
+        window.dispatchEvent(new CustomEvent('return-requests-updated'))
+        this.$emit('changed')
+      } catch (error) {
+        this.toast(error.message)
+      } finally {
+        this.deletingRequestId = null
+      }
     },
 
     closeModal(id) {
