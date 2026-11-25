@@ -7,9 +7,12 @@
         <p class="text-muted mb-0">Read-only information for the scanned item</p>
       </div>
 
-      <div>
+      <div class="d-flex flex-wrap gap-2">
+        <router-link to="/my-properties" class="btn btn-outline-success">
+          <i class="bi bi-arrow-left me-1"></i>
+          Back to My Properties
+        </router-link>
         <button type="button" class="btn btn-success" @click="scanAgain">
-          <i class="bi bi-qr-code-scan me-1"></i>
           Scan Another
         </button>
       </div>
