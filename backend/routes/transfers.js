@@ -317,14 +317,13 @@ router.delete('/:id', async (req, res) => {
           .update({ issued_to: change.previous_user_id, status: 'Issued' })
           .eq('id', change.receipt.id)
         if (receiptUpdate.error) throw new Error(receiptUpdate.error.message)
+        changed.push(change)
 
         const itemUpdate = await supabase
           .from('items')
           .update({ accountable_employee: change.previous_employee_name, status: 'Issued' })
           .eq('id', change.item.id)
         if (itemUpdate.error) throw new Error(itemUpdate.error.message)
-
-        changed.push(change)
       }
     } catch (restoreError) {
       for (const change of changed) {
