@@ -122,7 +122,7 @@
               </div>
 
               <div class="col-12 col-md-6">
-                <label class="form-label">Article <span class="text-danger">*</span></label>
+                <label class="form-label">Category <span class="text-danger">*</span></label>
                 <input v-model.trim="newItem.article" type="text" class="form-control" placeholder="e.g. BAG" required />
               </div>
 
