@@ -181,9 +181,9 @@ router.patch('/:id/cancel', async (req, res) => {
   })
 
   try {
-    // Use the server's trusted Supabase client for the update; still constrain it
-    // to this authenticated user's own Pending request.
-    const { data, error } = await supabase
+    // Use the employee's authenticated client. The cancellation RLS policy
+    // permits employees to change only their own Pending request to Cancelled.
+    const { data, error } = await userSupabase
       .from('property_transfer_requests')
       .update({ status: 'Cancelled' })
       .eq('id', req.params.id)
