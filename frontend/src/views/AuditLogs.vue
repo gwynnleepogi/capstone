@@ -116,94 +116,8 @@
                   {{ getItemName(log) }}
                 </td>
 
-                <td>
-                  <div
-                    v-if="hasStructuredDetails(log)"
-                    class="details-dropdown"
-                  >
-                    <p class="activity-summary mb-1">
-                      {{ log.description || 'Activity recorded' }}
-                    </p>
-
-                    <button
-                      type="button"
-                      class="details-button"
-                      @click="toggleDetails(log.id)"
-                    >
-                      <span>View field changes</span>
-
-                      <i
-                        class="bi bi-chevron-down"
-                        :class="{ rotated: openedLog === log.id }"
-                      ></i>
-                    </button>
-
-                    <div
-                      class="details-wrapper"
-                      :class="{ open: openedLog === log.id }"
-                    >
-                      <div class="details-content">
-                        <div v-if="detailEntries(log.old_value).length">
-                          <strong>
-                            {{
-                              log.action === 'Deleted'
-                                ? 'Deleted record'
-                                : 'Before'
-                            }}
-                          </strong>
-
-                          <div class="detail-grid">
-                            <div
-                              v-for="entry in detailEntries(log.old_value)"
-                              :key="entry.key"
-                              class="detail-field"
-                            >
-                              <span>
-                                {{ formatLabel(entry.key) }}
-                              </span>
-
-                              <strong>
-                                {{ entry.value }}
-                              </strong>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div v-if="detailEntries(log.new_value).length">
-                          <strong>
-                            {{
-                              log.action === 'Created'
-                                ? 'Added record'
-                                : 'After'
-                            }}
-                          </strong>
-
-                          <div class="detail-grid">
-                            <div
-                              v-for="entry in detailEntries(log.new_value)"
-                              :key="entry.key"
-                              class="detail-field"
-                            >
-                              <span>
-                                {{ formatLabel(entry.key) }}
-                              </span>
-
-                              <strong>
-                                {{ entry.value }}
-                              </strong>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <span
-                    v-else
-                    class="no-details"
-                  >
-                    {{ log.description || '-' }}
-                  </span>
+                <td class="audit-summary-cell">
+                  {{ log.description || 'Activity recorded' }}
                 </td>
 
                 <td>
@@ -278,7 +192,7 @@
             <p><strong>Date:</strong> {{ formatDate(selectedLog.created_at) }}</p>
             <p><strong>Action:</strong> {{ formatAction(selectedLog.action) }}</p>
             <p><strong>Item:</strong> {{ getItemName(selectedLog) }}</p>
-            <p><strong>Description:</strong> {{ selectedLog.description || '-' }}</p>
+            <p><strong>Details:</strong> {{ selectedLog.description || '-' }}</p>
             <button
               v-if="canDeleteAuditLogs"
               type="button"
@@ -669,6 +583,10 @@ export default {
         return values.request_number
       }
 
+      if (log.description && /property transfer request/i.test(log.description)) {
+        return 'Property transfer request'
+      }
+
       if (log.description) {
         const description = log.description
 
@@ -710,7 +628,10 @@ export default {
         'auth_user_id',
         'created_at',
         'updated_at',
-        'reviewed_by'
+        'reviewed_by',
+        'request_id',
+        'property_receipt_ids',
+        'property_receipt_id'
       ])
 
       return records.flatMap((record, index) => {
@@ -736,7 +657,7 @@ export default {
           return Object.entries(value).flatMap(([key, entry]) => {
             if (
               ignoredKeys.has(key.toLowerCase()) ||
-              /password|token|secret|credential/i.test(key)
+              /(^id$|_id$|_ids$|password|token|secret|credential)/i.test(key)
             ) {
               return []
             }
@@ -748,7 +669,7 @@ export default {
         return Object.entries(record).flatMap(([key, entry]) => {
           if (
             ignoredKeys.has(key.toLowerCase()) ||
-            /password|token|secret|credential/i.test(key)
+            /(^id$|_id$|_ids$|password|token|secret|credential)/i.test(key)
           ) {
             return []
           }
@@ -1017,6 +938,7 @@ export default {
   color: #ffffff;
 }
 
+.audit-summary-cell{min-width:180px;max-width:360px;white-space:normal;overflow-wrap:anywhere}
 .details-dropdown {
   width: 100%;
   position: relative;
