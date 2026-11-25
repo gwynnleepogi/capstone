@@ -72,6 +72,17 @@
         </div>
       </div>
 
+      <div class="report-action-section">
+        <button
+          class="print-button"
+          :disabled="loading || Boolean(errorMessage)"
+          @click="openPrintModal"
+        >
+          <i class="bi bi-printer"></i>
+          Choose Report to Print
+        </button>
+      </div>
+
       <div v-if="loading" class="message">
         Loading inventory movement records...
       </div>
@@ -122,17 +133,6 @@
       <div class="modal-footer">
         <span>{{ filteredMovements.length }} record(s)</span>
 
-        <div class="footer-actions">
-          <button
-            class="print-button"
-            :disabled="loading || Boolean(errorMessage)"
-            @click="openPrintModal"
-          >
-            <i class="bi bi-printer"></i>
-            Choose Report to Print
-          </button>
-
-        </div>
       </div>
     </div>
 
@@ -2111,6 +2111,12 @@ th {
 
 .excel-button {
   background: #217346;
+}
+
+.report-action-section {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
 }
 
 .print-button:disabled {
