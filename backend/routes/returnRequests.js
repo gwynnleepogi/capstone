@@ -210,12 +210,23 @@ router.get('/', staffOnly, async (req, res) => {
 // ---------------------------------------------------------------------------
 router.post('/', async (req, res) => {
   try {
-    const { property_receipt_id, return_date, return_purpose, remarks } = req.body
+    const {
+      property_receipt_id,
+      property_receipt_ids,
+      return_date,
+      return_purpose,
+      remarks
+    } = req.body
+    const receiptIds = [...new Set(
+      (Array.isArray(property_receipt_ids) ? property_receipt_ids : [property_receipt_id])
+        .filter(Boolean)
+        .map(id => String(id))
+    )]
     const condition_declared = 'Unserviceable'
     const return_reason = String(remarks || '').trim()
 
-    if (!property_receipt_id) {
-      return res.status(400).json({ error: 'Please select the property you want to return.' })
+    if (!receiptIds.length) {
+      return res.status(400).json({ error: 'Please select at least one property to return.' })
     }
 
     if (!return_reason) {
@@ -226,85 +237,100 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Please select a valid property purpose.' })
     }
 
-    const { data: receipt, error: receiptError } = await supabase
-      .from('property_receipts')
-      .select('id, item_id, quantity, status, issued_to, receipt_number, items (description, property_number)')
-      .eq('id', property_receipt_id)
-      .single()
+    const receipts = []
+    for (const receiptId of receiptIds) {
+      const { data: receipt, error: receiptError } = await supabase
+        .from('property_receipts')
+        .select('id, item_id, quantity, status, issued_to, receipt_number, items (description, property_number)')
+        .eq('id', receiptId)
+        .maybeSingle()
 
-    if (receiptError || !receipt) {
-      return res.status(404).json({ error: 'Issued property not found.' })
+      if (receiptError || !receipt) {
+        return res.status(404).json({ error: 'One of the selected issued properties could not be found.' })
+      }
+
+      if (String(receipt.issued_to) !== String(req.profile.id)) {
+        return res.status(403).json({ error: 'You can only return property that was issued to you.' })
+      }
+
+      if (receipt.status !== 'Issued') {
+        return res.status(400).json({ error: 'Only issued properties can be returned.' })
+      }
+
+      const existing = await findExistingReturn(receipt)
+      if (existing.error) return res.status(500).json({ error: existing.error })
+      if (existing.message) return res.status(409).json({ error: existing.message })
+
+      const { data: openRequest, error: openError } = await supabase
+        .from('return_requests')
+        .select('id')
+        .eq('property_receipt_id', receipt.id)
+        .eq('status', 'Pending')
+        .maybeSingle()
+
+      if (openError) return res.status(500).json({ error: openError.message })
+      if (openRequest) {
+        return res.status(409).json({ error: 'A return request for one of the selected properties is already waiting for review.' })
+      }
+
+      receipts.push(receipt)
     }
 
-    if (String(receipt.issued_to) !== String(req.profile.id)) {
-      return res.status(403).json({ error: 'You can only return property that was issued to you.' })
-    }
-
-    if (receipt.status !== 'Issued') {
-      return res.status(400).json({ error: 'Only issued property can be returned.' })
-    }
-
-    const existing = await findExistingReturn(receipt)
-    if (existing.error) return res.status(500).json({ error: existing.error })
-    if (existing.message) return res.status(409).json({ error: existing.message })
-
-    const { data: openRequest, error: openError } = await supabase
-      .from('return_requests')
-      .select('id')
-      .eq('property_receipt_id', receipt.id)
-      .eq('status', 'Pending')
-      .maybeSingle()
-
-    if (openError) return res.status(500).json({ error: openError.message })
-    if (openRequest) {
-      return res.status(409).json({ error: 'A return request for this property is already waiting for review.' })
-    }
+    // A shared created_at value identifies all properties submitted together.
+    // This groups the request without requiring a database schema change.
+    const batchCreatedAt = new Date().toISOString()
+    const requestRows = receipts.map(receipt => ({
+      property_receipt_id: receipt.id,
+      item_id: receipt.item_id,
+      requested_by: req.profile.id,
+      office_id: req.profile.office_id || null,
+      return_date: return_date || new Date().toISOString().split('T')[0],
+      return_purpose: return_purpose || null,
+      condition_declared,
+      return_reason,
+      remarks: String(remarks || '').trim() || null,
+      status: 'Pending',
+      created_at: batchCreatedAt
+    }))
 
     const { data: created, error: insertError } = await supabase
       .from('return_requests')
-      .insert([{
-        property_receipt_id: receipt.id,
-        item_id: receipt.item_id,
-        requested_by: req.profile.id,
-        office_id: req.profile.office_id || null,
-        return_date: return_date || new Date().toISOString().split('T')[0],
-        return_purpose: return_purpose || null,
-        condition_declared,
-        return_reason: String(return_reason).trim(),
-        remarks: String(remarks || '').trim() || null,
-        status: 'Pending'
-      }])
+      .insert(requestRows)
       .select()
-      .single()
 
     if (insertError) {
       if (insertError.code === '23505') {
-        return res.status(409).json({ error: 'A return request for this property is already waiting for review.' })
+        return res.status(409).json({ error: 'A return request for one of the selected properties is already waiting for review.' })
       }
-
       return res.status(500).json({ error: insertError.message })
     }
 
-    await createAuditLog(
-      'Requested',
-      receipt.item_id,
-      null,
-      JSON.stringify({
-        description: receipt.items?.description,
-        property_number: receipt.items?.property_number,
-        receipt_number: receipt.receipt_number,
-        status: 'Pending',
-        condition_declared,
-        return_date: created.return_date,
-        return_purpose: created.return_purpose,
-        return_reason: created.return_reason,
-        remarks: created.remarks
-      }),
-      `${req.profile.full_name || 'A user'} requested to return ${receipt.items?.description || 'property'} (receipt ${receipt.receipt_number})`,
-      req.profile.id
-    )
+    for (const receipt of receipts) {
+      await createAuditLog(
+        'Requested',
+        receipt.item_id,
+        null,
+        JSON.stringify({
+          description: receipt.items?.description,
+          property_number: receipt.items?.property_number,
+          receipt_number: receipt.receipt_number,
+          status: 'Pending',
+          condition_declared,
+          return_date: return_date || new Date().toISOString().split('T')[0],
+          return_purpose: return_purpose || null,
+          return_reason,
+          remarks: String(remarks || '').trim() || null
+        }),
+        `${req.profile.full_name || 'A user'} requested to return ${receipt.items?.description || 'property'} (receipt ${receipt.receipt_number})`,
+        req.profile.id
+      )
+    }
 
-    res.status(201).json(created)
+    res.status(201).json({
+      message: 'Return request submitted.',
+      batch_created_at: batchCreatedAt,
+      requests: created || []
+    })
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
