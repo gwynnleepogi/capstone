@@ -906,6 +906,56 @@ export default {
           };
         });
 
+        if (isIssuance) {
+          const certificationRow = worksheet.addRow([]);
+          const certificationRowNumber = certificationRow.number;
+          worksheet.mergeCells('A' + certificationRowNumber + ':L' + certificationRowNumber);
+          const certificationCell = worksheet.getCell('A' + certificationRowNumber);
+          certificationCell.value = 'I hereby certify to the correctness of the above information.';
+          certificationCell.font = { name: 'Arial', size: 10 };
+          certificationCell.alignment = { horizontal: 'left', vertical: 'middle' };
+          worksheet.getRow(certificationRowNumber).height = 28;
+
+          worksheet.addRow([]);
+
+          const namesRow = worksheet.addRow([]);
+          const namesRowNumber = namesRow.number;
+          worksheet.mergeCells('A' + namesRowNumber + ':D' + namesRowNumber);
+          worksheet.mergeCells('E' + namesRowNumber + ':H' + namesRowNumber);
+          worksheet.mergeCells('I' + namesRowNumber + ':L' + namesRowNumber);
+
+          worksheet.getCell('A' + namesRowNumber).value = this.certificationCustodian;
+          worksheet.getCell('E' + namesRowNumber).value = this.certificationAccountingStaff;
+          worksheet.getCell('I' + namesRowNumber).value = this.formatLongDate(this.certificationDate);
+
+          ['A', 'E', 'I'].forEach(column => {
+            const cell = worksheet.getCell(column + namesRowNumber);
+            cell.font = { name: 'Arial', size: 10 };
+            cell.alignment = { horizontal: 'center', vertical: 'bottom', wrapText: true };
+            cell.border = { bottom: { style: 'thin' } };
+          });
+          worksheet.getRow(namesRowNumber).height = 25;
+
+          const labelsRow = worksheet.addRow([]);
+          const labelsRowNumber = labelsRow.number;
+          worksheet.mergeCells('A' + labelsRowNumber + ':D' + labelsRowNumber);
+          worksheet.mergeCells('E' + labelsRowNumber + ':H' + labelsRowNumber);
+          worksheet.mergeCells('I' + labelsRowNumber + ':L' + labelsRowNumber);
+
+          worksheet.getCell('A' + labelsRowNumber).value =
+            'Signature over Printed Name of Supply/Property Custodian';
+          worksheet.getCell('E' + labelsRowNumber).value =
+            'Signature over Printed Name of Designated Accounting Staff';
+          worksheet.getCell('I' + labelsRowNumber).value = 'Date';
+
+          ['A', 'E', 'I'].forEach(column => {
+            const cell = worksheet.getCell(column + labelsRowNumber);
+            cell.font = { name: 'Arial', size: 9 };
+            cell.alignment = { horizontal: 'center', vertical: 'top', wrapText: true };
+          });
+          worksheet.getRow(labelsRowNumber).height = 32;
+        }
+
         /* COLUMN WIDTHS */
 
         worksheet.columns = isIssuance
