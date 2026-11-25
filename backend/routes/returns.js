@@ -85,7 +85,45 @@ router.get('/', async (req, res) => {
       property_receipts: receiptsById[String(row.property_receipt_id)] || null
     }))
 
-    res.json(results)
+    // Link accepted return records to the original grouped employee request.
+    const returnIds = results.map(row => String(row.id))
+    let requestRows = []
+    if (returnIds.length) {
+      const { data: linkedRequests, error: linkedRequestError } = await supabase
+        .from('return_requests')
+        .select('id, item_return_id, requested_by, created_at')
+        .in('item_return_id', returnIds)
+
+      if (linkedRequestError) {
+        return res.status(500).json({ error: linkedRequestError.message })
+      }
+      requestRows = linkedRequests || []
+    }
+
+    const requestGroups = new Map()
+    requestRows.forEach(request => {
+      const key = String(request.requested_by) + '|' + String(request.created_at)
+      if (!requestGroups.has(key)) requestGroups.set(key, [])
+      requestGroups.get(key).push(request)
+    })
+
+    const requestByReturnId = {}
+    requestGroups.forEach((group, key) => {
+      const returnGroupIds = group.map(request => String(request.item_return_id))
+      group.forEach(request => {
+        requestByReturnId[String(request.item_return_id)] = {
+          batch_key: key,
+          batch_return_ids: returnGroupIds
+        }
+      })
+    })
+
+    const linkedResults = results.map(row => ({
+      ...row,
+      return_request_batch: requestByReturnId[String(row.id)] || null
+    }))
+
+    res.json(linkedResults)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
