@@ -74,12 +74,12 @@
 
       <div class="report-action-section">
         <button
-          class="print-button excel-button"
-          :disabled="loading || Boolean(errorMessage) || invalidDateRange"
-          @click="exportToExcel"
+          class="print-button"
+          :disabled="loading || Boolean(errorMessage)"
+          @click="openPrintModal"
         >
-          <i class="bi bi-file-earmark-excel"></i>
-          Export to Excel
+          <i class="bi bi-printer"></i>
+          Choose Report to Print
         </button>
       </div>
 
@@ -136,7 +136,170 @@
       </div>
     </div>
 
+    <div
+      v-if="showPrintModal"
+      class="print-picker-backdrop"
+      @click.self="showPrintModal = false"
+      @keydown.esc="showPrintModal = false"
+    >
+      <section
+        class="print-picker card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="print-picker-title"
+      >
+        <div class="print-picker-header">
+          <div>
+            <h3 id="print-picker-title">Choose a report to print</h3>
+            <p>Choose the fund cluster and date range, then select the report you want to print.</p>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            @click="showPrintModal = false"
+          ></button>
+        </div>
 
+        <div class="print-report-filters">
+          <div class="certification-field">
+            <label for="print-fund-cluster">Fund Cluster <span>*</span></label>
+            <select id="print-fund-cluster" v-model="printFundCluster" required>
+              <option value="ALL">All Fund Clusters</option>
+              <option v-for="cluster in fundClusters" :key="cluster" :value="cluster">
+                {{ cluster }}
+              </option>
+            </select>
+          </div>
+
+          <div class="print-date-fields">
+            <div class="certification-field">
+              <label for="print-date-from">Date From <span>*</span></label>
+              <input id="print-date-from" v-model="printDateFrom" type="date" required>
+            </div>
+            <div class="certification-field">
+              <label for="print-date-to">Date To <span>*</span></label>
+              <input id="print-date-to" v-model="printDateTo" type="date" required>
+            </div>
+          </div>
+          <p v-if="invalidPrintDateRange" class="date-range-error">
+            {{ printDateRangeError }}
+          </p>
+        </div>
+
+        <div class="print-picker-options">
+          <button
+            type="button"
+            class="print-option"
+            :disabled="invalidPrintDateRange || !canPrintReport('acquisition')"
+            @click="printSelectedReport('acquisition')"
+          >
+            <span class="print-option-icon acquisition-icon">
+              <i class="bi bi-box-arrow-in-down"></i>
+            </span>
+            <span class="print-option-copy">
+              <strong>Print Acquisitions</strong>
+              <small>Acquisition of Supplies and Materials</small>
+              <small>{{ getReportRowCount('acquisition') }} matching record(s)</small>
+            </span>
+            <i class="bi bi-chevron-right"></i>
+          </button>
+
+          <button
+            type="button"
+            class="print-option"
+            :disabled="invalidPrintDateRange || !canPrintReport('issuance')"
+            @click="printSelectedReport('issuance')"
+          >
+            <span class="print-option-icon issuance-icon">
+              <i class="bi bi-box-arrow-up-right"></i>
+            </span>
+            <span class="print-option-copy">
+              <strong>Print Issued</strong>
+              <small>Report of Supplies and Materials Issued</small>
+              <small>{{ getReportRowCount('issuance') }} matching record(s)</small>
+            </span>
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+
+        <div class="print-picker-footer">
+          <button type="button" class="close-footer-button" @click="showPrintModal = false">
+            Cancel
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <div
+      v-if="showCertificationModal"
+      class="print-picker-backdrop"
+      @click.self="showCertificationModal = false"
+      @keydown.esc="showCertificationModal = false"
+    >
+      <section
+        class="print-picker certification-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="certification-modal-title"
+      >
+        <div class="print-picker-header">
+          <div>
+            <h3 id="certification-modal-title">Certification Details</h3>
+            <p>Enter the required details before printing the report.</p>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            @click="showCertificationModal = false"
+          ></button>
+        </div>
+
+        <form class="certification-form" @submit.prevent="confirmCertificationAndPrint">
+          <div class="certification-field">
+            <label for="custodian-printed-name">Supply/Property Custodian Printed Name <span>*</span></label>
+            <input
+              id="custodian-printed-name"
+              v-model.trim="certificationCustodian"
+              type="text"
+              placeholder="Enter full name"
+              required
+            >
+          </div>
+
+          <div class="certification-field">
+            <label for="accounting-printed-name">Designated Accounting Staff Printed Name <span>*</span></label>
+            <input
+              id="accounting-printed-name"
+              v-model.trim="certificationAccountingStaff"
+              type="text"
+              placeholder="Enter full name"
+              required
+            >
+          </div>
+
+          <div class="certification-field">
+            <label for="certification-date">Date <span>*</span></label>
+            <input
+              id="certification-date"
+              v-model="certificationDate"
+              type="date"
+              required
+            >
+          </div>
+
+          <div class="certification-actions">
+            <button type="button" class="close-footer-button" @click="showCertificationModal = false">
+              Cancel
+            </button>
+            <button type="submit" class="print-button">
+              Continue to Print
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -1383,59 +1546,6 @@ export default {
         </table>`;
 
       this.openReportWindow(title, body, '#000');
-    },
-
-    async exportToExcel() {
-      if (this.loading || this.errorMessage || this.invalidDateRange) return;
-
-      const workbook = new ExcelJS.Workbook();
-      const sheet = workbook.addWorksheet('Inventory Movements');
-      sheet.addRow(['Inventory Movement History']);
-      sheet.addRow(['Fund Cluster', this.selectedFundCluster === 'ALL' ? 'All Fund Clusters' : this.selectedFundCluster]);
-      sheet.addRow(['Date From', this.dateFrom]);
-      sheet.addRow(['Date To', this.dateTo]);
-      sheet.addRow(['Movement Type', this.movementType === 'all' ? 'All Movements' : this.movementType]);
-      sheet.addRow([]);
-      sheet.addRow(['Summary']);
-      sheet.addRow(['Total Movements', this.filteredMovements.length]);
-      sheet.addRow(['Acquisitions', this.totalAcquired]);
-      sheet.addRow(['Issuances', this.totalIssued]);
-      sheet.addRow(['Returns', this.totalReturned]);
-      sheet.addRow([]);
-      sheet.addRow(['Date', 'Property No.', 'Description', 'Movement', 'Quantity', 'Reference', 'Recipient / Source']);
-
-      this.filteredMovements.forEach(item => {
-        sheet.addRow([
-          this.formatDate(item.date),
-          item.propertyNumber || 'N/A',
-          item.description || 'N/A',
-          item.category === 'Return' ? 'Unserviceable' : item.category,
-          item.quantity,
-          item.reference || 'N/A',
-          item.person || 'N/A'
-        ]);
-      });
-
-      sheet.columns = [
-        { width: 16 }, { width: 24 }, { width: 42 }, { width: 20 },
-        { width: 12 }, { width: 22 }, { width: 32 }
-      ];
-      sheet.getRow(13).font = { bold: true };
-      sheet.getRow(1).font = { bold: true, size: 16 };
-      sheet.views = [{ state: 'frozen', ySplit: 13 }];
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'inventory-movement-history.xlsx';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
     },
 
     async loadMovements() {
