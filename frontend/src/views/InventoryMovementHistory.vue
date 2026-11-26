@@ -897,7 +897,7 @@ export default {
           };
         });
 
-        if (isIssuance) {
+        {
           const certificationRow = worksheet.addRow([]);
           const certificationRowNumber = certificationRow.number;
           worksheet.mergeCells('A' + certificationRowNumber + ':L' + certificationRowNumber);
