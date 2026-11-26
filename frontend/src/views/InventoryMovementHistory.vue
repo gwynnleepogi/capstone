@@ -2121,7 +2121,7 @@ th {
 
 .report-action-section {
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
   margin: 0 24px 16px;
 }
 
