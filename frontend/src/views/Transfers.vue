@@ -49,21 +49,12 @@
             >
           </div>
 
-          <div class="col-md-3">
-            <label class="form-label">Transfer Type</label>
-            <select class="form-select" v-model="typeFilter">
-              <option value="">All Types</option>
-              <option value="To Employee">To Employee</option>
-            </select>
-          </div>
-
-          <div class="col-md-3">
+          <div class="col-md-6">
             <label class="form-label">Result</label>
             <select class="form-select" v-model="resultFilter">
               <option value="">All Results</option>
               <option value="Issued">Issued</option>
-              <option value="Available">Available</option>
-              <option value="Returned">Returned and Unserviceable</option>
+              <option value="Returned and Unserviceable">Returned and Unserviceable</option>
             </select>
           </div>
         </div>
@@ -701,7 +692,6 @@ export default {
       offices: [],
 
       search: '',
-      typeFilter: '',
       resultFilter: '',
 
       currentPage: 1,
@@ -814,8 +804,7 @@ export default {
 
         return (
           (!text || haystack.includes(text)) &&
-          (!this.typeFilter || transfer.transfer_type === this.typeFilter) &&
-          (!this.resultFilter || transfer.resulting_status === this.resultFilter)
+          (!this.resultFilter || this.getResultLabel(transfer) === this.resultFilter)
         )
       })
     },
@@ -848,10 +837,6 @@ export default {
 
   watch: {
     search() {
-      this.currentPage = 1
-    },
-
-    typeFilter() {
       this.currentPage = 1
     },
 
