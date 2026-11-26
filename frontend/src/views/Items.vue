@@ -1186,15 +1186,7 @@ export default {
     },
 
     statusOptions() {
-      return [
-        'Assigned',
-        'Issued',
-        'Returned',
-        'Lost',
-        'Damaged',
-        'Stolen',
-        'Disposed',
-      ]
+      return ['Issued', 'Returned']
     },
 
     officeSelectOptions() {
