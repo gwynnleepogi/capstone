@@ -655,7 +655,7 @@ export default {
           ? 'REPORT ON SUPPLIES AND MATERIALS ISSUED'
           : 'ACQUISITION OF SUPPLIES AND MATERIALS';
 
-        const lastColumn = isIssuance ? 'L' : 'L';
+        const lastColumn = isIssuance ? 'K' : 'L';
 
         const worksheet = workbook.addWorksheet(
           isIssuance ? 'Properties Issued' : 'Office Property Acquisition',
@@ -746,8 +746,7 @@ export default {
               'QTY',
               'U-Cost',
               'Amount',
-              'Name',
-              'Destination'
+              'Name'
             ]
           : [
               'Acquisition Date',
@@ -810,8 +809,7 @@ export default {
                 quantity,
                 unitCost,
                 amount,
-                item.name || item.person || '',
-                item.destination || ''
+                item.name || item.person || ''
               ]
             : [
                 item.date || '',
@@ -868,7 +866,7 @@ export default {
           isIssuance
             ? [
                 'TOTAL', '', '', '', '', '', '', '', '',
-                grandTotal, '', ''
+                grandTotal, ''
               ]
             : [
                 'GRAND TOTAL', '', '', '', '', '', '', '', '',
@@ -900,7 +898,7 @@ export default {
         {
           const certificationRow = worksheet.addRow([]);
           const certificationRowNumber = certificationRow.number;
-          worksheet.mergeCells('A' + certificationRowNumber + ':L' + certificationRowNumber);
+          worksheet.mergeCells('A' + certificationRowNumber + ':' + lastColumn + certificationRowNumber);
           const certificationCell = worksheet.getCell('A' + certificationRowNumber);
           certificationCell.value = 'I hereby certify to the correctness of the above information.';
           certificationCell.font = { name: 'Arial', size: 10 };
@@ -913,7 +911,7 @@ export default {
           const namesRowNumber = namesRow.number;
           worksheet.mergeCells('A' + namesRowNumber + ':D' + namesRowNumber);
           worksheet.mergeCells('E' + namesRowNumber + ':H' + namesRowNumber);
-          worksheet.mergeCells('I' + namesRowNumber + ':L' + namesRowNumber);
+          worksheet.mergeCells('I' + namesRowNumber + ':' + lastColumn + namesRowNumber);
 
           worksheet.getCell('A' + namesRowNumber).value = this.certificationCustodian;
           worksheet.getCell('E' + namesRowNumber).value = this.certificationAccountingStaff;
@@ -931,7 +929,7 @@ export default {
           const labelsRowNumber = labelsRow.number;
           worksheet.mergeCells('A' + labelsRowNumber + ':D' + labelsRowNumber);
           worksheet.mergeCells('E' + labelsRowNumber + ':H' + labelsRowNumber);
-          worksheet.mergeCells('I' + labelsRowNumber + ':L' + labelsRowNumber);
+          worksheet.mergeCells('I' + labelsRowNumber + ':' + lastColumn + labelsRowNumber);
 
           worksheet.getCell('A' + labelsRowNumber).value =
             'Signature over Printed Name of Supply/Property Custodian';
@@ -961,8 +959,7 @@ export default {
               { width: 7 },
               { width: 13 },
               { width: 14 },
-              { width: 22 },
-              { width: 25 }
+              { width: 22 }
             ]
           : [
               { width: 16 },
