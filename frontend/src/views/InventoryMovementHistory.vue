@@ -2115,8 +2115,8 @@ th {
 
 .report-action-section {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
+  justify-content: flex-start;
+  margin: 0 24px 16px;
 }
 
 .print-button:disabled {
