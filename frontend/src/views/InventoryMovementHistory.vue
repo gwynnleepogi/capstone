@@ -573,8 +573,7 @@ export default {
 
       this.reportToPrint = reportType;
       this.showPrintModal = false;
-      this.showCertificationModal = false;
-      this.exportAcquisitionExcel();
+      this.showCertificationModal = true;
     },
 
     confirmCertificationAndPrint() {
@@ -587,7 +586,7 @@ export default {
       }
 
       this.showCertificationModal = false;
-      this.printReport();
+      this.exportAcquisitionExcel();
     },
 
     getRelatedRecord(value) {
