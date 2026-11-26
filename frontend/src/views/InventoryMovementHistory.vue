@@ -1679,6 +1679,8 @@ export default {
           .map(receipt => {
             const item = this.getRelatedRecord(receipt.items);
             const receiptUser = this.getRelatedRecord(receipt.users);
+            const receiptOffice = this.getRelatedRecord(receipt.offices);
+            const recipientOffice = this.getRelatedRecord(receiptUser.offices);
 
             return {
               id: 'receipt-' + (receipt.id || receipt.receipt_id),
@@ -1720,7 +1722,14 @@ export default {
                 receipt.destination ||
                 receipt.destination_office ||
                 receipt.issued_to_office ||
+                receipt.office_name ||
                 receipt.office ||
+                receiptOffice.office_name ||
+                receiptUser.office_name ||
+                receiptUser.office ||
+                recipientOffice.office_name ||
+                receiptUser.department ||
+                item.office_name ||
                 '',
               rcCode: item.responsibility_center || '',
               unit: this.cleanUnit(item.unit || item.unit_of_measure),
