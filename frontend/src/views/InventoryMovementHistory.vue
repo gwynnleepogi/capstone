@@ -79,7 +79,7 @@
           @click="openPrintModal"
         >
           <i class="bi bi-printer"></i>
-          Choose Report to Print
+          Export Excel
         </button>
       </div>
 
@@ -573,7 +573,8 @@ export default {
 
       this.reportToPrint = reportType;
       this.showPrintModal = false;
-      this.showCertificationModal = true;
+      this.showCertificationModal = false;
+      this.exportAcquisitionExcel();
     },
 
     confirmCertificationAndPrint() {
